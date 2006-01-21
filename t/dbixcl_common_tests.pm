@@ -21,6 +21,8 @@ sub new {
 
     # Only MySQL uses this
     $self->{innodb} ||= '';
+    
+    $self->{verbose} = $ENV{TEST_VERBOSE} || 0;
 
     return bless $self => $class;
 }
@@ -40,6 +42,8 @@ sub run_tests {
 
     my $namespace = 'DBIXCL_Test_' . $self->{vendor};
 
+    my $debug = ($self->{verbose} > 1) ? 1 : 0;
+
     my $loader = DBIx::Class::Loader->new(
          dsn           => $self->{dsn},
          user          => $self->{user},
@@ -47,52 +51,64 @@ sub run_tests {
          namespace     => $namespace,
          constraint    => '^loader_test.*',
          relationships => 1,
+         debug         => $debug,
     );
 
-    my $class1 = $loader->find_class("loader_test1");
-    my $class2 = $loader->find_class("loader_test2");
+    my $conn = $loader->connect();
 
-    is( $class1, "${namespace}::LoaderTest1" );
-    is( $class2, "${namespace}::LoaderTest2" );
+    my $moniker1 = $loader->moniker('loader_test1');
+    my $rsobj1 = $conn->resultset($moniker1);
+    my $moniker2 = $loader->moniker('loader_test2');
+    my $rsobj2 = $conn->resultset($moniker2);
 
-    my $obj    = $class1->find(1);
+    isa_ok( $rsobj1, "DBIx::Class::ResultSet" );
+    isa_ok( $rsobj2, "DBIx::Class::ResultSet" );
+
+    my $obj    = $rsobj1->find(1);
     is( $obj->id,  1 );
     is( $obj->dat, "foo" );
-    is( $class2->count, 4 );
+    is( $rsobj2->count, 4 );
 
-    my ($obj2) = $class2->find( dat => 'bbb' );
+    my ($obj2) = $rsobj2->find( dat => 'bbb' );
     is( $obj2->id, 2 );
 
     SKIP: {
         skip $self->{skip_rels}, 20 if $self->{skip_rels};
 
-        my $class3 = $loader->find_class("loader_test3");
-        my $class4 = $loader->find_class("loader_test4");
-        my $class5 = $loader->find_class("loader_test5");
-        my $class6 = $loader->find_class("loader_test6");
-        my $class7 = $loader->find_class("loader_test7");
-        my $class8 = $loader->find_class("loader_test8");
-        my $class9 = $loader->find_class("loader_test9");
+        my $moniker3 = $loader->moniker('loader_test3');
+        my $rsobj3 = $conn->resultset($moniker3);
+        my $moniker4 = $loader->moniker('loader_test4');
+        my $rsobj4 = $conn->resultset($moniker4);
+        my $moniker5 = $loader->moniker('loader_test5');
+        my $rsobj5 = $conn->resultset($moniker5);
+        my $moniker6 = $loader->moniker('loader_test6');
+        my $rsobj6 = $conn->resultset($moniker6);
+        my $moniker7 = $loader->moniker('loader_test7');
+        my $rsobj7 = $conn->resultset($moniker7);
+        my $moniker8 = $loader->moniker('loader_test8');
+        my $rsobj8 = $conn->resultset($moniker8);
+        my $moniker9 = $loader->moniker('loader_test9');
+        my $rsobj9 = $conn->resultset($moniker9);
 
-        is( $class3, "${namespace}::LoaderTest3" );
-        is( $class4, "${namespace}::LoaderTest4" );
-        is( $class5, "${namespace}::LoaderTest5" );
-        is( $class6, "${namespace}::LoaderTest6" );
-        is( $class7, "${namespace}::LoaderTest7" );
-        is( $class8, "${namespace}::LoaderTest8" );
-        is( $class9, "${namespace}::LoaderTest9" );
+        isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj6, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj7, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj8, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj9, "DBIx::Class::ResultSet" );
 
         # basic rel test
-        my $obj4 = $class4->find(123);
-        is( ref($obj4->fkid), $class3);
+        my $obj4 = $rsobj4->find(123);
+        isa_ok( $obj4->fkid, "$namespace\::$moniker3");
 
         # fk def in comments should not be parsed
-        my $obj5 = $class5->find( id1 => 1, id2 => 1 );
+        my $obj5 = $rsobj5->find( id1 => 1, id2 => 1 );
         is( ref( $obj5->id2 ), '' );
 
-        # mulit-col fk def (works halfway for some, not others...)
-        my $obj6   = $class6->find(1);
-        isa_ok( $obj6->loader_test2, $class2 );
+        # mulit-col fk def (works for some, not others...)
+        my $obj6 = $rsobj6->find(1);
+        isa_ok( $obj6->loader_test2, "$namespace\::$moniker2" );
         SKIP: {
             skip "Multi-column FKs are only half-working for this vendor", 1
                 unless $self->{multi_fk_broken};
@@ -100,8 +116,8 @@ sub run_tests {
         }
 
         # fk that references a non-pk key (UNIQUE)
-        my $obj8 = $class8->find(1);
-        isa_ok( $obj8->loader_test7, $class7 );
+        my $obj8 = $rsobj8->find(1);
+        isa_ok( $obj8->loader_test7, "$namespace\::$moniker7" );
 
         # from Chisel's tests...
         SKIP: {
@@ -109,18 +125,20 @@ sub run_tests {
                 skip 'SQLite cannot do the advanced tests', 8;
             }
 
-            my $class10 = $loader->find_class('loader_test10');
-            my $class11 = $loader->find_class('loader_test11');
+            my $moniker10 = $loader->moniker('loader_test10');
+            my $rsobj10 = $conn->resultset($moniker10);
+            my $moniker11 = $loader->moniker('loader_test11');
+            my $rsobj11 = $conn->resultset($moniker11);
 
-            is( $class10, "${namespace}::LoaderTest10" ); 
-            is( $class11, "${namespace}::LoaderTest11" );
+            isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
+            isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
 
-            my $obj10 = $class10->create({ subject => 'xyzzy' });
+            my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
             $obj10->update();
             ok( defined $obj10, '$obj10 is defined' );
 
-            my $obj11 = $class11->create({ loader_test10 => $obj10->id() });
+            my $obj11 = $rsobj11->create({ loader_test10 => $obj10->id() });
             $obj11->update();
             ok( defined $obj11, '$obj11 is defined' );
 
@@ -135,29 +153,16 @@ sub run_tests {
                 skip 'Previous eval block failed', 3
                     unless ($@ eq '');
         
-                my $results = $class10->search({ subject => 'xyzzy' });
+                my $results = $rsobj10->search({ subject => 'xyzzy' });
                 is( $results->count(), 1,
-                    'One $class10 returned from search' );
+                    'One $rsobj10 returned from search' );
 
                 my $obj10_3 = $results->first();
-                isa_ok( $obj10_3, $class10 );
+                isa_ok( $obj10_3, "$namespace\::$moniker10" );
                 is( $obj10_3->loader_test11()->id(), $obj11->id(),
-                    'found same $class11 object we expected' );
-            }
-
-            for ( $class10, $class11 ) {
-                $_->storage->dbh->disconnect;
+                    'found same $rsobj11 object we expected' );
             }
         }
-
-        for ( $class3, $class4, $class5, $class6, $class7,
-              $class8, $class9 ) {
-            $_->storage->dbh->disconnect;
-        }
-    }
-
-    for ( $class1, $class2 ) {
-        $_->storage->dbh->disconnect;
     }
 }
 

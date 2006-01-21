@@ -3,7 +3,7 @@ package DBIx::Class::Loader;
 use strict;
 use UNIVERSAL::require;
 
-our $VERSION = '0.14';
+our $VERSION = '0.01';
 
 =head1 NAME
 
@@ -27,8 +27,9 @@ DBIx::Class::Loader - Dynamic definition of DBIx::Class sub classes.
     inflect                 => { child => 'children' },
     debug                   => 1,
   );
-  my $class = $loader->find_class('film'); # $class => Data::Film
-  my $obj = $class->find(1);
+
+  my $conn = $loader->get_connection($dsn, $user, $password); #
+  my $conn = $loader->get_connection(); # uses same dsn as ->new();
 
 use with mod_perl
 
@@ -86,12 +87,21 @@ L<DBIx::Class::Loader::Generic> documentation.
 
 sub new {
     my ( $class, %args ) = @_;
+
+    foreach (qw/namespace dsn/) {
+       die qq/Argument $_ is required/ if ! $args{$_};
+    }
+
+    $args{namespace} =~ s/(.*)::$/$1/;
+
     my $dsn = $args{dsn};
     my ($driver) = $dsn =~ m/^dbi:(\w*?)(?:\((.*?)\))?:/i;
     $driver = 'SQLite' if $driver eq 'SQLite2';
     my $impl = "DBIx::Class::Loader::" . $driver;
+
     $impl->require or
     die qq/Couldn't require loader class "$impl", "$UNIVERSAL::require::ERROR"/;
+
     return $impl->new(%args);
 }
 

@@ -38,20 +38,19 @@ sub _db_classes {
 sub _tables {
     my $self = shift;
     my %args = @_; 
-    my $schema = uc ($args{schema} || '');
-    my $dbh = DBI->connect( @{ $self->{_datasource} } ) or croak($DBI::errstr);
+    my $db_schema = uc ($args{db_schema} || '');
+    my $dbh = $self->{_storage}->dbh;
 
     # this is split out to avoid version parsing errors...
     my $is_dbd_db2_gte_114 = ( $DBD::DB2::VERSION >= 1.14 );
     my @tables = $is_dbd_db2_gte_114 ? 
     $dbh->tables( { TABLE_SCHEM => '%', TABLE_TYPE => 'TABLE,VIEW' } )
         : $dbh->tables;
-    $dbh->disconnect;
     # People who use table or schema names that aren't identifiers deserve
     # what they get.  Still, FIXME?
     s/\"//g for @tables;
     @tables = grep {!/^SYSIBM\./ and !/^SYSCAT\./ and !/^SYSSTAT\./} @tables;
-    @tables = grep {/^$schema\./} @tables if($schema);
+    @tables = grep {/^$db_schema\./} @tables if($db_schema);
     return @tables;
 }
 
@@ -59,11 +58,11 @@ sub _table_info {
     my ( $self, $table ) = @_;
 #    $|=1;
 #    print "_table_info($table)\n";
-    my ($schema, $tabname) = split /\./, $table, 2;
-    # print "Schema: $schema, Table: $tabname\n";
+    my ($db_schema, $tabname) = split /\./, $table, 2;
+    # print "DB_Schema: $db_schema, Table: $tabname\n";
     
     # FIXME: Horribly inefficient and just plain evil. (JMM)
-    my $dbh = DBI->connect( @{ $self->{_datasource} } ) or croak($DBI::errstr);
+    my $dbh = $self->{_storage}->dbh;
     $dbh->{RaiseError} = 1;
 
     my $sth = $dbh->prepare(<<'SQL') or die;
@@ -72,7 +71,7 @@ FROM SYSCAT.COLUMNS as c
 WHERE c.TABSCHEMA = ? and c.TABNAME = ?
 SQL
 
-    $sth->execute($schema, $tabname) or die;
+    $sth->execute($db_schema, $tabname) or die;
     my @cols = map { @$_ } @{$sth->fetchall_arrayref};
 
     $sth = $dbh->prepare(<<'SQL') or die;
@@ -82,8 +81,7 @@ JOIN SYSCAT.KEYCOLUSE as kcu ON tc.constname = kcu.constname
 WHERE tc.TABSCHEMA = ? and tc.TABNAME = ? and tc.TYPE = 'P'
 SQL
 
-    $sth->execute($schema, $tabname) or die;
-    $dbh->disconnect;
+    $sth->execute($db_schema, $tabname) or die;
 
     my @pri = map { @$_ } @{$sth->fetchall_arrayref};
     

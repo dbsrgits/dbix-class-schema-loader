@@ -37,7 +37,7 @@ sub _db_classes {
 sub _relationships {
     my $self   = shift;
     my @tables = $self->tables;
-    my $dbh    = $self->find_class( $tables[0] )->storage->dbh;
+    my $dbh    = $self->{_storage}->dbh;
     my $dsn    = $self->{_datasource}[0];
     my %conn   =
       $dsn =~ m/\Adbi:\w+(?:\(.*?\))?:(.+)\z/i
@@ -71,7 +71,7 @@ sub _relationships {
 
 sub _tables {
     my $self = shift;
-    my $dbh = DBI->connect( @{ $self->{_datasource} } ) or croak($DBI::errstr);
+    my $dbh    = $self->{_storage}->dbh;
     my @tables;
     foreach my $table ( $dbh->tables ) {
         my $quoter = $dbh->get_info(29);
@@ -79,13 +79,12 @@ sub _tables {
         push @tables, $1
           if $table =~ /\A(\w+)\z/;
     }
-    $dbh->disconnect;
     return @tables;
 }
 
 sub _table_info {
     my ( $self, $table ) = @_;
-    my $dbh = DBI->connect( @{ $self->{_datasource} } ) or croak($DBI::errstr);
+    my $dbh    = $self->{_storage}->dbh;
 
     # MySQL 4.x doesn't support quoted tables
     my $query = "DESCRIBE $table";
@@ -98,7 +97,6 @@ sub _table_info {
         push @pri, $col if $hash->{Key} eq "PRI";
     }
 
-    $dbh->disconnect;
     return ( \@cols, \@pri );
 }
 

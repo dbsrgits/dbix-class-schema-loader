@@ -26,8 +26,7 @@ DBIx::Class::Loader::Writing - Loader subclass writing guide
 
   sub _tables {
       my $self = shift;
-      my $dbh = DBI->connect( @{ $self->{_datasource} } )
-           or croak($DBI::errstr);
+      my $dbh = $self->{_storage}->dbh;
       return $dbh->tables; # Your DBD may need something different
   }
 
