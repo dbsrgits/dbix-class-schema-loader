@@ -1,12 +1,12 @@
 use strict;
 use lib qw( . ./t );
-use dbixcl_common_tests;
+use dbixcsl_common_tests;
 
 my $database = $ENV{PG_NAME} || '';
 my $user     = $ENV{PG_USER} || '';
 my $password = $ENV{PG_PASS} || '';
 
-my $tester = dbixcl_common_tests->new(
+my $tester = dbixcsl_common_tests->new(
     vendor      => 'Pg',
     auto_inc_pk => 'SERIAL NOT NULL PRIMARY KEY',
     dsn         => "dbi:Pg:dbname=$database",

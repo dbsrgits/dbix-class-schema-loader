@@ -12,8 +12,6 @@ require DBIx::Class::Core;
 
 __PACKAGE__->mk_classdata('loader_data');
 
-# XXX convert all usage of $class/$self->debug to ->debug_loader
-
 =head1 NAME
 
 DBIx::Class::Schema::Loader::Generic - Generic DBIx::Class::Schema::Loader Implementation.
@@ -104,7 +102,7 @@ sub _load_from_connection {
     $class->loader_data({
         _datasource =>
           [ $args{dsn}, $args{user}, $args{password}, $args{options} ],
-        _namespace       => $args{namespace} || $class,
+        _namespace       => $args{namespace},
         _additional      => $additional,
         _additional_base => $additional_base,
         _left_base       => $left_base,
@@ -119,10 +117,10 @@ sub _load_from_connection {
     });
 
     $class->connection(@{$class->loader_data->{_datasource}});
-    warn qq/\### START DBIx::Class::Schema::Loader dump ###\n/ if $class->debug;
+    warn qq/\### START DBIx::Class::Schema::Loader dump ###\n/ if $class->debug_loader;
     $class->_load_classes;
     $class->_relationships                            if $class->loader_data->{_relationships};
-    warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/ if $class->debug;
+    warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/ if $class->debug_loader;
     $class->storage->dbh->disconnect; # XXX this should be ->storage->disconnect later?
 
     1;
@@ -136,18 +134,25 @@ sub _find_table_class {
 
 # Returns the moniker for a given table name,
 # for use in $conn->resultset($moniker)
+
+=head3 moniker
+
+Returns the moniker for a given literal table name.  Used
+as $schema->resultset($moniker), etc.
+
+=cut
 sub moniker {
     my ( $class, $table ) = @_;
     return $class->loader_data->{MONIKERS}->{$table};
 }
 
-=head3 debug
+=head3 debug_loader
 
-Overload to enable debug messages.
+Overload to enable Loader debug messages.
 
 =cut
 
-sub debug { 0 }
+sub debug_loader { 0 }
 
 =head3 tables
 
@@ -171,13 +176,13 @@ sub _belongs_to_many {
     my $table_class = $class->_find_table_class($table);
     my $other_class = $class->_find_table_class($other);
 
-    warn qq/\# Belongs_to relationship\n/ if $class->debug;
+    warn qq/\# Belongs_to relationship\n/ if $class->debug_loader;
 
     if($other_column) {
         warn qq/$table_class->belongs_to( '$column' => '$other_class',/
           .  qq/ { "foreign.$other_column" => "self.$column" },/
           .  qq/ { accessor => 'filter' });\n\n/
-          if $class->debug;
+          if $class->debug_loader;
         $table_class->belongs_to( $column => $other_class, 
           { "foreign.$other_column" => "self.$column" },
           { accessor => 'filter' }
@@ -185,7 +190,7 @@ sub _belongs_to_many {
     }
     else {
         warn qq/$table_class->belongs_to( '$column' => '$other_class' );\n\n/
-          if $class->debug;
+          if $class->debug_loader;
         $table_class->belongs_to( $column => $other_class );
     }
 
@@ -195,12 +200,12 @@ sub _belongs_to_many {
       if $class->loader_data->{_inflect}
       and exists $class->loader_data->{_inflect}->{ lc $table_class_base };
 
-    warn qq/\# Has_many relationship\n/ if $class->debug;
+    warn qq/\# Has_many relationship\n/ if $class->debug_loader;
 
     if($other_column) {
         warn qq/$other_class->has_many( '$plural' => '$table_class',/
           .  qq/ { "foreign.$column" => "self.$other_column" } );\n\n/
-          if $class->debug;
+          if $class->debug_loader;
         $other_class->has_many( $plural => $table_class,
                                 { "foreign.$column" => "self.$other_column" }
                               );
@@ -208,7 +213,7 @@ sub _belongs_to_many {
     else {
         warn qq/$other_class->has_many( '$plural' => '$table_class',/
           .  qq/'$other_column' );\n\n/
-          if $class->debug;
+          if $class->debug_loader;
         $other_class->has_many( $plural => $table_class, $column );
     }
 }
@@ -250,7 +255,7 @@ sub _load_classes {
         $class->inject_base( $table_class, 'DBIx::Class::Core' );
         $_->require for @db_classes;
         $class->inject_base( $table_class, $_ ) for @db_classes;
-        warn qq/\# Initializing table "$table_name_db_schema" as "$table_class"\n/ if $class->debug;
+        warn qq/\# Initializing table "$table_name_db_schema" as "$table_class"\n/ if $class->debug_loader;
         $table_class->table(lc $table_name_db_schema);
 
         my ( $cols, $pks ) = $class->_table_info($table_name_db_schema);
@@ -259,12 +264,12 @@ sub _load_classes {
         $table_class->set_primary_key(@$pks) if @$pks;
 
         my $code = "package $table_class;\n$additional_base$additional$left_base";
-        warn qq/$code/                        if $class->debug;
-        warn qq/$table_class->table('$table_name_db_schema');\n/ if $class->debug;
+        warn qq/$code/                        if $class->debug_loader;
+        warn qq/$table_class->table('$table_name_db_schema');\n/ if $class->debug_loader;
         my $columns = join "', '", @$cols;
-        warn qq/$table_class->add_columns('$columns')\n/ if $class->debug;
+        warn qq/$table_class->add_columns('$columns')\n/ if $class->debug_loader;
         my $primaries = join "', '", @$pks;
-        warn qq/$table_class->set_primary_key('$primaries')\n/ if $class->debug && @$pks;
+        warn qq/$table_class->set_primary_key('$primaries')\n/ if $class->debug_loader && @$pks;
         eval $code;
         croak qq/Couldn't load additional classes "$@"/ if $@;
         unshift @{"$table_class\::ISA"}, $_ foreach ( @{ $class->loader_data->{_left_base} } );
@@ -292,7 +297,7 @@ sub _relationships {
                 eval { $class->_belongs_to_many( $table, $column, $other,
                   $other_column ) };
                 warn qq/\# belongs_to_many failed "$@"\n\n/
-                  if $@ && $class->debug;
+                  if $@ && $class->debug_loader;
             }
         }
     }

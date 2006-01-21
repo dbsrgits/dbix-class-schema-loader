@@ -1,6 +1,6 @@
 use strict;
 use lib qw( . ./t );
-use dbixcl_common_tests;
+use dbixcsl_common_tests;
 
 my $database    = $ENV{MYSQL_NAME} || '';
 my $user        = $ENV{MYSQL_USER} || '';
@@ -9,7 +9,7 @@ my $test_innodb = $ENV{MYSQL_TEST_INNODB} || 0;
 
 my $skip_rels_msg = 'You need to set the MYSQL_TEST_INNODB environment variable to test relationships';
 
-my $tester = dbixcl_common_tests->new(
+my $tester = dbixcsl_common_tests->new(
     vendor          => 'Mysql',
     auto_inc_pk     => 'INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT',
     innodb          => q{Engine='InnoDB'},

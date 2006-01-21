@@ -59,7 +59,7 @@ sub _relationships {
             my $remote_column = shift @cols;
             
             eval { $class->_belongs_to_many( $table, $column, $remote_table, $remote_column) };
-            warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $class->debug;
+            warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $class->debug_loader;
         }
         
         $sth->finish;

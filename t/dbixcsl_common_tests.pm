@@ -1,4 +1,4 @@
-package dbixcl_common_tests;
+package dbixcsl_common_tests;
 
 use strict;
 
@@ -40,7 +40,7 @@ sub run_tests {
 
     $self->create();
 
-    my $namespace = 'DBIXCL_Test_' . $self->{vendor};
+    my $namespace = 'DBIXCSL_Test_' . $self->{vendor};
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 

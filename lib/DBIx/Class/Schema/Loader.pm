@@ -42,12 +42,12 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
 
   my $schema1 = My::Schema->connect( $dsn, $user, $password, $attrs);
   # -or-
-  my $schema1 = My::Schema->connect();
+  my $schema1 = "My::Schema";
   # ^^ defaults to dsn/user/pass from load_from_connection()
 
 =head1 DESCRIPTION
 
-DBIx::Class::Schema::Loader automate the definition of a
+DBIx::Class::Schema::Loader automates the definition of a
 DBIx::Class::Schema by scanning table schemas and setting up
 columns and primary keys.
 
@@ -56,14 +56,14 @@ L<DBIx::Class::Schema::Loader::Generic> for more, and
 L<DBIx::Class::Schema::Loader::Writing> for notes on writing your own
 db-specific subclass for an unsupported db.
 
-L<Class::DBI::Loader>, L<Class::DBI>, and L<DBIx::Class::Loader> are now
-obsolete, use L<DBIx::Class> and this module instead. ;)
+This module obsoletes L<DBIx::Class::Loader> for L<DBIx::Class> version 0.5
+and later.
 
 =cut
 
 =head1 METHODS
 
-=head2 new
+=head2 load_from_connection
 
 Example in Synopsis above demonstrates the available arguments.  For
 detailed information on the arguments, see the
@@ -74,10 +74,9 @@ L<DBIx::Class::Schema::Loader::Generic> documentation.
 sub load_from_connection {
     my ( $class, %args ) = @_;
 
-    foreach (qw/namespace dsn/) {
-       die qq/Argument $_ is required/ if ! $args{$_};
-    }
+    die qq/dsn argument is required/ if ! $args{dsn};
 
+    $args{namespace} ||= $class;
     $args{namespace} =~ s/(.*)::$/$1/;
 
     my $dsn = $args{dsn};
@@ -86,7 +85,8 @@ sub load_from_connection {
     my $impl = "DBIx::Class::Schema::Loader::" . $driver;
 
     $impl->require or
-    die qq/Couldn't require loader class "$impl", "$UNIVERSAL::require::ERROR"/;
+      die qq/Couldn't require loader class "$impl",/ .
+          qq/"$UNIVERSAL::require::ERROR"/;
 
     push(@ISA, $impl);
     $class->_load_from_connection(%args);
@@ -94,7 +94,9 @@ sub load_from_connection {
 
 =head1 AUTHOR
 
-Sebastian Riedel, C<sri@oook.de>
+Brandon Black, C<bblack@gmail.com>
+
+Sebastian Riedel, C<sri@oook.de> (DBIx::Class::Loader, which this module is branched from)
 
 Based upon the work of IKEBE Tomohiro
 
