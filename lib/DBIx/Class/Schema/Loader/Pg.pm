@@ -1,31 +1,29 @@
-package DBIx::Class::Loader::Pg;
+package DBIx::Class::Schema::Loader::Pg;
 
 use strict;
-use base 'DBIx::Class::Loader::Generic';
+use base 'DBIx::Class::Schema::Loader::Generic';
 use DBI;
 use Carp;
 
 =head1 NAME
 
-DBIx::Class::Loader::Pg - DBIx::Class::Loader Postgres Implementation.
+DBIx::Class::Schema::Loader::Pg - DBIx::Class::Schema::Loader Postgres Implementation.
 
 =head1 SYNOPSIS
 
-  use DBIx::Class::Loader;
+  use DBIx::Class::Schema::Loader;
 
-  # $loader is a DBIx::Class::Loader::Pg
-  my $loader = DBIx::Class::Loader->new(
+  # $loader is a DBIx::Class::Schema::Loader::Pg
+  my $loader = DBIx::Class::Schema::Loader->new(
     dsn       => "dbi:Pg:dbname=dbname",
     user      => "postgres",
     password  => "",
     namespace => "Data",
   );
-  my $class = $loader->find_class('film'); # $class => Data::Film
-  my $obj = $class->retrieve(1);
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Loader>.
+See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
@@ -64,7 +62,7 @@ sub _table_info {
 
 =head1 SEE ALSO
 
-L<DBIx::Class::Loader>
+L<DBIx::Class::Schema::Loader>
 
 =cut
 

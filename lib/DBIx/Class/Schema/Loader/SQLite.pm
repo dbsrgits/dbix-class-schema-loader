@@ -1,30 +1,28 @@
-package DBIx::Class::Loader::SQLite;
+package DBIx::Class::Schema::Loader::SQLite;
 
 use strict;
-use base 'DBIx::Class::Loader::Generic';
+use base 'DBIx::Class::Schema::Loader::Generic';
 use Text::Balanced qw( extract_bracketed );
 use DBI;
 use Carp;
 
 =head1 NAME
 
-DBIx::Class::Loader::SQLite - DBIx::Class::Loader SQLite Implementation.
+DBIx::Class::Schema::Loader::SQLite - DBIx::Class::Schema::Loader SQLite Implementation.
 
 =head1 SYNOPSIS
 
-  use DBIx::Class::Loader;
+  use DBIx::Class::Schema::Loader;
 
-  # $loader is a DBIx::Class::Loader::SQLite
-  my $loader = DBIx::Class::Loader->new(
+  # $loader is a DBIx::Class::Schema::Loader::SQLite
+  my $loader = DBIx::Class::Schema::Loader->new(
     dsn       => "dbi:SQLite:dbname=/path/to/dbfile",
     namespace => "Data",
   );
-  my $class = $loader->find_class('film'); # $class => Data::Film
-  my $obj = $class->retrieve(1);
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Loader>.
+See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
@@ -144,7 +142,7 @@ SQL
 
 =head1 SEE ALSO
 
-L<DBIx::Class::Loader>
+L<DBIx::Schema::Class::Loader>
 
 =cut
 

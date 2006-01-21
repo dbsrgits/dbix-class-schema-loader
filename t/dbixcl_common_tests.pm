@@ -3,7 +3,7 @@ package dbixcl_common_tests;
 use strict;
 
 use Test::More;
-use DBIx::Class::Loader;
+use DBIx::Class::Schema::Loader;
 use DBI;
 
 sub new {
@@ -44,7 +44,7 @@ sub run_tests {
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
-    my $loader = DBIx::Class::Loader->new(
+    my $loader = DBIx::Class::Schema::Loader->new(
          dsn           => $self->{dsn},
          user          => $self->{user},
          password      => $self->{password},

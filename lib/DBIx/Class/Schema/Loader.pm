@@ -1,4 +1,4 @@
-package DBIx::Class::Loader;
+package DBIx::Class::Schema::Loader;
 
 use strict;
 use UNIVERSAL::require;
@@ -7,13 +7,13 @@ our $VERSION = '0.01';
 
 =head1 NAME
 
-DBIx::Class::Loader - Dynamic definition of DBIx::Class sub classes.
+DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
 
 =head1 SYNOPSIS
 
-  use DBIx::Class::Loader;
+  use DBIx::Class::Schema::Loader;
 
-  my $loader = DBIx::Class::Loader->new(
+  my $loader = DBIx::Class::Schema::Loader->new(
     dsn                     => "dbi:mysql:dbname",
     user                    => "root",
     password                => "",
@@ -28,8 +28,8 @@ DBIx::Class::Loader - Dynamic definition of DBIx::Class sub classes.
     debug                   => 1,
   );
 
-  my $conn = $loader->get_connection($dsn, $user, $password); #
-  my $conn = $loader->get_connection(); # uses same dsn as ->new();
+  my $conn = $loader->connection($dsn, $user, $password); #
+  my $conn = $loader->connection(); # uses same dsn as ->new();
 
 use with mod_perl
 
@@ -49,29 +49,23 @@ in your web application.
   use strict;
 
   # you can use Data::Film directly
-  my $film = Data::Film->retrieve($id);
-
+  my $conn = $loader->connection();
+  my $film_moniker = $loader->moniker('film');
+  my $a_film = $conn->resultset($film_moniker)->find($id);
 
 =head1 DESCRIPTION
 
-DBIx::Class::Loader automate the definition of DBIx::Class sub-classes by
-scanning table schemas and setting up columns and primary keys.
+DBIx::Class::Schema::Loader automate the definition of a
+DBIx::Class::Schema by scanning table schemas and setting up
+columns and primary keys.
 
-Class names are defined by table names and the namespace option, which is
-required.
+DBIx::Class::Schema::Loader supports MySQL, Postgres, SQLite and DB2.  See
+L<DBIx::Class::Schema::Loader::Generic> for more, and
+L<DBIx::Class::Schema::Loader::Writing> for notes on writing your own
+db-specific subclass for an unsupported db.
 
- +---------+-----------+--------------+
- | table   | namespace | class        |
- +---------+-----------+--------------+
- | foo     | Data      | Data::Foo    |
- | foo_bar | MyDB      | MyDB::FooBar |
- +---------+-----------+--------------+
-
-DBIx::Class::Loader supports MySQL, Postgres, SQLite and DB2.  See
-L<DBIx::Class::Loader::Generic> for more, and L<DBIx::Class::Loader::Writing>
-for notes on writing your own db-specific subclass for an unsupported db.
-
-L<Class::DBI::Loader> and L<Class::DBI> are now obsolete, use L<DBIx::Class> and this module instead. ;)
+L<Class::DBI::Loader>, L<Class::DBI>, and L<DBIx::Class::Loader> are now
+obsolete, use L<DBIx::Class> and this module instead. ;)
 
 =cut
 
@@ -81,7 +75,7 @@ L<Class::DBI::Loader> and L<Class::DBI> are now obsolete, use L<DBIx::Class> and
 
 Example in Synopsis above demonstrates the available arguments.  For
 detailed information on the arguments, see the
-L<DBIx::Class::Loader::Generic> documentation.
+L<DBIx::Class::Schema::Loader::Generic> documentation.
 
 =cut
 
@@ -97,7 +91,7 @@ sub new {
     my $dsn = $args{dsn};
     my ($driver) = $dsn =~ m/^dbi:(\w*?)(?:\((.*?)\))?:/i;
     $driver = 'SQLite' if $driver eq 'SQLite2';
-    my $impl = "DBIx::Class::Loader::" . $driver;
+    my $impl = "DBIx::Class::Schema::Loader::" . $driver;
 
     $impl->require or
     die qq/Couldn't require loader class "$impl", "$UNIVERSAL::require::ERROR"/;

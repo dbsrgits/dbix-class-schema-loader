@@ -1,20 +1,20 @@
-package DBIx::Class::Loader::DB2;
+package DBIx::Class::Schema::Loader::DB2;
 
 use strict;
-use base 'DBIx::Class::Loader::Generic';
+use base 'DBIx::Class::Schema::Loader::Generic';
 use DBI;
 use Carp;
 
 =head1 NAME
 
-DBIx::Class::Loader::DB2 - DBIx::Class::Loader DB2 Implementation.
+DBIx::Class::Schema::Loader::DB2 - DBIx::Class::Schema::Loader DB2 Implementation.
 
 =head1 SYNOPSIS
 
-  use DBIx::Class::Loader;
+  use DBIx::Schema::Class::Loader;
 
-  # $loader is a DBIx::Class::Loader::DB2
-  my $loader = DBIx::Class::Loader->new(
+  # $loader is a DBIx::Class::Schema::Loader::DB2
+  my $loader = DBIx::Class::Schema::Loader->new(
     dsn       => "dbi:DB2:dbname",
     user      => "myuser",
     password  => "",
@@ -22,12 +22,10 @@ DBIx::Class::Loader::DB2 - DBIx::Class::Loader DB2 Implementation.
     schema    => "MYSCHEMA",
     dropschema  => 0,
   );
-  my $class = $loader->find_class('film'); # $class => Data::Film
-  my $obj = $class->retrieve(1);
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Loader>.
+See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
@@ -90,7 +88,7 @@ SQL
 
 =head1 SEE ALSO
 
-L<DBIx::Class::Loader>
+L<DBIx::Class::Schema::Loader>
 
 =cut
 

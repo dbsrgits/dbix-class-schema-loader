@@ -1,4 +1,4 @@
-package DBIx::Class::Loader::Writing;
+package DBIx::Class::Schema::Loader::Writing;
 
 # Empty. POD only.
 
@@ -6,16 +6,16 @@ package DBIx::Class::Loader::Writing;
 
 =head1 NAME                                                                     
                                                                                 
-DBIx::Class::Loader::Writing - Loader subclass writing guide
+DBIx::Class::Schema::Loader::Writing - Loader subclass writing guide
 
 =head1 SYNOPSIS
 
-  package DBIx::Class::Loader::Foo;
+  package DBIx::Class::Schema::Loader::Foo;
 
   # THIS IS JUST A TEMPLATE TO GET YOU STARTED.
 
   use strict;
-  use base 'DBIx::Class::Loader::Generic';
+  use base 'DBIx::Class::Schema::Loader::Generic';
   use DBI;
   use Carp;
 

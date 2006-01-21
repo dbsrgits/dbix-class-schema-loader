@@ -1,4 +1,4 @@
-package DBIx::Class::Loader::Generic;
+package DBIx::Class::Schema::Loader::Generic;
 
 use strict;
 use base 'DBIx::Class::Componentised';
@@ -11,11 +11,11 @@ require DBIx::Class::Schema;
 
 =head1 NAME
 
-DBIx::Class::Loader::Generic - Generic DBIx::Class::Loader Implementation.
+DBIx::Class::Schema::Loader::Generic - Generic DBIx::Class::Schema::Loader Implementation.
 
 =head1 SYNOPSIS
 
-See L<DBIx::Class::Loader>
+See L<DBIx::Class::Schema::Loader>
 
 =head1 DESCRIPTION
 
@@ -79,7 +79,7 @@ Username.
 =head3 new
 
 Not intended to be called directly.  This is used internally by the
-C<new()> method in L<DBIx::Class::Loader>.
+C<new()> method in L<DBIx::Class::Schema::Loader>.
 
 =cut
 
@@ -113,10 +113,10 @@ sub new {
         TABLE_CLASSES    => {},
         MONIKERS         => {},
     }, $class;
-    warn qq/\### START DBIx::Class::Loader dump ###\n/ if $self->debug;
+    warn qq/\### START DBIx::Class::Schema::Loader dump ###\n/ if $self->debug;
     $self->_load_classes;
     $self->_relationships                            if $self->{_relationships};
-    warn qq/\### END DBIx::Class::Loader dump ###\n/ if $self->debug;
+    warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/ if $self->debug;
     $self->{_storage}->dbh->disconnect;
     $self;
 }
@@ -321,7 +321,7 @@ sub _table_info { croak "ABSTRACT METHOD" }
 
 =head1 SEE ALSO
 
-L<DBIx::Class::Loader>
+L<DBIx::Class::Schema::Loader>
 
 =cut
 

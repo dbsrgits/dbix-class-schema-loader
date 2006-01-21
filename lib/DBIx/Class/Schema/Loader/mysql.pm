@@ -1,31 +1,29 @@
-package DBIx::Class::Loader::mysql;
+package DBIx::Class::Schema::Loader::mysql;
 
 use strict;
-use base 'DBIx::Class::Loader::Generic';
+use base 'DBIx::Class::Schema::Loader::Generic';
 use DBI;
 use Carp;
 
 =head1 NAME
 
-DBIx::Class::Loader::mysql - DBIx::Class::Loader mysql Implementation.
+DBIx::Class::Schema::Loader::mysql - DBIx::Schema::Class::Loader mysql Implementation.
 
 =head1 SYNOPSIS
 
-  use DBIx::Class::Loader;
+  use DBIx::Class::Schema::Loader;
 
-  # $loader is a DBIx::Class::Loader::mysql
-  my $loader = DBIx::Class::Loader->new(
+  # $loader is a DBIx::Class::Schema::Loader::mysql
+  my $loader = DBIx::Class::Schema::Loader->new(
     dsn       => "dbi:mysql:dbname",
     user      => "root",
     password  => "",
     namespace => "Data",
   );
-  my $class = $loader->find_class('film'); # $class => Data::Film
-  my $obj = $class->retrieve(1);
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Loader>.
+See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
@@ -102,7 +100,7 @@ sub _table_info {
 
 =head1 SEE ALSO
 
-L<DBIx::Class::Loader>
+L<DBIx::Class::Schema::Loader>
 
 =cut
 
