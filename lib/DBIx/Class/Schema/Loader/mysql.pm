@@ -2,7 +2,6 @@ package DBIx::Class::Schema::Loader::mysql;
 
 use strict;
 use base 'DBIx::Class::Schema::Loader::Generic';
-use DBI;
 use Carp;
 
 =head1 NAME
@@ -33,10 +32,10 @@ sub _db_classes {
 
 # Very experimental and untested!
 sub _relationships {
-    my $self   = shift;
-    my @tables = $self->tables;
-    my $dbh    = $self->{_storage}->dbh;
-    my $dsn    = $self->{_datasource}[0];
+    my $class   = shift;
+    my @tables = $class->tables;
+    my $dbh    = $class->storage->dbh;
+    my $dsn    = $class->loader_data->{_datasource}[0];
     my %conn   =
       $dsn =~ m/\Adbi:\w+(?:\(.*?\))?:(.+)\z/i
       && index( $1, '=' ) >= 0
@@ -59,8 +58,8 @@ sub _relationships {
             my $remote_table = shift @cols;
             my $remote_column = shift @cols;
             
-            eval { $self->_belongs_to_many( $table, $column, $remote_table, $remote_column) };
-            warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $self->debug;
+            eval { $class->_belongs_to_many( $table, $column, $remote_table, $remote_column) };
+            warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $class->debug;
         }
         
         $sth->finish;
@@ -68,8 +67,8 @@ sub _relationships {
 }
 
 sub _tables {
-    my $self = shift;
-    my $dbh    = $self->{_storage}->dbh;
+    my $class = shift;
+    my $dbh    = $class->storage->dbh;
     my @tables;
     foreach my $table ( $dbh->tables ) {
         my $quoter = $dbh->get_info(29);
@@ -81,8 +80,8 @@ sub _tables {
 }
 
 sub _table_info {
-    my ( $self, $table ) = @_;
-    my $dbh    = $self->{_storage}->dbh;
+    my ( $class, $table ) = @_;
+    my $dbh    = $class->storage->dbh;
 
     # MySQL 4.x doesn't support quoted tables
     my $query = "DESCRIBE $table";

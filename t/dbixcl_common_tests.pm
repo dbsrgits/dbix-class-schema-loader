@@ -36,7 +36,7 @@ sub skip_tests {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 26;
+    plan tests => 27;
 
     $self->create();
 
@@ -44,21 +44,29 @@ sub run_tests {
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
-    my $loader = DBIx::Class::Schema::Loader->new(
-         dsn           => $self->{dsn},
-         user          => $self->{user},
-         password      => $self->{password},
-         namespace     => $namespace,
-         constraint    => '^loader_test.*',
-         relationships => 1,
-         debug         => $debug,
-    );
+    my $schema_pkg = "$namespace\::Schema";
 
-    my $conn = $loader->connect();
+    eval qq{
+        package $schema_pkg;
+	use base qw/DBIx::Class::Schema::Loader/;
 
-    my $moniker1 = $loader->moniker('loader_test1');
+        __PACKAGE__->load_from_connection(
+            dsn           => "$self->{dsn}",
+            user          => "$self->{user}",
+            password      => "$self->{password}",
+            namespace     => "$namespace",
+            constraint    => '^loader_test.*',
+            relationships => 1,
+            debug         => "$debug",
+        );
+    };
+    ok(!$@, "Loader initialization failed: $@");
+
+    my $conn = $schema_pkg->connect($self->{dsn},$self->{user},$self->{passwd});
+
+    my $moniker1 = $conn->moniker('loader_test1');
     my $rsobj1 = $conn->resultset($moniker1);
-    my $moniker2 = $loader->moniker('loader_test2');
+    my $moniker2 = $conn->moniker('loader_test2');
     my $rsobj2 = $conn->resultset($moniker2);
 
     isa_ok( $rsobj1, "DBIx::Class::ResultSet" );
@@ -75,19 +83,19 @@ sub run_tests {
     SKIP: {
         skip $self->{skip_rels}, 20 if $self->{skip_rels};
 
-        my $moniker3 = $loader->moniker('loader_test3');
+        my $moniker3 = $conn->moniker('loader_test3');
         my $rsobj3 = $conn->resultset($moniker3);
-        my $moniker4 = $loader->moniker('loader_test4');
+        my $moniker4 = $conn->moniker('loader_test4');
         my $rsobj4 = $conn->resultset($moniker4);
-        my $moniker5 = $loader->moniker('loader_test5');
+        my $moniker5 = $conn->moniker('loader_test5');
         my $rsobj5 = $conn->resultset($moniker5);
-        my $moniker6 = $loader->moniker('loader_test6');
+        my $moniker6 = $conn->moniker('loader_test6');
         my $rsobj6 = $conn->resultset($moniker6);
-        my $moniker7 = $loader->moniker('loader_test7');
+        my $moniker7 = $conn->moniker('loader_test7');
         my $rsobj7 = $conn->resultset($moniker7);
-        my $moniker8 = $loader->moniker('loader_test8');
+        my $moniker8 = $conn->moniker('loader_test8');
         my $rsobj8 = $conn->resultset($moniker8);
-        my $moniker9 = $loader->moniker('loader_test9');
+        my $moniker9 = $conn->moniker('loader_test9');
         my $rsobj9 = $conn->resultset($moniker9);
 
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
@@ -125,9 +133,9 @@ sub run_tests {
                 skip 'SQLite cannot do the advanced tests', 8;
             }
 
-            my $moniker10 = $loader->moniker('loader_test10');
+            my $moniker10 = $conn->moniker('loader_test10');
             my $rsobj10 = $conn->resultset($moniker10);
-            my $moniker11 = $loader->moniker('loader_test11');
+            my $moniker11 = $conn->moniker('loader_test11');
             my $rsobj11 = $conn->resultset($moniker11);
 
             isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 

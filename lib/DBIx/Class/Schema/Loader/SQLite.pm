@@ -1,9 +1,8 @@
 package DBIx::Class::Schema::Loader::SQLite;
 
 use strict;
-use base 'DBIx::Class::Schema::Loader::Generic';
+use base qw/DBIx::Class::Schema::Loader::Generic/;
 use Text::Balanced qw( extract_bracketed );
-use DBI;
 use Carp;
 
 =head1 NAME
@@ -31,10 +30,10 @@ sub _db_classes {
 }
 
 sub _relationships {
-    my $self = shift;
-    foreach my $table ( $self->tables ) {
+    my $class = shift;
+    foreach my $table ( $class->tables ) {
 
-        my $dbh = $self->{_storage}->dbh;
+        my $dbh = $class->storage->dbh;
         my $sth = $dbh->prepare(<<"");
 SELECT sql FROM sqlite_master WHERE tbl_name = ?
 
@@ -80,18 +79,18 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
             if ( $col =~ /^(\w+).*REFERENCES\s+(\w+)\s*(\w+)?/i ) {
                 chomp $col;
                 warn qq/\# Found foreign key definition "$col"\n\n/
-                  if $self->debug;
-                eval { $self->_belongs_to_many( $table, $1, $2, $3 ) };
+                  if $class->debug;
+                eval { $class->_belongs_to_many( $table, $1, $2, $3 ) };
                 warn qq/\# belongs_to_many failed "$@"\n\n/
-                  if $@ && $self->debug;
+                  if $@ && $class->debug;
             }
         }
     }
 }
 
 sub _tables {
-    my $self = shift;
-    my $dbh = $self->{_storage}->dbh;
+    my $class = shift;
+    my $dbh = $class->storage->dbh;
     my $sth  = $dbh->prepare("SELECT * FROM sqlite_master");
     $sth->execute;
     my @tables;
@@ -103,10 +102,10 @@ sub _tables {
 }
 
 sub _table_info {
-    my ( $self, $table ) = @_;
+    my ( $class, $table ) = @_;
 
     # find all columns.
-    my $dbh = $self->{_storage}->dbh;
+    my $dbh = $class->storage->dbh;
     my $sth = $dbh->prepare("PRAGMA table_info('$table')");
     $sth->execute();
     my @columns;

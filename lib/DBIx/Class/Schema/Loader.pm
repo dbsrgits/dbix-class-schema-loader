@@ -1,9 +1,16 @@
 package DBIx::Class::Schema::Loader;
 
 use strict;
+use warnings;
+
+use vars qw($VERSION @ISA);
 use UNIVERSAL::require;
 
-our $VERSION = '0.01';
+# Always remember to do all digits for the version even if they're 0
+# i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
+# brain damage and presumably various other packaging systems too
+
+$VERSION = '0.01000';
 
 =head1 NAME
 
@@ -11,13 +18,14 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
 
 =head1 SYNOPSIS
 
-  use DBIx::Class::Schema::Loader;
+  package My::Schema;
+  use base qw/DBIx::Class::Schema::Loader/;
 
-  my $loader = DBIx::Class::Schema::Loader->new(
+  __PACKAGE__->load_from_connection(
     dsn                     => "dbi:mysql:dbname",
     user                    => "root",
     password                => "",
-    namespace               => "Data",
+    namespace               => "My",
     additional_classes      => [qw/DBIx::Class::Foo/],
     additional_base_classes => [qw/My::Stuff/],
     left_base_classes       => [qw/DBIx::Class::Bar/],
@@ -28,30 +36,14 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
     debug                   => 1,
   );
 
-  my $conn = $loader->connection($dsn, $user, $password); #
-  my $conn = $loader->connection(); # uses same dsn as ->new();
+  # in seperate application code ...
 
-use with mod_perl
+  use My::Schema;
 
-in your startup.pl
-
-  # load all tables
-  use DBIx::Class::Loader;
-  my $loader = DBIx::Class::Loader->new(
-    dsn       => "dbi:mysql:dbname",
-    user      => "root",
-    password  => "",
-    namespace => "Data",
-  );
-
-in your web application.
-
-  use strict;
-
-  # you can use Data::Film directly
-  my $conn = $loader->connection();
-  my $film_moniker = $loader->moniker('film');
-  my $a_film = $conn->resultset($film_moniker)->find($id);
+  my $schema1 = My::Schema->connect( $dsn, $user, $password, $attrs);
+  # -or-
+  my $schema1 = My::Schema->connect();
+  # ^^ defaults to dsn/user/pass from load_from_connection()
 
 =head1 DESCRIPTION
 
@@ -79,7 +71,7 @@ L<DBIx::Class::Schema::Loader::Generic> documentation.
 
 =cut
 
-sub new {
+sub load_from_connection {
     my ( $class, %args ) = @_;
 
     foreach (qw/namespace dsn/) {
@@ -96,7 +88,8 @@ sub new {
     $impl->require or
     die qq/Couldn't require loader class "$impl", "$UNIVERSAL::require::ERROR"/;
 
-    return $impl->new(%args);
+    push(@ISA, $impl);
+    $class->_load_from_connection(%args);
 }
 
 =head1 AUTHOR

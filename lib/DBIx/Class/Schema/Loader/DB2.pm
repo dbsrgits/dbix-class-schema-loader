@@ -34,10 +34,10 @@ sub _db_classes {
 }
 
 sub _tables {
-    my $self = shift;
+    my $class = shift;
     my %args = @_; 
     my $db_schema = uc ($args{db_schema} || '');
-    my $dbh = $self->{_storage}->dbh;
+    my $dbh = $class->storage->dbh;
 
     # this is split out to avoid version parsing errors...
     my $is_dbd_db2_gte_114 = ( $DBD::DB2::VERSION >= 1.14 );
@@ -53,14 +53,14 @@ sub _tables {
 }
 
 sub _table_info {
-    my ( $self, $table ) = @_;
+    my ( $class, $table ) = @_;
 #    $|=1;
 #    print "_table_info($table)\n";
     my ($db_schema, $tabname) = split /\./, $table, 2;
     # print "DB_Schema: $db_schema, Table: $tabname\n";
     
     # FIXME: Horribly inefficient and just plain evil. (JMM)
-    my $dbh = $self->{_storage}->dbh;
+    my $dbh = $class->storage->dbh;
     $dbh->{RaiseError} = 1;
 
     my $sth = $dbh->prepare(<<'SQL') or die;
