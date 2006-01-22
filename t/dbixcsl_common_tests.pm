@@ -245,9 +245,9 @@ sub create {
 
         qq{
             CREATE TABLE loader_test5 (
-                id1 INTEGER,
-                id2 INTEGER, -- , id2 INTEGER REFERENCES loader_test1,
-                dat TEXT,
+                id1 INTEGER NOT NULL,
+                id2 INTEGER NOT NULL, -- , id2 INTEGER REFERENCES loader_test1,
+                dat VARCHAR(8),
                 PRIMARY KEY (id1,id2)
             ) $self->{innodb};
         },
@@ -259,7 +259,7 @@ sub create {
                 id $self->{auto_inc_pk},
                 id2 INTEGER,
                 loader_test2 INTEGER,
-                dat TEXT,
+                dat VARCHAR(8),
                 FOREIGN KEY (loader_test2) REFERENCES loader_test2 (id),
                 FOREIGN KEY (id, id2 ) REFERENCES loader_test5 (id1,id2)
             ) $self->{innodb};
@@ -272,7 +272,7 @@ sub create {
             CREATE TABLE loader_test7 (
                 id INTEGER NOT NULL PRIMARY KEY,
                 id2 VARCHAR(8) NOT NULL UNIQUE,
-                dat TEXT
+                dat VARCHAR(8)
             ) $self->{innodb};
         },
 
@@ -282,7 +282,7 @@ sub create {
             CREATE TABLE loader_test8 (
                 id INTEGER NOT NULL PRIMARY KEY,
                 loader_test7 VARCHAR(8) NOT NULL,
-                dat TEXT,
+                dat VARCHAR(8),
                 FOREIGN KEY (loader_test7) REFERENCES loader_test7 (id2)
             ) $self->{innodb};
         },
@@ -292,7 +292,7 @@ sub create {
 
         qq{
             CREATE TABLE loader_test9 (
-                loader_test9 TEXT NOT NULL
+                loader_test9 VARCHAR(8) NOT NULL
             ) $self->{innodb};
         },
     );
