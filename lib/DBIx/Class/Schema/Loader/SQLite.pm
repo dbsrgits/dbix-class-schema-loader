@@ -133,7 +133,7 @@ SQL
         @pks = ($primary);
     }
     else {
-        my ($pks) = $sql =~ m/PRIMARY\s+KEY\s*\(\s*([^)]+)\s*\)/;
+        my ($pks) = $sql =~ m/PRIMARY\s+KEY\s*\(\s*([^)]+)\s*\)/i;
         @pks = split( m/\s*\,\s*/, $pks ) if $pks;
     }
     return ( \@columns, \@pks );
