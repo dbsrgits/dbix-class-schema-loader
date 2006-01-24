@@ -119,11 +119,7 @@ sub run_tests {
         # mulit-col fk def (works for some, not others...)
         my $obj6 = $rsobj6->find(1);
         isa_ok( $obj6->loader_test2, "$schema_class\::$moniker2" );
-        SKIP: {
-            skip "Multi-column FKs are only half-working for this vendor", 1
-                unless $self->{multi_fk_broken};
-            is( ref( $obj6->id2 ), '' );
-        }
+        is( ref( $obj6->loader_test5 ), "$schema_class\::$moniker5");
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
@@ -262,7 +258,7 @@ sub create {
 
         qq{
             CREATE TABLE loader_test6 (
-                id $self->{auto_inc_pk},
+                id INTEGER NOT NULL PRIMARY KEY,
                 id2 INTEGER,
                 loader_test2 INTEGER,
                 dat VARCHAR(8),
@@ -271,8 +267,8 @@ sub create {
             ) $self->{innodb};
         },
 
-        (q{ INSERT INTO loader_test6 (id2,loader_test2,dat) } .
-         q{ VALUES (1,1,'aaa'); }),
+        (q{ INSERT INTO loader_test6 (id, id2,loader_test2,dat) } .
+         q{ VALUES (1, 1,1,'aaa'); }),
 
         qq{
             CREATE TABLE loader_test7 (

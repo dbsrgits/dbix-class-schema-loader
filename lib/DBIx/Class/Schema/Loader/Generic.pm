@@ -167,50 +167,49 @@ sub _db_classes { croak "ABSTRACT METHOD" }
 
 # Setup has_a and has_many relationships
 sub _belongs_to_many {
-    my ( $class, $table, $column, $other, $other_column ) = @_;
+    use Data::Dumper;
+
+    my ( $class, $table, $other, $cond ) = @_;
     my $table_class = $class->_find_table_class($table);
     my $other_class = $class->_find_table_class($other);
 
-    warn qq/\# Belongs_to relationship\n/ if $class->debug_loader;
+    my $table_relname = lc $table;
+    my $other_relname = lc $other;
 
-    if($other_column) {
-        warn qq/$table_class->belongs_to( '$column' => '$other_class',/
-          .  qq/ { "foreign.$other_column" => "self.$column" },/
-          .  qq/ { accessor => 'filter' });\n\n/
-          if $class->debug_loader;
-        $table_class->belongs_to( $column => $other_class, 
-          { "foreign.$other_column" => "self.$column" },
-          { accessor => 'filter' }
-        );
+    if(my $inflections = $class->loader_data->{_inflect}) {
+        $table_relname = $inflections->{$table_relname}
+          if exists $inflections->{$table_relname};
     }
     else {
-        warn qq/$table_class->belongs_to( '$column' => '$other_class' );\n\n/
-          if $class->debug_loader;
-        $table_class->belongs_to( $column => $other_class );
+        $table_relname = Lingua::EN::Inflect::PL($table_relname);
     }
 
-    my ($table_class_base) = $table_class =~ /.*::(.+)/;
-    my $plural = Lingua::EN::Inflect::PL( lc $table_class_base );
-    $plural = $class->loader_data->{_inflect}->{ lc $table_class_base }
-      if $class->loader_data->{_inflect}
-      and exists $class->loader_data->{_inflect}->{ lc $table_class_base };
+    # for single-column case, set the relname to the column name,
+    # to make filter accessors work
+    if(scalar keys %$cond == 1) {
+        my ($col) = keys %$cond;
+        $other_relname = $cond->{$col};
+    }
+
+    my $rev_cond = { reverse %$cond };
+
+    warn qq/\# Belongs_to relationship\n/ if $class->debug_loader;
+
+    warn qq/$table_class->belongs_to( '$other_relname' => '$other_class',/
+      .  Dumper($cond)
+      .  qq/);\n\n/
+      if $class->debug_loader;
+
+    $table_class->belongs_to( $other_relname => $other_class, $cond);
 
     warn qq/\# Has_many relationship\n/ if $class->debug_loader;
 
-    if($other_column) {
-        warn qq/$other_class->has_many( '$plural' => '$table_class',/
-          .  qq/ { "foreign.$column" => "self.$other_column" } );\n\n/
-          if $class->debug_loader;
-        $other_class->has_many( $plural => $table_class,
-                                { "foreign.$column" => "self.$other_column" }
-                              );
-    }
-    else {
-        warn qq/$other_class->has_many( '$plural' => '$table_class',/
-          .  qq/'$other_column' );\n\n/
-          if $class->debug_loader;
-        $other_class->has_many( $plural => $table_class, $column );
-    }
+    warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
+      .  Dumper($rev_cond)
+      .  qq/);\n\n/
+      if $class->debug_loader;
+
+    $other_class->has_many( $table_relname => $table_class, $rev_cond);
 }
 
 # Load and setup classes
@@ -271,21 +270,27 @@ sub _load_classes {
 sub _relationships {
     my $class = shift;
     my $dbh = $class->storage->dbh;
+    my $quoter = $dbh->get_info(29) || q{"};
     foreach my $table ( $class->tables ) {
-        my $quoter = $dbh->get_info(29) || q{"};
-        if ( my $sth = $dbh->foreign_key_info( '', $class->loader_data->{_db_schema}, '', '', '', $table ) ) {
-            for my $res ( @{ $sth->fetchall_arrayref( {} ) } ) {
-                my $column = lc $res->{FK_COLUMN_NAME};
-                my $other  = lc $res->{UK_TABLE_NAME};
-                my $other_column  = lc $res->{UK_COLUMN_NAME};
-                $column =~ s/$quoter//g;
-                $other =~ s/$quoter//g;
-                $other_column =~ s/$quoter//g;
-                eval { $class->_belongs_to_many( $table, $column, $other,
-                  $other_column ) };
-                warn qq/\# belongs_to_many failed "$@"\n\n/
-                  if $@ && $class->debug_loader;
-            }
+        my $rels = {};
+        my $sth = $dbh->foreign_key_info( '',
+            $class->loader_data->{_db_schema}, '', '', '', $table );
+        next if !$sth;
+        while(my $raw_rel = $sth->fetchrow_hashref) {
+            my $uk_tbl  = lc $raw_rel->{UK_TABLE_NAME};
+            my $uk_col  = lc $raw_rel->{UK_COLUMN_NAME};
+            my $fk_col  = lc $raw_rel->{FK_COLUMN_NAME};
+            $uk_tbl =~ s/$quoter//g;
+            $uk_col =~ s/$quoter//g;
+            $fk_col =~ s/$quoter//g;
+            $rels->{$uk_tbl}->{$uk_col} = $fk_col;
+        }
+
+        foreach my $reltbl (keys %$rels) {
+            my $cond = $rels->{$reltbl};
+            eval { $class->_belongs_to_many( $table, $reltbl, $cond ) };
+              warn qq/\# belongs_to_many failed "$@"\n\n/
+                if $@ && $class->debug_loader;
         }
     }
 }

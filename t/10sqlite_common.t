@@ -12,7 +12,6 @@ my $class = $@ ? 'SQLite2' : 'SQLite';
         dsn             => "dbi:$class:dbname=./t/sqlite_test",
         user            => '',
         password        => '',
-        multi_fk_broken => 1,
     );
 
     $tester->run_tests();

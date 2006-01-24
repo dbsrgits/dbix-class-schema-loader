@@ -28,6 +28,7 @@ sub _db_classes {
     return qw/DBIx::Class::PK::Auto::SQLite/;
 }
 
+# XXX this really needs a re-factor
 sub _relationships {
     my $class = shift;
     foreach my $table ( $class->tables ) {
@@ -67,19 +68,29 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
             # find multi-col fks below
             $col =~ s/\-\-comma\-\-/,/g;
 
-            # CDBI doesn't have built-in support multi-col fks, so ignore them
-            next if $col =~ s/^\s*FOREIGN\s+KEY\s*//i && $col =~ /^\([^,)]+,/;
+            $col =~ s/^\s*FOREIGN\s+KEY\s*//i;
 
             # Strip punctuations around key and table names
-            $col =~ s/[()\[\]'"]/ /g;
+            $col =~ s/[\[\]'"]/ /g;
             $col =~ s/^\s+//gs;
 
             # Grab reference
-            if ( $col =~ /^(\w+).*REFERENCES\s+(\w+)\s*(\w+)?/i ) {
+            if ( $col =~ /^\((.*)\)\s+REFERENCES\s+(\w+)\s*\((.*)\)/i ) {
                 chomp $col;
-                warn qq/\# Found foreign key definition "$col"\n\n/
-                  if $class->debug_loader;
-                eval { $class->_belongs_to_many( $table, $1, $2, $3 ) };
+
+                my ($cols, $f_table, $f_cols) = ($1, $2, $3);
+                my @cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$cols);
+                my @f_cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$f_cols);
+
+                die "Mismatched column count in rel for $table => $f_table"
+                  if @cols != @f_cols;
+            
+                my $cond = {};
+                for(my $i = 0 ; $i < @cols; $i++) {
+                    $cond->{$f_cols[$i]} = $cols[$i];
+                }
+
+                eval { $class->_belongs_to_many( $table, $f_table, $cond ) };
                 warn qq/\# belongs_to_many failed "$@"\n\n/
                   if $@ && $class->debug_loader;
             }

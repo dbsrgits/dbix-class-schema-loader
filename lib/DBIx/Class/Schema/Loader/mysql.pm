@@ -29,7 +29,6 @@ sub _db_classes {
     return qw/DBIx::Class::PK::Auto::MySQL/;
 }
 
-# Very experimental and untested!
 sub _relationships {
     my $class   = shift;
     my @tables = $class->tables;
@@ -43,6 +42,8 @@ sub _relationships {
     my $dbname = $conn{database} || $conn{dbname} || $conn{db};
     die("Can't figure out the table name automatically.") if !$dbname;
 
+    my $quoter = $dbh->get_info(29);
+
     foreach my $table (@tables) {
         my $query = "SHOW CREATE TABLE ${dbname}.${table}";
         my $sth   = $dbh->prepare($query)
@@ -50,14 +51,24 @@ sub _relationships {
         $sth->execute;
         my $table_def = $sth->fetchrow_arrayref->[1] || '';
         
-        my (@cols) = ($table_def =~ /CONSTRAINT `.*` FOREIGN KEY \(`(.*)`\) REFERENCES `(.*)` \(`(.*)`\)/g);
+        my (@reldata) = ($table_def =~ /CONSTRAINT `.*` FOREIGN KEY \(`(.*)`\) REFERENCES `(.*)` \(`(.*)`\)/g);
 
-        while (scalar @cols > 0) {
-            my $column = shift @cols;
-            my $remote_table = shift @cols;
-            my $remote_column = shift @cols;
+        while (scalar @reldata > 0) {
+            my $cols = shift @reldata;
+            my $f_table = shift @reldata;
+            my $f_cols = shift @reldata;
+
+            my @cols = map { s/$quoter//; $_ } split(/\s*,\s*/,$cols);
+            my @f_cols = map { s/$quoter//; $_ } split(/\s*,\s*/,$f_cols);
+            die "Mismatched column count in rel for $table => $f_table"
+              if @cols != @f_cols;
             
-            eval { $class->_belongs_to_many( $table, $column, $remote_table, $remote_column) };
+            my $cond = {};
+            for(my $i = 0 ; $i < @cols; $i++) {
+                $cond->{$f_cols[$i]} = $cols[$i];
+            }
+
+            eval { $class->_belongs_to_many( $table, $f_table, $cond) };
             warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $class->debug_loader;
         }
         

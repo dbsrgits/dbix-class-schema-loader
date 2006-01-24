@@ -103,10 +103,20 @@ SQL
         if ($sth->execute(uc $table)) {
             while(my $res = $sth->fetchrow_arrayref()) {
                 my ($colcount, $other, $other_column, $column) =
-                    map { $_=lc; s/^\s+//; s/\s+$//; $_; } @$res;
-                next if $colcount != 1; # XXX no multi-col FK support yet
-                eval { $class->_belongs_to_many( $table, $column, $other,
-                  $other_column ) };
+                    map { lc } @$res;
+
+                my @self_cols = split(' ',$column);
+                my @other_cols = split(' ',$other_column);
+                if(@self_cols != $colcount || @other_cols != $colcount) {
+                    die "Column count discrepancy while getting rel info";
+                }
+
+                my %cond;
+                for(my $i = 0; $i < @self_cols; $i++) {
+                    $cond{$other_cols[$i]} = $self_cols[$i];
+                }
+
+                eval { $class->_belongs_to_many ($table, $other, \%cond); };
                 warn qq/\# belongs_to_many failed "$@"\n\n/
                   if $@ && $class->debug_loader;
             }
