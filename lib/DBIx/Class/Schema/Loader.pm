@@ -2,6 +2,7 @@ package DBIx::Class::Schema::Loader;
 
 use strict;
 use warnings;
+use Carp;
 
 use vars qw($VERSION @ISA);
 use UNIVERSAL::require;
@@ -55,8 +56,8 @@ L<DBIx::Class::Schema::Loader::Generic> for more, and
 L<DBIx::Class::Schema::Loader::Writing> for notes on writing your own
 db-specific subclass for an unsupported db.
 
-This module obsoletes L<DBIx::Class::Loader> for L<DBIx::Class> version 0.5
-and later.
+This module requires DBIx::Class::Loader 0.5 or later, and obsoletes
+L<DBIx::Class::Loader> for L<DBIx::Class> version 0.5 and later.
 
 =cut
 
@@ -73,7 +74,7 @@ L<DBIx::Class::Schema::Loader::Generic> documentation.
 sub load_from_connection {
     my ( $class, %args ) = @_;
 
-    die qq/dsn argument is required/ if ! $args{dsn};
+    croak 'dsn argument is required' if ! $args{dsn};
 
     my $dsn = $args{dsn};
     my ($driver) = $dsn =~ m/^dbi:(\w*?)(?:\((.*?)\))?:/i;
@@ -81,8 +82,8 @@ sub load_from_connection {
     my $impl = "DBIx::Class::Schema::Loader::" . $driver;
 
     $impl->require or
-      die qq/Couldn't require loader class "$impl",/ .
-          qq/"$UNIVERSAL::require::ERROR"/;
+      croak qq/Couldn't require loader class "$impl",/ .
+            qq/"$UNIVERSAL::require::ERROR"/;
 
     push(@ISA, $impl);
     $class->_load_from_connection(%args);

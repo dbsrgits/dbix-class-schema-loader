@@ -27,14 +27,14 @@ See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-sub _db_classes {
+sub _loader_db_classes {
     return qw/DBIx::Class::PK::Auto::DB2/;
 }
 
-sub _tables {
+sub _loader_tables {
     my $class = shift;
     my %args = @_; 
-    my $db_schema = uc $class->loader_data->{_db_schema};
+    my $db_schema = uc $class->_loader_data->{db_schema};
     my $dbh = $class->storage->dbh;
 
     # this is split out to avoid version parsing errors...
@@ -50,10 +50,10 @@ sub _tables {
     return @tables;
 }
 
-sub _table_info {
+sub _loader_table_info {
     my ( $class, $table ) = @_;
 #    $|=1;
-#    print "_table_info($table)\n";
+#    print "_loader_table_info($table)\n";
     my ($db_schema, $tabname) = split /\./, $table, 2;
     # print "DB_Schema: $db_schema, Table: $tabname\n";
     
@@ -89,7 +89,7 @@ SQL
 }
 
 # Find and setup relationships
-sub _relationships {
+sub _loader_relationships {
     my $class = shift;
 
     my $dbh = $class->storage->dbh;
@@ -116,9 +116,9 @@ SQL
                     $cond{$other_cols[$i]} = $self_cols[$i];
                 }
 
-                eval { $class->_belongs_to_many ($table, $other, \%cond); };
+                eval { $class->_loader_make_relations ($table, $other, \%cond); };
                 warn qq/\# belongs_to_many failed "$@"\n\n/
-                  if $@ && $class->debug_loader;
+                  if $@ && $class->_loader_debug;
             }
         }
     }

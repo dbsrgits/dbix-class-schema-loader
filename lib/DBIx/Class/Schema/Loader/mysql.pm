@@ -25,15 +25,15 @@ See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-sub _db_classes {
+sub _loader_db_classes {
     return qw/DBIx::Class::PK::Auto::MySQL/;
 }
 
-sub _relationships {
+sub _loader_relationships {
     my $class   = shift;
     my @tables = $class->tables;
     my $dbh    = $class->storage->dbh;
-    my $dsn    = $class->loader_data->{_datasource}[0];
+    my $dsn    = $class->_loader_data->{datasource}[0];
     my %conn   =
       $dsn =~ m/\Adbi:\w+(?:\(.*?\))?:(.+)\z/i
       && index( $1, '=' ) >= 0
@@ -68,15 +68,15 @@ sub _relationships {
                 $cond->{$f_cols[$i]} = $cols[$i];
             }
 
-            eval { $class->_belongs_to_many( $table, $f_table, $cond) };
-            warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $class->debug_loader;
+            eval { $class->_loader_make_relations( $table, $f_table, $cond) };
+            warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $class->_loader_debug;
         }
         
         $sth->finish;
     }
 }
 
-sub _tables {
+sub _loader_tables {
     my $class = shift;
     my $dbh    = $class->storage->dbh;
     my @tables;
@@ -89,7 +89,7 @@ sub _tables {
     return @tables;
 }
 
-sub _table_info {
+sub _loader_table_info {
     my ( $class, $table ) = @_;
     my $dbh    = $class->storage->dbh;
 

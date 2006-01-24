@@ -10,7 +10,8 @@ use Lingua::EN::Inflect;
 
 require DBIx::Class::Core;
 
-__PACKAGE__->mk_classdata('loader_data');
+__PACKAGE__->mk_classdata('_loader_data');
+__PACKAGE__->mk_classdata('_loader_debug' => 0);
 
 =head1 NAME
 
@@ -84,47 +85,51 @@ C<new()> method in L<DBIx::Class::Schema::Loader>.
 
 sub _load_from_connection {
     my ( $class, %args ) = @_;
-    if ( $args{debug} ) {
-        no strict 'refs';
-        *{"$class\::debug_loader"} = sub { 1 };
-    }
+
+    $class->_loader_debug( $args{debug} ? 1 : 0);
+
     my $additional = $args{additional_classes} || [];
     $additional = [$additional] unless ref $additional eq 'ARRAY';
+
     my $additional_base = $args{additional_base_classes} || [];
     $additional_base = [$additional_base]
       unless ref $additional_base eq 'ARRAY';
+
     my $left_base = $args{left_base_classes} || [];
     $left_base = [$left_base] unless ref $left_base eq 'ARRAY';
-    $class->loader_data({
-        _datasource =>
+
+    $class->_loader_data({
+        datasource =>
           [ $args{dsn}, $args{user}, $args{password}, $args{options} ],
-        _additional      => $additional,
-        _additional_base => $additional_base,
-        _left_base       => $left_base,
-        _constraint      => $args{constraint} || '.*',
-        _exclude         => $args{exclude},
-        _relationships   => $args{relationships},
-        _inflect         => $args{inflect},
-        _db_schema       => $args{db_schema} || '',
-        _drop_db_schema  => $args{drop_db_schema},
-        TABLE_CLASSES    => {},
-        MONIKERS         => {},
+        additional      => $additional,
+        additional_base => $additional_base,
+        left_base       => $left_base,
+        constraint      => $args{constraint} || '.*',
+        exclude         => $args{exclude},
+        relationships   => $args{relationships},
+        inflect         => $args{inflect},
+        db_schema       => $args{db_schema} || '',
+        drop_db_schema  => $args{drop_db_schema},
+        TABLE_CLASSES   => {},
+        MONIKERS        => {},
     });
 
-    $class->connection(@{$class->loader_data->{_datasource}});
-    warn qq/\### START DBIx::Class::Schema::Loader dump ###\n/ if $class->debug_loader;
-    $class->_load_classes;
-    $class->_relationships                            if $class->loader_data->{_relationships};
-    warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/ if $class->debug_loader;
+    $class->connection(@{$class->_loader_data->{datasource}});
+    warn qq/\### START DBIx::Class::Schema::Loader dump ###\n/
+        if $class->_loader_debug;
+    $class->_loader_load_classes;
+    $class->_loader_relationships if $class->_loader_data->{relationships};
+    warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/
+        if $class->_loader_debug;
     $class->storage->dbh->disconnect; # XXX this should be ->storage->disconnect later?
 
     1;
 }
 
 # The original table class name during Loader,
-sub _find_table_class {
+sub _loader_find_table_class {
     my ( $class, $table ) = @_;
-    return $class->loader_data->{TABLE_CLASSES}->{$table};
+    return $class->_loader_data->{TABLE_CLASSES}->{$table};
 }
 
 # Returns the moniker for a given table name,
@@ -138,16 +143,8 @@ as $schema->resultset($moniker), etc.
 =cut
 sub moniker {
     my ( $class, $table ) = @_;
-    return $class->loader_data->{MONIKERS}->{$table};
+    return $class->_loader_data->{MONIKERS}->{$table};
 }
-
-=head3 debug_loader
-
-Overload to enable Loader debug messages.
-
-=cut
-
-sub debug_loader { 0 }
 
 =head3 tables
 
@@ -159,24 +156,24 @@ Returns a sorted list of tables.
 
 sub tables {
     my $class = shift;
-    return sort keys %{ $class->loader_data->{MONIKERS} };
+    return sort keys %{ $class->_loader_data->{MONIKERS} };
 }
 
 # Overload in your driver class
-sub _db_classes { croak "ABSTRACT METHOD" }
+sub _loader_db_classes { croak "ABSTRACT METHOD" }
 
 # Setup has_a and has_many relationships
-sub _belongs_to_many {
+sub _loader_make_relations {
     use Data::Dumper;
 
     my ( $class, $table, $other, $cond ) = @_;
-    my $table_class = $class->_find_table_class($table);
-    my $other_class = $class->_find_table_class($other);
+    my $table_class = $class->_loader_find_table_class($table);
+    my $other_class = $class->_loader_find_table_class($other);
 
     my $table_relname = lc $table;
     my $other_relname = lc $other;
 
-    if(my $inflections = $class->loader_data->{_inflect}) {
+    if(my $inflections = $class->_loader_data->{inflect}) {
         $table_relname = $inflections->{$table_relname}
           if exists $inflections->{$table_relname};
     }
@@ -193,37 +190,37 @@ sub _belongs_to_many {
 
     my $rev_cond = { reverse %$cond };
 
-    warn qq/\# Belongs_to relationship\n/ if $class->debug_loader;
+    warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
 
     warn qq/$table_class->belongs_to( '$other_relname' => '$other_class',/
       .  Dumper($cond)
       .  qq/);\n\n/
-      if $class->debug_loader;
+      if $class->_loader_debug;
 
     $table_class->belongs_to( $other_relname => $other_class, $cond);
 
-    warn qq/\# Has_many relationship\n/ if $class->debug_loader;
+    warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
 
     warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
       .  Dumper($rev_cond)
       .  qq/);\n\n/
-      if $class->debug_loader;
+      if $class->_loader_debug;
 
     $other_class->has_many( $table_relname => $table_class, $rev_cond);
 }
 
 # Load and setup classes
-sub _load_classes {
+sub _loader_load_classes {
     my $class = shift;
 
-    my @tables          = $class->_tables();
-    my @db_classes      = $class->_db_classes();
-    my $additional      = join '', map "use $_;\n", @{ $class->loader_data->{_additional} };
+    my @tables          = $class->_loader_tables();
+    my @db_classes      = $class->_loader_db_classes();
+    my $additional      = join '', map "use $_;\n", @{ $class->_loader_data->{additional} };
     my $additional_base = join '', map "use base '$_';\n",
-      @{ $class->loader_data->{_additional_base} };
-    my $left_base  = join '', map "use base '$_';\n", @{ $class->loader_data->{_left_base} };
-    my $constraint = $class->loader_data->{_constraint};
-    my $exclude    = $class->loader_data->{_exclude};
+      @{ $class->_loader_data->{additional_base} };
+    my $left_base  = join '', map "use base '$_';\n", @{ $class->_loader_data->{left_base} };
+    my $constraint = $class->_loader_data->{constraint};
+    my $exclude    = $class->_loader_data->{exclude};
 
     foreach my $table (@tables) {
         next unless $table =~ /$constraint/;
@@ -232,49 +229,49 @@ sub _load_classes {
         my ($db_schema, $tbl) = split /\./, $table;
         my $tablename = lc $table;
         if($tbl) {
-            $tablename = $class->loader_data->{_drop_db_schema} ? $tbl : lc $table;
+            $tablename = $class->_loader_data->{drop_db_schema} ? $tbl : lc $table;
         }
 
-        my $table_moniker = $class->_table2moniker($db_schema, $tbl);
+        my $table_moniker = $class->_loader_table2moniker($db_schema, $tbl);
         my $table_class = "$class\::$table_moniker";
 
         $class->inject_base( $table_class, 'DBIx::Class::Core' );
         $_->require for @db_classes;
         $class->inject_base( $table_class, $_ ) for @db_classes;
-        warn qq/\# Initializing table "$tablename" as "$table_class"\n/ if $class->debug_loader;
+        warn qq/\# Initializing table "$tablename" as "$table_class"\n/ if $class->_loader_debug;
         $table_class->table(lc $tablename);
 
-        my ( $cols, $pks ) = $class->_table_info($table);
+        my ( $cols, $pks ) = $class->_loader_table_info($table);
         carp("$table has no primary key") unless @$pks;
         $table_class->add_columns(@$cols);
         $table_class->set_primary_key(@$pks) if @$pks;
 
         my $code = "package $table_class;\n$additional_base$additional$left_base";
-        warn qq/$code/                        if $class->debug_loader;
-        warn qq/$table_class->table('$tablename');\n/ if $class->debug_loader;
+        warn qq/$code/                        if $class->_loader_debug;
+        warn qq/$table_class->table('$tablename');\n/ if $class->_loader_debug;
         my $columns = join "', '", @$cols;
-        warn qq/$table_class->add_columns('$columns')\n/ if $class->debug_loader;
+        warn qq/$table_class->add_columns('$columns')\n/ if $class->_loader_debug;
         my $primaries = join "', '", @$pks;
-        warn qq/$table_class->set_primary_key('$primaries')\n/ if $class->debug_loader && @$pks;
+        warn qq/$table_class->set_primary_key('$primaries')\n/ if $class->_loader_debug && @$pks;
         eval $code;
         croak qq/Couldn't load additional classes "$@"/ if $@;
-        unshift @{"$table_class\::ISA"}, $_ foreach ( @{ $class->loader_data->{_left_base} } );
+        unshift @{"$table_class\::ISA"}, $_ foreach ( @{ $class->_loader_data->{left_base} } );
 
         $class->register_class($table_moniker, $table_class);
-        $class->loader_data->{TABLE_CLASSES}->{lc $tablename} = $table_class;
-        $class->loader_data->{MONIKERS}->{lc $tablename} = $table_moniker;
+        $class->_loader_data->{TABLE_CLASSES}->{lc $tablename} = $table_class;
+        $class->_loader_data->{MONIKERS}->{lc $tablename} = $table_moniker;
     }
 }
 
 # Find and setup relationships
-sub _relationships {
+sub _loader_relationships {
     my $class = shift;
     my $dbh = $class->storage->dbh;
     my $quoter = $dbh->get_info(29) || q{"};
     foreach my $table ( $class->tables ) {
         my $rels = {};
         my $sth = $dbh->foreign_key_info( '',
-            $class->loader_data->{_db_schema}, '', '', '', $table );
+            $class->_loader_data->{db_schema}, '', '', '', $table );
         next if !$sth;
         while(my $raw_rel = $sth->fetchrow_hashref) {
             my $uk_tbl  = lc $raw_rel->{UK_TABLE_NAME};
@@ -288,22 +285,22 @@ sub _relationships {
 
         foreach my $reltbl (keys %$rels) {
             my $cond = $rels->{$reltbl};
-            eval { $class->_belongs_to_many( $table, $reltbl, $cond ) };
+            eval { $class->_loader_make_relations( $table, $reltbl, $cond ) };
               warn qq/\# belongs_to_many failed "$@"\n\n/
-                if $@ && $class->debug_loader;
+                if $@ && $class->_loader_debug;
         }
     }
 }
 
 # Make a moniker from a table
-sub _table2moniker {
+sub _loader_table2moniker {
     my ( $class, $db_schema, $table ) = @_;
 
     my $db_schema_ns;
 
     if($table) {
         $db_schema = ucfirst lc $db_schema;
-        $db_schema_ns = $db_schema if(!$class->loader_data->{_drop_db_schema});
+        $db_schema_ns = $db_schema if(!$class->_loader_data->{drop_db_schema});
     } else {
         $table = $db_schema;
     }
@@ -315,9 +312,9 @@ sub _table2moniker {
 }
 
 # Overload in driver class
-sub _tables { croak "ABSTRACT METHOD" }
+sub _loader_tables { croak "ABSTRACT METHOD" }
 
-sub _table_info { croak "ABSTRACT METHOD" }
+sub _loader_table_info { croak "ABSTRACT METHOD" }
 
 =head1 SEE ALSO
 
