@@ -25,7 +25,6 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
     dsn                     => "dbi:mysql:dbname",
     user                    => "root",
     password                => "",
-    namespace               => "My",
     additional_classes      => [qw/DBIx::Class::Foo/],
     additional_base_classes => [qw/My::Stuff/],
     left_base_classes       => [qw/DBIx::Class::Bar/],
@@ -75,9 +74,6 @@ sub load_from_connection {
     my ( $class, %args ) = @_;
 
     die qq/dsn argument is required/ if ! $args{dsn};
-
-    $args{namespace} ||= $class;
-    $args{namespace} =~ s/(.*)::$/$1/;
 
     my $dsn = $args{dsn};
     my ($driver) = $dsn =~ m/^dbi:(\w*?)(?:\((.*?)\))?:/i;

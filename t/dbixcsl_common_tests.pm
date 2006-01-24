@@ -40,17 +40,14 @@ sub run_tests {
 
     $self->create();
 
-    my $namespace = 'DBIXCSL_Test_' . $self->{vendor};
+    my $schema_class = 'DBIXCSL_Test_' . $self->{vendor} . '::Schema';
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
-
-    my $schema_pkg = "$namespace\::Schema";
 
     my %loader_opts = (
         dsn           => $self->{dsn},
         user          => $self->{user},
         password      => $self->{password},
-        namespace     => $namespace,
         constraint    => '^(?:\S+\.)?(?i:loader_test)[0-9]+$',
         relationships => 1,
         debug         => $debug,
@@ -60,14 +57,14 @@ sub run_tests {
     $loader_opts{drop_db_schema} = $self->{drop_db_schema} if $self->{drop_db_schema};
 
     eval qq{
-        package $schema_pkg;
+        package $schema_class;
         use base qw/DBIx::Class::Schema::Loader/;
 
         __PACKAGE__->load_from_connection(\%loader_opts);
     };
     ok(!$@, "Loader initialization failed: $@");
 
-    my $conn = $schema_pkg->connect($self->{dsn},$self->{user},$self->{password});
+    my $conn = $schema_class->connect($self->{dsn},$self->{user},$self->{password});
 
     my $moniker1 = $conn->moniker('loader_test1');
     my $rsobj1 = $conn->resultset($moniker1);
@@ -113,7 +110,7 @@ sub run_tests {
 
         # basic rel test
         my $obj4 = $rsobj4->find(123);
-        isa_ok( $obj4->fkid, "$namespace\::$moniker3");
+        isa_ok( $obj4->fkid, "$schema_class\::$moniker3");
 
         # fk def in comments should not be parsed
         my $obj5 = $rsobj5->find( id1 => 1, id2 => 1 );
@@ -121,7 +118,7 @@ sub run_tests {
 
         # mulit-col fk def (works for some, not others...)
         my $obj6 = $rsobj6->find(1);
-        isa_ok( $obj6->loader_test2, "$namespace\::$moniker2" );
+        isa_ok( $obj6->loader_test2, "$schema_class\::$moniker2" );
         SKIP: {
             skip "Multi-column FKs are only half-working for this vendor", 1
                 unless $self->{multi_fk_broken};
@@ -130,7 +127,7 @@ sub run_tests {
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
-        isa_ok( $obj8->loader_test7, "$namespace\::$moniker7" );
+        isa_ok( $obj8->loader_test7, "$schema_class\::$moniker7" );
 
         # from Chisel's tests...
         SKIP: {
@@ -171,7 +168,7 @@ sub run_tests {
                     'One $rsobj10 returned from search' );
 
                 my $obj10_3 = $results->first();
-                isa_ok( $obj10_3, "$namespace\::$moniker10" );
+                isa_ok( $obj10_3, "$schema_class\::$moniker10" );
                 is( $obj10_3->loader_test11()->id(), $obj11->id(),
                     'found same $rsobj11 object we expected' );
             }

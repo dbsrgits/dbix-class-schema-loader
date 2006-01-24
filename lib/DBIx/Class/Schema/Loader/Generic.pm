@@ -54,10 +54,6 @@ Enable debug messages.
 
 DBI Data Source Name.
 
-=head3 namespace
-
-Namespace under which your table classes will be initialized.
-
 =head3 password
 
 Password.
@@ -102,7 +98,6 @@ sub _load_from_connection {
     $class->loader_data({
         _datasource =>
           [ $args{dsn}, $args{user}, $args{password}, $args{options} ],
-        _namespace       => $args{namespace},
         _additional      => $additional,
         _additional_base => $additional_base,
         _left_base       => $left_base,
@@ -222,8 +217,6 @@ sub _belongs_to_many {
 sub _load_classes {
     my $class = shift;
 
-    my $namespace    = $class->loader_data->{_namespace};
-
     my @tables          = $class->_tables();
     my @db_classes      = $class->_db_classes();
     my $additional      = join '', map "use $_;\n", @{ $class->loader_data->{_additional} };
@@ -244,7 +237,7 @@ sub _load_classes {
         }
 
         my $table_subclass = $class->_table2subclass($db_schema, $tbl);
-        my $table_class = "$namespace\::$table_subclass";
+        my $table_class = "$class\::$table_subclass";
 
         $class->inject_base( $table_class, 'DBIx::Class::Core' );
         $_->require for @db_classes;

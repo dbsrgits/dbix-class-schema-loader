@@ -17,7 +17,6 @@ DBIx::Class::Schema::Loader::Pg - DBIx::Class::Schema::Loader Postgres Implement
     dsn       => "dbi:Pg:dbname=dbname",
     user      => "postgres",
     password  => "",
-    namespace => "Data",
   );
 
 =head1 DESCRIPTION

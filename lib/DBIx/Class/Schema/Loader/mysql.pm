@@ -17,7 +17,6 @@ DBIx::Class::Schema::Loader::mysql - DBIx::Schema::Class::Loader mysql Implement
     dsn       => "dbi:mysql:dbname",
     user      => "root",
     password  => "",
-    namespace => "Data",
   );
 
 =head1 DESCRIPTION

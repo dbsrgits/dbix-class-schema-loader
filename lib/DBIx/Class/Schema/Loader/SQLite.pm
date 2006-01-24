@@ -16,7 +16,6 @@ DBIx::Class::Schema::Loader::SQLite - DBIx::Class::Schema::Loader SQLite Impleme
   # $loader is a DBIx::Class::Schema::Loader::SQLite
   my $loader = DBIx::Class::Schema::Loader->new(
     dsn       => "dbi:SQLite:dbname=/path/to/dbfile",
-    namespace => "Data",
   );
 
 =head1 DESCRIPTION

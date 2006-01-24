@@ -14,12 +14,11 @@ DBIx::Class::Schema::Loader::DB2 - DBIx::Class::Schema::Loader DB2 Implementatio
 
   # $loader is a DBIx::Class::Schema::Loader::DB2
   my $loader = DBIx::Class::Schema::Loader->new(
-    dsn       => "dbi:DB2:dbname",
-    user      => "myuser",
-    password  => "",
-    namespace => "Data",
-    schema    => "MYSCHEMA",
-    dropschema  => 0,
+    dsn         => "dbi:DB2:dbname",
+    user        => "myuser",
+    password    => "",
+    db_schema   => "MYSCHEMA",
+    drop_schema => 1,
   );
 
 =head1 DESCRIPTION
