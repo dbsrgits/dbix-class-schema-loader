@@ -236,8 +236,8 @@ sub _load_classes {
             $tablename = $class->loader_data->{_drop_db_schema} ? $tbl : lc $table;
         }
 
-        my $table_subclass = $class->_table2subclass($db_schema, $tbl);
-        my $table_class = "$class\::$table_subclass";
+        my $table_moniker = $class->_table2moniker($db_schema, $tbl);
+        my $table_class = "$class\::$table_moniker";
 
         $class->inject_base( $table_class, 'DBIx::Class::Core' );
         $_->require for @db_classes;
@@ -261,9 +261,9 @@ sub _load_classes {
         croak qq/Couldn't load additional classes "$@"/ if $@;
         unshift @{"$table_class\::ISA"}, $_ foreach ( @{ $class->loader_data->{_left_base} } );
 
-        $class->register_class($table_subclass, $table_class);
+        $class->register_class($table_moniker, $table_class);
         $class->loader_data->{TABLE_CLASSES}->{lc $tablename} = $table_class;
-        $class->loader_data->{MONIKERS}->{lc $tablename} = $table_subclass;
+        $class->loader_data->{MONIKERS}->{lc $tablename} = $table_moniker;
     }
 }
 
@@ -290,23 +290,23 @@ sub _relationships {
     }
 }
 
-# Make a subclass (dbix moniker) from a table
-sub _table2subclass {
+# Make a moniker from a table
+sub _table2moniker {
     my ( $class, $db_schema, $table ) = @_;
 
     my $db_schema_ns;
 
     if($table) {
         $db_schema = ucfirst lc $db_schema;
-        $db_schema_ns = "::$db_schema" if(!$class->loader_data->{_drop_db_schema});
+        $db_schema_ns = $db_schema if(!$class->loader_data->{_drop_db_schema});
     } else {
         $table = $db_schema;
     }
 
-    my $subclass = join '', map ucfirst, split /[\W_]+/, lc $table;
-    $subclass = $db_schema_ns ? "$db_schema_ns\::" . $subclass : $subclass;
+    my $moniker = join '', map ucfirst, split /[\W_]+/, lc $table;
+    $moniker = $db_schema_ns ? $db_schema_ns . $moniker : $moniker;
 
-    return $subclass;
+    return $moniker;
 }
 
 # Overload in driver class
