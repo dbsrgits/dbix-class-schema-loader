@@ -2,7 +2,6 @@ package DBIx::Class::Schema::Loader::DB2;
 
 use strict;
 use base 'DBIx::Class::Schema::Loader::Generic';
-use DBI;
 use Carp;
 
 =head1 NAME
@@ -30,13 +29,13 @@ See L<DBIx::Class::Schema::Loader>.
 =cut
 
 sub _db_classes {
-   return ();
+    return qw/DBIx::Class::PK::Auto::DB2/;
 }
 
 sub _tables {
     my $class = shift;
     my %args = @_; 
-    my $db_schema = uc ($args{db_schema} || '');
+    my $db_schema = uc $class->loader_data->{_db_schema};
     my $dbh = $class->storage->dbh;
 
     # this is split out to avoid version parsing errors...
@@ -70,7 +69,9 @@ WHERE c.TABSCHEMA = ? and c.TABNAME = ?
 SQL
 
     $sth->execute($db_schema, $tabname) or die;
-    my @cols = map { @$_ } @{$sth->fetchall_arrayref};
+    my @cols = map { lc } map { @$_ } @{$sth->fetchall_arrayref};
+
+    $sth->finish;
 
     $sth = $dbh->prepare(<<'SQL') or die;
 SELECT kcu.COLNAME
@@ -81,9 +82,40 @@ SQL
 
     $sth->execute($db_schema, $tabname) or die;
 
-    my @pri = map { @$_ } @{$sth->fetchall_arrayref};
+    my @pri = map { lc } map { @$_ } @{$sth->fetchall_arrayref};
+
+    $sth->finish;
     
     return ( \@cols, \@pri );
+}
+
+# Find and setup relationships
+sub _relationships {
+    my $class = shift;
+
+    my $dbh = $class->storage->dbh;
+
+    my $sth = $dbh->prepare(<<'SQL') or die;
+SELECT SR.COLCOUNT, SR.REFTBNAME, SR.PKCOLNAMES, SR.FKCOLNAMES
+FROM SYSIBM.SYSRELS SR WHERE SR.TBNAME = ?
+SQL
+
+    foreach my $table ( $class->tables ) {
+        if ($sth->execute(uc $table)) {
+            while(my $res = $sth->fetchrow_arrayref()) {
+                my ($colcount, $other, $other_column, $column) =
+                    map { $_=lc; s/^\s+//; s/\s+$//; $_; } @$res;
+                next if $colcount != 1; # XXX no multi-col FK support yet
+                eval { $class->_belongs_to_many( $table, $column, $other,
+                  $other_column ) };
+                warn qq/\# belongs_to_many failed "$@"\n\n/
+                  if $@ && $class->debug_loader;
+            }
+        }
+    }
+
+    $sth->finish;
+    $dbh->disconnect;
 }
 
 =head1 SEE ALSO

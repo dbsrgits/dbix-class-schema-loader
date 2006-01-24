@@ -46,23 +46,28 @@ sub run_tests {
 
     my $schema_pkg = "$namespace\::Schema";
 
+    my %loader_opts = (
+        dsn           => $self->{dsn},
+        user          => $self->{user},
+        password      => $self->{password},
+        namespace     => $namespace,
+        constraint    => '^(?:\S+\.)?(?i:loader_test)[0-9]+$',
+        relationships => 1,
+        debug         => $debug,
+    );
+
+    $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
+    $loader_opts{drop_db_schema} = $self->{drop_db_schema} if $self->{drop_db_schema};
+
     eval qq{
         package $schema_pkg;
-	use base qw/DBIx::Class::Schema::Loader/;
+        use base qw/DBIx::Class::Schema::Loader/;
 
-        __PACKAGE__->load_from_connection(
-            dsn           => "$self->{dsn}",
-            user          => "$self->{user}",
-            password      => "$self->{password}",
-            namespace     => "$namespace",
-            constraint    => '^loader_test.*',
-            relationships => 1,
-            debug         => "$debug",
-        );
+        __PACKAGE__->load_from_connection(\%loader_opts);
     };
     ok(!$@, "Loader initialization failed: $@");
 
-    my $conn = $schema_pkg->connect($self->{dsn},$self->{user},$self->{passwd});
+    my $conn = $schema_pkg->connect($self->{dsn},$self->{user},$self->{password});
 
     my $moniker1 = $conn->moniker('loader_test1');
     my $rsobj1 = $conn->resultset($moniker1);
@@ -177,7 +182,7 @@ sub run_tests {
 sub dbconnect {
     my ($self, $complain) = @_;
 
-    DBI->connect(
+    my $dbh = DBI->connect(
          $self->{dsn}, $self->{user},
          $self->{password},
          {
@@ -186,6 +191,10 @@ sub dbconnect {
              AutoCommit => 1,
          }
     );
+
+    die "Failed to connect to database: $DBI::errstr" if !$dbh;
+
+    return $dbh;
 }
 
 sub create {
@@ -310,7 +319,7 @@ sub create {
             CREATE TABLE loader_test11 (
                 id11 $self->{auto_inc_pk},
                 message VARCHAR(8) DEFAULT 'foo',
-                loader_test10 INTEGER NOT NULL,
+                loader_test10 INTEGER,
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb};
         },
@@ -320,11 +329,19 @@ sub create {
          q{ REFERENCES loader_test11 (id11); }),
     );
 
+    $self->drop_tables;
+
     $self->{created} = 1;
 
     my $dbh = $self->dbconnect(1);
     $dbh->do($_) for (@statements);
     unless($self->{skip_rels}) {
+        # hack for now, since DB2 doesn't like inline comments, and we need
+        # to test one for mysql, which works on everyone else...
+        # this all needs to be refactored anyways.
+        if($self->{vendor} =~ /DB2/i) {
+            @statements_reltests = map { s/--.*\n//; $_ } @statements_reltests;
+        }
         $dbh->do($_) for (@statements_reltests);
         unless($self->{vendor} =~ /sqlite/i) {
             $dbh->do($_) for (@statements_advanced);
@@ -333,7 +350,7 @@ sub create {
     $dbh->disconnect();
 }
 
-sub DESTROY {
+sub drop_tables {
     my $self = shift;
 
     return unless $self->{created};
@@ -379,7 +396,9 @@ sub DESTROY {
         }
     }
     $dbh->do("DROP TABLE $_") for (@tables);
-    $dbh->disconnect();
+    $dbh->disconnect;
 }
+
+sub DESTROY { shift->drop_tables; }
 
 1;

@@ -110,7 +110,7 @@ sub _load_from_connection {
         _exclude         => $args{exclude},
         _relationships   => $args{relationships},
         _inflect         => $args{inflect},
-        _db_schema       => $args{db_schema},
+        _db_schema       => $args{db_schema} || '',
         _drop_db_schema  => $args{drop_db_schema},
         TABLE_CLASSES    => {},
         MONIKERS         => {},
@@ -237,35 +237,29 @@ sub _load_classes {
         next unless $table =~ /$constraint/;
         next if ( defined $exclude && $table =~ /$exclude/ );
 
-        my $table = lc $table;
-        my $table_name_db_schema = $table;
-        my $table_name_only = $table_name_db_schema;
         my ($db_schema, $tbl) = split /\./, $table;
+        my $tablename = lc $table;
         if($tbl) {
-            $table_name_db_schema = $tbl if $class->loader_data->{_drop_db_schema};
-            $table_name_only = $tbl;
-        }
-        else {
-            undef $db_schema;
+            $tablename = $class->loader_data->{_drop_db_schema} ? $tbl : lc $table;
         }
 
-        my $table_subclass = $class->_table2subclass($db_schema, $table_name_only);
-        my $table_class = $namespace . '::' . $table_subclass;
+        my $table_subclass = $class->_table2subclass($db_schema, $tbl);
+        my $table_class = "$namespace\::$table_subclass";
 
         $class->inject_base( $table_class, 'DBIx::Class::Core' );
         $_->require for @db_classes;
         $class->inject_base( $table_class, $_ ) for @db_classes;
-        warn qq/\# Initializing table "$table_name_db_schema" as "$table_class"\n/ if $class->debug_loader;
-        $table_class->table(lc $table_name_db_schema);
+        warn qq/\# Initializing table "$tablename" as "$table_class"\n/ if $class->debug_loader;
+        $table_class->table(lc $tablename);
 
-        my ( $cols, $pks ) = $class->_table_info($table_name_db_schema);
+        my ( $cols, $pks ) = $class->_table_info($table);
         carp("$table has no primary key") unless @$pks;
         $table_class->add_columns(@$cols);
         $table_class->set_primary_key(@$pks) if @$pks;
 
         my $code = "package $table_class;\n$additional_base$additional$left_base";
         warn qq/$code/                        if $class->debug_loader;
-        warn qq/$table_class->table('$table_name_db_schema');\n/ if $class->debug_loader;
+        warn qq/$table_class->table('$tablename');\n/ if $class->debug_loader;
         my $columns = join "', '", @$cols;
         warn qq/$table_class->add_columns('$columns')\n/ if $class->debug_loader;
         my $primaries = join "', '", @$pks;
@@ -275,8 +269,8 @@ sub _load_classes {
         unshift @{"$table_class\::ISA"}, $_ foreach ( @{ $class->loader_data->{_left_base} } );
 
         $class->register_class($table_subclass, $table_class);
-        $class->loader_data->{TABLE_CLASSES}->{$table_name_db_schema} = $table_class;
-        $class->loader_data->{MONIKERS}->{$table_name_db_schema} = $table_subclass;
+        $class->loader_data->{TABLE_CLASSES}->{lc $tablename} = $table_class;
+        $class->loader_data->{MONIKERS}->{lc $tablename} = $table_subclass;
     }
 }
 
@@ -286,11 +280,11 @@ sub _relationships {
     my $dbh = $class->storage->dbh;
     foreach my $table ( $class->tables ) {
         my $quoter = $dbh->get_info(29) || q{"};
-        if ( my $sth = $dbh->foreign_key_info( '', '', '', '', '', $table ) ) {
+        if ( my $sth = $dbh->foreign_key_info( '', $class->loader_data->{_db_schema}, '', '', '', $table ) ) {
             for my $res ( @{ $sth->fetchall_arrayref( {} ) } ) {
-                my $column = $res->{FK_COLUMN_NAME};
-                my $other  = $res->{UK_TABLE_NAME};
-                my $other_column  = $res->{UK_COLUMN_NAME};
+                my $column = lc $res->{FK_COLUMN_NAME};
+                my $other  = lc $res->{UK_TABLE_NAME};
+                my $other_column  = lc $res->{UK_COLUMN_NAME};
                 $column =~ s/$quoter//g;
                 $other =~ s/$quoter//g;
                 $other_column =~ s/$quoter//g;
@@ -307,13 +301,19 @@ sub _relationships {
 sub _table2subclass {
     my ( $class, $db_schema, $table ) = @_;
 
-    my $table_subclass = join '', map ucfirst, split /[\W_]+/, $table;
+    my $db_schema_ns;
 
-    if($db_schema && !$class->loader_data->{_drop_db_schema}) {
-        $table_subclass = (ucfirst lc $db_schema) . '-' . $table_subclass;
+    if($table) {
+        $db_schema = ucfirst lc $db_schema;
+        $db_schema_ns = "::$db_schema" if(!$class->loader_data->{_drop_db_schema});
+    } else {
+        $table = $db_schema;
     }
 
-    $table_subclass;
+    my $subclass = join '', map ucfirst, split /[\W_]+/, lc $table;
+    $subclass = $db_schema_ns ? "$db_schema_ns\::" . $subclass : $subclass;
+
+    return $subclass;
 }
 
 # Overload in driver class
