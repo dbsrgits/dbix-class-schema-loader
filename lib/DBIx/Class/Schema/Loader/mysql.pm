@@ -42,7 +42,7 @@ sub _loader_relationships {
     my $dbname = $conn{database} || $conn{dbname} || $conn{db};
     die("Can't figure out the table name automatically.") if !$dbname;
 
-    my $quoter = $dbh->get_info(29);
+    my $quoter = $dbh->get_info(29) || q{`};
 
     foreach my $table (@tables) {
         my $query = "SHOW CREATE TABLE ${dbname}.${table}";
@@ -80,9 +80,9 @@ sub _loader_tables {
     my $class = shift;
     my $dbh    = $class->storage->dbh;
     my @tables;
+    my $quoter = $dbh->get_info(29) || q{`};
     foreach my $table ( $dbh->tables ) {
-        my $quoter = $dbh->get_info(29);
-        $table =~ s/$quoter//g if ($quoter);
+        $table =~ s/$quoter//g;
         push @tables, $1
           if $table =~ /\A(\w+)\z/;
     }

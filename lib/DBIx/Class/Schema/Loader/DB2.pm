@@ -36,6 +36,7 @@ sub _loader_tables {
     my %args = @_; 
     my $db_schema = uc $class->_loader_data->{db_schema};
     my $dbh = $class->storage->dbh;
+    my $quoter = $dbh->get_info(29) || q{"};
 
     # this is split out to avoid version parsing errors...
     my $is_dbd_db2_gte_114 = ( $DBD::DB2::VERSION >= 1.14 );
@@ -44,7 +45,7 @@ sub _loader_tables {
         : $dbh->tables;
     # People who use table or schema names that aren't identifiers deserve
     # what they get.  Still, FIXME?
-    s/\"//g for @tables;
+    s/$quoter//g for @tables;
     @tables = grep {!/^SYSIBM\./ and !/^SYSCAT\./ and !/^SYSSTAT\./} @tables;
     @tables = grep {/^$db_schema\./} @tables if($db_schema);
     return @tables;
