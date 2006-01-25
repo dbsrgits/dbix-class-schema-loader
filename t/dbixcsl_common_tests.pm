@@ -198,24 +198,24 @@ sub create {
             CREATE TABLE loader_test1 (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test1 (dat) VALUES('foo'); },
-        q{ INSERT INTO loader_test1 (dat) VALUES('bar'); }, 
-        q{ INSERT INTO loader_test1 (dat) VALUES('baz'); }, 
+        q{ INSERT INTO loader_test1 (dat) VALUES('foo') },
+        q{ INSERT INTO loader_test1 (dat) VALUES('bar') }, 
+        q{ INSERT INTO loader_test1 (dat) VALUES('baz') }, 
 
         qq{ 
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test2 (dat) VALUES('aaa'); }, 
-        q{ INSERT INTO loader_test2 (dat) VALUES('bbb'); }, 
-        q{ INSERT INTO loader_test2 (dat) VALUES('ccc'); }, 
-        q{ INSERT INTO loader_test2 (dat) VALUES('ddd'); }, 
+        q{ INSERT INTO loader_test2 (dat) VALUES('aaa') }, 
+        q{ INSERT INTO loader_test2 (dat) VALUES('bbb') }, 
+        q{ INSERT INTO loader_test2 (dat) VALUES('ccc') }, 
+        q{ INSERT INTO loader_test2 (dat) VALUES('ddd') }, 
     );
 
     my @statements_reltests = (
@@ -223,13 +223,13 @@ sub create {
             CREATE TABLE loader_test3 (
                 id INTEGER NOT NULL PRIMARY KEY,
                 dat VARCHAR(32)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(1,'aaa'); }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(2,'bbb'); }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(3,'ccc'); }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(4,'ddd'); }, 
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(1,'aaa') }, 
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(2,'bbb') }, 
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(3,'ccc') }, 
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(4,'ddd') }, 
 
         qq{
             CREATE TABLE loader_test4 (
@@ -237,13 +237,13 @@ sub create {
                 fkid INTEGER NOT NULL,
                 dat VARCHAR(32),
                 FOREIGN KEY (fkid) REFERENCES loader_test3 (id)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(123,1,'aaa'); },
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(124,2,'bbb'); }, 
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(125,3,'ccc'); },
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(126,4,'ddd'); },
+        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(123,1,'aaa') },
+        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(124,2,'bbb') }, 
+        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(125,3,'ccc') },
+        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(126,4,'ddd') },
 
         qq{
             CREATE TABLE loader_test5 (
@@ -251,10 +251,10 @@ sub create {
                 id2 INTEGER NOT NULL, -- , id2 INTEGER REFERENCES loader_test1,
                 dat VARCHAR(8),
                 PRIMARY KEY (id1,id2)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test5 (id1,id2,dat) VALUES (1,1,'aaa'); },
+        q{ INSERT INTO loader_test5 (id1,id2,dat) VALUES (1,1,'aaa') },
 
         qq{
             CREATE TABLE loader_test6 (
@@ -264,21 +264,21 @@ sub create {
                 dat VARCHAR(8),
                 FOREIGN KEY (loader_test2) REFERENCES loader_test2 (id),
                 FOREIGN KEY (id, id2 ) REFERENCES loader_test5 (id1,id2)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
         (q{ INSERT INTO loader_test6 (id, id2,loader_test2,dat) } .
-         q{ VALUES (1, 1,1,'aaa'); }),
+         q{ VALUES (1, 1,1,'aaa') }),
 
         qq{
             CREATE TABLE loader_test7 (
                 id INTEGER NOT NULL PRIMARY KEY,
                 id2 VARCHAR(8) NOT NULL UNIQUE,
                 dat VARCHAR(8)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test7 (id,id2,dat) VALUES (1,'aaa','bbb'); },
+        q{ INSERT INTO loader_test7 (id,id2,dat) VALUES (1,'aaa','bbb') },
 
         qq{
             CREATE TABLE loader_test8 (
@@ -286,16 +286,16 @@ sub create {
                 loader_test7 VARCHAR(8) NOT NULL,
                 dat VARCHAR(8),
                 FOREIGN KEY (loader_test7) REFERENCES loader_test7 (id2)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
         (q{ INSERT INTO loader_test8 (id,loader_test7,dat) } .
-         q{ VALUES (1,'aaa','bbb'); }),
+         q{ VALUES (1,'aaa','bbb') }),
 
         qq{
             CREATE TABLE loader_test9 (
                 loader_test9 VARCHAR(8) NOT NULL
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
     );
 
@@ -305,7 +305,7 @@ sub create {
                 id10 $self->{auto_inc_pk},
                 subject VARCHAR(8),
                 loader_test11 INTEGER
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
         qq{
@@ -314,12 +314,12 @@ sub create {
                 message VARCHAR(8) DEFAULT 'foo',
                 loader_test10 INTEGER,
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
-            ) $self->{innodb};
+            ) $self->{innodb}
         },
 
         (q{ ALTER TABLE loader_test10 ADD CONSTRAINT } .
          q{ loader_test11_fk FOREIGN KEY (loader_test11) } .
-         q{ REFERENCES loader_test11 (id11); }),
+         q{ REFERENCES loader_test11 (id11) }),
     );
 
     $self->drop_tables;

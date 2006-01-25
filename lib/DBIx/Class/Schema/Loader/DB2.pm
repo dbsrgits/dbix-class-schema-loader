@@ -70,7 +70,7 @@ SQL
     $sth->execute($db_schema, $tabname) or die;
     my @cols = map { lc } map { @$_ } @{$sth->fetchall_arrayref};
 
-    $sth->finish;
+    undef $sth;
 
     $sth = $dbh->prepare(<<'SQL') or die;
 SELECT kcu.COLNAME
@@ -83,8 +83,6 @@ SQL
 
     my @pri = map { lc } map { @$_ } @{$sth->fetchall_arrayref};
 
-    $sth->finish;
-    
     return ( \@cols, \@pri );
 }
 
@@ -100,26 +98,25 @@ FROM SYSIBM.SYSRELS SR WHERE SR.TBNAME = ?
 SQL
 
     foreach my $table ( $class->tables ) {
-        if ($sth->execute(uc $table)) {
-            while(my $res = $sth->fetchrow_arrayref()) {
-                my ($colcount, $other, $other_column, $column) =
-                    map { lc } @$res;
+        next if ! $sth->execute(uc $table);
+        while(my $res = $sth->fetchrow_arrayref()) {
+            my ($colcount, $other, $other_column, $column) =
+                map { lc } @$res;
 
-                my @self_cols = split(' ',$column);
-                my @other_cols = split(' ',$other_column);
-                if(@self_cols != $colcount || @other_cols != $colcount) {
-                    die "Column count discrepancy while getting rel info";
-                }
-
-                my %cond;
-                for(my $i = 0; $i < @self_cols; $i++) {
-                    $cond{$other_cols[$i]} = $self_cols[$i];
-                }
-
-                eval { $class->_loader_make_relations ($table, $other, \%cond); };
-                warn qq/\# belongs_to_many failed "$@"\n\n/
-                  if $@ && $class->_loader_debug;
+            my @self_cols = split(' ',$column);
+            my @other_cols = split(' ',$other_column);
+            if(@self_cols != $colcount || @other_cols != $colcount) {
+                die "Column count discrepancy while getting rel info";
             }
+
+            my %cond;
+            for(my $i = 0; $i < @self_cols; $i++) {
+                $cond{$other_cols[$i]} = $self_cols[$i];
+            }
+
+            eval { $class->_loader_make_relations ($table, $other, \%cond); };
+            warn qq/\# belongs_to_many failed "$@"\n\n/
+              if $@ && $class->_loader_debug;
         }
     }
 

@@ -10,8 +10,8 @@ use Lingua::EN::Inflect;
 
 require DBIx::Class::Core;
 
-__PACKAGE__->mk_classdata('_loader_data');
-__PACKAGE__->mk_classdata('_loader_debug' => 0);
+__PACKAGE__->mk_classaccessor('_loader_data');
+__PACKAGE__->mk_classaccessor('_loader_debug' => 0);
 
 =head1 NAME
 
@@ -106,7 +106,6 @@ sub _load_from_connection {
         left_base       => $left_base,
         constraint      => $args{constraint} || '.*',
         exclude         => $args{exclude},
-        relationships   => $args{relationships},
         inflect         => $args{inflect},
         db_schema       => $args{db_schema} || '',
         drop_db_schema  => $args{drop_db_schema},
@@ -118,7 +117,7 @@ sub _load_from_connection {
     warn qq/\### START DBIx::Class::Schema::Loader dump ###\n/
         if $class->_loader_debug;
     $class->_loader_load_classes;
-    $class->_loader_relationships if $class->_loader_data->{relationships};
+    $class->_loader_relationships if $args{relationships};
     warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/
         if $class->_loader_debug;
     $class->storage->dbh->disconnect; # XXX this should be ->storage->disconnect later?
@@ -162,9 +161,17 @@ sub tables {
 # Overload in your driver class
 sub _loader_db_classes { croak "ABSTRACT METHOD" }
 
+# not a class method.
+sub _loader_stringify_hash {
+    my $href = shift;
+
+    return '{ ' .
+           join(q{, }, map("$_ => $href->{$_}", keys %$href))
+           . ' }';
+}
+
 # Setup has_a and has_many relationships
 sub _loader_make_relations {
-    use Data::Dumper;
 
     my ( $class, $table, $other, $cond ) = @_;
     my $table_class = $class->_loader_find_table_class($table);
@@ -190,11 +197,15 @@ sub _loader_make_relations {
 
     my $rev_cond = { reverse %$cond };
 
+    my $cond_printable = _loader_stringify_hash($cond)
+        if $class->_loader_debug;
+    my $rev_cond_printable = _loader_stringify_hash($rev_cond)
+        if $class->_loader_debug;
+
     warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
 
     warn qq/$table_class->belongs_to( '$other_relname' => '$other_class',/
-      .  Dumper($cond)
-      .  qq/);\n\n/
+      .  qq/$cond_printable);\n\n/
       if $class->_loader_debug;
 
     $table_class->belongs_to( $other_relname => $other_class, $cond);
@@ -202,7 +213,7 @@ sub _loader_make_relations {
     warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
 
     warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
-      .  Dumper($rev_cond)
+      .  qq/$rev_cond_printable);\n\n/
       .  qq/);\n\n/
       if $class->_loader_debug;
 

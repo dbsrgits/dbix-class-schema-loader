@@ -64,7 +64,7 @@ sub _loader_relationships {
               if @cols != @f_cols;
             
             my $cond = {};
-            for(my $i = 0 ; $i < @cols; $i++) {
+            for(my $i = 0; $i < @cols; $i++) {
                 $cond->{$f_cols[$i]} = $cols[$i];
             }
 
