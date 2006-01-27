@@ -1,0 +1,18 @@
+
+Reminders to myself or whoever else ever looks in here...
+
+SQLite needs some heavy refactoring, the subroutines are becoming to complex to understand easily.
+MySQL needs implicit FK support, I think.
+the base/use injection stuff needs error checking/reporting
+
+The whole things needs to be refactored so that we don't pollute Schema's namespace.
+
+  - Currently, the user's schema class ISA Schema::Loader ISA Schema::Loader::VENDOR ISA Schema::Loader::Generic ISA Schema, which means all of our methods and accessors in those classes end up in the final user "Schema" class.  The current hack to minimize that is that all the names are prefixed with "_loader" to avoid clashes.
+  - Ideally, user schema class ISA Schema::Loader, and that's it.  Schema::Loader only implements the methods that we need to export to the Schema class for later user (load_from_connection, tables, moniker).  Schema::Loader::VENDOR ISA Schema::Loader::Generic, but they have a new() routine and instantiate an object which does the Loading.  Schema::Loader passes them the its own class name (the user schema class) so that they know what namespace to target the loading operations at.
+
+After all that, consider:
+   If local column is UNIQUE or PK, use has_one() for relation?
+   Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up?
+   Check NULLability of columns involved in the relationship, which might suggest a more optimal non-default -join-type?
+
+...

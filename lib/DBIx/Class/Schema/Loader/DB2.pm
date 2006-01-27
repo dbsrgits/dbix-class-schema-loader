@@ -115,7 +115,7 @@ SQL
                 $cond{$other_cols[$i]} = $self_cols[$i];
             }
 
-            eval { $class->_loader_make_relations ($table, $other, \%cond); };
+            eval { $class->_loader_make_cond_rel ($table, $other, \%cond); };
             warn qq/\# belongs_to_many failed "$@"\n\n/
               if $@ && $class->_loader_debug;
         }

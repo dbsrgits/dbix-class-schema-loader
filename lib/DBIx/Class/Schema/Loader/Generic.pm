@@ -174,69 +174,82 @@ sub _loader_stringify_hash {
            . ' }';
 }
 
-# Setup has_a and has_many relationships
-sub _loader_make_relations {
-
-    my ( $class, $table, $other, $cond ) = @_;
-    my $table_class = $class->_loader_find_table_class($table);
-    my $other_class = $class->_loader_find_table_class($other);
-
-    my $table_relname = lc $table;
-    my $other_relname = lc $other;
+# Inflect a relationship name
+#   XXX (should pluralize, but currently also tends to de-pluralize plurals)
+sub _loader_inflect_relname {
+    my ($class, $relname) = @_;
 
     if(my $inflections = $class->_loader_inflect) {
-        $table_relname = $inflections->{$table_relname}
-          if exists $inflections->{$table_relname};
+        $relname = $inflections->{$relname}
+          if exists $inflections->{$relname};
     }
     else {
-        $table_relname = Lingua::EN::Inflect::PL($table_relname);
+        $relname = Lingua::EN::Inflect::PL($relname);
     }
 
-    if(ref($cond) eq 'HASH') {
-        # for single-column case, set the relname to the column name,
-        # to make filter accessors work
-        if(scalar keys %$cond == 1) {
-            my ($col) = keys %$cond;
-            $other_relname = $cond->{$col};
-        }
+    return $relname;
+}
 
-        my $rev_cond = { reverse %$cond };
+# Set up a simple relation with just a local col and foreign table
+sub _loader_make_simple_rel {
+    my ($class, $table, $other, $col) = @_;
 
-        my $cond_printable = _loader_stringify_hash($cond)
-            if $class->_loader_debug;
-        my $rev_cond_printable = _loader_stringify_hash($rev_cond)
-            if $class->_loader_debug;
+    my $table_class = $class->_loader_find_table_class($table);
+    my $other_class = $class->_loader_find_table_class($other);
+    my $table_relname = $class->_loader_inflect_relname(lc $table);
 
-        warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
+    warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
+    warn qq/$table_class->belongs_to( '$col' => '$other_class' );\n\n/
+      if $class->_loader_debug;
+    $table_class->belongs_to( $col => $other_class );
 
-        warn qq/$table_class->belongs_to( '$other_relname' => '$other_class',/
-          .  qq/$cond_printable);\n\n/
-          if $class->_loader_debug;
+    warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
+    warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
+      .  qq/$col);\n\n/
+      if $class->_loader_debug;
 
-        $table_class->belongs_to( $other_relname => $other_class, $cond);
+    $other_class->has_many( $table_relname => $table_class, $col);
+}
 
-        warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
+# Set up a complex relation based on a hashref condition
+sub _loader_make_cond_rel {
+    my ( $class, $table, $other, $cond ) = @_;
 
-        warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
-          .  qq/$rev_cond_printable);\n\n/
-          .  qq/);\n\n/
-          if $class->_loader_debug;
+    my $table_class = $class->_loader_find_table_class($table);
+    my $other_class = $class->_loader_find_table_class($other);
+    my $table_relname = $class->_loader_inflect_relname(lc $table);
+    my $other_relname = lc $other;
 
-        $other_class->has_many( $table_relname => $table_class, $rev_cond);
+    # for single-column case, set the relname to the column name,
+    # to make filter accessors work
+    if(scalar keys %$cond == 1) {
+        my ($col) = keys %$cond;
+        $other_relname = $cond->{$col};
     }
-    else { # implicit stuff, just a col name
-        warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
-        warn qq/$table_class->belongs_to( '$cond' => '$other_class' );\n\n/
-          if $class->_loader_debug;
-        $table_class->belongs_to( $cond => $other_class );
 
-        warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
-        warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
-          .  qq/$cond);\n\n/
-          if $class->_loader_debug;
+    my $rev_cond = { reverse %$cond };
 
-        $other_class->has_many( $table_relname => $table_class, $cond);
-    }
+    my $cond_printable = _loader_stringify_hash($cond)
+        if $class->_loader_debug;
+    my $rev_cond_printable = _loader_stringify_hash($rev_cond)
+        if $class->_loader_debug;
+
+    warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
+
+    warn qq/$table_class->belongs_to( '$other_relname' => '$other_class',/
+      .  qq/$cond_printable);\n\n/
+      if $class->_loader_debug;
+
+    $table_class->belongs_to( $other_relname => $other_class, $cond);
+
+    warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
+
+    warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
+      .  qq/$rev_cond_printable);\n\n/
+      .  qq/);\n\n/
+      if $class->_loader_debug;
+
+    $other_class->has_many( $table_relname => $table_class, $rev_cond);
 }
 
 # Load and setup classes
@@ -317,7 +330,7 @@ sub _loader_relationships {
         foreach my $relid (keys %$rels) {
             my $reltbl = $rels->{$relid}->{tbl};
             my $cond   = $rels->{$relid}->{cols};
-            eval { $class->_loader_make_relations( $table, $reltbl, $cond ) };
+            eval { $class->_loader_make_cond_rel( $table, $reltbl, $cond ) };
               warn qq/\# belongs_to_many failed "$@"\n\n/
                 if $@ && $class->_loader_debug;
         }

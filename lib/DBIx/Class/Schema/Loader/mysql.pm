@@ -68,7 +68,7 @@ sub _loader_relationships {
                 $cond->{$f_cols[$i]} = $cols[$i];
             }
 
-            eval { $class->_loader_make_relations( $table, $f_table, $cond) };
+            eval { $class->_loader_make_cond_rel( $table, $f_table, $cond) };
             warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $class->_loader_debug;
         }
         
