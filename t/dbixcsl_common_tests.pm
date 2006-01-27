@@ -345,7 +345,7 @@ sub create {
             CREATE TABLE loader_test12 (
                 id INTEGER NOT NULL PRIMARY KEY,
                 id2 VARCHAR(8) NOT NULL UNIQUE,
-                dat VARCHAR(8) UNIQUE
+                dat VARCHAR(8) NOT NULL UNIQUE
             ) $self->{innodb}
         },
 
