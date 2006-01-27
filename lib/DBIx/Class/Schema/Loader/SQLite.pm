@@ -75,10 +75,19 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
             $col =~ s/^\s+//gs;
 
             # Grab reference
-            if ( $col =~ /^\((.*)\)\s+REFERENCES\s+(\w+)\s*\((.*)\)/i ) {
+            if( $col =~ /^(.*)\s+REFERENCES\s+(\w+)\s*\((.*)\)/i ) {
                 chomp $col;
 
                 my ($cols, $f_table, $f_cols) = ($1, $2, $3);
+
+                if($cols =~ /^\(/) { # Table-level
+                    $cols =~ s/^\(\s*//;
+                    $cols =~ s/\s*\)$//;
+                }
+                else {               # Inline
+                    $cols =~ s/\s+.*$//;
+                }
+
                 my @cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$cols);
                 my @f_cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$f_cols);
 
