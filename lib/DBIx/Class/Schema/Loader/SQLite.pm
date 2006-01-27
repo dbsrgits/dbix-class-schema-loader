@@ -75,8 +75,8 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
             $col =~ s/^\s+//gs;
 
             # Grab reference
-            if( $col =~ /^(.*)\s+REFERENCES\s+(\w+)\s*\((.*)\)/i ) {
-                chomp $col;
+            chomp $col;
+            if( $col =~ /^(.*)\s+REFERENCES\s+(\w+) (?: \s* \( (.*) \) )? /ix ) {
 
                 my ($cols, $f_table, $f_cols) = ($1, $2, $3);
 
@@ -88,15 +88,20 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
                     $cols =~ s/\s+.*$//;
                 }
 
-                my @cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$cols);
-                my @f_cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$f_cols);
+                my $cond;
 
-                die "Mismatched column count in rel for $table => $f_table"
-                  if @cols != @f_cols;
-            
-                my $cond = {};
-                for(my $i = 0 ; $i < @cols; $i++) {
-                    $cond->{$f_cols[$i]} = $cols[$i];
+                if($f_cols) {
+                    my @cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$cols);
+                    my @f_cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$f_cols);
+                    die "Mismatched column count in rel for $table => $f_table"
+                      if @cols != @f_cols;
+                    $cond = {};
+                    for(my $i = 0 ; $i < @cols; $i++) {
+                        $cond->{$f_cols[$i]} = $cols[$i];
+                    }
+                }
+                else {
+                    $cond = $cols;
                 }
 
                 eval { $class->_loader_make_relations( $table, $f_table, $cond ) };

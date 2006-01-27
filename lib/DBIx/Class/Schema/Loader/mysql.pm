@@ -51,7 +51,7 @@ sub _loader_relationships {
         $sth->execute;
         my $table_def = $sth->fetchrow_arrayref->[1] || '';
         
-        my (@reldata) = ($table_def =~ /CONSTRAINT `.*` FOREIGN KEY \(`(.*)`\) REFERENCES `(.*)` \(`(.*)`\)/g);
+        my (@reldata) = ($table_def =~ /CONSTRAINT `.*` FOREIGN KEY \(`(.*)`\) REFERENCES `(.*)` \(`(.*)`\)/ig);
 
         while (scalar @reldata > 0) {
             my $cols = shift @reldata;

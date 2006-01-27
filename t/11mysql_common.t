@@ -17,6 +17,7 @@ my $tester = dbixcsl_common_tests->new(
     user            => $user,
     password        => $password,
     skip_rels       => $test_innodb ? 0 : $skip_rels_msg,
+    no_inline_rels  => 1,
 );
 
 if( !$database || !$user ) {

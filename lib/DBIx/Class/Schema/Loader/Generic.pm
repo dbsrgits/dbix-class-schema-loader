@@ -192,36 +192,51 @@ sub _loader_make_relations {
         $table_relname = Lingua::EN::Inflect::PL($table_relname);
     }
 
-    # for single-column case, set the relname to the column name,
-    # to make filter accessors work
-    if(scalar keys %$cond == 1) {
-        my ($col) = keys %$cond;
-        $other_relname = $cond->{$col};
+    if(ref($cond) eq 'HASH') {
+        # for single-column case, set the relname to the column name,
+        # to make filter accessors work
+        if(scalar keys %$cond == 1) {
+            my ($col) = keys %$cond;
+            $other_relname = $cond->{$col};
+        }
+
+        my $rev_cond = { reverse %$cond };
+
+        my $cond_printable = _loader_stringify_hash($cond)
+            if $class->_loader_debug;
+        my $rev_cond_printable = _loader_stringify_hash($rev_cond)
+            if $class->_loader_debug;
+
+        warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
+
+        warn qq/$table_class->belongs_to( '$other_relname' => '$other_class',/
+          .  qq/$cond_printable);\n\n/
+          if $class->_loader_debug;
+
+        $table_class->belongs_to( $other_relname => $other_class, $cond);
+
+        warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
+
+        warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
+          .  qq/$rev_cond_printable);\n\n/
+          .  qq/);\n\n/
+          if $class->_loader_debug;
+
+        $other_class->has_many( $table_relname => $table_class, $rev_cond);
     }
+    else { # implicit stuff, just a col name
+        warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
+        warn qq/$table_class->belongs_to( '$cond' => '$other_class' );\n\n/
+          if $class->_loader_debug;
+        $table_class->belongs_to( $cond => $other_class );
 
-    my $rev_cond = { reverse %$cond };
+        warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
+        warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
+          .  qq/$cond);\n\n/
+          if $class->_loader_debug;
 
-    my $cond_printable = _loader_stringify_hash($cond)
-        if $class->_loader_debug;
-    my $rev_cond_printable = _loader_stringify_hash($rev_cond)
-        if $class->_loader_debug;
-
-    warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
-
-    warn qq/$table_class->belongs_to( '$other_relname' => '$other_class',/
-      .  qq/$cond_printable);\n\n/
-      if $class->_loader_debug;
-
-    $table_class->belongs_to( $other_relname => $other_class, $cond);
-
-    warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
-
-    warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
-      .  qq/$rev_cond_printable);\n\n/
-      .  qq/);\n\n/
-      if $class->_loader_debug;
-
-    $other_class->has_many( $table_relname => $table_class, $rev_cond);
+        $other_class->has_many( $table_relname => $table_class, $cond);
+    }
 }
 
 # Load and setup classes
@@ -290,14 +305,18 @@ sub _loader_relationships {
             my $uk_tbl  = lc $raw_rel->{UK_TABLE_NAME};
             my $uk_col  = lc $raw_rel->{UK_COLUMN_NAME};
             my $fk_col  = lc $raw_rel->{FK_COLUMN_NAME};
+            my $relid   = lc $raw_rel->{UK_NAME};
             $uk_tbl =~ s/$quoter//g;
             $uk_col =~ s/$quoter//g;
             $fk_col =~ s/$quoter//g;
-            $rels->{$uk_tbl}->{$uk_col} = $fk_col;
+            $relid  =~ s/$quoter//g;
+            $rels->{$relid}->{tbl} = $uk_tbl;
+            $rels->{$relid}->{cols}->{$uk_col} = $fk_col;
         }
 
-        foreach my $reltbl (keys %$rels) {
-            my $cond = $rels->{$reltbl};
+        foreach my $relid (keys %$rels) {
+            my $reltbl = $rels->{$relid}->{tbl};
+            my $cond   = $rels->{$relid}->{cols};
             eval { $class->_loader_make_relations( $table, $reltbl, $cond ) };
               warn qq/\# belongs_to_many failed "$@"\n\n/
                 if $@ && $class->_loader_debug;

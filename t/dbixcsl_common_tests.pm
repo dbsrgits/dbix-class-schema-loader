@@ -36,7 +36,7 @@ sub skip_tests {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 27;
+    plan tests => 32;
 
     $self->create();
 
@@ -83,7 +83,7 @@ sub run_tests {
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 20 if $self->{skip_rels};
+        skip $self->{skip_rels}, 25 if $self->{skip_rels};
 
         my $moniker3 = $conn->moniker('loader_test3');
         my $rsobj3 = $conn->resultset($moniker3);
@@ -116,14 +116,14 @@ sub run_tests {
         my $obj5 = $rsobj5->find( id1 => 1, id2 => 1 );
         is( ref( $obj5->id2 ), '' );
 
-        # mulit-col fk def (works for some, not others...)
+        # mulit-col fk def
         my $obj6 = $rsobj6->find(1);
-        isa_ok( $obj6->loader_test2, "$schema_class\::$moniker2" );
-        is( ref( $obj6->loader_test5 ), "$schema_class\::$moniker5");
+        isa_ok( $obj6->loader_test2, "$schema_class\::$moniker2");
+        isa_ok( $obj6->loader_test5, "$schema_class\::$moniker5");
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
-        isa_ok( $obj8->loader_test7, "$schema_class\::$moniker7" );
+        isa_ok( $obj8->loader_test7, "$schema_class\::$moniker7");
 
         # from Chisel's tests...
         SKIP: {
@@ -168,6 +168,24 @@ sub run_tests {
                 is( $obj10_3->loader_test11()->id(), $obj11->id(),
                     'found same $rsobj11 object we expected' );
             }
+        }
+
+        SKIP: {
+            skip 'This vendor cannot do inline relationship definitions', 5
+                if $self->{no_inline_rels};
+
+            my $moniker12 = $conn->moniker('loader_test12');
+            my $rsobj12 = $conn->resultset($moniker12);
+            my $moniker13 = $conn->moniker('loader_test13');
+            my $rsobj13 = $conn->resultset($moniker13);
+
+            isa_ok( $rsobj12, "DBIx::Class::ResultSet" ); 
+            isa_ok( $rsobj13, "DBIx::Class::ResultSet" );
+
+            my $obj13 = $rsobj13->find(1);
+            isa_ok( $obj13->id, "$schema_class\::$moniker12" );
+            isa_ok( $obj13->loader_test12, "$schema_class\::$moniker12");
+            isa_ok( $obj13->dat, "$schema_class\::$moniker12");
         }
     }
 }
@@ -322,6 +340,30 @@ sub create {
          q{ REFERENCES loader_test11 (id11) }),
     );
 
+    my @statements_inline_rels = (
+        qq{
+            CREATE TABLE loader_test12 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                id2 VARCHAR(8) NOT NULL UNIQUE,
+                dat VARCHAR(8) UNIQUE
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test12 (id,id2,dat) VALUES (1,'aaa','bbb') },
+
+        qq{
+            CREATE TABLE loader_test13 (
+                id INTEGER NOT NULL PRIMARY KEY REFERENCES loader_test12,
+                loader_test12 VARCHAR(8) NOT NULL REFERENCES loader_test12 (id2),
+                dat VARCHAR(8) REFERENCES loader_test12 (dat)
+            ) $self->{innodb}
+        },
+
+        (q{ INSERT INTO loader_test13 (id,loader_test12,dat) } .
+         q{ VALUES (1,'aaa','bbb') }),
+    );
+
+
     $self->drop_tables;
 
     $self->{created} = 1;
@@ -338,6 +380,9 @@ sub create {
         $dbh->do($_) for (@statements_reltests);
         unless($self->{vendor} =~ /sqlite/i) {
             $dbh->do($_) for (@statements_advanced);
+        }
+        unless($self->{no_inline_rels}) {
+            $dbh->do($_) for (@statements_inline_rels);
         }
     }
     $dbh->disconnect();
@@ -368,6 +413,11 @@ sub drop_tables {
         loader_test10
     /;
 
+    my @tables_inline_rels = qw/
+        loader_test13
+        loader_test12
+    /;
+
     my $drop_fk_mysql =
         q{ALTER TABLE loader_test10 DROP FOREIGN KEY loader_test11_fk;};
 
@@ -386,6 +436,9 @@ sub drop_tables {
                 $dbh->do($drop_fk);
             }
             $dbh->do("DROP TABLE $_") for (@tables_advanced);
+        }
+        unless($self->{no_inline_rels}) {
+            $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
         }
     }
     $dbh->do("DROP TABLE $_") for (@tables);
