@@ -34,7 +34,7 @@ sub _loader_db_classes {
 sub _loader_tables {
     my $class = shift;
     my %args = @_; 
-    my $db_schema = uc $class->_loader_data->{db_schema};
+    my $db_schema = uc $class->_loader_db_schema;
     my $dbh = $class->storage->dbh;
     my $quoter = $dbh->get_info(29) || q{"};
 

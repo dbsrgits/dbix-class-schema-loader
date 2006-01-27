@@ -33,7 +33,7 @@ sub _loader_relationships {
     my $class   = shift;
     my @tables = $class->tables;
     my $dbh    = $class->storage->dbh;
-    my $dsn    = $class->_loader_data->{datasource}[0];
+    my $dsn    = $class->storage->connect_info->[0];
     my %conn   =
       $dsn =~ m/\Adbi:\w+(?:\(.*?\))?:(.+)\z/i
       && index( $1, '=' ) >= 0
