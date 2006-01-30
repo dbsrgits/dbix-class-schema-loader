@@ -231,6 +231,28 @@ sub _make_cond_rel {
     $other_class->has_many( $table_relname => $table_class, $rev_cond);
 }
 
+sub _use {
+    my $self = shift;
+    my $target = shift;
+
+    foreach (@_) {
+        $_->require or croak ($_ . "->require: $@");
+        eval "package $target; use $_;";
+        croak "use $_: $@" if $@;
+    }
+}
+
+sub _inject {
+    my $self = shift;
+    my $target = shift;
+    my $schema = $self->schema;
+
+    foreach (@_) {
+        $_->require or croak ($_ . "->require: $@");
+        $schema->inject_base($target, $_);
+    }
+}
+
 # Load and setup classes
 sub _load_classes {
     my $self = shift;
@@ -256,16 +278,11 @@ sub _load_classes {
         my $table_moniker = $self->_table2moniker($db_schema, $tbl);
         my $table_class = $schema . q{::} . $table_moniker;
 
-        # XXX all of this needs require/eval error checking
-        $schema->inject_base( $table_class, 'DBIx::Class::Core' );
-        $_->require for @db_classes;
-        $schema->inject_base( $table_class, $_ ) for @db_classes;
-        $schema->inject_base( $table_class, $_ )
-            for @{$self->additional_base_classes};
-        eval "package $table_class; use $_;"
-            for @{$self->additional_classes};
-        $schema->inject_base( $table_class, $_ )
-            for @{$self->left_base_classes};
+        $self->_inject($table_class, 'DBIx::Class::Core');
+        $self->_inject($table_class, @db_classes);
+        $self->_inject($table_class, @{$self->additional_base_classes});
+        $self->_use   ($table_class, @{$self->additional_classes});
+        $self->_inject($table_class, @{$self->left_base_classes});
 
         warn qq/\# Initializing table "$tablename" as "$table_class"\n/
             if $self->debug;
