@@ -37,7 +37,7 @@ sub skip_tests {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 32;
+    plan tests => 38;
 
     $self->create();
 
@@ -46,12 +46,15 @@ sub run_tests {
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
     my %loader_opts = (
-        dsn           => $self->{dsn},
-        user          => $self->{user},
-        password      => $self->{password},
-        constraint    => '^(?:\S+\.)?(?i:loader_test)[0-9]+$',
-        relationships => 1,
-        debug         => $debug,
+        dsn                     => $self->{dsn},
+        user                    => $self->{user},
+        password                => $self->{password},
+        constraint              => '^(?:\S+\.)?(?i:loader_test)[0-9]+$',
+        relationships           => 1,
+        additional_classes      => 'TestAdditional',
+        additional_base_classes => 'TestAdditionalBase',
+        left_base_classes       => [ qw/TestLeftBase/ ],
+        debug                   => $debug,
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
@@ -63,7 +66,7 @@ sub run_tests {
 
         __PACKAGE__->load_from_connection(\%loader_opts);
     };
-    ok(!$@, "Loader initialization failed: $@");
+    ok(!$@, "Loader initialization") or diag $@;
 
     my $conn = $schema_class->connect($self->{dsn},$self->{user},$self->{password});
     my $monikers = $schema_class->loader->monikers;
@@ -79,6 +82,19 @@ sub run_tests {
 
     isa_ok( $rsobj1, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj2, "DBIx::Class::ResultSet" );
+
+    can_ok( $class1, 'test_additional_base' );
+    can_ok( $class1, 'test_additional_base_override' );
+    can_ok( $class1, 'test_additional_base_additional' );
+
+    is( $class1->test_additional_base, "test_additional_base",
+        "Additional Base method" );
+
+    is( $class1->test_additional_base_override, "test_left_base_override",
+        "Left Base overrides Additional Base method" );
+
+    is( $class1->test_additional_base_additional, "test_additional",
+        "Additional Base can use Additional package method" );
 
     my $obj    = $rsobj1->find(1);
     is( $obj->id,  1 );
