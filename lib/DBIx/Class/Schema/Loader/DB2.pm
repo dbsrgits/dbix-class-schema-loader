@@ -1,8 +1,8 @@
 package DBIx::Class::Schema::Loader::DB2;
 
 use strict;
+use warnings;
 use base 'DBIx::Class::Schema::Loader::Generic';
-use Carp;
 
 =head1 NAME
 
@@ -27,15 +27,15 @@ See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-sub _loader_db_classes {
+sub _db_classes {
     return qw/DBIx::Class::PK::Auto::DB2/;
 }
 
-sub _loader_tables {
-    my $class = shift;
+sub _tables {
+    my $self = shift;
     my %args = @_; 
-    my $db_schema = uc $class->_loader_db_schema;
-    my $dbh = $class->storage->dbh;
+    my $db_schema = uc $self->db_schema;
+    my $dbh = $self->schema->storage->dbh;
     my $quoter = $dbh->get_info(29) || q{"};
 
     # this is split out to avoid version parsing errors...
@@ -51,15 +51,15 @@ sub _loader_tables {
     return @tables;
 }
 
-sub _loader_table_info {
-    my ( $class, $table ) = @_;
+sub _table_info {
+    my ( $self, $table ) = @_;
 #    $|=1;
-#    print "_loader_table_info($table)\n";
+#    print "_table_info($table)\n";
     my ($db_schema, $tabname) = split /\./, $table, 2;
     # print "DB_Schema: $db_schema, Table: $tabname\n";
     
     # FIXME: Horribly inefficient and just plain evil. (JMM)
-    my $dbh = $class->storage->dbh;
+    my $dbh = $self->schema->storage->dbh;
     $dbh->{RaiseError} = 1;
 
     my $sth = $dbh->prepare(<<'SQL') or die;
@@ -88,17 +88,17 @@ SQL
 }
 
 # Find and setup relationships
-sub _loader_relationships {
-    my $class = shift;
+sub _load_relationships {
+    my $self = shift;
 
-    my $dbh = $class->storage->dbh;
+    my $dbh = $self->schema->storage->dbh;
 
     my $sth = $dbh->prepare(<<'SQL') or die;
 SELECT SR.COLCOUNT, SR.REFTBNAME, SR.PKCOLNAMES, SR.FKCOLNAMES
 FROM SYSIBM.SYSRELS SR WHERE SR.TBNAME = ?
 SQL
 
-    foreach my $table ( $class->tables ) {
+    foreach my $table ( $self->tables ) {
         next if ! $sth->execute(uc $table);
         while(my $res = $sth->fetchrow_arrayref()) {
             my ($colcount, $other, $other_column, $column) =
@@ -115,9 +115,9 @@ SQL
                 $cond{$other_cols[$i]} = $self_cols[$i];
             }
 
-            eval { $class->_loader_make_cond_rel ($table, $other, \%cond); };
+            eval { $self->_make_cond_rel ($table, $other, \%cond); };
             warn qq/\# belongs_to_many failed "$@"\n\n/
-              if $@ && $class->_loader_debug;
+              if $@ && $self->debug;
         }
     }
 

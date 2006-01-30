@@ -1,8 +1,8 @@
 package DBIx::Class::Schema::Loader::mysql;
 
 use strict;
+use warnings;
 use base 'DBIx::Class::Schema::Loader::Generic';
-use Carp;
 
 =head1 NAME
 
@@ -25,15 +25,15 @@ See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-sub _loader_db_classes {
+sub _db_classes {
     return qw/DBIx::Class::PK::Auto::MySQL/;
 }
 
-sub _loader_relationships {
-    my $class   = shift;
-    my @tables = $class->tables;
-    my $dbh    = $class->storage->dbh;
-    my $dsn    = $class->storage->connect_info->[0];
+sub _load_relationships {
+    my $self   = shift;
+    my @tables = $self->tables;
+    my $dbh    = $self->schema->storage->dbh;
+    my $dsn    = $self->dsn;
     my %conn   =
       $dsn =~ m/\Adbi:\w+(?:\(.*?\))?:(.+)\z/i
       && index( $1, '=' ) >= 0
@@ -68,17 +68,17 @@ sub _loader_relationships {
                 $cond->{$f_cols[$i]} = $cols[$i];
             }
 
-            eval { $class->_loader_make_cond_rel( $table, $f_table, $cond) };
-            warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $class->_loader_debug;
+            eval { $self->_make_cond_rel( $table, $f_table, $cond) };
+            warn qq/\# belongs_to_many failed "$@"\n\n/ if $@ && $self->debug;
         }
         
         $sth->finish;
     }
 }
 
-sub _loader_tables {
-    my $class = shift;
-    my $dbh    = $class->storage->dbh;
+sub _tables {
+    my $self = shift;
+    my $dbh    = $self->schema->storage->dbh;
     my @tables;
     my $quoter = $dbh->get_info(29) || q{`};
     foreach my $table ( $dbh->tables ) {
@@ -89,9 +89,9 @@ sub _loader_tables {
     return @tables;
 }
 
-sub _loader_table_info {
-    my ( $class, $table ) = @_;
-    my $dbh    = $class->storage->dbh;
+sub _table_info {
+    my ( $self, $table ) = @_;
+    my $dbh    = $self->schema->storage->dbh;
 
     # MySQL 4.x doesn't support quoted tables
     my $query = "DESCRIBE $table";

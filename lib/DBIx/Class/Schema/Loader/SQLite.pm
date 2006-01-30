@@ -1,9 +1,10 @@
 package DBIx::Class::Schema::Loader::SQLite;
 
 use strict;
+use warnings;
 use base qw/DBIx::Class::Schema::Loader::Generic/;
+
 use Text::Balanced qw( extract_bracketed );
-use Carp;
 
 =head1 NAME
 
@@ -24,16 +25,16 @@ See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-sub _loader_db_classes {
+sub _db_classes {
     return qw/DBIx::Class::PK::Auto::SQLite/;
 }
 
 # XXX this really needs a re-factor
-sub _loader_relationships {
-    my $class = shift;
-    foreach my $table ( $class->tables ) {
+sub _load_relationships {
+    my $self = shift;
+    foreach my $table ( $self->tables ) {
 
-        my $dbh = $class->storage->dbh;
+        my $dbh = $self->schema->storage->dbh;
         my $sth = $dbh->prepare(<<"");
 SELECT sql FROM sqlite_master WHERE tbl_name = ?
 
@@ -99,21 +100,21 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
                 for(my $i = 0 ; $i < @cols; $i++) {
                     $cond->{$f_cols[$i]} = $cols[$i];
                 }
-                eval { $class->_loader_make_cond_rel( $table, $f_table, $cond ) };
+                eval { $self->_make_cond_rel( $table, $f_table, $cond ) };
             }
             else {
-                eval { $class->_loader_make_simple_rel( $table, $f_table, $cols ) };
+                eval { $self->_make_simple_rel( $table, $f_table, $cols ) };
             }
 
             warn qq/\# belongs_to_many failed "$@"\n\n/
-              if $@ && $class->_loader_debug;
+              if $@ && $self->debug;
         }
     }
 }
 
-sub _loader_tables {
-    my $class = shift;
-    my $dbh = $class->storage->dbh;
+sub _tables {
+    my $self = shift;
+    my $dbh = $self->schema->storage->dbh;
     my $sth  = $dbh->prepare("SELECT * FROM sqlite_master");
     $sth->execute;
     my @tables;
@@ -124,11 +125,11 @@ sub _loader_tables {
     return @tables;
 }
 
-sub _loader_table_info {
-    my ( $class, $table ) = @_;
+sub _table_info {
+    my ( $self, $table ) = @_;
 
     # find all columns.
-    my $dbh = $class->storage->dbh;
+    my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare("PRAGMA table_info('$table')");
     $sth->execute();
     my @columns;

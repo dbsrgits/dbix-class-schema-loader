@@ -1,6 +1,7 @@
 package dbixcsl_common_tests;
 
 use strict;
+use warnings;
 
 use Test::More;
 use DBIx::Class::Schema::Loader;
@@ -65,11 +66,16 @@ sub run_tests {
     ok(!$@, "Loader initialization failed: $@");
 
     my $conn = $schema_class->connect($self->{dsn},$self->{user},$self->{password});
+    my $monikers = $schema_class->loader->monikers;
+    my $classes = $schema_class->loader->classes;
 
-    my $moniker1 = $conn->moniker('loader_test1');
-    my $rsobj1 = $conn->resultset($moniker1);
-    my $moniker2 = $conn->moniker('loader_test2');
-    my $rsobj2 = $conn->resultset($moniker2);
+    my $moniker1 = $monikers->{loader_test1};
+    my $class1   = $classes->{loader_test1};
+    my $rsobj1   = $conn->resultset($moniker1);
+
+    my $moniker2 = $monikers->{loader_test2};
+    my $class2   = $classes->{loader_test2};
+    my $rsobj2   = $conn->resultset($moniker2);
 
     isa_ok( $rsobj1, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj2, "DBIx::Class::ResultSet" );
@@ -85,20 +91,33 @@ sub run_tests {
     SKIP: {
         skip $self->{skip_rels}, 25 if $self->{skip_rels};
 
-        my $moniker3 = $conn->moniker('loader_test3');
-        my $rsobj3 = $conn->resultset($moniker3);
-        my $moniker4 = $conn->moniker('loader_test4');
-        my $rsobj4 = $conn->resultset($moniker4);
-        my $moniker5 = $conn->moniker('loader_test5');
-        my $rsobj5 = $conn->resultset($moniker5);
-        my $moniker6 = $conn->moniker('loader_test6');
-        my $rsobj6 = $conn->resultset($moniker6);
-        my $moniker7 = $conn->moniker('loader_test7');
-        my $rsobj7 = $conn->resultset($moniker7);
-        my $moniker8 = $conn->moniker('loader_test8');
-        my $rsobj8 = $conn->resultset($moniker8);
-        my $moniker9 = $conn->moniker('loader_test9');
-        my $rsobj9 = $conn->resultset($moniker9);
+        my $moniker3 = $monikers->{loader_test3};
+        my $class3   = $classes->{loader_test3};
+        my $rsobj3   = $conn->resultset($moniker3);
+
+        my $moniker4 = $monikers->{loader_test4};
+        my $class4   = $classes->{loader_test4};
+        my $rsobj4   = $conn->resultset($moniker4);
+
+        my $moniker5 = $monikers->{loader_test5};
+        my $class5   = $classes->{loader_test5};
+        my $rsobj5   = $conn->resultset($moniker5);
+
+        my $moniker6 = $monikers->{loader_test6};
+        my $class6   = $classes->{loader_test6};
+        my $rsobj6   = $conn->resultset($moniker6);
+
+        my $moniker7 = $monikers->{loader_test7};
+        my $class7   = $classes->{loader_test7};
+        my $rsobj7   = $conn->resultset($moniker7);
+
+        my $moniker8 = $monikers->{loader_test8};
+        my $class8   = $classes->{loader_test8};
+        my $rsobj8   = $conn->resultset($moniker8);
+
+        my $moniker9 = $monikers->{loader_test9};
+        my $class9   = $classes->{loader_test9};
+        my $rsobj9   = $conn->resultset($moniker9);
 
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
@@ -110,7 +129,7 @@ sub run_tests {
 
         # basic rel test
         my $obj4 = $rsobj4->find(123);
-        isa_ok( $obj4->fkid, "$schema_class\::$moniker3");
+        isa_ok( $obj4->fkid, $class3);
 
         # fk def in comments should not be parsed
         my $obj5 = $rsobj5->find( id1 => 1, id2 => 1 );
@@ -118,12 +137,12 @@ sub run_tests {
 
         # mulit-col fk def
         my $obj6 = $rsobj6->find(1);
-        isa_ok( $obj6->loader_test2, "$schema_class\::$moniker2");
-        isa_ok( $obj6->loader_test5, "$schema_class\::$moniker5");
+        isa_ok( $obj6->loader_test2, $class2);
+        isa_ok( $obj6->loader_test5, $class5);
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
-        isa_ok( $obj8->loader_test7, "$schema_class\::$moniker7");
+        isa_ok( $obj8->loader_test7, $class7);
 
         # from Chisel's tests...
         SKIP: {
@@ -131,10 +150,13 @@ sub run_tests {
                 skip 'SQLite cannot do the advanced tests', 8;
             }
 
-            my $moniker10 = $conn->moniker('loader_test10');
-            my $rsobj10 = $conn->resultset($moniker10);
-            my $moniker11 = $conn->moniker('loader_test11');
-            my $rsobj11 = $conn->resultset($moniker11);
+            my $moniker10 = $monikers->{loader_test10};
+            my $class10   = $classes->{loader_test10};
+            my $rsobj10   = $conn->resultset($moniker10);
+
+            my $moniker11 = $monikers->{loader_test11};
+            my $class11   = $classes->{loader_test11};
+            my $rsobj11   = $conn->resultset($moniker11);
 
             isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
@@ -164,7 +186,7 @@ sub run_tests {
                     'One $rsobj10 returned from search' );
 
                 my $obj10_3 = $results->first();
-                isa_ok( $obj10_3, "$schema_class\::$moniker10" );
+                isa_ok( $obj10_3, $class10 );
                 is( $obj10_3->loader_test11()->id(), $obj11->id(),
                     'found same $rsobj11 object we expected' );
             }
@@ -174,18 +196,21 @@ sub run_tests {
             skip 'This vendor cannot do inline relationship definitions', 5
                 if $self->{no_inline_rels};
 
-            my $moniker12 = $conn->moniker('loader_test12');
-            my $rsobj12 = $conn->resultset($moniker12);
-            my $moniker13 = $conn->moniker('loader_test13');
-            my $rsobj13 = $conn->resultset($moniker13);
+            my $moniker12 = $monikers->{loader_test12};
+            my $class12   = $classes->{loader_test12};
+            my $rsobj12   = $conn->resultset($moniker12);
+
+            my $moniker13 = $monikers->{loader_test13};
+            my $class13   = $classes->{loader_test13};
+            my $rsobj13   = $conn->resultset($moniker13);
 
             isa_ok( $rsobj12, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj13, "DBIx::Class::ResultSet" );
 
             my $obj13 = $rsobj13->find(1);
-            isa_ok( $obj13->id, "$schema_class\::$moniker12" );
-            isa_ok( $obj13->loader_test12, "$schema_class\::$moniker12");
-            isa_ok( $obj13->dat, "$schema_class\::$moniker12");
+            isa_ok( $obj13->id, $class12 );
+            isa_ok( $obj13->loader_test12, $class12);
+            isa_ok( $obj13->dat, $class12);
         }
     }
 }

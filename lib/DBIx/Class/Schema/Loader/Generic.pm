@@ -3,19 +3,35 @@ package DBIx::Class::Schema::Loader::Generic;
 use strict;
 use warnings;
 
-use base qw/DBIx::Class::Schema/;
-
 use Carp;
 use Lingua::EN::Inflect;
+use base qw/Class::Accessor::Fast/;
 
 require DBIx::Class::Core;
 
-__PACKAGE__->mk_classaccessor('_loader_inflect');
-__PACKAGE__->mk_classaccessor('_loader_db_schema');
-__PACKAGE__->mk_classaccessor('_loader_drop_db_schema');
-__PACKAGE__->mk_classaccessor('_loader_classes' => {} );
-__PACKAGE__->mk_classaccessor('_loader_monikers' => {} );
-__PACKAGE__->mk_classaccessor('_loader_debug' => 0);
+# The first group are all arguments which are may be defaulted within,
+# The last two (classes, monikers) are generated locally:
+
+__PACKAGE__->mk_ro_accessors(qw/
+                                schema
+                                dsn
+                                user
+                                password
+                                options
+                                exclude
+                                constraint
+                                additional_classes
+                                additional_base_classes
+                                left_base_classes
+                                relationships
+                                inflect
+                                db_schema
+                                drop_db_schema
+                                debug
+
+                                classes
+                                monikers
+                             /);
 
 =head1 NAME
 
@@ -82,91 +98,91 @@ Username.
 
 =head3 new
 
-Not intended to be called directly.  This is used internally by the
-C<new()> method in L<DBIx::Class::Schema::Loader>.
+Constructor for L<DBIx::Class::Schema::Loader::Generic>, used internally
+by L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-sub _load_from_connection {
+# ensure that a peice of object data is a valid arrayref, creating
+# an empty one or encapsulating whatever's there.
+sub _ensure_arrayref {
+    my $self = shift;
+
+    foreach (@_) {
+        $self->{$_} ||= [];
+        $self->{$_} = [ $self->{$_} ]
+            unless ref $self->{$_} eq 'ARRAY';
+    }
+}
+
+sub new {
     my ( $class, %args ) = @_;
 
-    $class->_loader_debug(1) if $args{debug};
-    $class->_loader_inflect($args{inflect});
-    $class->_loader_db_schema($args{db_schema} || '');
-    $class->_loader_drop_db_schema($args{drop_db_schema});
+    my $self = { %args };
 
-    my $additional = $args{additional_classes} || [];
-    $additional = [$additional] unless ref $additional eq 'ARRAY';
+    bless $self => $class;
 
-    my $additional_base = $args{additional_base_classes} || [];
-    $additional_base = [$additional_base]
-      unless ref $additional_base eq 'ARRAY';
+    $self->{db_schema}  ||= '';
+    $self->{constraint} ||= '.*';
+    $self->{inflect}    ||= {};
+    $self->_ensure_arrayref(qw/additional_classes
+                               additional_base_classes
+                               left_base_classes/);
 
-    my $left_base = $args{left_base_classes} || [];
-    $left_base = [$left_base] unless ref $left_base eq 'ARRAY';
+    $self->{monikers} = {};
+    $self->{classes} = {};
 
-    my %load_classes_args = (
-        additional      => $additional,
-        additional_base => $additional_base,
-        left_base       => $left_base,
-        constraint      => $args{constraint} || '.*',
-        exclude         => $args{exclude},
-    );
-
-    $class->connection($args{dsn}, $args{user},
-                       $args{password}, $args{options});
+    $self->schema->connection($self->dsn, $self->user,
+                              $self->password, $self->options);
 
     warn qq/\### START DBIx::Class::Schema::Loader dump ###\n/
-        if $class->_loader_debug;
+        if $self->debug;
 
-    $class->_loader_load_classes(%load_classes_args);
-    $class->_loader_relationships if $args{relationships};
+    $self->_load_classes;
+    $self->_load_relationships if $self->relationships;
 
     warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/
-        if $class->_loader_debug;
-    $class->storage->dbh->disconnect; # XXX this should be ->storage->disconnect later?
+        if $self->debug;
+    $self->schema->storage->dbh->disconnect; # XXX this should be ->storage->disconnect later?
 
-    1;
-}
-
-# The original table class name during Loader,
-sub _loader_find_table_class {
-    my ( $class, $table ) = @_;
-    return $class->_loader_classes->{$table};
-}
-
-# Returns the moniker for a given table name,
-# for use in $conn->resultset($moniker)
-
-=head3 moniker
-
-Returns the moniker for a given literal table name.  Used
-as $schema->resultset($moniker), etc.
-
-=cut
-sub moniker {
-    my ( $class, $table ) = @_;
-    return $class->_loader_monikers->{$table};
-}
-
-=head3 tables
-
-Returns a sorted list of tables.
-
-    my @tables = $loader->tables;
-
-=cut
-
-sub tables {
-    my $class = shift;
-    return sort keys %{ $class->_loader_monikers };
+    $self;
 }
 
 # Overload in your driver class
-sub _loader_db_classes { croak "ABSTRACT METHOD" }
+sub _db_classes { croak "ABSTRACT METHOD" }
 
-# not a class method.
-sub _loader_stringify_hash {
+# Inflect a relationship name
+#   XXX (should pluralize, but currently also tends to de-pluralize plurals)
+sub _inflect_relname {
+    my ($self, $relname) = @_;
+
+    return $self->inflect->{$relname} if exists $self->inflect->{$relname};
+    return Lingua::EN::Inflect::PL($relname);
+}
+
+# Set up a simple relation with just a local col and foreign table
+sub _make_simple_rel {
+    my ($self, $table, $other, $col) = @_;
+
+    my $table_class = $self->classes->{$table};
+    my $other_class = $self->classes->{$other};
+    my $table_relname = $self->_inflect_relname(lc $table);
+
+    warn qq/\# Belongs_to relationship\n/ if $self->debug;
+    warn qq/$table_class->belongs_to( '$col' => '$other_class' );\n\n/
+      if $self->debug;
+    $table_class->belongs_to( $col => $other_class );
+
+    warn qq/\# Has_many relationship\n/ if $self->debug;
+    warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
+      .  qq/$col);\n\n/
+      if $self->debug;
+
+    $other_class->has_many( $table_relname => $table_class, $col);
+}
+
+# not a class method, just a helper for cond_rel XXX
+sub _stringify_hash {
     my $href = shift;
 
     return '{ ' .
@@ -174,50 +190,13 @@ sub _loader_stringify_hash {
            . ' }';
 }
 
-# Inflect a relationship name
-#   XXX (should pluralize, but currently also tends to de-pluralize plurals)
-sub _loader_inflect_relname {
-    my ($class, $relname) = @_;
-
-    if(my $inflections = $class->_loader_inflect) {
-        $relname = $inflections->{$relname}
-          if exists $inflections->{$relname};
-    }
-    else {
-        $relname = Lingua::EN::Inflect::PL($relname);
-    }
-
-    return $relname;
-}
-
-# Set up a simple relation with just a local col and foreign table
-sub _loader_make_simple_rel {
-    my ($class, $table, $other, $col) = @_;
-
-    my $table_class = $class->_loader_find_table_class($table);
-    my $other_class = $class->_loader_find_table_class($other);
-    my $table_relname = $class->_loader_inflect_relname(lc $table);
-
-    warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
-    warn qq/$table_class->belongs_to( '$col' => '$other_class' );\n\n/
-      if $class->_loader_debug;
-    $table_class->belongs_to( $col => $other_class );
-
-    warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
-    warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
-      .  qq/$col);\n\n/
-      if $class->_loader_debug;
-
-    $other_class->has_many( $table_relname => $table_class, $col);
-}
-
 # Set up a complex relation based on a hashref condition
-sub _loader_make_cond_rel {
-    my ( $class, $table, $other, $cond ) = @_;
+sub _make_cond_rel {
+    my ( $self, $table, $other, $cond ) = @_;
 
-    my $table_class = $class->_loader_find_table_class($table);
-    my $other_class = $class->_loader_find_table_class($other);
-    my $table_relname = $class->_loader_inflect_relname(lc $table);
+    my $table_class = $self->classes->{$table};
+    my $other_class = $self->classes->{$other};
+    my $table_relname = $self->_inflect_relname(lc $table);
     my $other_relname = lc $other;
 
     # for single-column case, set the relname to the column name,
@@ -229,90 +208,111 @@ sub _loader_make_cond_rel {
 
     my $rev_cond = { reverse %$cond };
 
-    my $cond_printable = _loader_stringify_hash($cond)
-        if $class->_loader_debug;
-    my $rev_cond_printable = _loader_stringify_hash($rev_cond)
-        if $class->_loader_debug;
+    my $cond_printable = _stringify_hash($cond)
+        if $self->debug;
+    my $rev_cond_printable = _stringify_hash($rev_cond)
+        if $self->debug;
 
-    warn qq/\# Belongs_to relationship\n/ if $class->_loader_debug;
+    warn qq/\# Belongs_to relationship\n/ if $self->debug;
 
     warn qq/$table_class->belongs_to( '$other_relname' => '$other_class',/
       .  qq/$cond_printable);\n\n/
-      if $class->_loader_debug;
+      if $self->debug;
 
     $table_class->belongs_to( $other_relname => $other_class, $cond);
 
-    warn qq/\# Has_many relationship\n/ if $class->_loader_debug;
+    warn qq/\# Has_many relationship\n/ if $self->debug;
 
     warn qq/$other_class->has_many( '$table_relname' => '$table_class',/
       .  qq/$rev_cond_printable);\n\n/
       .  qq/);\n\n/
-      if $class->_loader_debug;
+      if $self->debug;
 
     $other_class->has_many( $table_relname => $table_class, $rev_cond);
 }
 
 # Load and setup classes
-sub _loader_load_classes {
-    my ($class, %args)  = @_;
+sub _load_classes {
+    my $self = shift;
 
-    my $additional      = join '',
-                          map "use $_;\n", @{$args{additional}};
-
-    my @tables          = $class->_loader_tables();
-    my @db_classes      = $class->_loader_db_classes();
+    my @tables     = $self->_tables();
+    my @db_classes = $self->_db_classes();
+    my $schema     = $self->schema;
 
     foreach my $table (@tables) {
-        next unless $table =~ /$args{constraint}/;
-        next if defined $args{exclude} && $table =~ /$args{exclude}/;
+        my $constraint = $self->constraint;
+        my $exclude = $self->exclude;
+
+        next unless $table =~ /$constraint/;
+        next if defined $exclude && $table =~ /$exclude/;
 
         my ($db_schema, $tbl) = split /\./, $table;
         my $tablename = lc $table;
         if($tbl) {
-            $tablename = $class->_loader_drop_db_schema ? $tbl : lc $table;
+            $tablename = $self->drop_db_schema ? $tbl : lc $table;
         }
-	my $lc_tblname = lc $tablename;
+        my $lc_tblname = lc $tablename;
 
-        my $table_moniker = $class->_loader_table2moniker($db_schema, $tbl);
-        my $table_class = "$class\::$table_moniker";
+        my $table_moniker = $self->_table2moniker($db_schema, $tbl);
+        my $table_class = $schema . q{::} . $table_moniker;
 
         # XXX all of this needs require/eval error checking
-        $class->inject_base( $table_class, 'DBIx::Class::Core' );
+        $schema->inject_base( $table_class, 'DBIx::Class::Core' );
         $_->require for @db_classes;
-        $class->inject_base( $table_class, $_ ) for @db_classes;
-        $class->inject_base( $table_class, $_ ) for @{$args{additional_base}};
-        eval "package $table_class;$_;"         for @{$args{additional}};
-        $class->inject_base( $table_class, $_ ) for @{$args{left_base}};
+        $schema->inject_base( $table_class, $_ ) for @db_classes;
+        $schema->inject_base( $table_class, $_ )
+            for @{$self->additional_base_classes};
+        eval "package $table_class; use $_;"
+            for @{$self->additional_classes};
+        $schema->inject_base( $table_class, $_ )
+            for @{$self->left_base_classes};
 
-        warn qq/\# Initializing table "$tablename" as "$table_class"\n/ if $class->_loader_debug;
+        warn qq/\# Initializing table "$tablename" as "$table_class"\n/
+            if $self->debug;
         $table_class->table($lc_tblname);
 
-        my ( $cols, $pks ) = $class->_loader_table_info($table);
+        my ( $cols, $pks ) = $self->_table_info($table);
         carp("$table has no primary key") unless @$pks;
         $table_class->add_columns(@$cols);
         $table_class->set_primary_key(@$pks) if @$pks;
 
-        warn qq/$table_class->table('$tablename');\n/ if $class->_loader_debug;
+        warn qq/$table_class->table('$tablename');\n/ if $self->debug;
         my $columns = join "', '", @$cols;
-        warn qq/$table_class->add_columns('$columns')\n/ if $class->_loader_debug;
+        warn qq/$table_class->add_columns('$columns')\n/ if $self->debug;
         my $primaries = join "', '", @$pks;
-        warn qq/$table_class->set_primary_key('$primaries')\n/ if $class->_loader_debug && @$pks;
+        warn qq/$table_class->set_primary_key('$primaries')\n/
+            if $self->debug && @$pks;
 
-        $class->register_class($table_moniker, $table_class);
-        $class->_loader_classes->{$lc_tblname} = $table_class;
-        $class->_loader_monikers->{$lc_tblname} = $table_moniker;
+        $schema->register_class($table_moniker, $table_class);
+        $self->classes->{$lc_tblname} = $table_class;
+        $self->monikers->{$lc_tblname} = $table_moniker;
     }
 }
 
+=head3 tables
+
+Returns a sorted list of tables.
+
+    my @tables = $loader->tables;
+
+=cut
+
+sub tables {
+    my $self = shift;
+
+    return sort keys %{ $self->monikers };
+}
+
 # Find and setup relationships
-sub _loader_relationships {
-    my $class = shift;
-    my $dbh = $class->storage->dbh;
+sub _load_relationships {
+    my $self = shift;
+
+    my $dbh = $self->schema->storage->dbh;
     my $quoter = $dbh->get_info(29) || q{"};
-    foreach my $table ( $class->tables ) {
+    foreach my $table ( $self->tables ) {
         my $rels = {};
         my $sth = $dbh->foreign_key_info( '',
-            $class->_loader_db_schema, '', '', '', $table );
+            $self->db_schema, '', '', '', $table );
         next if !$sth;
         while(my $raw_rel = $sth->fetchrow_hashref) {
             my $uk_tbl  = lc $raw_rel->{UK_TABLE_NAME};
@@ -330,22 +330,22 @@ sub _loader_relationships {
         foreach my $relid (keys %$rels) {
             my $reltbl = $rels->{$relid}->{tbl};
             my $cond   = $rels->{$relid}->{cols};
-            eval { $class->_loader_make_cond_rel( $table, $reltbl, $cond ) };
+            eval { $self->_make_cond_rel( $table, $reltbl, $cond ) };
               warn qq/\# belongs_to_many failed "$@"\n\n/
-                if $@ && $class->_loader_debug;
+                if $@ && $self->debug;
         }
     }
 }
 
 # Make a moniker from a table
-sub _loader_table2moniker {
-    my ( $class, $db_schema, $table ) = @_;
+sub _table2moniker {
+    my ( $self, $db_schema, $table ) = @_;
 
     my $db_schema_ns;
 
     if($table) {
         $db_schema = ucfirst lc $db_schema;
-        $db_schema_ns = $db_schema if(!$class->_loader_drop_db_schema);
+        $db_schema_ns = $db_schema if(!$self->drop_db_schema);
     } else {
         $table = $db_schema;
     }
@@ -357,9 +357,9 @@ sub _loader_table2moniker {
 }
 
 # Overload in driver class
-sub _loader_tables { croak "ABSTRACT METHOD" }
+sub _tables { croak "ABSTRACT METHOD" }
 
-sub _loader_table_info { croak "ABSTRACT METHOD" }
+sub _table_info { croak "ABSTRACT METHOD" }
 
 =head1 SEE ALSO
 

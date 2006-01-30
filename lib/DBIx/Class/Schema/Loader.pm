@@ -3,15 +3,18 @@ package DBIx::Class::Schema::Loader;
 use strict;
 use warnings;
 use Carp;
-
-use vars qw($VERSION @ISA);
 use UNIVERSAL::require;
+
+use vars qw($VERSION);
 
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-
 $VERSION = '0.01000';
+
+use base qw/DBIx::Class::Schema/;
+
+__PACKAGE__->mk_classaccessor('loader');
 
 =head1 NAME
 
@@ -45,6 +48,21 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
   my $schema1 = "My::Schema";
   # ^^ defaults to dsn/user/pass from load_from_connection()
 
+  # Get a list of the original (database) names of the tables that
+  #  were loaded
+  my @tables = $schema1->loader->tables;
+
+  # Get a hashref of table_name => 'TableName' table-to-moniker
+  #   mappings.
+  my $monikers = $schema1->loader->monikers;
+
+  # Get a hashref of table_name => 'My::Schema::TableName'
+  #   table-to-classname mappings.
+  my $classes = $schema1->loader->classes;
+
+  # Use the schema as per normal for L<DBIx::Class::Schema>
+  my $rs = $schema1->resultset($monikers->{table_table})->search(...);
+
 =head1 DESCRIPTION
 
 DBIx::Class::Schema::Loader automates the definition of a
@@ -75,7 +93,6 @@ sub load_from_connection {
     my ( $class, %args ) = @_;
 
     croak 'dsn argument is required' if ! $args{dsn};
-
     my $dsn = $args{dsn};
     my ($driver) = $dsn =~ m/^dbi:(\w*?)(?:\((.*?)\))?:/i;
     $driver = 'SQLite' if $driver eq 'SQLite2';
@@ -85,8 +102,9 @@ sub load_from_connection {
       croak qq/Couldn't require loader class "$impl",/ .
             qq/"$UNIVERSAL::require::ERROR"/;
 
-    push(@ISA, $impl);
-    $class->_load_from_connection(%args);
+    $args{schema} = $class;
+
+    $class->loader($impl->new(%args));
 }
 
 =head1 AUTHOR

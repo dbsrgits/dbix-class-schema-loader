@@ -1,8 +1,8 @@
 package DBIx::Class::Schema::Loader::Pg;
 
 use strict;
+use warnings;
 use base 'DBIx::Class::Schema::Loader::Generic';
-use Carp;
 
 =head1 NAME
 
@@ -25,19 +25,19 @@ See L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-sub _loader_db_classes {
+sub _db_classes {
     return qw/DBIx::Class::PK::Auto::Pg/;
 }
 
-sub _loader_tables {
-    my $class = shift;
-    my $dbh = $class->storage->dbh;
+sub _tables {
+    my $self = shift;
+    my $dbh = $self->schema->storage->dbh;
     my $quoter = $dbh->get_info(29) || q{"};
 
     # This is split out to avoid version parsing errors...
     my $is_dbd_pg_gte_131 = ( $DBD::Pg::VERSION >= 1.31 );
     my @tables = $is_dbd_pg_gte_131
-        ?  $dbh->tables( undef, $class->_loader_db_schema, "",
+        ?  $dbh->tables( undef, $self->db_schema, "",
                          "table", { noprefix => 1, pg_noprefix => 1 } )
         : $dbh->tables;
 
@@ -45,16 +45,16 @@ sub _loader_tables {
     return @tables;
 }
 
-sub _loader_table_info {
-    my ( $class, $table ) = @_;
-    my $dbh = $class->storage->dbh;
+sub _table_info {
+    my ( $self, $table ) = @_;
+    my $dbh = $self->schema->storage->dbh;
     my $quoter = $dbh->get_info(29) || q{"};
 
-    my $sth = $dbh->column_info(undef, $class->_loader_db_schema, $table, undef);
+    my $sth = $dbh->column_info(undef, $self->db_schema, $table, undef);
     my @cols = map { $_->[3] } @{ $sth->fetchall_arrayref };
     s/$quoter//g for @cols;
     
-    my @primary = $dbh->primary_key(undef, $class->_loader_db_schema, $table);
+    my @primary = $dbh->primary_key(undef, $self->db_schema, $table);
 
     s/$quoter//g for @primary;
 
