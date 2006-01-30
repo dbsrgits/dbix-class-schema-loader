@@ -12,7 +12,7 @@ my $skip_rels_msg = 'You need to set the DBICTEST_MYSQL_INNODB environment varia
 my $tester = dbixcsl_common_tests->new(
     vendor          => 'Mysql',
     auto_inc_pk     => 'INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT',
-    innodb          => q{Engine='InnoDB'},
+    innodb          => $test_innodb ? q{Engine=InnoDB} : 0,
     dsn             => $dsn,
     user            => $user,
     password        => $password,
