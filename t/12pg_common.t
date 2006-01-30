@@ -2,20 +2,20 @@ use strict;
 use lib qw( . ./t );
 use dbixcsl_common_tests;
 
-my $database = $ENV{PG_NAME} || '';
-my $user     = $ENV{PG_USER} || '';
-my $password = $ENV{PG_PASS} || '';
+my $dsn      = $ENV{DBICTEST_PG_DSN} || '';
+my $user     = $ENV{DBICTEST_PG_USER} || '';
+my $password = $ENV{DBICTEST_PG_PASS} || '';
 
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'Pg',
     auto_inc_pk => 'SERIAL NOT NULL PRIMARY KEY',
-    dsn         => "dbi:Pg:dbname=$database",
+    dsn         => $dsn,
     user        => $user,
     password    => $password,
 );
 
-if( !$database || !$user ) {
-    $tester->skip_tests('You need to set the PG_NAME, PG_USER and PG_PASS environment variables');
+if( !$dsn || !$user ) {
+    $tester->skip_tests('You need to set the DBICTEST_PG_DSN, _USER, and _PASS environment variables');
 }
 else {
     $tester->run_tests();

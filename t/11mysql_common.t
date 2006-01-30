@@ -2,26 +2,26 @@ use strict;
 use lib qw( . ./t );
 use dbixcsl_common_tests;
 
-my $database    = $ENV{MYSQL_NAME} || '';
-my $user        = $ENV{MYSQL_USER} || '';
-my $password    = $ENV{MYSQL_PASS} || '';
-my $test_innodb = $ENV{MYSQL_TEST_INNODB} || 0;
+my $dsn         = $ENV{DBICTEST_MYSQL_DSN} || '';
+my $user        = $ENV{DBICTEST_MYSQL_USER} || '';
+my $password    = $ENV{DBICTEST_MYSQL_PASS} || '';
+my $test_innodb = $ENV{DBICTEST_MYSQL_INNODB} || 0;
 
-my $skip_rels_msg = 'You need to set the MYSQL_TEST_INNODB environment variable to test relationships';
+my $skip_rels_msg = 'You need to set the DBICTEST_MYSQL_INNODB environment variable to test relationships';
 
 my $tester = dbixcsl_common_tests->new(
     vendor          => 'Mysql',
     auto_inc_pk     => 'INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT',
     innodb          => q{Engine='InnoDB'},
-    dsn             => "dbi:mysql:$database",
+    dsn             => $dsn,
     user            => $user,
     password        => $password,
     skip_rels       => $test_innodb ? 0 : $skip_rels_msg,
     no_inline_rels  => 1,
 );
 
-if( !$database || !$user ) {
-    $tester->skip_tests('You need to set the MYSQL_NAME, MYSQL_USER and MYSQL_PASS environment variables');
+if( !$dsn || !$user ) {
+    $tester->skip_tests('You need to set the DBICTEST_MYSQL_DSN, _USER, and _PASS environment variables');
 }
 else {
     $tester->run_tests();
