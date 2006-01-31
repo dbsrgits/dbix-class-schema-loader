@@ -37,7 +37,7 @@ sub skip_tests {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 38;
+    plan tests => 41;
 
     $self->create();
 
@@ -105,7 +105,7 @@ sub run_tests {
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 25 if $self->{skip_rels};
+        skip $self->{skip_rels}, 28 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -227,6 +227,24 @@ sub run_tests {
             isa_ok( $obj13->id, $class12 );
             isa_ok( $obj13->loader_test12, $class12);
             isa_ok( $obj13->dat, $class12);
+        }
+
+        SKIP: {
+            skip 'This vendor cannot do out-of-line implicit rel defs', 3
+                if $self->{no_implicit_rels};
+            my $moniker14 = $monikers->{loader_test14};
+            my $class14   = $classes->{loader_test14};
+            my $rsobj14   = $conn->resultset($moniker14);
+
+            my $moniker15 = $monikers->{loader_test15};
+            my $class15   = $classes->{loader_test15};
+            my $rsobj15   = $conn->resultset($moniker15);
+
+            isa_ok( $rsobj14, "DBIx::Class::ResultSet" ); 
+            isa_ok( $rsobj15, "DBIx::Class::ResultSet" );
+
+            my $obj15 = $rsobj15->find(1);
+            isa_ok( $obj15->loader_test14, $class14 );
         }
     }
 }
@@ -405,6 +423,27 @@ sub create {
     );
 
 
+    my @statements_implicit_rels = (
+        qq{
+            CREATE TABLE loader_test14 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                dat VARCHAR(8)
+            ) $self->{innodb}
+        },
+ 
+        q{ INSERT INTO loader_test14 (id,dat) VALUES (123,'aaa') },
+
+        qq{
+            CREATE TABLE loader_test15 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                loader_test14 INTEGER NOT NULL,
+                FOREIGN KEY (loader_test14) REFERENCES loader_test14
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test15 (id,loader_test14) VALUES (1,123) },
+   );
+
     $self->drop_tables;
 
     $self->{created} = 1;
@@ -424,6 +463,9 @@ sub create {
         }
         unless($self->{no_inline_rels}) {
             $dbh->do($_) for (@statements_inline_rels);
+        }
+        unless($self->{no_implicit_rels}) {
+            $dbh->do($_) for (@statements_implicit_rels);
         }
     }
     $dbh->disconnect();
@@ -459,6 +501,11 @@ sub drop_tables {
         loader_test12
     /;
 
+    my @tables_implicit_rels = qw/
+        loader_test15
+        loader_test14
+    /;
+
     my $drop_fk_mysql =
         q{ALTER TABLE loader_test10 DROP FOREIGN KEY loader_test11_fk;};
 
@@ -480,6 +527,9 @@ sub drop_tables {
         }
         unless($self->{no_inline_rels}) {
             $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
+        }
+        unless($self->{no_implicit_rels}) {
+            $dbh->do("DROP TABLE $_") for (@tables_implicit_rels);
         }
     }
     $dbh->do("DROP TABLE $_") for (@tables);

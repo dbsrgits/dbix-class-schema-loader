@@ -143,7 +143,7 @@ sub new {
 
     warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/
         if $self->debug;
-    $self->schema->storage->dbh->disconnect; # XXX this should be ->storage->disconnect later?
+    $self->schema->storage->disconnect;
 
     $self;
 }
