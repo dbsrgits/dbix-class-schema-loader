@@ -2,6 +2,7 @@ package DBIx::Class::Schema::Loader::Generic;
 
 use strict;
 use warnings;
+use Class::C3;
 
 use Carp;
 use Lingua::EN::Inflect;
@@ -101,6 +102,11 @@ Username.
 Constructor for L<DBIx::Class::Schema::Loader::Generic>, used internally
 by L<DBIx::Class::Schema::Loader>.
 
+=head3 load
+
+Does the actual schema-construction work, used internally by
+L<DBIx::Class::Schema::Loader> right after object construction.
+
 =cut
 
 # ensure that a peice of object data is a valid arrayref, creating
@@ -131,6 +137,12 @@ sub new {
 
     $self->{monikers} = {};
     $self->{classes} = {};
+
+    $self;
+}
+
+sub load {
+    my $self = shift;
 
     $self->schema->connection($self->dsn, $self->user,
                               $self->password, $self->options);

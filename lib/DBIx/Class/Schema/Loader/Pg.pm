@@ -2,6 +2,8 @@ package DBIx::Class::Schema::Loader::Pg;
 
 use strict;
 use warnings;
+use Class::C3;
+
 use base 'DBIx::Class::Schema::Loader::Generic';
 
 =head1 NAME
@@ -23,7 +25,23 @@ DBIx::Class::Schema::Loader::Pg - DBIx::Class::Schema::Loader Postgres Implement
 
 See L<DBIx::Class::Schema::Loader>.
 
+=head1 METHODS
+
+=head3 new
+
+Overrides L<DBIx::Class::Schema::Loader::Generic>'s C<new()> to default the postgres
+schema to C<public> rather than blank.
+
 =cut
+
+sub new {
+    my ($class, %args) = @_;
+
+    my $self = $class->next::method(%args);
+    $self->{db_schema} ||= 'public';
+
+    $self;
+}
 
 sub _db_classes {
     return qw/DBIx::Class::PK::Auto::Pg/;

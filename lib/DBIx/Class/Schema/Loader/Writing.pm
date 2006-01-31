@@ -16,6 +16,7 @@ DBIx::Class::Schema::Loader::Writing - Loader subclass writing guide
 
   use strict;
   use warnings;
+  use Class::C3;
   use base 'DBIx::Class::Schema::Loader::Generic';
 
   sub _db_classes {

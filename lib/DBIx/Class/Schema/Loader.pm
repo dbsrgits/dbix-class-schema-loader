@@ -106,6 +106,7 @@ sub load_from_connection {
     $args{schema} = $class;
 
     $class->loader($impl->new(%args));
+    $class->loader->load;
 }
 
 =head1 AUTHOR

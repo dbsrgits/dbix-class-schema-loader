@@ -7,6 +7,7 @@ abstract: Dynamic definition of a DBIx::Class::Schema
 license: perl
 requires:
   Class::Accessor::Fast: 0.22
+  Class::C3: 0.09
   Class::Data::Accessor: 0.02
   DBIx::Class: 0.0499907
   Lingua::EN::Inflect: 0

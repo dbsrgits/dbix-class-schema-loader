@@ -11,6 +11,7 @@ my %arguments = (
         'Text::Balanced'        => 0,
         'Class::Accessor::Fast' => 0.22,
         'Class::Data::Accessor' => 0.02,
+        'Class::C3'             => 0.09,
     },
     build_requires     => {
         'Test::More'          => 0.32,

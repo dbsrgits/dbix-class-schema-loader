@@ -2,6 +2,7 @@ package DBIx::Class::Schema::Loader::DB2;
 
 use strict;
 use warnings;
+use Class::C3;
 use base 'DBIx::Class::Schema::Loader::Generic';
 
 =head1 NAME

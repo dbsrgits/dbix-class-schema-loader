@@ -2,6 +2,7 @@ package DBIx::Class::Schema::Loader::SQLite;
 
 use strict;
 use warnings;
+use Class::C3;
 use base qw/DBIx::Class::Schema::Loader::Generic/;
 
 use Text::Balanced qw( extract_bracketed );
