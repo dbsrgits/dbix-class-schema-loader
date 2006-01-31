@@ -449,6 +449,13 @@ sub create {
     $self->{created} = 1;
 
     my $dbh = $self->dbconnect(1);
+
+    # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
+    local $SIG{__WARN__} = sub {
+        my $msg = shift;
+        print STDERR $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
+    };
+
     $dbh->do($_) for (@statements);
     unless($self->{skip_rels}) {
         # hack for now, since DB2 doesn't like inline comments, and we need
