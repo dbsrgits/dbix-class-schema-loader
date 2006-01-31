@@ -1,0 +1,83 @@
+NAME
+    DBIx::Class::Schema::Loader - Dynamic definition of a
+    DBIx::Class::Schema
+
+SYNOPSIS
+      package My::Schema;
+      use base qw/DBIx::Class::Schema::Loader/;
+
+      __PACKAGE__->load_from_connection(
+        dsn                     => "dbi:mysql:dbname",
+        user                    => "root",
+        password                => "",
+        additional_classes      => [qw/DBIx::Class::Foo/],
+        additional_base_classes => [qw/My::Stuff/],
+        left_base_classes       => [qw/DBIx::Class::Bar/],
+        constraint              => '^foo.*',
+        relationships           => 1,
+        options                 => { AutoCommit => 1 }, 
+        inflect                 => { child => 'children' },
+        debug                   => 1,
+      );
+
+      # in seperate application code ...
+
+      use My::Schema;
+
+      my $schema1 = My::Schema->connect( $dsn, $user, $password, $attrs);
+      # -or-
+      my $schema1 = "My::Schema";
+      # ^^ defaults to dsn/user/pass from load_from_connection()
+
+      # Get a list of the original (database) names of the tables that
+      #  were loaded
+      my @tables = $schema1->loader->tables;
+
+      # Get a hashref of table_name => 'TableName' table-to-moniker
+      #   mappings.
+      my $monikers = $schema1->loader->monikers;
+
+      # Get a hashref of table_name => 'My::Schema::TableName'
+      #   table-to-classname mappings.
+      my $classes = $schema1->loader->classes;
+
+      # Use the schema as per normal for L<DBIx::Class::Schema>
+      my $rs = $schema1->resultset($monikers->{table_table})->search(...);
+
+DESCRIPTION
+    DBIx::Class::Schema::Loader automates the definition of a
+    DBIx::Class::Schema by scanning table schemas and setting up columns and
+    primary keys.
+
+    DBIx::Class::Schema::Loader supports MySQL, Postgres, SQLite and DB2.
+    See DBIx::Class::Schema::Loader::Generic for more, and
+    DBIx::Class::Schema::Loader::Writing for notes on writing your own
+    db-specific subclass for an unsupported db.
+
+    This module requires DBIx::Class::Loader 0.5 or later, and obsoletes
+    DBIx::Class::Loader for DBIx::Class version 0.5 and later.
+
+METHODS
+  load_from_connection
+    Example in Synopsis above demonstrates the available arguments. For
+    detailed information on the arguments, see the
+    DBIx::Class::Schema::Loader::Generic documentation.
+
+AUTHOR
+    Brandon Black, "bblack@gmail.com"
+
+    Based on DBIx::Class::Loader by Sebastian Riedel
+
+    Based upon the work of IKEBE Tomohiro
+
+THANK YOU
+    Adam Anderson, Andy Grundman, Autrijus Tang, Dan Kubb, David Naughton,
+    Randal Schwartz, Simon Flack and all the others who've helped.
+
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
+SEE ALSO
+    DBIx::Class
+

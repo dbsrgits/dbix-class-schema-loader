@@ -5,16 +5,17 @@ use warnings;
 use Carp;
 use UNIVERSAL::require;
 
+use base qw/DBIx::Class::Schema/;
+use base qw/Class::Data::Accessor/;
+
+__PACKAGE__->mk_classaccessor('loader');
+
 use vars qw($VERSION);
 
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
 $VERSION = '0.01000';
-
-use base qw/DBIx::Class::Schema/;
-
-__PACKAGE__->mk_classaccessor('loader');
 
 =head1 NAME
 
@@ -111,7 +112,7 @@ sub load_from_connection {
 
 Brandon Black, C<bblack@gmail.com>
 
-Sebastian Riedel, C<sri@oook.de> (DBIx::Class::Loader, which this module is branched from)
+Based on L<DBIx::Class::Loader> by Sebastian Riedel
 
 Based upon the work of IKEBE Tomohiro
 

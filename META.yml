@@ -1,0 +1,35 @@
+---
+name: DBIx-Class-Schema-Loader
+version: 0.01000
+author:
+  - 'Brandon Black, C<bblack@gmail.com>'
+abstract: Dynamic definition of a DBIx::Class::Schema
+license: perl
+requires:
+  Class::Accessor::Fast: 0.22
+  Class::Data::Accessor: 0.02
+  DBIx::Class: 0.0499907
+  Lingua::EN::Inflect: 0
+  Text::Balanced: 0
+  UNIVERSAL::require: 0.1
+build_requires:
+  DBD::SQLite: 1.11
+  DBI: 1.4
+  Test::More: 0.32
+provides:
+  DBIx::Class::Schema::Loader:
+    file: lib/DBIx/Class/Schema/Loader.pm
+    version: 0.01000
+  DBIx::Class::Schema::Loader::DB2:
+    file: lib/DBIx/Class/Schema/Loader/DB2.pm
+  DBIx::Class::Schema::Loader::Generic:
+    file: lib/DBIx/Class/Schema/Loader/Generic.pm
+  DBIx::Class::Schema::Loader::Pg:
+    file: lib/DBIx/Class/Schema/Loader/Pg.pm
+  DBIx::Class::Schema::Loader::SQLite:
+    file: lib/DBIx/Class/Schema/Loader/SQLite.pm
+  DBIx::Class::Schema::Loader::Writing:
+    file: lib/DBIx/Class/Schema/Loader/Writing.pm
+  DBIx::Class::Schema::Loader::mysql:
+    file: lib/DBIx/Class/Schema/Loader/mysql.pm
+generated_by: Module::Build version 0.2611

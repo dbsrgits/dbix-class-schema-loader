@@ -308,9 +308,37 @@ sub _load_classes {
 
 =head3 tables
 
-Returns a sorted list of tables.
+Returns a sorted list of loaded tables, using the original database table
+names.  Actually generated from the keys of the C<monikers> hash below.
 
-    my @tables = $loader->tables;
+    my @tables = $schema->loader->tables;
+
+=head3 monikers
+
+Returns a hashref of loaded table-to-moniker mappings for the original
+database table names.
+
+    my $monikers = $schema->loader->monikers;
+    my $foo_tbl_moniker = $monikers->{foo_tbl};
+    # -or-
+    my $foo_tbl_moniker = $schema->loader->monikers->{foo_tbl};
+    # $foo_tbl_moniker would look like "FooTbl"
+
+=head3 classes
+
+Returns a hashref of table-to-classname mappings for the original database
+table names.  You probably shouldn't be using this, as operating on the
+original class names is usually a bad idea.  This hook is here for people
+who want to do strange and/or possibly broken things.  The usual way to
+get at things is C<$schema->resultset('FooTbl')>, where C<FooTbl> is a
+moniker as returned by C<monikers> above.
+
+    my $classes = $schema->loader->classes;
+    my $foo_tbl_class = $classes->{foo_tbl};
+    # -or-
+    my $foo_tbl_class = $schema->loader->classes->{foo_tbl};
+    # $foo_tbl_class would look like "My::Schema::FooTbl",
+    #   assuming the schema class is "My::Schema"
 
 =cut
 
