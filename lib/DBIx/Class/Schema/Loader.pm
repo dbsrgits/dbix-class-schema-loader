@@ -2,20 +2,18 @@ package DBIx::Class::Schema::Loader;
 
 use strict;
 use warnings;
-use Carp;
-use UNIVERSAL::require;
-
 use base qw/DBIx::Class::Schema/;
 use base qw/Class::Data::Accessor/;
-
-__PACKAGE__->mk_classaccessor('loader');
-
-use vars qw($VERSION);
+use Carp;
+use UNIVERSAL::require;
 
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-$VERSION = '0.01000';
+use vars qw($VERSION);
+$VERSION = '0.01001';
+
+__PACKAGE__->mk_classaccessor('loader');
 
 =head1 NAME
 
@@ -61,13 +59,13 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
   #   table-to-classname mappings.
   my $classes = $schema1->loader->classes;
 
-  # Use the schema as per normal for L<DBIx::Class::Schema>
+  # Use the schema as per normal for DBIx::Class::Schema
   my $rs = $schema1->resultset($monikers->{table_table})->search(...);
 
 =head1 DESCRIPTION
 
-THIS IS A DEVELOPMENT RELEASE.  This is 0.01000, the first public
-release.  Expect things to be broken in various ways.  Expect the
+THIS IS A DEVELOPMENT RELEASE.  This is 0.01xxx, the first public
+releases.  Expect things to be broken in various ways.  Expect the
 entire design to be fatally flawed.  Expect the interfaces to change if
 it becomes neccessary.  It's mostly here for people to poke at it and
 find the flaws in it.  0.02 will hopefully have some sanity when we get
@@ -82,10 +80,8 @@ L<DBIx::Class::Schema::Loader::Generic> for more, and
 L<DBIx::Class::Schema::Loader::Writing> for notes on writing your own
 db-specific subclass for an unsupported db.
 
-This module requires DBIx::Class::Loader 0.5 or later, and obsoletes
-L<DBIx::Class::Loader> for L<DBIx::Class> version 0.5 and later.
-
-=cut
+This module requires L<DBIx::Class> 0.05 or later, and obsoletes
+L<DBIx::Class::Loader> for L<DBIx::Class> version 0.05 and later.
 
 =head1 METHODS
 
@@ -115,6 +111,14 @@ sub load_from_connection {
     $class->loader($impl->new(%args));
     $class->loader->load;
 }
+
+=head2 loader
+
+This is an accessor in the generated Schema class for accessing
+the L<DBIx::Class::Schema::Loader::Generic> -based loader object
+that was used during construction.  See the
+L<DBIx::Class::Schema::Loader::Generic> docs for more information
+on the available loader methods there.
 
 =head1 AUTHOR
 

@@ -1,6 +1,6 @@
 ---
 name: DBIx-Class-Schema-Loader
-version: 0.01000
+version: 0.01001
 author:
   - 'Brandon Black, C<bblack@gmail.com>'
 abstract: Dynamic definition of a DBIx::Class::Schema
@@ -20,7 +20,7 @@ build_requires:
 provides:
   DBIx::Class::Schema::Loader:
     file: lib/DBIx/Class/Schema/Loader.pm
-    version: 0.01000
+    version: 0.01001
   DBIx::Class::Schema::Loader::DB2:
     file: lib/DBIx/Class/Schema/Loader/DB2.pm
   DBIx::Class::Schema::Loader::Generic:

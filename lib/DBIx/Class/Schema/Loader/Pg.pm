@@ -3,7 +3,6 @@ package DBIx::Class::Schema::Loader::Pg;
 use strict;
 use warnings;
 use Class::C3;
-
 use base 'DBIx::Class::Schema::Loader::Generic';
 
 =head1 NAME
@@ -12,14 +11,16 @@ DBIx::Class::Schema::Loader::Pg - DBIx::Class::Schema::Loader Postgres Implement
 
 =head1 SYNOPSIS
 
-  use DBIx::Class::Schema::Loader;
+  package My::Schema;
+  use base qw/DBIx::Class::Schema::Loader/;
 
-  # $loader is a DBIx::Class::Schema::Loader::Pg
-  my $loader = DBIx::Class::Schema::Loader->new(
+  __PACKAGE__->load_from_connection(
     dsn       => "dbi:Pg:dbname=dbname",
     user      => "postgres",
     password  => "",
   );
+
+  1;
 
 =head1 DESCRIPTION
 
@@ -27,7 +28,7 @@ See L<DBIx::Class::Schema::Loader>.
 
 =head1 METHODS
 
-=head3 new
+=head2 new
 
 Overrides L<DBIx::Class::Schema::Loader::Generic>'s C<new()> to default the postgres
 schema to C<public> rather than blank.

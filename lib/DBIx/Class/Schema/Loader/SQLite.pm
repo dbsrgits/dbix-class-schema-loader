@@ -2,9 +2,8 @@ package DBIx::Class::Schema::Loader::SQLite;
 
 use strict;
 use warnings;
-use Class::C3;
 use base qw/DBIx::Class::Schema::Loader::Generic/;
-
+use Class::C3;
 use Text::Balanced qw( extract_bracketed );
 
 =head1 NAME
@@ -13,12 +12,14 @@ DBIx::Class::Schema::Loader::SQLite - DBIx::Class::Schema::Loader SQLite Impleme
 
 =head1 SYNOPSIS
 
-  use DBIx::Class::Schema::Loader;
+  package My::Schema;
+  use base qw/DBIx::Class::Schema::Loader/;
 
-  # $loader is a DBIx::Class::Schema::Loader::SQLite
-  my $loader = DBIx::Class::Schema::Loader->new(
+  __PACKAGE__->load_from_connection(
     dsn       => "dbi:SQLite:dbname=/path/to/dbfile",
   );
+
+  1;
 
 =head1 DESCRIPTION
 

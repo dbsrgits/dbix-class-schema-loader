@@ -16,8 +16,8 @@ DBIx::Class::Schema::Loader::Writing - Loader subclass writing guide
 
   use strict;
   use warnings;
-  use Class::C3;
   use base 'DBIx::Class::Schema::Loader::Generic';
+  use Class::C3;
 
   sub _db_classes {
       return qw/DBIx::Class::PK::Auto::Foo/;
@@ -50,5 +50,7 @@ DBIx::Class::Schema::Loader::Writing - Loader subclass writing guide
 
       ...
   }
+
+  1;
 
 =cut

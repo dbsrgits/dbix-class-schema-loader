@@ -2,8 +2,8 @@ package DBIx::Class::Schema::Loader::DB2;
 
 use strict;
 use warnings;
-use Class::C3;
 use base 'DBIx::Class::Schema::Loader::Generic';
+use Class::C3;
 
 =head1 NAME
 
@@ -11,16 +11,18 @@ DBIx::Class::Schema::Loader::DB2 - DBIx::Class::Schema::Loader DB2 Implementatio
 
 =head1 SYNOPSIS
 
-  use DBIx::Schema::Class::Loader;
+  package My::Schema;
+  use base qw/DBIx::Class::Schema::Loader/;
 
-  # $loader is a DBIx::Class::Schema::Loader::DB2
-  my $loader = DBIx::Class::Schema::Loader->new(
+  __PACKAGE__->load_from_connection(
     dsn         => "dbi:DB2:dbname",
     user        => "myuser",
     password    => "",
     db_schema   => "MYSCHEMA",
     drop_schema => 1,
   );
+
+  1;
 
 =head1 DESCRIPTION
 

@@ -41,12 +41,12 @@ SYNOPSIS
       #   table-to-classname mappings.
       my $classes = $schema1->loader->classes;
 
-      # Use the schema as per normal for L<DBIx::Class::Schema>
+      # Use the schema as per normal for DBIx::Class::Schema
       my $rs = $schema1->resultset($monikers->{table_table})->search(...);
 
 DESCRIPTION
-    THIS IS A DEVELOPMENT RELEASE. This is 0.01000, the first public
-    release. Expect things to be broken in various ways. Expect the entire
+    THIS IS A DEVELOPMENT RELEASE. This is 0.01xxx, the first public
+    releases. Expect things to be broken in various ways. Expect the entire
     design to be fatally flawed. Expect the interfaces to change if it
     becomes neccessary. It's mostly here for people to poke at it and find
     the flaws in it. 0.02 will hopefully have some sanity when we get there.
@@ -60,14 +60,20 @@ DESCRIPTION
     DBIx::Class::Schema::Loader::Writing for notes on writing your own
     db-specific subclass for an unsupported db.
 
-    This module requires DBIx::Class::Loader 0.5 or later, and obsoletes
-    DBIx::Class::Loader for DBIx::Class version 0.5 and later.
+    This module requires DBIx::Class 0.05 or later, and obsoletes
+    DBIx::Class::Loader for DBIx::Class version 0.05 and later.
 
 METHODS
   load_from_connection
     Example in Synopsis above demonstrates the available arguments. For
     detailed information on the arguments, see the
     DBIx::Class::Schema::Loader::Generic documentation.
+
+  loader
+    This is an accessor in the generated Schema class for accessing the
+    DBIx::Class::Schema::Loader::Generic -based loader object that was used
+    during construction. See the DBIx::Class::Schema::Loader::Generic docs
+    for more information on the available loader methods there.
 
 AUTHOR
     Brandon Black, "bblack@gmail.com"

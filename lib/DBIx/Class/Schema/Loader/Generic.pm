@@ -2,12 +2,10 @@ package DBIx::Class::Schema::Loader::Generic;
 
 use strict;
 use warnings;
+use base qw/Class::Accessor::Fast/;
 use Class::C3;
-
 use Carp;
 use Lingua::EN::Inflect;
-use base qw/Class::Accessor::Fast/;
-
 require DBIx::Class::Core;
 
 # The first group are all arguments which are may be defaulted within,
@@ -44,68 +42,59 @@ See L<DBIx::Class::Schema::Loader>
 
 =head1 DESCRIPTION
 
-=head2 OPTIONS
+This is the base class for the vendor-specific C<DBIx::Class::Schema::*>
+classes, and implements the common functionality between them.
+
+=head1 OPTIONS
 
 Available constructor options are:
 
-=head3 additional_base_classes
+=head2 additional_base_classes
 
 List of additional base classes your table classes will use.
 
-=head3 left_base_classes
+=head2 left_base_classes
 
 List of additional base classes, that need to be leftmost.
 
-=head3 additional_classes
+=head2 additional_classes
 
 List of additional classes which your table classes will use.
 
-=head3 constraint
+=head2 constraint
 
 Only load tables matching regex.
 
-=head3 exclude
+=head2 exclude
 
 Exclude tables matching regex.
 
-=head3 debug
+=head2 debug
 
 Enable debug messages.
 
-=head3 dsn
+=head2 dsn
 
 DBI Data Source Name.
 
-=head3 password
+=head2 password
 
 Password.
 
-=head3 relationships
+=head2 relationships
 
 Try to automatically detect/setup has_a and has_many relationships.
 
-=head3 inflect
+=head2 inflect
 
 An hashref, which contains exceptions to Lingua::EN::Inflect::PL().
 Useful for foreign language column names.
 
-=head3 user
+=head2 user
 
 Username.
 
-=head2 METHODS
-
-=cut
-
-=head3 new
-
-Constructor for L<DBIx::Class::Schema::Loader::Generic>, used internally
-by L<DBIx::Class::Schema::Loader>.
-
-=head3 load
-
-Does the actual schema-construction work, used internally by
-L<DBIx::Class::Schema::Loader> right after object construction.
+=head1 METHODS
 
 =cut
 
@@ -120,6 +109,13 @@ sub _ensure_arrayref {
             unless ref $self->{$_} eq 'ARRAY';
     }
 }
+
+=head2 new
+
+Constructor for L<DBIx::Class::Schema::Loader::Generic>, used internally
+by L<DBIx::Class::Schema::Loader>.
+
+=cut
 
 sub new {
     my ( $class, %args ) = @_;
@@ -140,6 +136,13 @@ sub new {
 
     $self;
 }
+
+=head2 load
+
+Does the actual schema-construction work, used internally by
+L<DBIx::Class::Schema::Loader> right after object construction.
+
+=cut
 
 sub load {
     my $self = shift;
@@ -318,38 +321,12 @@ sub _load_classes {
     }
 }
 
-=head3 tables
+=head2 tables
 
 Returns a sorted list of loaded tables, using the original database table
 names.  Actually generated from the keys of the C<monikers> hash below.
 
-    my @tables = $schema->loader->tables;
-
-=head3 monikers
-
-Returns a hashref of loaded table-to-moniker mappings for the original
-database table names.
-
-    my $monikers = $schema->loader->monikers;
-    my $foo_tbl_moniker = $monikers->{foo_tbl};
-    # -or-
-    my $foo_tbl_moniker = $schema->loader->monikers->{foo_tbl};
-    # $foo_tbl_moniker would look like "FooTbl"
-
-=head3 classes
-
-Returns a hashref of table-to-classname mappings for the original database
-table names.  You probably shouldn't be using this for any normal or simple
-usage of your Schema.  The usual way to run queries on your tables is via
-C<$schema-E<gt>resultset('FooTbl')>, where C<FooTbl> is a moniker as
-returned by C<monikers> above.
-
-    my $classes = $schema->loader->classes;
-    my $foo_tbl_class = $classes->{foo_tbl};
-    # -or-
-    my $foo_tbl_class = $schema->loader->classes->{foo_tbl};
-    # $foo_tbl_class would look like "My::Schema::FooTbl",
-    #   assuming the schema class is "My::Schema"
+  my @tables = $schema->loader->tables;
 
 =cut
 
@@ -416,6 +393,32 @@ sub _table2moniker {
 sub _tables { croak "ABSTRACT METHOD" }
 
 sub _table_info { croak "ABSTRACT METHOD" }
+
+=head2 monikers
+
+Returns a hashref of loaded table-to-moniker mappings for the original
+database table names.
+
+  my $monikers = $schema->loader->monikers;
+  my $foo_tbl_moniker = $monikers->{foo_tbl};
+  # -or-
+  my $foo_tbl_moniker = $schema->loader->monikers->{foo_tbl};
+  # $foo_tbl_moniker would look like "FooTbl"
+
+=head2 classes
+
+Returns a hashref of table-to-classname mappings for the original database
+table names.  You probably shouldn't be using this for any normal or simple
+usage of your Schema.  The usual way to run queries on your tables is via
+C<$schema-E<gt>resultset('FooTbl')>, where C<FooTbl> is a moniker as
+returned by C<monikers> above.
+
+  my $classes = $schema->loader->classes;
+  my $foo_tbl_class = $classes->{foo_tbl};
+  # -or-
+  my $foo_tbl_class = $schema->loader->classes->{foo_tbl};
+  # $foo_tbl_class would look like "My::Schema::FooTbl",
+  #   assuming the schema class is "My::Schema"
 
 =head1 SEE ALSO
 

@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.01001 Fri Feb  3 05:15:41 UTC 2006
+        - Fixed up some documentation issues
+        - Load C3 at the right time
+
 0.01  Fri Feb  3 01:53:46 UTC 2006
         - original release
         - created from DBIx::Class::Loader 0.14
