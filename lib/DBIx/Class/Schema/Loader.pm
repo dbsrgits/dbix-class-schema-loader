@@ -66,6 +66,13 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
 
 =head1 DESCRIPTION
 
+THIS IS A DEVELOPMENT RELEASE.  This is 0.01000, the first public
+release.  Expect things to be broken in various ways.  Expect the
+entire design to be fatally flawed.  Expect the interfaces to change if
+it becomes neccessary.  It's mostly here for people to poke at it and
+find the flaws in it.  0.02 will hopefully have some sanity when we get
+there.
+
 DBIx::Class::Schema::Loader automates the definition of a
 DBIx::Class::Schema by scanning table schemas and setting up
 columns and primary keys.

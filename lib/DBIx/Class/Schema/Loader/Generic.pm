@@ -339,11 +339,10 @@ database table names.
 =head3 classes
 
 Returns a hashref of table-to-classname mappings for the original database
-table names.  You probably shouldn't be using this, as operating on the
-original class names is usually a bad idea.  This hook is here for people
-who want to do strange and/or possibly broken things.  The usual way to
-get at things is C<$schema->resultset('FooTbl')>, where C<FooTbl> is a
-moniker as returned by C<monikers> above.
+table names.  You probably shouldn't be using this for any normal or simple
+usage of your Schema.  The usual way to run queries on your tables is via
+C<$schema-E<gt>resultset('FooTbl')>, where C<FooTbl> is a moniker as
+returned by C<monikers> above.
 
     my $classes = $schema->loader->classes;
     my $foo_tbl_class = $classes->{foo_tbl};
