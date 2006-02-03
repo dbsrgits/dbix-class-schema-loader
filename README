@@ -76,7 +76,7 @@ METHODS
     for more information on the available loader methods there.
 
 AUTHOR
-    Brandon Black, "bblack@gmail.com"
+    Brandon Black, "blblack@gmail.com"
 
     Based on DBIx::Class::Loader by Sebastian Riedel
 

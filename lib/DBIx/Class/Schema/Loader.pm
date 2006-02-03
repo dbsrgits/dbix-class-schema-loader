@@ -10,8 +10,7 @@ use UNIVERSAL::require;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-use vars qw($VERSION);
-$VERSION = '0.01001';
+our $VERSION = '0.01002';
 
 __PACKAGE__->mk_classaccessor('loader');
 
@@ -122,7 +121,7 @@ on the available loader methods there.
 
 =head1 AUTHOR
 
-Brandon Black, C<bblack@gmail.com>
+Brandon Black, C<blblack@gmail.com>
 
 Based on L<DBIx::Class::Loader> by Sebastian Riedel
 
