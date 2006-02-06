@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.01003 Mon Feb  6 14:57:56 UTC 2006
+        - Fixed the has_many side of _make_cond_rel
+
 0.01002 Fri Feb  3 23:14:38 UTC 2006
         - Email address typo :(
 

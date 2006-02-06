@@ -20,7 +20,7 @@ build_requires:
 provides:
   DBIx::Class::Schema::Loader:
     file: lib/DBIx/Class/Schema/Loader.pm
-    version: 0.01002
+    version: 0.01003
   DBIx::Class::Schema::Loader::DB2:
     file: lib/DBIx/Class/Schema/Loader/DB2.pm
   DBIx::Class::Schema::Loader::Generic:

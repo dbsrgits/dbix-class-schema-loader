@@ -223,6 +223,11 @@ sub _make_cond_rel {
 
     my $rev_cond = { reverse %$cond };
 
+    for (keys %$rev_cond) {
+	$rev_cond->{"foreign.$_"} = "self.".$rev_cond->{$_};
+	delete $rev_cond->{$_};
+    }
+
     my $cond_printable = _stringify_hash($cond)
         if $self->debug;
     my $rev_cond_printable = _stringify_hash($rev_cond)

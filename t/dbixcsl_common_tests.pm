@@ -37,7 +37,7 @@ sub skip_tests {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 41;
+    plan tests => 42;
 
     $self->create();
 
@@ -105,7 +105,7 @@ sub run_tests {
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 28 if $self->{skip_rels};
+        skip $self->{skip_rels}, 29 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -146,6 +146,10 @@ sub run_tests {
         # basic rel test
         my $obj4 = $rsobj4->find(123);
         isa_ok( $obj4->fkid, $class3);
+
+	my $obj3 = $rsobj3->find(1);
+	my $rs_rel4 = $obj3->search_related('loader_test4s');
+	isa_ok( $rs_rel4->first, $class4);
 
         # fk def in comments should not be parsed
         my $obj5 = $rsobj5->find( id1 => 1, id2 => 1 );
