@@ -36,19 +36,11 @@ sub _load_relationships {
     my $self   = shift;
     my @tables = $self->tables;
     my $dbh    = $self->schema->storage->dbh;
-    my $dsn    = $self->dsn;
-    my %conn   =
-      $dsn =~ m/\Adbi:\w+(?:\(.*?\))?:(.+)\z/i
-      && index( $1, '=' ) >= 0
-      ? split( /[=;]/, $1 )
-      : ( database => $1 );
-    my $dbname = $conn{database} || $conn{dbname} || $conn{db};
-    die("Can't figure out the table name automatically.") if !$dbname;
 
     my $quoter = $dbh->get_info(29) || q{`};
 
     foreach my $table (@tables) {
-        my $query = "SHOW CREATE TABLE ${dbname}.${table}";
+        my $query = "SHOW CREATE TABLE ${table}";
         my $sth   = $dbh->prepare($query)
           or die("Cannot get table definition: $table");
         $sth->execute;
