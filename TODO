@@ -3,7 +3,8 @@ Reminders to myself or whoever else ever looks in here...
 
 SQLite needs some heavy refactoring, the subroutines are becoming too complex to understand easily.
 
-Consider:
+Relationship stuff:
+   Fix multiple rels between same pair of tables
    If local column is UNIQUE or PK, use has_one() for relation?
    Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up?
    Check NULLability of columns involved in the relationship, which might suggest a more optimal non-default -join-type?

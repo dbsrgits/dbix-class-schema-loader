@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.02000 Sun Feb 12 22:43:47 UTC 2006
+        - Just docs/version update, 0.01004 code released as 0.02000
+
 0.01004 Tue Feb  7 03:58:01 UTC 2006
         - No longer tries to parse out the table name from the dsn for mysql,
           was unneccesary vestigial code from previous method.
