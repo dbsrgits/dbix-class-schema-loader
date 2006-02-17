@@ -28,7 +28,7 @@ See L<DBIx::Class::Schema::Loader>.
 =cut
 
 sub _db_classes {
-    return qw/DBIx::Class::PK::Auto::SQLite/;
+    return qw/PK::Auto::SQLite/;
 }
 
 # XXX this really needs a re-factor
@@ -79,7 +79,7 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
 
             # Grab reference
             chomp $col;
-	    next if $col !~ /^(.*)\s+REFERENCES\s+(\w+) (?: \s* \( (.*) \) )? /ix;
+            next if $col !~ /^(.*)\s+REFERENCES\s+(\w+) (?: \s* \( (.*) \) )? /ix;
 
             my ($cols, $f_table, $f_cols) = ($1, $2, $3);
 

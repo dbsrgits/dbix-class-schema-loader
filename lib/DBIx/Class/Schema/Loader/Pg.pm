@@ -45,7 +45,7 @@ sub new {
 }
 
 sub _db_classes {
-    return qw/DBIx::Class::PK::Auto::Pg/;
+    return qw/PK::Auto::Pg/;
 }
 
 sub _tables {

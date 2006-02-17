@@ -22,8 +22,8 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 additional_classes
                                 additional_base_classes
                                 left_base_classes
-				components
-				resultset_components
+                                components
+                                resultset_components
                                 relationships
                                 inflect
                                 db_schema
@@ -144,8 +144,8 @@ sub new {
     $self->_ensure_arrayref(qw/additional_classes
                                additional_base_classes
                                left_base_classes
-			       components
-			       resultset_components/);
+                               components
+                               resultset_components/);
 
     push(@{$self->{components}}, 'ResultSetManager')
         if @{$self->{resultset_components}};
@@ -317,14 +317,15 @@ sub _load_classes {
         my $table_moniker = $self->_table2moniker($db_schema, $tbl);
         my $table_class = $schema . q{::} . $table_moniker;
 
-        $self->_inject($table_class, 'DBIx::Class::Core');
-        $self->_inject($table_class, @db_classes);
-        $self->_inject($table_class, @{$self->additional_base_classes});
+        { no strict 'refs';
+          @{"${table_class}::ISA"} = ($schema);
+        }
         $self->_use   ($table_class, @{$self->additional_classes});
+        $self->_inject($table_class, @{$self->additional_base_classes});
+        $table_class->load_components(@{$self->components}, @db_classes, 'Core');
+        $table_class->load_resultset_components(@{$self->resultset_components})
+            if @{$self->resultset_components};
         $self->_inject($table_class, @{$self->left_base_classes});
-	$table_class->load_components(@{$self->components});
-	$table_class->load_resultset_components(@{$self->resultset_components})
-	    if @{$self->resultset_components};
 
         warn qq/\# Initializing table "$tablename" as "$table_class"\n/
             if $self->debug;

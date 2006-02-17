@@ -29,7 +29,7 @@ See L<DBIx::Class::Schema::Loader>.
 =cut
 
 sub _db_classes {
-    return qw/DBIx::Class::PK::Auto::MySQL/;
+    return qw/PK::Auto::MySQL/;
 }
 
 sub _load_relationships {

@@ -31,7 +31,7 @@ See L<DBIx::Class::Schema::Loader>.
 =cut
 
 sub _db_classes {
-    return qw/DBIx::Class::PK::Auto::DB2/;
+    return qw/PK::Auto::DB2/;
 }
 
 sub _tables {

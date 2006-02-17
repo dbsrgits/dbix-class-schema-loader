@@ -20,7 +20,7 @@ DBIx::Class::Schema::Loader::Writing - Loader subclass writing guide
   use Class::C3;
 
   sub _db_classes {
-      return qw/DBIx::Class::PK::Auto::Foo/;
+      return qw/PK::Auto::Foo/;
           # You may want to return more, or less, than this.
   }
 
