@@ -13,6 +13,8 @@ SYNOPSIS
         additional_classes      => [qw/DBIx::Class::Foo/],
         additional_base_classes => [qw/My::Stuff/],
         left_base_classes       => [qw/DBIx::Class::Bar/],
+        components              => [qw/ResultSetManager/],
+        resultset_components    => [qw/AlwaysRS/],
         constraint              => '^foo.*',
         relationships           => 1,
         options                 => { AutoCommit => 1 }, 

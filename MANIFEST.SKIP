@@ -37,3 +37,6 @@
 
 # Skip maint stuff
 ^maint/
+
+# Skip coverage output
+^cover_db/

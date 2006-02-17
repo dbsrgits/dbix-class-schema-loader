@@ -10,7 +10,7 @@ use UNIVERSAL::require;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.02000';
+our $VERSION = '0.02001';
 
 __PACKAGE__->mk_classaccessor('loader');
 
@@ -30,6 +30,8 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
     additional_classes      => [qw/DBIx::Class::Foo/],
     additional_base_classes => [qw/My::Stuff/],
     left_base_classes       => [qw/DBIx::Class::Bar/],
+    components              => [qw/ResultSetManager/],
+    resultset_components    => [qw/AlwaysRS/],
     constraint              => '^foo.*',
     relationships           => 1,
     options                 => { AutoCommit => 1 }, 

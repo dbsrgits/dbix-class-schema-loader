@@ -1,5 +1,13 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.02001 Not Yet Released...
+        - tests fixed up a bit
+	- auto-loading of on-disk class definitions layered on top
+	  of the generated definitions (create Foo::Schema::Bar, then
+	  also try to ->require it if it exists on disk).
+	- new parameters components and resultset_components, which do
+	  the obvious for the generated table classes.
+
 0.02000 Sun Feb 12 22:43:47 UTC 2006
         - Just docs/version update, 0.01004 code released as 0.02000
 
