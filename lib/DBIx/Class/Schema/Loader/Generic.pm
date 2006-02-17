@@ -6,6 +6,7 @@ use base qw/Class::Accessor::Fast/;
 use Class::C3;
 use Carp;
 use Lingua::EN::Inflect;
+use UNIVERSAL::require;
 require DBIx::Class::Core;
 
 # The first group are all arguments which are may be defaulted within,
