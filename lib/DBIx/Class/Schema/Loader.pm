@@ -10,7 +10,7 @@ use UNIVERSAL::require;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.02002';
+our $VERSION = '0.02003';
 
 __PACKAGE__->mk_classaccessor('loader');
 
@@ -30,9 +30,11 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
   }
 
   __PACKAGE__->load_from_connection(
-    dsn                     => "dbi:mysql:dbname",
-    user                    => "root",
-    password                => "",
+    connect_info            => [ "dbi:mysql:dbname",
+                                 "root",
+                                 "mypassword",
+                                 { AutoCommit => 1 },
+                               ],
     additional_classes      => [qw/DBIx::Class::Foo/],
     additional_base_classes => [qw/My::Stuff/],
     left_base_classes       => [qw/DBIx::Class::Bar/],
@@ -110,11 +112,25 @@ L<DBIx::Class::Schema::Loader::Generic> documentation.
 
 =cut
 
+# XXX this is DBI-specific, as it peers into the dsn to determine
+# the vendor class to use...
 sub load_from_connection {
     my ( $class, %args ) = @_;
 
-    croak 'dsn argument is required' if ! $args{dsn};
-    my $dsn = $args{dsn};
+    my $dsn;
+
+    if($args{connect_info} && $args{connect_info}->[0]) {
+        $dsn = $args{connect_info}->[0];
+    }
+    elsif($args{dsn}) {
+        warn "dsn argument is deprecated, please use connect_info instead";
+        $dsn = $args{dsn};
+    }
+    else {
+        croak 'connect_info arrayref argument with valid '
+              . 'first element is required';
+    }
+
     my ($driver) = $dsn =~ m/^dbi:(\w*?)(?:\((.*?)\))?:/i;
     $driver = 'SQLite' if $driver eq 'SQLite2';
     my $impl = "DBIx::Class::Schema::Loader::" . $driver;

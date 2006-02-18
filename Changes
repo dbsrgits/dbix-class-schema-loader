@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.02003 Not yet released
+        - Deprecated arguments: dsn, user, password, options
+        - New argument: connect_info
+
 0.02002 Sat Feb 18 19:53:12 UTC 2006
         - Added moniker_map and inflect_map
 

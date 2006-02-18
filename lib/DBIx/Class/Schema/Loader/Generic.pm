@@ -14,10 +14,7 @@ require DBIx::Class;
 
 __PACKAGE__->mk_ro_accessors(qw/
                                 schema
-                                dsn
-                                user
-                                password
-                                options
+                                connect_info
                                 exclude
                                 constraint
                                 additional_classes
@@ -52,6 +49,16 @@ classes, and implements the common functionality between them.
 =head1 OPTIONS
 
 Available constructor options are:
+
+=head2 connect_info
+
+Identical to the connect_info arguments to C<connect> and C<connection>
+that are mentioned in L<DBIx::Class::Schema>.
+
+An arrayref of connection information.  For DBI-based Schemas,
+this takes the form:
+
+  connect_info => [ $dsn, $user, $pass, { AutoCommit => 1 } ],
 
 =head2 additional_base_classes
 
@@ -89,14 +96,6 @@ Exclude tables matching regex.
 
 Enable debug messages.
 
-=head2 dsn
-
-DBI Data Source Name.
-
-=head2 password
-
-Password.
-
 =head2 relationships
 
 Try to automatically detect/setup has_a and has_many relationships.
@@ -121,9 +120,31 @@ Deprecated.  Equivalent to L</inflect_map>, but previously only took
 a hashref argument, not a coderef.  If you set C<inflect> to anything,
 that setting will be copied to L</inflect_map>.
 
+=head2 dsn
+
+DEPRECATED, use L</connect_info> instead.
+
+DBI Data Source Name.
+
 =head2 user
 
+DEPRECATED, use L</connect_info> instead.
+
 Username.
+
+=head2 password
+
+DEPRECATED, use L</connect_info> instead.
+
+Password.
+
+=head2 options
+
+DEPRECATED, use L</connect_info> instead.
+
+DBI connection options hashref, like:
+
+  { AutoCommit => 1 }
 
 =head1 METHODS
 
@@ -161,7 +182,8 @@ sub new {
                                additional_base_classes
                                left_base_classes
                                components
-                               resultset_components/);
+                               resultset_components
+                               connect_info/);
 
     push(@{$self->{components}}, 'ResultSetManager')
         if @{$self->{resultset_components}};
@@ -171,6 +193,13 @@ sub new {
 
     # Support deprecated argument name
     $self->{inflect_map} ||= $self->{inflect};
+
+    # Support deprecated connect_info args, even mixed
+    #  with a valid partially-filled connect_info
+    $self->{connect_info}->[0] ||= $self->{dsn};
+    $self->{connect_info}->[1] ||= $self->{user};
+    $self->{connect_info}->[2] ||= $self->{password};
+    $self->{connect_info}->[3] ||= $self->{options};
 
     $self;
 }
@@ -185,8 +214,7 @@ L<DBIx::Class::Schema::Loader> right after object construction.
 sub load {
     my $self = shift;
 
-    $self->schema->connection($self->dsn, $self->user,
-                              $self->password, $self->options);
+    $self->schema->connection(@{$self->connect_info});
 
     warn qq/\### START DBIx::Class::Schema::Loader dump ###\n/
         if $self->debug;

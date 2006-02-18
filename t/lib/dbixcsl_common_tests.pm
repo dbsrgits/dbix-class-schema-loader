@@ -52,9 +52,8 @@ sub run_tests {
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
     my %loader_opts = (
-        dsn                     => $self->{dsn},
-        user                    => $self->{user},
-        password                => $self->{password},
+        connect_info            => [ $self->{dsn}, $self->{user},
+                                     $self->{password} ],
         constraint              => '^(?:\S+\.)?(?i:loader_test)[0-9]+$',
         relationships           => 1,
         additional_classes      => 'TestAdditional',
