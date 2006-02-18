@@ -10,7 +10,7 @@ use UNIVERSAL::require;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.02001';
+our $VERSION = '0.02002';
 
 __PACKAGE__->mk_classaccessor('loader');
 
@@ -22,6 +22,12 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
 
   package My::Schema;
   use base qw/DBIx::Class::Schema::Loader/;
+
+  sub _monikerize {
+      my $name = shift;
+      $name = join '', map ucfirst, split /[\W_]+/, lc $name;
+      $name;
+  }
 
   __PACKAGE__->load_from_connection(
     dsn                     => "dbi:mysql:dbname",
@@ -35,7 +41,8 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
     constraint              => '^foo.*',
     relationships           => 1,
     options                 => { AutoCommit => 1 }, 
-    inflect                 => { child => 'children' },
+    inflect_map             => { child => 'children' },
+    moniker_map             => \&_monikerize,
     debug                   => 1,
   );
 

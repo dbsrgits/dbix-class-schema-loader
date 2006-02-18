@@ -6,6 +6,12 @@ SYNOPSIS
       package My::Schema;
       use base qw/DBIx::Class::Schema::Loader/;
 
+      sub _monikerize {
+          my $name = shift;
+          $name = join '', map ucfirst, split /[\W_]+/, lc $name;
+          $name;
+      }
+
       __PACKAGE__->load_from_connection(
         dsn                     => "dbi:mysql:dbname",
         user                    => "root",
@@ -18,7 +24,8 @@ SYNOPSIS
         constraint              => '^foo.*',
         relationships           => 1,
         options                 => { AutoCommit => 1 }, 
-        inflect                 => { child => 'children' },
+        inflect_map             => { child => 'children' },
+        moniker_map             => \&_monikerize,
         debug                   => 1,
       );
 

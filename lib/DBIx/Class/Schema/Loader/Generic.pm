@@ -26,7 +26,8 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 components
                                 resultset_components
                                 relationships
-                                inflect
+                                inflect_map
+                                moniker_map
                                 db_schema
                                 drop_db_schema
                                 debug
@@ -100,10 +101,25 @@ Password.
 
 Try to automatically detect/setup has_a and has_many relationships.
 
+=head2 moniker_map
+
+Overrides the default tablename -> moniker translation.  Can be either
+a hashref of table => moniker names, or a coderef for a translator
+function taking a single scalar table name argument and returning
+a scalar moniker.  If the hash entry does not exist, or the function
+returns a false/undef value, the code falls back to default behavior
+for that table name.
+
+=head2 inflect_map
+
+Just like L</moniker_map> above, but for inflecting (pluralizing)
+relationship names.
+
 =head2 inflect
 
-An hashref, which contains exceptions to Lingua::EN::Inflect::PL().
-Useful for foreign language column names.
+Deprecated.  Equivalent to L</inflect_map>, but previously only took
+a hashref argument, not a coderef.  If you set C<inflect> to anything,
+that setting will be copied to L</inflect_map>.
 
 =head2 user
 
@@ -141,7 +157,6 @@ sub new {
 
     $self->{db_schema}  ||= '';
     $self->{constraint} ||= '.*';
-    $self->{inflect}    ||= {};
     $self->_ensure_arrayref(qw/additional_classes
                                additional_base_classes
                                left_base_classes
@@ -153,6 +168,9 @@ sub new {
 
     $self->{monikers} = {};
     $self->{classes} = {};
+
+    # Support deprecated argument name
+    $self->{inflect_map} ||= $self->{inflect};
 
     $self;
 }
@@ -187,11 +205,18 @@ sub load {
 sub _db_classes { croak "ABSTRACT METHOD" }
 
 # Inflect a relationship name
-#   XXX (should pluralize, but currently also tends to de-pluralize plurals)
 sub _inflect_relname {
     my ($self, $relname) = @_;
 
-    return $self->inflect->{$relname} if exists $self->inflect->{$relname};
+    if( ref $self->{inflect_map} eq 'HASH' ) {
+        return $self->inflect_map->{$relname}
+            if exists $self->inflect_map->{$relname};
+    }
+    elsif( ref $self->{inflect_map} eq 'CODE' ) {
+        my $inflected = $self->inflect_map->($relname);
+        return $inflected if $inflected;
+    }
+
     return Lingua::EN::Inflect::PL($relname);
 }
 
@@ -421,7 +446,17 @@ sub _table2moniker {
         $table = $db_schema;
     }
 
-    my $moniker = join '', map ucfirst, split /[\W_]+/, lc $table;
+    my $moniker;
+
+    if( ref $self->moniker_map eq 'HASH' ) {
+        $moniker = $self->moniker_map->{$table};
+    }
+    elsif( ref $self->moniker_map eq 'CODE' ) {
+        $moniker = $self->moniker_map->($table);
+    }
+
+    $moniker ||= join '', map ucfirst, split /[\W_]+/, lc $table;
+
     $moniker = $db_schema_ns ? $db_schema_ns . $moniker : $moniker;
 
     return $moniker;

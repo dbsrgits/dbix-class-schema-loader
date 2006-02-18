@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.02002 Sat Feb 18 19:53:12 UTC 2006
+        - Added moniker_map and inflect_map
+
 0.02001 Fri Feb 17 20:25:40 UTC 2006
         - tests fixed up a bit
         - auto-loading of on-disk class definitions layered on top

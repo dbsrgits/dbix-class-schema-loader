@@ -34,10 +34,16 @@ sub skip_tests {
     plan skip_all => $why;
 }
 
+sub _monikerize {
+    my $name = shift;
+    return 'LoaderTest2X' if $name =~ /^loader_test2$/i;
+    return undef;
+}
+
 sub run_tests {
     my $self = shift;
 
-    plan tests => 49;
+    plan tests => 50;
 
     $self->create();
 
@@ -56,6 +62,8 @@ sub run_tests {
         left_base_classes       => [ qw/TestLeftBase/ ],
         components              => [ qw/TestComponent/ ],
         resultset_components    => [ qw/TestRSComponent/ ],
+        inflect_map             => { loader_test4 => 'loader_test4zes' },
+        moniker_map             => \&_monikerize,
         debug                   => $debug,
     );
 
@@ -85,6 +93,8 @@ sub run_tests {
     isa_ok( $rsobj1, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj2, "DBIx::Class::ResultSet" );
 
+    is($moniker2, 'LoaderTest2X', "moniker_map testing");
+
     {
         my ($skip_tab, $skip_tabo, $skip_taba, $skip_cmeth,
             $skip_rsmeth, $skip_tcomp, $skip_trscomp);
@@ -96,10 +106,10 @@ sub run_tests {
         can_ok( $rsobj1, 'dbix_class_testrscomponent' ) or $skip_trscomp = 1;
         can_ok( $class1, 'loader_test1_classmeth' ) or $skip_cmeth = 1;
 
-	TODO: {
-	    local $TODO = "Not yet supported by ResultSetManger code";
+        TODO: {
+            local $TODO = "Not yet supported by ResultSetManger code";
             can_ok( $rsobj1, 'loader_test1_rsmeth' ) or $skip_rsmeth = 1;
-	}
+        }
 
         SKIP: {
             skip "Pre-requisite test failed", 1 if $skip_tab;
@@ -197,7 +207,7 @@ sub run_tests {
         isa_ok( $obj4->fkid, $class3);
 
         my $obj3 = $rsobj3->find(1);
-        my $rs_rel4 = $obj3->search_related('loader_test4s');
+        my $rs_rel4 = $obj3->search_related('loader_test4zes');
         isa_ok( $rs_rel4->first, $class4);
 
         # fk def in comments should not be parsed
