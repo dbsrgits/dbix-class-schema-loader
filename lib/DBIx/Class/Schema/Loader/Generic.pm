@@ -7,7 +7,7 @@ use Class::C3;
 use Carp;
 use Lingua::EN::Inflect;
 use UNIVERSAL::require;
-require DBIx::Class::Core;
+require DBIx::Class;
 
 # The first group are all arguments which are may be defaulted within,
 # The last two (classes, monikers) are generated locally:
@@ -319,7 +319,7 @@ sub _load_classes {
         my $table_class = $schema . q{::} . $table_moniker;
 
         { no strict 'refs';
-          @{"${table_class}::ISA"} = ($schema);
+          @{"${table_class}::ISA"} = qw/DBIx::Class/;
         }
         $self->_use   ($table_class, @{$self->additional_classes});
         $self->_inject($table_class, @{$self->additional_base_classes});
