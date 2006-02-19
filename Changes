@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.02003 Not yet released
+0.02003 Sun Feb 19 20:42:01 UTC 2006
         - Deprecated arguments: dsn, user, password, options
         - New argument: connect_info
 

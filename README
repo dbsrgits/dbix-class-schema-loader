@@ -13,9 +13,11 @@ SYNOPSIS
       }
 
       __PACKAGE__->load_from_connection(
-        dsn                     => "dbi:mysql:dbname",
-        user                    => "root",
-        password                => "",
+        connect_info            => [ "dbi:mysql:dbname",
+                                     "root",
+                                     "mypassword",
+                                     { AutoCommit => 1 },
+                                   ],
         additional_classes      => [qw/DBIx::Class::Foo/],
         additional_base_classes => [qw/My::Stuff/],
         left_base_classes       => [qw/DBIx::Class::Bar/],
