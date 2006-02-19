@@ -402,9 +402,10 @@ sub _load_classes {
             croak "Failed to load external class definition"
                   . "for '$table_class': $@";
         }
-
-        warn qq/# Loaded external class definition for '$table_class'\n/
-            if $self->debug;
+        elsif(!$@) {
+            warn qq/# Loaded external class definition for '$table_class'\n/
+                if $self->debug;
+        }
 
         $schema->register_class($table_moniker, $table_class);
         $self->classes->{$lc_tblname} = $table_class;
