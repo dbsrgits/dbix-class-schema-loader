@@ -10,7 +10,7 @@ use UNIVERSAL::require;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.02003';
+our $VERSION = '0.02004';
 
 __PACKAGE__->mk_classaccessor('loader');
 
