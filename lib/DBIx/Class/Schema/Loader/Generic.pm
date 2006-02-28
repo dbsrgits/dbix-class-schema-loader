@@ -221,12 +221,29 @@ sub load {
 
     $self->_load_classes;
     $self->_load_relationships if $self->relationships;
+    $self->_load_external;
 
     warn qq/\### END DBIx::Class::Schema::Loader dump ###\n/
         if $self->debug;
     $self->schema->storage->disconnect;
 
     $self;
+}
+
+sub _load_external {
+    my $self = shift;
+
+    foreach my $table_class (values %{$self->classes}) {
+        $table_class->require;
+        if($@ && $@ !~ /^Can't locate /) {
+            croak "Failed to load external class definition"
+                  . "for '$table_class': $@";
+        }
+        elsif(!$@) {
+            warn qq/# Loaded external class definition for '$table_class'\n/
+                if $self->debug;
+        }
+    }
 }
 
 # Overload in your driver class
@@ -396,16 +413,6 @@ sub _load_classes {
         my $primaries = join "', '", @$pks;
         warn qq/$table_class->set_primary_key('$primaries')\n/
             if $self->debug && @$pks;
-
-        $table_class->require;
-        if($@ && $@ !~ /^Can't locate /) {
-            croak "Failed to load external class definition"
-                  . "for '$table_class': $@";
-        }
-        elsif(!$@) {
-            warn qq/# Loaded external class definition for '$table_class'\n/
-                if $self->debug;
-        }
 
         $schema->register_class($table_moniker, $table_class);
         $self->classes->{$lc_tblname} = $table_class;
