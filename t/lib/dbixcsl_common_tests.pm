@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 50;
+    plan tests => 54;
 
     $self->create();
 
@@ -158,6 +158,17 @@ sub run_tests {
     is( $obj->id,  1 );
     is( $obj->dat, "foo" );
     is( $rsobj2->count, 4 );
+    my $saved_id;
+    eval {
+        my $new_obj1 = $rsobj1->create({ dat => 'newthing' });
+	$saved_id = $new_obj1->id;
+    };
+    ok(!$@) or diag "Died during create new record using a PK::Auto key: $@";
+    ok($saved_id) or diag "Failed to get PK::Auto-generated id";
+
+    my $new_obj1 = $rsobj1->search({ dat => 'newthing' })->first;
+    ok($new_obj1) or diag "Cannot find newly inserted PK::Auto record";
+    is($new_obj1->id, $saved_id);
 
     my ($obj2) = $rsobj2->find( dat => 'bbb' );
     is( $obj2->id, 2 );
