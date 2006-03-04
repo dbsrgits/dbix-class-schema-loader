@@ -1,4 +1,5 @@
 package DBIx::Class::Schema::Loader::Writing;
+use strict;
 
 # Empty. POD only.
 

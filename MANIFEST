@@ -14,6 +14,7 @@ README
 t/01use.t
 t/02pod.t
 t/03podcoverage.t
+t/04kwalitee.t
 t/10sqlite_common.t
 t/11mysql_common.t
 t/12pg_common.t
