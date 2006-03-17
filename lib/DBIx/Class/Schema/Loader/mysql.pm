@@ -53,8 +53,8 @@ sub _load_relationships {
             my $f_table = shift @reldata;
             my $f_cols = shift @reldata;
 
-            my @cols = map { s/$quoter//; $_ } split(/\s*,\s*/,$cols);
-            my @f_cols = map { s/$quoter//; $_ } split(/\s*,\s*/,$f_cols);
+            my @cols = map { s/$quoter//; lc $_ } split(/\s*,\s*/,$cols);
+            my @f_cols = map { s/$quoter//; lc $_ } split(/\s*,\s*/,$f_cols);
             die "Mismatched column count in rel for $table => $f_table"
               if @cols != @f_cols;
             
@@ -71,7 +71,7 @@ sub _load_relationships {
     }
 }
 
-sub _tables {
+sub _tables_list {
     my $self = shift;
     my $dbh    = $self->schema->storage->dbh;
     my @tables;
@@ -95,8 +95,8 @@ sub _table_info {
     my ( @cols, @pri );
     while ( my $hash = $sth->fetchrow_hashref ) {
         my ($col) = $hash->{Field} =~ /(\w+)/;
-        push @cols, $col;
-        push @pri, $col if $hash->{Key} eq "PRI";
+        push @cols, lc $col;
+        push @pri, lc $col if $hash->{Key} eq "PRI";
     }
 
     return ( \@cols, \@pri );

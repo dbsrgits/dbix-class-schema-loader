@@ -48,7 +48,7 @@ sub _db_classes {
     return qw/PK::Auto::Pg/;
 }
 
-sub _tables {
+sub _tables_list {
     my $self = shift;
     my $dbh = $self->schema->storage->dbh;
     my $quoter = $dbh->get_info(29) || q{"};
@@ -70,10 +70,10 @@ sub _table_info {
     my $quoter = $dbh->get_info(29) || q{"};
 
     my $sth = $dbh->column_info(undef, $self->db_schema, $table, undef);
-    my @cols = map { $_->[3] } @{ $sth->fetchall_arrayref };
+    my @cols = map { lc $_->[3] } @{ $sth->fetchall_arrayref };
     s/$quoter//g for @cols;
     
-    my @primary = $dbh->primary_key(undef, $self->db_schema, $table);
+    my @primary = map { lc } $dbh->primary_key(undef, $self->db_schema, $table);
 
     s/$quoter//g for @primary;
 

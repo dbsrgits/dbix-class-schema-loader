@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.02006 Fri Mar 17 04:55:55 UTC 2006
+        - Fix long-standing table/col-name case bugs
+
 0.02005 Mon Feb 27 23:53:17 UTC 2006
         - Move the external file loading to after everything else
 	  loader does, in case people want to define, override, or

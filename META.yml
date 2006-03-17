@@ -33,4 +33,4 @@ provides:
     file: lib/DBIx/Class/Schema/Loader/Writing.pm
   DBIx::Class::Schema::Loader::mysql:
     file: lib/DBIx/Class/Schema/Loader/mysql.pm
-generated_by: Module::Build version 0.2611
+generated_by: Module::Build version 0.2612

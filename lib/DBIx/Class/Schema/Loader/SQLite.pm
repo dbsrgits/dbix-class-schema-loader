@@ -94,8 +94,8 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
             my $cond;
 
             if($f_cols) {
-                my @cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$cols);
-                my @f_cols = map { s/\s*//g; $_ } split(/\s*,\s*/,$f_cols);
+                my @cols = map { s/\s*//g; lc $_ } split(/\s*,\s*/,$cols);
+                my @f_cols = map { s/\s*//g; lc $_ } split(/\s*,\s*/,$f_cols);
                 die "Mismatched column count in rel for $table => $f_table"
                   if @cols != @f_cols;
                 $cond = {};
@@ -105,7 +105,7 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
                 eval { $self->_make_cond_rel( $table, $f_table, $cond ) };
             }
             else {
-                eval { $self->_make_simple_rel( $table, $f_table, $cols ) };
+                eval { $self->_make_simple_rel( $table, $f_table, lc $cols ) };
             }
 
             warn qq/\# belongs_to_many failed "$@"\n\n/
@@ -114,7 +114,7 @@ SELECT sql FROM sqlite_master WHERE tbl_name = ?
     }
 }
 
-sub _tables {
+sub _tables_list {
     my $self = shift;
     my $dbh = $self->schema->storage->dbh;
     my $sth  = $dbh->prepare("SELECT * FROM sqlite_master");
@@ -136,7 +136,7 @@ sub _table_info {
     $sth->execute();
     my @columns;
     while ( my $row = $sth->fetchrow_hashref ) {
-        push @columns, $row->{name};
+        push @columns, lc $row->{name};
     }
     $sth->finish;
 
@@ -156,11 +156,11 @@ SQL
     my @pks;
 
     if ($primary) {
-        @pks = ($primary);
+        @pks = (lc $primary);
     }
     else {
         my ($pks) = $sql =~ m/PRIMARY\s+KEY\s*\(\s*([^)]+)\s*\)/i;
-        @pks = split( m/\s*\,\s*/, $pks ) if $pks;
+        @pks = map { lc } split( m/\s*\,\s*/, $pks ) if $pks;
     }
     return ( \@columns, \@pks );
 }

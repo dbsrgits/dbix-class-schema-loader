@@ -34,7 +34,7 @@ sub _db_classes {
     return qw/PK::Auto::DB2/;
 }
 
-sub _tables {
+sub _tables_list {
     my $self = shift;
     my %args = @_; 
     my $db_schema = uc $self->db_schema;
@@ -58,8 +58,7 @@ sub _table_info {
     my ( $self, $table ) = @_;
 #    $|=1;
 #    print "_table_info($table)\n";
-    my ($db_schema, $tabname) = split /\./, $table, 2;
-    # print "DB_Schema: $db_schema, Table: $tabname\n";
+    my $db_schema = $self->db_schema;
     
     # FIXME: Horribly inefficient and just plain evil. (JMM)
     my $dbh = $self->schema->storage->dbh;
@@ -71,7 +70,7 @@ FROM SYSCAT.COLUMNS as c
 WHERE c.TABSCHEMA = ? and c.TABNAME = ?
 SQL
 
-    $sth->execute($db_schema, $tabname) or die;
+    $sth->execute($db_schema, $table) or die;
     my @cols = map { lc } map { @$_ } @{$sth->fetchall_arrayref};
 
     undef $sth;
@@ -83,7 +82,7 @@ JOIN SYSCAT.KEYCOLUSE as kcu ON tc.constname = kcu.constname
 WHERE tc.TABSCHEMA = ? and tc.TABNAME = ? and tc.TYPE = 'P'
 SQL
 
-    $sth->execute($db_schema, $tabname) or die;
+    $sth->execute($db_schema, $table) or die;
 
     my @pri = map { lc } map { @$_ } @{$sth->fetchall_arrayref};
 
@@ -101,14 +100,15 @@ SELECT SR.COLCOUNT, SR.REFTBNAME, SR.PKCOLNAMES, SR.FKCOLNAMES
 FROM SYSIBM.SYSRELS SR WHERE SR.TBNAME = ?
 SQL
 
+    my $db_schema = $self->db_schema;
     foreach my $table ( $self->tables ) {
-        next if ! $sth->execute(uc $table);
+        $table =~ s/^$db_schema\.//;
+        next if ! $sth->execute($table);
         while(my $res = $sth->fetchrow_arrayref()) {
-            my ($colcount, $other, $other_column, $column) =
-                map { lc } @$res;
+            my ($colcount, $other, $other_column, $column) = @$res;
 
-            my @self_cols = split(' ',$column);
-            my @other_cols = split(' ',$other_column);
+            my @self_cols = map { lc } split(' ',$column);
+            my @other_cols = map { lc } split(' ',$other_column);
             if(@self_cols != $colcount || @other_cols != $colcount) {
                 die "Column count discrepancy while getting rel info";
             }

@@ -29,6 +29,7 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 drop_db_schema
                                 debug
 
+                                _tables
                                 classes
                                 monikers
                              /);
@@ -233,7 +234,7 @@ sub load {
 sub _load_external {
     my $self = shift;
 
-    foreach my $table_class (values %{$self->classes}) {
+    foreach my $table_class (map { $self->classes->{$_} } $self->tables) {
         $table_class->require;
         if($@ && $@ !~ /^Can't locate /) {
             croak "Failed to load external class definition"
@@ -367,23 +368,24 @@ sub _inject {
 sub _load_classes {
     my $self = shift;
 
-    my @tables     = $self->_tables();
     my @db_classes = $self->_db_classes();
     my $schema     = $self->schema;
 
-    foreach my $table (@tables) {
-        my $constraint = $self->constraint;
-        my $exclude = $self->exclude;
+    my $constraint = $self->constraint;
+    my $exclude = $self->exclude;
+    my @tables = sort grep
+        { /$constraint/ && (!$exclude || ! /$exclude/) }
+            $self->_tables_list;
 
-        next unless $table =~ /$constraint/;
-        next if defined $exclude && $table =~ /$exclude/;
+    $self->{_tables} = \@tables;
+
+    foreach my $table (@tables) {
 
         my ($db_schema, $tbl) = split /\./, $table;
-        my $tablename = lc $table;
         if($tbl) {
-            $tablename = $self->drop_db_schema ? $tbl : lc $table;
+            $table = $self->drop_db_schema ? $tbl : $table;
         }
-        my $lc_tblname = lc $tablename;
+        my $lc_table = lc $table;
 
         my $table_moniker = $self->_table2moniker($db_schema, $tbl);
         my $table_class = $schema . q{::} . $table_moniker;
@@ -398,16 +400,16 @@ sub _load_classes {
             if @{$self->resultset_components};
         $self->_inject($table_class, @{$self->left_base_classes});
 
-        warn qq/\# Initializing table "$tablename" as "$table_class"\n/
+        warn qq/\# Initializing table "$table" as "$table_class"\n/
             if $self->debug;
-        $table_class->table($lc_tblname);
+        $table_class->table($table);
 
         my ( $cols, $pks ) = $self->_table_info($table);
         carp("$table has no primary key") unless @$pks;
         $table_class->add_columns(@$cols);
         $table_class->set_primary_key(@$pks) if @$pks;
 
-        warn qq/$table_class->table('$tablename');\n/ if $self->debug;
+        warn qq/$table_class->table('$table');\n/ if $self->debug;
         my $columns = join "', '", @$cols;
         warn qq/$table_class->add_columns('$columns')\n/ if $self->debug;
         my $primaries = join "', '", @$pks;
@@ -415,15 +417,17 @@ sub _load_classes {
             if $self->debug && @$pks;
 
         $schema->register_class($table_moniker, $table_class);
-        $self->classes->{$lc_tblname} = $table_class;
-        $self->monikers->{$lc_tblname} = $table_moniker;
+        $self->classes->{$lc_table} = $table_class;
+        $self->monikers->{$lc_table} = $table_moniker;
+        $self->classes->{$table} = $table_class;
+        $self->monikers->{$table} = $table_moniker;
     }
 }
 
 =head2 tables
 
 Returns a sorted list of loaded tables, using the original database table
-names.  Actually generated from the keys of the C<monikers> hash below.
+names.
 
   my @tables = $schema->loader->tables;
 
@@ -432,7 +436,7 @@ names.  Actually generated from the keys of the C<monikers> hash below.
 sub tables {
     my $self = shift;
 
-    return sort keys %{ $self->monikers };
+    return @{$self->_tables};
 }
 
 # Find and setup relationships
@@ -447,10 +451,10 @@ sub _load_relationships {
             $self->db_schema, '', '', '', $table );
         next if !$sth;
         while(my $raw_rel = $sth->fetchrow_hashref) {
-            my $uk_tbl  = lc $raw_rel->{UK_TABLE_NAME};
+            my $uk_tbl  = $raw_rel->{UK_TABLE_NAME};
             my $uk_col  = lc $raw_rel->{UK_COLUMN_NAME};
             my $fk_col  = lc $raw_rel->{FK_COLUMN_NAME};
-            my $relid   = lc $raw_rel->{UK_NAME};
+            my $relid   = $raw_rel->{UK_NAME};
             $uk_tbl =~ s/$quoter//g;
             $uk_col =~ s/$quoter//g;
             $fk_col =~ s/$quoter//g;
@@ -499,14 +503,17 @@ sub _table2moniker {
 }
 
 # Overload in driver class
-sub _tables { croak "ABSTRACT METHOD" }
+sub _tables_list { croak "ABSTRACT METHOD" }
 
 sub _table_info { croak "ABSTRACT METHOD" }
 
 =head2 monikers
 
 Returns a hashref of loaded table-to-moniker mappings for the original
-database table names.
+database table names.  In cases where the database driver returns table
+names as uppercase or mixed case, there will also be a duplicate entry
+here in all lowercase.  Best practice would be to use lower-case table
+names when accessing this.
 
   my $monikers = $schema->loader->monikers;
   my $foo_tbl_moniker = $monikers->{foo_tbl};
@@ -517,7 +524,9 @@ database table names.
 =head2 classes
 
 Returns a hashref of table-to-classname mappings for the original database
-table names.  You probably shouldn't be using this for any normal or simple
+table names.  Same lowercase stuff as above applies here. 
+
+You probably shouldn't be using this for any normal or simple
 usage of your Schema.  The usual way to run queries on your tables is via
 C<$schema-E<gt>resultset('FooTbl')>, where C<FooTbl> is a moniker as
 returned by C<monikers> above.

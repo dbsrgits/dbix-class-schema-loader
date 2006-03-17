@@ -25,7 +25,7 @@ DBIx::Class::Schema::Loader::Writing - Loader subclass writing guide
           # You may want to return more, or less, than this.
   }
 
-  sub _tables {
+  sub _tables_list {
       my $self = shift;
       my $dbh = $self->schema->storage->dbh;
       return $dbh->tables; # Your DBD may need something different
