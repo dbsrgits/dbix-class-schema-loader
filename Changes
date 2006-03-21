@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.02007 Not yet released
+        - Backported Class::C3::reinitialize changes from branch,
+          resulting in significantly reduced load time
+
 0.02006 Fri Mar 17 04:55:55 UTC 2006
         - Fix long-standing table/col-name case bugs
 

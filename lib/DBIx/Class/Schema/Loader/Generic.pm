@@ -380,7 +380,6 @@ sub _load_classes {
     $self->{_tables} = \@tables;
 
     foreach my $table (@tables) {
-
         my ($db_schema, $tbl) = split /\./, $table;
         if($tbl) {
             $table = $self->drop_db_schema ? $tbl : $table;
@@ -389,6 +388,15 @@ sub _load_classes {
 
         my $table_moniker = $self->_table2moniker($db_schema, $tbl);
         my $table_class = $schema . q{::} . $table_moniker;
+
+        $self->classes->{$lc_table} = $table_class;
+        $self->monikers->{$lc_table} = $table_moniker;
+        $self->classes->{$table} = $table_class;
+        $self->monikers->{$table} = $table_moniker;
+
+        no warnings 'redefine';
+        local *Class::C3::reinitialize = sub { };
+        use warnings;
 
         { no strict 'refs';
           @{"${table_class}::ISA"} = qw/DBIx::Class/;
@@ -399,6 +407,13 @@ sub _load_classes {
         $table_class->load_resultset_components(@{$self->resultset_components})
             if @{$self->resultset_components};
         $self->_inject($table_class, @{$self->left_base_classes});
+    }
+
+    Class::C3::reinitialize;
+
+    foreach my $table (@tables) {
+        my $table_class = $self->classes->{$table};
+        my $table_moniker = $self->monikers->{$table};
 
         warn qq/\# Initializing table "$table" as "$table_class"\n/
             if $self->debug;
@@ -417,10 +432,6 @@ sub _load_classes {
             if $self->debug && @$pks;
 
         $schema->register_class($table_moniker, $table_class);
-        $self->classes->{$lc_table} = $table_class;
-        $self->monikers->{$lc_table} = $table_moniker;
-        $self->classes->{$table} = $table_class;
-        $self->monikers->{$table} = $table_moniker;
     }
 }
 
