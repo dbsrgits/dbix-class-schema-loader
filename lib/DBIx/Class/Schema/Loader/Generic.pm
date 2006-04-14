@@ -238,7 +238,7 @@ sub _load_external {
         $table_class->require;
         if($@ && $@ !~ /^Can't locate /) {
             croak "Failed to load external class definition"
-                  . "for '$table_class': $@";
+                  . " for '$table_class': $@";
         }
         elsif(!$@) {
             warn qq/# Loaded external class definition for '$table_class'\n/
