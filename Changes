@@ -1,11 +1,73 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.02999_10 Mon May 22 18:58:20 UTC 2006
+        - a few more small bugfixes
+        - more dump/debug improvements
+        - new exportable function "make_schema_at"
+
+0.02999_09 Sun May 21 23:26:58 UTC 2006
+        - More docs improvements
+        - default uniq_info just warns and returns nothing now,
+          instead of dying.  In theory, this allows unsupported
+          DBD drivers to potentially work with this module, if
+          the generic methods happen to work for that vendor.
+        - New tests for the various current and legacy/deprecated
+          methods of connecting a Schema::Loader class/object.
+        - Bugfix to the new runtime object connect/load code.
+
+0.02999_08 Sat May 20 22:36:45 UTC 2006
+        - support for dumping to a directory for
+          conversion to manual DBIx::Class::Schema
+        - improved debugging output
+        - more documentation updates
+        - more backwards compatibility fixes
+        - runtime connection definitions (and cloning) work fine now.
+        - A couple of bugfixes related to db vendor "schemas", including
+          a fix for http://rt.cpan.org/Public/Bug/Display.html?id=19164
+
+0.02999_06 Thu May 18 16:32:41 UTC 2006
+        - backwards compat with all earlier versions
+        - no longer requires schema class to have a connection
+        - correctly determine source class names in the rel code generator
+        - fixed mysql testing w/o InnoDB
+        - Writing guide updated
+        - docs updated
+        - various trivial updates / fixes
+
+0.02999_05 Sun Mar 26 06:46:09 UTC 2006
+        - bugfixes to constraint/exclude code
+        - friendly warnings if we don't find any tables
+        - inflect_map becomes inflect_plural and inflect_singular
+        - Singularize relationship names where appropriate
+        - Test updates
+        - Supports multiple rels between the same pair of tables
+
 0.02007 Wed Mar 22 06:03:53 UTC 2006
         - Backported Class::C3::reinitialize changes from -refactor
 	  branch, resulting in significantly reduced load time
 
 0.02006 Fri Mar 17 04:55:55 UTC 2006
         - Fix long-standing table/col-name case bugs
+
+0.02999_04 Fri Mar 17 03:55:09 UTC 2006
+        - Fixed case-sensitivity issues for table/col names
+        - Punt columns_info_for to ->storage
+        - Large loading speedup (get rid of redundant C3 reinits)
+        - Removed TEST_POD checks
+        - Removed unneccesary storage->disconnect
+
+0.02999_03 Mon Mar 13 15:01:11 UTC 2006
+        - Added EXAMPLE section to pod [Kieren Diment]
+        - Invasive heavy changes to the DBI- and vendor-specific code
+          (expect some breakage in some cases until this settles down)
+        - Support for loading UNIQUE constraints
+        - Tests cleaned up a bit
+        - Relationship building seperated out into it's own file for
+          the changes that are coming, but still does basically what
+          it did before (this work is the next step).
+
+0.02999_02 Sat Mar  4 16:53:21 UTC 2006
+        - Merged in relevant changes from trunk since the split
 
 0.02005 Mon Feb 27 23:53:17 UTC 2006
         - Move the external file loading to after everything else
@@ -14,6 +76,12 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
 0.02004 Mon Feb 27 23:53:17 UTC 2006
         - Minor fix to debugging message for loading external files
+
+0.02999_01 Sun Feb 28 00:24:00 UTC 2006
+        - Shuffle the modules around
+        - Make ourselves theoretically storage_type-agnostic
+        - Remove the _db_classes stuff, bump PK::Auto to Base
+        - Change default inflections to Lingua::EN::Inflect::Number::to_PL()
 
 0.02003 Sun Feb 19 20:42:01 UTC 2006
         - Deprecated arguments: dsn, user, password, options

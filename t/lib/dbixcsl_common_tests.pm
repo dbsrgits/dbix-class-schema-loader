@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 54;
+    plan tests => 73;
 
     $self->create();
 
@@ -51,33 +51,55 @@ sub run_tests {
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
+    my @connect_info = ( $self->{dsn}, $self->{user}, $self->{password} );
     my %loader_opts = (
-        connect_info            => [ $self->{dsn}, $self->{user},
-                                     $self->{password} ],
-        constraint              => '^(?:\S+\.)?(?i:loader_test)[0-9]+$',
+        constraint              => qr/^(?:\S+\.)?loader_test[0-9]+$/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
         left_base_classes       => [ qw/TestLeftBase/ ],
         components              => [ qw/TestComponent/ ],
-        resultset_components    => [ qw/TestRSComponent/ ],
-        inflect_map             => { loader_test4 => 'loader_test4zes' },
+        inflect_plural          => { loader_test4 => 'loader_test4zes' },
+        inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
         debug                   => $debug,
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
-    $loader_opts{drop_db_schema} = $self->{drop_db_schema} if $self->{drop_db_schema};
+    eval { require Class::Inspector };
+    if($@) {
+        $self->{_no_rs_components} = 1;
+    }
+    else {
+        $loader_opts{resultset_components} = [ qw/TestRSComponent/ ];
+    }
 
-    eval qq{
-        package $schema_class;
-        use base qw/DBIx::Class::Schema::Loader/;
+    {
+       my @loader_warnings;
+       local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
+        eval qq{
+            package $schema_class;
+            use base qw/DBIx::Class::Schema::Loader/;
+    
+            __PACKAGE__->loader_options(\%loader_opts);
+            __PACKAGE__->connection(\@connect_info);
+        };
+        ok(!$@, "Loader initialization") or diag $@;
+        if($self->{skip_rels}) {
+            is(scalar(@loader_warnings), 0)
+              or diag "Did not get the expected 0 warnings.  Warnings are: "
+                . join('',@loader_warnings);
+            ok(1);
+        }
+        else {
+            is(scalar(@loader_warnings), 1)
+              or diag "Did not get the expected 1 warning.  Warnings are: "
+                . join('',@loader_warnings);
+            like($loader_warnings[0], qr/loader_test9 has no primary key/i);
+        }
+    }
 
-        __PACKAGE__->load_from_connection(\%loader_opts);
-    };
-    ok(!$@, "Loader initialization") or diag $@;
-
-    my $conn = $schema_class->connect($self->{dsn},$self->{user},$self->{password});
+    my $conn = $schema_class->clone;
     my $monikers = $schema_class->loader->monikers;
     my $classes = $schema_class->loader->classes;
 
@@ -89,8 +111,42 @@ sub run_tests {
     my $class2   = $classes->{loader_test2};
     my $rsobj2   = $conn->resultset($moniker2);
 
+    my $moniker23 = $monikers->{LOADER_TEST23};
+    my $class23   = $classes->{LOADER_TEST23};
+    my $rsobj23   = $conn->resultset($moniker1);
+
+    my $moniker24 = $monikers->{LoAdEr_test24};
+    my $class24   = $classes->{LoAdEr_test24};
+    my $rsobj24   = $conn->resultset($moniker2);
+
     isa_ok( $rsobj1, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj2, "DBIx::Class::ResultSet" );
+    isa_ok( $rsobj23, "DBIx::Class::ResultSet" );
+    isa_ok( $rsobj24, "DBIx::Class::ResultSet" );
+
+    my %uniq1 = $class1->unique_constraints;
+    my $uniq1_test = 0;
+    foreach my $ucname (keys %uniq1) {
+        my $cols_arrayref = $uniq1{$ucname};
+        if(@$cols_arrayref == 1 && $cols_arrayref->[0] eq 'dat') {
+           $uniq1_test = 1;
+           last;
+        }
+    }
+    ok($uniq1_test) or diag "Unique constraints not working";
+
+    my %uniq2 = $class2->unique_constraints;
+    my $uniq2_test = 0;
+    foreach my $ucname (keys %uniq2) {
+        my $cols_arrayref = $uniq2{$ucname};
+        if(@$cols_arrayref == 2
+           && $cols_arrayref->[0] eq 'dat'
+           && $cols_arrayref->[1] eq 'dat2') {
+            $uniq2_test = 2;
+            last;
+        }
+    }
+    ok($uniq2_test) or diag "Multi-col unique constraints not working";
 
     is($moniker2, 'LoaderTest2X', "moniker_map testing");
 
@@ -102,7 +158,6 @@ sub run_tests {
         can_ok( $class1, 'test_additional_base_override' ) or $skip_tabo = 1;
         can_ok( $class1, 'test_additional_base_additional' ) or $skip_taba = 1;
         can_ok( $class1, 'dbix_class_testcomponent' ) or $skip_tcomp = 1;
-        can_ok( $rsobj1, 'dbix_class_testrscomponent' ) or $skip_trscomp = 1;
         can_ok( $class1, 'loader_test1_classmeth' ) or $skip_cmeth = 1;
 
         TODO: {
@@ -136,9 +191,14 @@ sub run_tests {
         }
 
         SKIP: {
-            skip "Pre-requisite test failed", 1 if $skip_trscomp;
-            is( $rsobj1->dbix_class_testrscomponent,
-                'dbix_class_testrscomponent works' );
+            skip "These two tests need Class::Inspector installed", 2
+                     if $self->{_no_rs_components};
+            can_ok($rsobj1, 'dbix_class_testrscomponent') or $skip_trscomp = 1;
+            SKIP: {
+                skip "Pre-requisite test failed", 1 if $skip_trscomp;
+                is( $rsobj1->dbix_class_testrscomponent,
+                    'dbix_class_testrscomponent works' );
+            }
         }
 
         SKIP: {
@@ -161,7 +221,7 @@ sub run_tests {
     my $saved_id;
     eval {
         my $new_obj1 = $rsobj1->create({ dat => 'newthing' });
-	$saved_id = $new_obj1->id;
+        $saved_id = $new_obj1->id;
     };
     ok(!$@) or diag "Died during create new record using a PK::Auto key: $@";
     ok($saved_id) or diag "Failed to get PK::Auto-generated id";
@@ -174,7 +234,7 @@ sub run_tests {
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 29 if $self->{skip_rels};
+        skip $self->{skip_rels}, 42 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -204,6 +264,34 @@ sub run_tests {
         my $class9   = $classes->{loader_test9};
         my $rsobj9   = $conn->resultset($moniker9);
 
+        my $moniker16 = $monikers->{loader_test16};
+        my $class16   = $classes->{loader_test16};
+        my $rsobj16   = $conn->resultset($moniker16);
+
+        my $moniker17 = $monikers->{loader_test17};
+        my $class17   = $classes->{loader_test17};
+        my $rsobj17   = $conn->resultset($moniker17);
+
+        my $moniker18 = $monikers->{loader_test18};
+        my $class18   = $classes->{loader_test18};
+        my $rsobj18   = $conn->resultset($moniker18);
+
+        my $moniker19 = $monikers->{loader_test19};
+        my $class19   = $classes->{loader_test19};
+        my $rsobj19   = $conn->resultset($moniker19);
+
+        my $moniker20 = $monikers->{loader_test20};
+        my $class20   = $classes->{loader_test20};
+        my $rsobj20   = $conn->resultset($moniker20);
+
+        my $moniker21 = $monikers->{loader_test21};
+        my $class21   = $classes->{loader_test21};
+        my $rsobj21   = $conn->resultset($moniker21);
+
+        my $moniker22 = $monikers->{loader_test22};
+        my $class22   = $classes->{loader_test22};
+        my $rsobj22   = $conn->resultset($moniker22);
+
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -211,18 +299,25 @@ sub run_tests {
         isa_ok( $rsobj7, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj8, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj9, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj16, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj17, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj18, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj19, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj20, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj21, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj22, "DBIx::Class::ResultSet" );
 
         # basic rel test
         my $obj4 = $rsobj4->find(123);
-        isa_ok( $obj4->fkid, $class3);
+        isa_ok( $obj4->fkid_singular, $class3);
 
         my $obj3 = $rsobj3->find(1);
         my $rs_rel4 = $obj3->search_related('loader_test4zes');
         isa_ok( $rs_rel4->first, $class4);
 
-        # fk def in comments should not be parsed
+        # find on multi-col pk
         my $obj5 = $rsobj5->find( id1 => 1, id2 => 1 );
-        is( ref( $obj5->id2 ), '' );
+        is( $obj5->id2, 1 );
 
         # mulit-col fk def
         my $obj6 = $rsobj6->find(1);
@@ -232,6 +327,26 @@ sub run_tests {
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
         isa_ok( $obj8->loader_test7, $class7);
+
+        # test double-fk 17 ->-> 16
+        my $obj17 = $rsobj17->find(33);
+
+        my $rs_rel16_one = $obj17->loader16_one;
+        isa_ok($rs_rel16_one, $class16);
+        is($rs_rel16_one->dat, 'y16');
+
+        my $rs_rel16_two = $obj17->loader16_two;
+        isa_ok($rs_rel16_two, $class16);
+        is($rs_rel16_two->dat, 'z16');
+
+        my $obj16 = $rsobj16->find(2);
+        my $rs_rel17 = $obj16->search_related('loader_test17_loader16_ones');
+        isa_ok($rs_rel17->first, $class17);
+        is($rs_rel17->first->id, 3);
+        
+        # XXX test m:m 18 <- 20 -> 19
+        
+        # XXX test double-fk m:m 21 <- 22 -> 21
 
         # from Chisel's tests...
         SKIP: {
@@ -343,11 +458,13 @@ sub dbconnect {
 sub create {
     my $self = shift;
 
+    $self->{_created} = 1;
+
     my @statements = (
         qq{
             CREATE TABLE loader_test1 (
                 id $self->{auto_inc_pk},
-                dat VARCHAR(32)
+                dat VARCHAR(32) NOT NULL UNIQUE
             ) $self->{innodb}
         },
 
@@ -358,14 +475,30 @@ sub create {
         qq{ 
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
-                dat VARCHAR(32)
+                dat VARCHAR(32) NOT NULL,
+                dat2 VARCHAR(32) NOT NULL,
+                UNIQUE (dat, dat2)
             ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test2 (dat) VALUES('aaa') }, 
-        q{ INSERT INTO loader_test2 (dat) VALUES('bbb') }, 
-        q{ INSERT INTO loader_test2 (dat) VALUES('ccc') }, 
-        q{ INSERT INTO loader_test2 (dat) VALUES('ddd') }, 
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('aaa', 'zzz') }, 
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('bbb', 'yyy') }, 
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ccc', 'xxx') }, 
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ddd', 'www') }, 
+
+        qq{
+            CREATE TABLE LOADER_TEST23 (
+                ID INTEGER NOT NULL PRIMARY KEY,
+                DAT VARCHAR(32) NOT NULL UNIQUE
+            ) $self->{innodb}
+        },
+
+        qq{
+            CREATE TABLE LoAdEr_test24 (
+                iD INTEGER NOT NULL PRIMARY KEY,
+                DaT VARCHAR(32) NOT NULL UNIQUE
+            ) $self->{innodb}
+        },
     );
 
     my @statements_reltests = (
@@ -398,7 +531,7 @@ sub create {
         qq{
             CREATE TABLE loader_test5 (
                 id1 INTEGER NOT NULL,
-                id2 INTEGER NOT NULL, -- , id2 INTEGER REFERENCES loader_test1,
+                iD2 INTEGER NOT NULL,
                 dat VARCHAR(8),
                 PRIMARY KEY (id1,id2)
             ) $self->{innodb}
@@ -409,11 +542,11 @@ sub create {
         qq{
             CREATE TABLE loader_test6 (
                 id INTEGER NOT NULL PRIMARY KEY,
-                id2 INTEGER,
+                Id2 INTEGER,
                 loader_test2 INTEGER,
                 dat VARCHAR(8),
                 FOREIGN KEY (loader_test2) REFERENCES loader_test2 (id),
-                FOREIGN KEY (id, id2 ) REFERENCES loader_test5 (id1,id2)
+                FOREIGN KEY (id, Id2 ) REFERENCES loader_test5 (id1,iD2)
             ) $self->{innodb}
         },
 
@@ -447,6 +580,92 @@ sub create {
                 loader_test9 VARCHAR(8) NOT NULL
             ) $self->{innodb}
         },
+
+        qq{
+            CREATE TABLE loader_test16 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                dat  VARCHAR(8)
+            ) $self->{innodb}
+        },
+
+        qq{ INSERT INTO loader_test16 (id,dat) VALUES (2,'x16') },
+        qq{ INSERT INTO loader_test16 (id,dat) VALUES (4,'y16') },
+        qq{ INSERT INTO loader_test16 (id,dat) VALUES (6,'z16') },
+
+        qq{
+            CREATE TABLE loader_test17 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                loader16_one INTEGER,
+                loader16_two INTEGER,
+                FOREIGN KEY (loader16_one) REFERENCES loader_test16 (id),
+                FOREIGN KEY (loader16_two) REFERENCES loader_test16 (id)
+            ) $self->{innodb}
+        },
+
+        qq{ INSERT INTO loader_test17 (id, loader16_one, loader16_two) VALUES (3, 2, 4) },
+        qq{ INSERT INTO loader_test17 (id, loader16_one, loader16_two) VALUES (33, 4, 6) },
+
+        qq{
+            CREATE TABLE loader_test18 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                dat  VARCHAR(8)
+            ) $self->{innodb}
+        },
+
+        qq{ INSERT INTO loader_test18 (id,dat) VALUES (1,'x18') },
+        qq{ INSERT INTO loader_test18 (id,dat) VALUES (2,'y18') },
+        qq{ INSERT INTO loader_test18 (id,dat) VALUES (3,'z18') },
+
+        qq{
+            CREATE TABLE loader_test19 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                dat  VARCHAR(8)
+            ) $self->{innodb}
+        },
+
+        qq{ INSERT INTO loader_test19 (id,dat) VALUES (4,'x19') },
+        qq{ INSERT INTO loader_test19 (id,dat) VALUES (5,'y19') },
+        qq{ INSERT INTO loader_test19 (id,dat) VALUES (6,'z19') },
+
+        qq{
+            CREATE TABLE loader_test20 (
+                parent INTEGER NOT NULL,
+                child INTEGER NOT NULL,
+                PRIMARY KEY (parent, child),
+                FOREIGN KEY (parent) REFERENCES loader_test18 (id),
+                FOREIGN KEY (child) REFERENCES loader_test19 (id)
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test20 (parent, child) VALUES (1,4) },
+        q{ INSERT INTO loader_test20 (parent, child) VALUES (2,5) },
+        q{ INSERT INTO loader_test20 (parent, child) VALUES (3,6) },
+
+        qq{
+            CREATE TABLE loader_test21 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                dat  VARCHAR(8)
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test21 (id,dat) VALUES (7,'a21')},
+        q{ INSERT INTO loader_test21 (id,dat) VALUES (11,'b21')},
+        q{ INSERT INTO loader_test21 (id,dat) VALUES (13,'c21')},
+        q{ INSERT INTO loader_test21 (id,dat) VALUES (17,'d21')},
+
+        qq{
+            CREATE TABLE loader_test22 (
+                parent INTEGER NOT NULL,
+                child INTEGER NOT NULL,
+                PRIMARY KEY (parent, child),
+                FOREIGN KEY (parent) REFERENCES loader_test21 (id),
+                FOREIGN KEY (child) REFERENCES loader_test21 (id)
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test22 (parent, child) VALUES (7,11)},
+        q{ INSERT INTO loader_test22 (parent, child) VALUES (11,13)},
+        q{ INSERT INTO loader_test22 (parent, child) VALUES (13,17)},
     );
 
     my @statements_advanced = (
@@ -519,8 +738,6 @@ sub create {
 
     $self->drop_tables;
 
-    $self->{created} = 1;
-
     my $dbh = $self->dbconnect(1);
 
     # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
@@ -534,9 +751,6 @@ sub create {
         # hack for now, since DB2 doesn't like inline comments, and we need
         # to test one for mysql, which works on everyone else...
         # this all needs to be refactored anyways.
-        if($self->{vendor} =~ /DB2/i) {
-            @statements_reltests = map { s/--.*\n//; $_ } @statements_reltests;
-        }
         $dbh->do($_) for (@statements_reltests);
         unless($self->{vendor} =~ /sqlite/i) {
             $dbh->do($_) for (@statements_advanced);
@@ -554,11 +768,11 @@ sub create {
 sub drop_tables {
     my $self = shift;
 
-    return unless $self->{created};
-
     my @tables = qw/
         loader_test1
         loader_test2
+        LOADER_TEST23
+        LoAdEr_test24
     /;
 
     my @tables_reltests = qw/
@@ -569,6 +783,13 @@ sub drop_tables {
         loader_test8
         loader_test7
         loader_test9
+        loader_test17
+        loader_test16
+        loader_test20
+        loader_test19
+        loader_test18
+        loader_test22
+        loader_test21
     /;
 
     my @tables_advanced = qw/
@@ -616,6 +837,9 @@ sub drop_tables {
     $dbh->disconnect;
 }
 
-sub DESTROY { shift->drop_tables; }
+sub DESTROY {
+    my $self = shift;
+    $self->drop_tables if $self->{_created};
+}
 
 1;

@@ -40,3 +40,9 @@
 
 # Skip coverage output
 ^cover_db/
+
+# Don't publish the TODO file
+TODO
+
+# Don't try to add dist dirs to MANIFEST
+^DBIx-Class-Schema-Loader
