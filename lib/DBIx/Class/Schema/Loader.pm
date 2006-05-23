@@ -8,6 +8,7 @@ use Carp;
 use UNIVERSAL::require;
 use Class::C3;
 use Data::Dump qw/ dump /;
+use Scalar::Util qw/ weaken /;
 
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
@@ -93,6 +94,8 @@ sub loader_options {
     my $class = ref $self || $self;
     $args{schema} = $self;
     $args{schema_class} = $class;
+    weaken($args{schema}) if ref $self;
+
     $self->_loader_args(\%args);
     $self->_invoke_loader if $self->storage && !$class->loader;
 
@@ -152,6 +155,7 @@ sub clone {
 
     $clone->_loader_args($self->_loader_args);
     $clone->_loader_args->{schema} = $clone;
+    weaken($clone->_loader_args->{schema});
 
     $clone;
 }
