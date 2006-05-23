@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.03000 Not Yet Released
+0.03000 Tue May 23 12:56:05 UTC 2006
         - weakened the circular schema reference
 
 0.02999_10 Mon May 22 18:58:20 UTC 2006
