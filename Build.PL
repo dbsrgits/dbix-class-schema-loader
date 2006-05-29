@@ -14,7 +14,7 @@ my %arguments = (
         'Class::Accessor::Fast'         => 0.22,
         'Class::Data::Accessor'         => 0.02,
         'Class::C3'                     => 0.11,
-        'DBIx::Class'                   => 0.06,
+        'DBIx::Class'                   => 0.06003,
     },
     recommends         => {
         'Class::Inspector'              => 0,
