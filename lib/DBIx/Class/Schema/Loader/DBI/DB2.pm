@@ -39,7 +39,7 @@ sub _table_uniq_info {
         FROM SYSCAT.TABCONST as tc
         JOIN SYSCAT.KEYCOLUSE as kcu ON tc.CONSTNAME = kcu.CONSTNAME
         WHERE tc.TABSCHEMA = ? and tc.TABNAME = ? and tc.TYPE = 'U'}
-    );
+    ) or die $DBI::errstr;
 
     $sth->execute($self->db_schema, $table) or die $DBI::errstr;
 
@@ -53,6 +53,7 @@ sub _table_uniq_info {
             @{$keydata{$keyname}};
         push(@uniqs, [ $keyname => \@ordered_cols ]);
     }
+
     $sth->finish;
     
     return \@uniqs;

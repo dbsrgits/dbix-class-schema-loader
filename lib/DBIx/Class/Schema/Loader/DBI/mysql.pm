@@ -30,15 +30,9 @@ sub _table_fk_info {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare('SHOW CREATE TABLE ?');
-    $sth->execute or die("Cannot get table definition for $table"
-                         . " (execute failed): $DBI::errstr");
-
-    my $table_def_ref = $sth->fetchrow_arrayref
-        or die ("Cannot get table definition for $table (no rows)");
-
+    my $table_def_ref = $dbh->selectrow_arrayref("SHOW CREATE TABLE $table")
+        or die ("Cannot get table definition for $table");
     my $table_def = $table_def_ref->[1] || '';
-    $sth->finish;
     
     my (@reldata) = ($table_def =~ /CONSTRAINT `.*` FOREIGN KEY \(`(.*)`\) REFERENCES `(.*)` \(`(.*)`\)/ig);
 
