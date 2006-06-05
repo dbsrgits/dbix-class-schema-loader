@@ -66,7 +66,7 @@ the source class, like:
       ],
       # ...
   }
-          
+
 You might want to use this in building an on-disk source class file, by
 adding each string to the appropriate source class file,
 prefixed by C<__PACKAGE__-E<gt>>.

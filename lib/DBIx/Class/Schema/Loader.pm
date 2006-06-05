@@ -49,7 +49,7 @@ L<DBIx::Class::Schema> by scanning database table definitions and
 setting up the columns and primary keys.
 
 DBIx::Class::Schema::Loader currently supports DBI for MySQL,
-Postgres, SQLite and DB2.
+PostgreSQL, SQLite and DB2.
 
 See L<DBIx::Class::Schema::Loader::DBI::Writing> for notes on writing
 your own vendor-specific subclass for an unsupported DBD driver.
@@ -229,7 +229,7 @@ sub import {
 This simple function allows one to create a Loader-based schema
 in-memory on the fly without any on-disk class files of any
 kind.  When used with the C<dump_directory> option, you can
-use this to generate a rought draft manual schema from a dsn
+use this to generate a rough draft manual schema from a dsn
 without the intermediate step of creating a physical Loader-based
 schema class.
 
@@ -303,7 +303,7 @@ will issue warnings about your usage of deprecated features/methods.
 
 This deprecated method is now roughly an alias for L</loader_options>.
 
-This method *will* dissappear in a future version.
+This method *will* disappear in a future version.
 
 For now, using this method will invoke the legacy behavior for
 backwards compatibility, and merely emit a warning about upgrading
@@ -323,8 +323,18 @@ See the source of this method for more details.
 
 sub load_from_connection {
     my ($self, %args) = @_;
+
+    my $cmds_ver = $Catalyst::Model::DBIC::Schema::VERSION;
+    if($cmds_ver) {
+        if($cmds_ver < 0.14) {
+            warn 'You should upgrade your installation of'
+               . ' Catalyst::Model::DBIC::Schema to 0.14 or higher, then:';
+        }
+        warn 'You should regenerate your Model files, which may eliminate'
+           . ' the following deprecation warning:';
+    }
     warn 'load_from_connection deprecated, please [re-]read the'
-      . ' [new] DBIx::Class::Schema::Loader documentation';
+       . ' [new] DBIx::Class::Schema::Loader documentation';
 
     # Support the old connect_info / dsn / etc args...
     $args{connect_info} = [
@@ -355,7 +365,7 @@ for doing so.
 
 If you're already using C<loader> in your code, make an effort
 to get rid of it.  If you think you've found a situation where it
-is neccesary, let me know and we'll see what we can do to remedy
+is necessary, let me know and we'll see what we can do to remedy
 that situation.
 
 In some future version, this accessor *will* disappear.  It was
@@ -369,7 +379,7 @@ user-land in the first place, all things considered.
 Currently the loader is limited to working within a single schema
 (using the database vendors' definition of "schema").  If you
 have a multi-schema database with inter-schema relationships (which
-is easy to do in Postgres or DB2 for instance), you only get to
+is easy to do in PostgreSQL or DB2 for instance), you only get to
 automatically load the tables of one schema, and any relationships
 to tables in other schemas will be silently ignored.
 

@@ -74,8 +74,8 @@ Exclude tables matching regex.  Best specified as a qr// regex.
 
 =head2 moniker_map
 
-Overrides the default tablename -> moniker translation.  Can be either
-a hashref of table => moniker names, or a coderef for a translator
+Overrides the default table name to moniker translation.  Can be either
+a hashref of table keys and moniker values, or a coderef for a translator
 function taking a single scalar table name argument and returning
 a scalar moniker.  If the hash entry does not exist, or the function
 returns a false value, the code falls back to default behavior
@@ -124,7 +124,7 @@ classes.  A good example would be C<ResultSetManager>.
 
 =head2 resultset_components
 
-List of additional resultset components to be loaded into your table
+List of additional ResultSet components to be loaded into your table
 classes.  A good example would be C<AlwaysRS>.  Component
 C<ResultSetManager> will be automatically added to the above
 C<components> list if this option is set.
@@ -132,8 +132,8 @@ C<components> list if this option is set.
 =head2 legacy_default_inflections
 
 Setting this option changes the default fallback for L</inflect_plural> to
-utilize L<Lingua::EN::Inflect/PL>, and L</inflect_singlular> to a no-op.
-Those choices produce substandard results, but might be neccesary to support
+utilize L<Lingua::EN::Inflect/PL>, and L</inflect_singular> to a no-op.
+Those choices produce substandard results, but might be necessary to support
 your existing code if you started developing on a version prior to 0.03 and
 don't wish to go around updating all your relationship names to the new
 defaults.
@@ -156,7 +156,7 @@ where that class is currently located, it will overwrite itself with a
 manual version of itself.  This might be a really good or bad thing
 depending on your situation and perspective.
 
-Normally you wouldn't hardcode this setting in your schema class, as it
+Normally you wouldn't hard-code this setting in your schema class, as it
 is meant for one-time manual usage.
 
 See L<DBIx::Class::Schema::Loader/dump_to_dir> for examples of the
@@ -578,7 +578,7 @@ sub _raw_stmt {
 
 =head2 monikers
 
-Returns a hashref of loaded table-to-moniker mappings.  There will
+Returns a hashref of loaded table to moniker mappings.  There will
 be two entries for each table, the original name and the "normalized"
 name, in the case that the two are different (such as databases
 that like uppercase table names, or preserve your original mixed-case
@@ -586,7 +586,7 @@ definitions, or what-have-you).
 
 =head2 classes
 
-Returns a hashref of table-to-classname mappings.  In some cases it will
+Returns a hashref of table to class mappings.  In some cases it will
 contain multiple entries per table for the original and normalized table
 names, as above in L</monikers>.
 

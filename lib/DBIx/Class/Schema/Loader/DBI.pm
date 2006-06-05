@@ -110,7 +110,7 @@ sub _table_pk_info {
 
 # Override this for uniq info
 sub _table_uniq_info {
-    warn "No UNIQUE information can be gathered for this vendor";
+    warn "No UNIQUE constraint information can be gathered for this vendor";
     return [];
 }
 

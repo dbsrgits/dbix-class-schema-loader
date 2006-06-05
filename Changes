@@ -1,6 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
 0.03001 XXX not yet released
+        - load_from_connection deprecation notice now mentions
+          upgrading Catalyst::Model::DBIC::Schema if that module
+          seems to be in use.
         - DBIx::Class required version number fixed
         - Loader statement caching for better load-time performance
         - Improved Pg unique index loader, based on RDBO

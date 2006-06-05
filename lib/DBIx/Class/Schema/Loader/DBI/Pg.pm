@@ -7,7 +7,8 @@ use Class::C3;
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::DBI::Pg - DBIx::Class::Schema::Loader::DBI Postgres Implementation.
+DBIx::Class::Schema::Loader::DBI::Pg - DBIx::Class::Schema::Loader::DBI
+PostgreSQL Implementation.
 
 =head1 SYNOPSIS
 
@@ -79,7 +80,7 @@ sub _table_uniq_info {
         }
 
         if(!@col_names) {
-            warn "Failed to parse unique constraint $indexname on $table";
+            warn "Failed to parse UNIQUE constraint $indexname on $table";
         }
         else {
             push(@uniqs, [ $indexname => \@col_names ]);
