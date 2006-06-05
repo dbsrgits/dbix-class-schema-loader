@@ -39,28 +39,50 @@ sub _table_uniq_info {
     my @uniqs;
     my $dbh = $self->schema->storage->dbh;
 
-    my $sth = $dbh->prepare_cached(
-        qq{SELECT conname,indexdef FROM pg_indexes JOIN pg_constraint }
-      . qq{ON (pg_indexes.indexname = pg_constraint.conname) }
-      . qq{WHERE schemaname=? and tablename=? and contype = 'u'}
-    ,{}, 1);
+    # Most of the SQL here is mostly based on
+    #   Rose::DB::Object::Metadata::Auto::Pg, after some prodding from
+    #   John Siracusa to use his superior SQL code :)
 
-    $sth->execute($self->db_schema, $table);
-    while(my $constr = $sth->fetchrow_arrayref) {
-        my $constr_name = $constr->[0];
-        my $constr_def  = $constr->[1];
-        my @cols;
-        if($constr_def =~ /\(\s*([^)]+)\)\s*$/) {
-            my $cols_text = $1;
-            $cols_text =~ s/\s+$//;
-            @cols = map { lc } split(/\s*,\s*/, $cols_text);
-            s/\Q$self->{_quoter}\E// for @cols;
+    my $attr_sth = $self->{_cache}->{pg_attr_sth} ||= $dbh->prepare(
+        q{SELECT attname FROM pg_catalog.pg_attribute
+        WHERE attrelid = ? AND attnum = ?}
+    );
+
+    my $uniq_sth = $self->{_cache}->{pg_uniq_sth} ||= $dbh->prepare(
+        q{SELECT x.indrelid, i.relname, x.indkey
+        FROM
+          pg_catalog.pg_index x
+          JOIN pg_catalog.pg_class c ON c.oid = x.indrelid
+          JOIN pg_catalog.pg_class i ON i.oid = x.indexrelid
+          JOIN pg_catalog.pg_constraint con ON con.conname = i.relname
+          LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE
+          x.indisunique = 't' AND
+          c.relkind     = 'r' AND
+          i.relkind     = 'i' AND
+          con.contype   = 'u' AND
+          n.nspname     = ? AND
+          c.relname     = ?}
+    );
+
+    $uniq_sth->execute($self->db_schema, $table);
+    while(my $row = $uniq_sth->fetchrow_arrayref) {
+        my ($tableid, $indexname, $col_nums) = @$row;
+        $col_nums =~ s/^\s+//;
+        my @col_nums = split(/\s+/, $col_nums);
+        my @col_names;
+
+        foreach (@col_nums) {
+            $attr_sth->execute($tableid, $_);
+            my $name_aref = $attr_sth->fetchrow_arrayref;
+            push(@col_names, $name_aref->[0]) if $name_aref;
         }
-        if(!@cols) {
-            warn "Failed to parse unique constraint $constr_name on $table";
+
+        if(!@col_names) {
+            warn "Failed to parse unique constraint $indexname on $table";
         }
         else {
-            push(@uniqs, [ $constr_name => \@cols ]);
+            push(@uniqs, [ $indexname => \@col_names ]);
         }
     }
 

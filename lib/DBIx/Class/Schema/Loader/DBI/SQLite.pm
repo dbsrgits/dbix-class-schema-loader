@@ -33,8 +33,8 @@ sub _sqlite_parse_table {
     my @uniqs;
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(<<"");
-SELECT sql FROM sqlite_master WHERE tbl_name = ?
+    my $sth = $self->{_cache}->{sqlite_master}
+        ||= $dbh->prepare(q{SELECT sql FROM sqlite_master WHERE tbl_name = ?});
 
     $sth->execute($table);
     my ($sql) = $sth->fetchrow_array;
@@ -139,8 +139,9 @@ sub _table_uniq_info {
 
 sub _tables_list {
     my $self = shift;
+
     my $dbh = $self->schema->storage->dbh;
-    my $sth  = $dbh->prepare("SELECT * FROM sqlite_master");
+    my $sth = $dbh->prepare("SELECT * FROM sqlite_master");
     $sth->execute;
     my @tables;
     while ( my $row = $sth->fetchrow_hashref ) {

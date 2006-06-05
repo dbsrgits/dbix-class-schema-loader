@@ -140,8 +140,8 @@ sub run_tests {
     foreach my $ucname (keys %uniq2) {
         my $cols_arrayref = $uniq2{$ucname};
         if(@$cols_arrayref == 2
-           && $cols_arrayref->[0] eq 'dat'
-           && $cols_arrayref->[1] eq 'dat2') {
+           && $cols_arrayref->[0] eq 'dat2'
+           && $cols_arrayref->[1] eq 'dat') {
             $uniq2_test = 2;
             last;
         }
@@ -477,7 +477,7 @@ sub create {
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL,
                 dat2 VARCHAR(32) NOT NULL,
-                UNIQUE (dat, dat2)
+                UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
 

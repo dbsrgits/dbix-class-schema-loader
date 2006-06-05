@@ -13,7 +13,7 @@ use Scalar::Util qw/ weaken /;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.03000';
+our $VERSION = '0.03001';
 
 __PACKAGE__->mk_classaccessor('dump_to_dir');
 __PACKAGE__->mk_classaccessor('loader');
@@ -236,7 +236,8 @@ schema class.
 This function can be exported/imported by the normal means, as
 illustrated in these Examples:
 
-    # Simple example...
+    # Simple example, creates as a new class 'New::Schema::Name' in
+    #  memory in the running perl interpreter.
     use DBIx::Class::Schema::Loader qw/ make_schema_at /;
     make_schema_at(
         'New::Schema::Name',
@@ -245,7 +246,7 @@ illustrated in these Examples:
     );
 
     # Complex: dump loaded schema to disk, all from the commandline:
-    perl -MDBIx::Class::Schema::Loader=make_schema_at,dump_to_dir:./lib -e 'make_schema_at("New::Schema::Name", { relationships => 1 }, [ 'dbi:Pg:dbname="foo"','postgres' ])'
+    perl -MDBIx::Class::Schema::Loader=make_schema_at,dump_to_dir:./lib -e 'make_schema_at("New::Schema::Name", { relationships => 1 }, [ "dbi:Pg:dbname=foo","postgres" ])'
 
     # Same, but inside a script, and using a different way to specify the
     # dump directory:

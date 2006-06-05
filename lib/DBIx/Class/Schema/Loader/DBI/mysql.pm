@@ -29,13 +29,15 @@ See L<DBIx::Class::Schema::Loader::Base>.
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my $dbh    = $self->schema->storage->dbh;
+    my $dbh = $self->schema->storage->dbh;
+    my $sth = $dbh->prepare('SHOW CREATE TABLE ?');
+    $sth->execute or die("Cannot get table definition for $table"
+                         . " (execute failed): $DBI::errstr");
 
-    my $query = "SHOW CREATE TABLE ${table}";
-    my $sth   = $dbh->prepare($query)
-      or die("Cannot get table definition: $table");
-    $sth->execute;
-    my $table_def = $sth->fetchrow_arrayref->[1] || '';
+    my $table_def_ref = $sth->fetchrow_arrayref
+        or die ("Cannot get table definition for $table (no rows)");
+
+    my $table_def = $table_def_ref->[1] || '';
     $sth->finish;
     
     my (@reldata) = ($table_def =~ /CONSTRAINT `.*` FOREIGN KEY \(`(.*)`\) REFERENCES `(.*)` \(`(.*)`\)/ig);
@@ -46,8 +48,11 @@ sub _table_fk_info {
         my $f_table = shift @reldata;
         my $f_cols = shift @reldata;
 
-        my @cols = map { s/\Q$self->{_quoter}\E//; lc $_ } split(/\s*,\s*/,$cols);
-        my @f_cols = map { s/\Q$self->{_quoter}\E//; lc $_ } split(/\s*,\s*/,$f_cols);
+        my @cols   = map { s/\Q$self->{_quoter}\E//; lc $_ }
+            split(/\s*,\s*/, $cols);
+
+        my @f_cols = map { s/\Q$self->{_quoter}\E//; lc $_ }
+            split(/\s*,\s*/, $f_cols);
 
         push(@rels, {
             local_columns => \@cols,
@@ -64,7 +69,7 @@ sub _table_fk_info {
 sub _mysql_table_get_keys {
     my ($self, $table) = @_;
 
-    if(!exists($self->{_mysql_keys}->{$table})) {
+    if(!exists($self->{_cache}->{_mysql_keys}->{$table})) {
         my %keydata;
         my $dbh = $self->schema->storage->dbh;
         my $sth = $dbh->prepare("SHOW INDEX FROM $table");
@@ -80,10 +85,10 @@ sub _mysql_table_get_keys {
                 @{$keydata{$keyname}};
             $keydata{$keyname} = \@ordered_cols;
         }
-        $self->{_mysql_keys}->{$table} = \%keydata;
+        $self->{_cache}->{_mysql_keys}->{$table} = \%keydata;
     }
 
-    return $self->{_mysql_keys}->{$table};
+    return $self->{_cache}->{_mysql_keys}->{$table};
 }
 
 sub _table_pk_info {

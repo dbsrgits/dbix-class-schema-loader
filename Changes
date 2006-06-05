@@ -1,5 +1,10 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03001 XXX not yet released
+        - DBIx::Class required version number fixed
+        - Loader statement caching for better load-time performance
+        - Improved Pg unique index loader, based on RDBO
+
 0.03000 Tue May 23 12:56:05 UTC 2006
         - weakened the circular schema reference
 

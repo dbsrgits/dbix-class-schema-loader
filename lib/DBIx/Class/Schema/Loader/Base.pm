@@ -294,6 +294,9 @@ sub load {
     $self->_load_external;
     $self->_dump_to_dir if $self->dump_directory;
 
+    # Drop temporary cache
+    delete $self->{_cache};
+
     1;
 }
 
