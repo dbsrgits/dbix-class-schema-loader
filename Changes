@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03002 Tue Jun  6 01:27:25 UTC 2006
+        - rethrow exceptions that occur during make_schema_at
+
 0.03001 Mon Jun  5 23:17:57 UTC 2006
         - load_from_connection deprecation notice now mentions
           upgrading Catalyst::Model::DBIC::Schema if that module

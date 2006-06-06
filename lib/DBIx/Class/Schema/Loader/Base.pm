@@ -325,10 +325,11 @@ sub _dump_to_dir {
     my ($self) = @_;
 
     my $target_dir = $self->dump_directory;
+    my $schema_class = $self->schema_class;
 
     die "Must specify target directory for dumping!" if ! $target_dir;
 
-    warn "Dumping manual schema to $target_dir ...\n";
+    warn "Dumping manual schema for $schema_class to directory $target_dir ...\n";
 
     if(! -d $target_dir) {
         mkdir($target_dir) or die "mkdir('$target_dir') failed: $!";
@@ -338,7 +339,6 @@ sub _dump_to_dir {
     my $datestr = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
     my $tagline = qq|# Created by DBIx::Class::Schema::Loader v$verstr @ $datestr|;
 
-    my $schema_class = $self->schema_class;
     $self->_ensure_dump_subdirs($schema_class);
 
     my $schema_fn = $self->_get_dump_filename($schema_class);
