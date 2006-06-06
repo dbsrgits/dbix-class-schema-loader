@@ -258,6 +258,7 @@ sub _load_external {
         if($self->dump_directory) {
             my $class_path = $table_class;
             $class_path =~ s{::}{/}g;
+            $class_path .= '.pm';
             my $filename = $INC{$class_path};
             croak 'Failed to locate actual external module file for '
                   . "'$table_class'"

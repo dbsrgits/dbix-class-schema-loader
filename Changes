@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03003 Tue Jun  6 02:22:49 UTC 2006
+        - Fix inclusion of external add-on class definitions
+          in dump_to_dir output.
+
 0.03002 Tue Jun  6 01:27:25 UTC 2006
         - rethrow exceptions that occur during make_schema_at
 
