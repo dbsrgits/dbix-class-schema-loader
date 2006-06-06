@@ -270,6 +270,7 @@ sub make_schema_at {
         __PACKAGE__->loader_options($opts_dumped);
         __PACKAGE__->connection($cinfo_dumped);
     |;
+    croak "make_schema_at failed: $@" if $@;
 }
 
 =head1 EXAMPLE
