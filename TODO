@@ -1,4 +1,8 @@
 
+dump_to_dir needs an overwrite flag, and needs to not overwrite by default
+
+dumping needs to pick up columns_info_for data
+
 Fix up ResultSet Manager / Methods / etc stuff.  May require some work in the
 main DBIx::Class first.
 
