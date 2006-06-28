@@ -391,7 +391,7 @@ sub _inject {
 
     my $blist = join(q{ }, @_);
     $self->_raw_stmt($target, "use base qw/ $blist /;") if @_;
-    warn "$target: use base qw/ $blist /" if $self->debug;
+    warn "$target: use base qw/ $blist /" if $self->debug && @_;
     foreach (@_) {
         $_->require or croak ($_ . "->require: $@");
         $schema_class->inject_base($target, $_);

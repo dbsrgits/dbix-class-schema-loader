@@ -7,7 +7,6 @@ use base qw/Class::Data::Accessor/;
 use Carp;
 use UNIVERSAL::require;
 use Class::C3;
-use Data::Dump qw/ dump /;
 use Scalar::Util qw/ weaken /;
 
 # Always remember to do all digits for the version even if they're 0
@@ -232,6 +231,8 @@ use this to generate a rough draft manual schema from a dsn
 without the intermediate step of creating a physical Loader-based
 schema class.
 
+The return value is the input class name.
+
 This function can be exported/imported by the normal means, as
 illustrated in these Examples:
 
@@ -261,15 +262,13 @@ illustrated in these Examples:
 sub make_schema_at {
     my ($target, $opts, $connect_info) = @_;
 
-    my $opts_dumped = dump($opts);
-    my $cinfo_dumped = dump(@$connect_info);
-    eval qq|
-        package $target;
-        use base qw/DBIx::Class::Schema::Loader/;
-        __PACKAGE__->loader_options($opts_dumped);
-        __PACKAGE__->connection($cinfo_dumped);
-    |;
-    croak "make_schema_at failed: $@" if $@;
+    {
+        no strict 'refs';
+        @{$target . '::ISA'} = qw/DBIx::Class::Schema::Loader/;
+    }
+
+    $target->loader_options($opts);
+    $target->connection(@$connect_info);
 }
 
 =head1 EXAMPLE
