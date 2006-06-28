@@ -402,12 +402,11 @@ sub _inject {
 sub _load_classes {
     my $self = shift;
 
-    my $schema     = $self->schema;
-    my $schema_class     = $self->schema_class;
-
-    my $constraint = $self->constraint;
-    my $exclude = $self->exclude;
-    my @tables = sort $self->_tables_list;
+    my $schema       = $self->schema;
+    my $schema_class = $self->schema_class;
+    my $constraint   = $self->constraint;
+    my $exclude      = $self->exclude;
+    my @tables       = sort $self->_tables_list;
 
     warn "No tables found in database, nothing to load" if !@tables;
 
@@ -435,9 +434,8 @@ sub _load_classes {
         local *Class::C3::reinitialize = sub { };
         use warnings;
 
-        { no strict 'refs';
-          @{"${table_class}::ISA"} = qw/DBIx::Class/;
-        }
+        { no strict 'refs'; @{"${table_class}::ISA"} = qw/DBIx::Class/ }
+
         $self->_use   ($table_class, @{$self->additional_classes});
         $self->_inject($table_class, @{$self->additional_base_classes});
 
@@ -457,7 +455,18 @@ sub _load_classes {
         $self->_dbic_stmt($table_class,'table',$table);
 
         my $cols = $self->_table_columns($table);
-        $self->_dbic_stmt($table_class,'add_columns',@$cols);
+        my $col_info;
+        eval { $col_info = $schema->storage->columns_info_for($table) };
+        if($@) {
+            $self->_dbic_stmt($table_class,'add_columns',@$cols);
+        }
+        else {
+            my %cols_hash;
+            foreach my $col (@$cols) {
+                $cols_hash{$col} = \%{($col_info->{$col})};
+            }
+            $self->_dbic_stmt($table_class,'add_columns',%cols_hash);
+        }
 
         my $pks = $self->_table_pk_info($table) || [];
         @$pks ? $self->_dbic_stmt($table_class,'set_primary_key',@$pks)

@@ -230,7 +230,7 @@ sub run_tests {
     ok($new_obj1) or diag "Cannot find newly inserted PK::Auto record";
     is($new_obj1->id, $saved_id);
 
-    my ($obj2) = $rsobj2->find( dat => 'bbb' );
+    my ($obj2) = $rsobj2->search({ dat => 'bbb' })->first;
     is( $obj2->id, 2 );
 
     SKIP: {

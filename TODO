@@ -1,7 +1,9 @@
 
-dump_to_dir needs an overwrite flag, and needs to not overwrite by default
+support multiple/all schemas, instead of just one
 
-dumping needs to pick up columns_info_for data
+support pk/uk/fk info on views, possibly.  May or may not be a sane thing to try to do.
+
+dump_to_dir needs an overwrite flag, and needs to not overwrite by default
 
 Fix up ResultSet Manager / Methods / etc stuff.  May require some work in the
 main DBIx::Class first.
