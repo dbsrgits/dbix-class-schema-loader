@@ -18,6 +18,7 @@ DBIx::Class::Schema::Loader::DBI::Writing - Loader subclass writing guide for DB
   use strict;
   use warnings;
   use base 'DBIx::Class::Schema::Loader::DBI';
+  use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
   use Class::C3;
 
   sub _table_uniq_info {
@@ -42,8 +43,8 @@ DBIx::Class::Schema::Loader::DBI::Writing - Loader subclass writing guide for DB
 =head1 DETAILS
 
 The only required method for new subclasses is C<_table_uniq_info>,
-as I have not to date found any pseudo-standardized or DBD-agnostic
-way for obtaining this information.
+as there is not (yet) any standardized, DBD-agnostic way for obtaining
+this information from DBI.
 
 The base DBI Loader contains generic methods that *should* work for
 everything else in theory, although in practice some DBDs need to

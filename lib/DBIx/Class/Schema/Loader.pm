@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base qw/DBIx::Class::Schema/;
 use base qw/Class::Data::Accessor/;
-use Carp;
+use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
 use UNIVERSAL::require;
 use Class::C3;
 use Scalar::Util qw/ weaken /;
@@ -146,6 +146,9 @@ See L<DBIx::Class::Schema>.
 
 sub clone {
     my $self = shift;
+
+    croak "You failed to specify the required loader_options"
+        if !$self->_loader_args;
 
     my $clone = $self->next::method(@_);
 

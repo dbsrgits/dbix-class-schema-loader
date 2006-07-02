@@ -2,7 +2,7 @@ package DBIx::Class::Schema::Loader::RelBuilder;
 
 use strict;
 use warnings;
-use Carp;
+use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
 use Lingua::EN::Inflect ();
 use Lingua::EN::Inflect::Number ();
 

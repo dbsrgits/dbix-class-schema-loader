@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base qw/Class::Accessor::Fast/;
 use Class::C3;
-use Carp;
+use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
 use UNIVERSAL::require;
 use DBIx::Class::Schema::Loader::RelBuilder;
 use Data::Dump qw/ dump /;
@@ -317,7 +317,7 @@ sub _ensure_dump_subdirs {
     foreach (@name_parts) {
         $dir .= q{/} . $_;
         if(! -d $dir) {
-            mkdir($dir) or die "mkdir('$dir') failed: $!";
+            mkdir($dir) or croak "mkdir('$dir') failed: $!";
         }
     }
 }
@@ -328,12 +328,12 @@ sub _dump_to_dir {
     my $target_dir = $self->dump_directory;
     my $schema_class = $self->schema_class;
 
-    die "Must specify target directory for dumping!" if ! $target_dir;
+    croak "Must specify target directory for dumping!" if ! $target_dir;
 
     warn "Dumping manual schema for $schema_class to directory $target_dir ...\n";
 
     if(! -d $target_dir) {
-        mkdir($target_dir) or die "mkdir('$target_dir') failed: $!";
+        mkdir($target_dir) or croak "mkdir('$target_dir') failed: $!";
     }
 
     my $verstr = $DBIx::Class::Schema::Loader::VERSION;
@@ -344,20 +344,20 @@ sub _dump_to_dir {
 
     my $schema_fn = $self->_get_dump_filename($schema_class);
     open(my $schema_fh, '>', $schema_fn)
-        or die "Cannot open $schema_fn for writing: $!";
+        or croak "Cannot open $schema_fn for writing: $!";
     print $schema_fh qq|package $schema_class;\n\n$tagline\n\n|;
     print $schema_fh qq|use strict;\nuse warnings;\n\n|;
     print $schema_fh qq|use base 'DBIx::Class::Schema';\n\n|;
     print $schema_fh qq|__PACKAGE__->load_classes;\n|;
     print $schema_fh qq|\n1;\n\n|;
     close($schema_fh)
-        or die "Cannot close $schema_fn: $!";
+        or croak "Cannot close $schema_fn: $!";
 
     foreach my $src_class (sort keys %{$self->{_dump_storage}}) {
         $self->_ensure_dump_subdirs($src_class);
         my $src_fn = $self->_get_dump_filename($src_class);
         open(my $src_fh, '>', $src_fn)
-            or die "Cannot open $src_fn for writing: $!";
+            or croak "Cannot open $src_fn for writing: $!";
         print $src_fh qq|package $src_class;\n\n$tagline\n\n|;
         print $src_fh qq|use strict;\nuse warnings;\n\n|;
         print $src_fh qq|use base 'DBIx::Class';\n\n|;
@@ -365,7 +365,7 @@ sub _dump_to_dir {
             for @{$self->{_dump_storage}->{$src_class}};
         print $src_fh qq|\n1;\n\n|;
         close($src_fh)
-            or die "Cannot close $src_fn: $!";
+            or croak "Cannot close $src_fn: $!";
     }
 
     warn "Schema dump completed.\n";

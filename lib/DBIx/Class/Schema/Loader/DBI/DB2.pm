@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::DBI::DB2;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI';
+use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
 use Class::C3;
 
 =head1 NAME

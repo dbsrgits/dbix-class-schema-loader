@@ -14,6 +14,7 @@ my %arguments = (
         'Class::Accessor::Fast'         => 0.22,
         'Class::Data::Accessor'         => 0.02,
         'Class::C3'                     => 0.11,
+        'Carp::Clan'                    => 0,
         'DBIx::Class'                   => 0.06003,
     },
     recommends         => {

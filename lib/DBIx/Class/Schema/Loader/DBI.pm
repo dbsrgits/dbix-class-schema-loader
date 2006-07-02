@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base qw/DBIx::Class::Schema::Loader::Base Class::Accessor::Fast/;
 use Class::C3;
-use Carp;
+use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
 use UNIVERSAL::require;
 
 =head1 NAME
@@ -40,7 +40,7 @@ sub new {
     my $subclass = 'DBIx::Class::Schema::Loader::DBI::' . $driver;
     $subclass->require;
     if($@ && $@ !~ /^Can't locate /) {
-        die "Failed to require $subclass: $@";
+        croak "Failed to require $subclass: $@";
     }
     elsif(!$@) {
         bless $self, "DBIx::Class::Schema::Loader::DBI::${driver}";

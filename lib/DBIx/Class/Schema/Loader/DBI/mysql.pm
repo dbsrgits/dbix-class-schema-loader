@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::DBI::mysql;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI';
+use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
 use Class::C3;
 
 =head1 NAME
@@ -31,7 +32,7 @@ sub _table_fk_info {
 
     my $dbh = $self->schema->storage->dbh;
     my $table_def_ref = $dbh->selectrow_arrayref("SHOW CREATE TABLE $table")
-        or die ("Cannot get table definition for $table");
+        or croak ("Cannot get table definition for $table");
     my $table_def = $table_def_ref->[1] || '';
     
     my (@reldata) = ($table_def =~ /CONSTRAINT `.*` FOREIGN KEY \(`(.*)`\) REFERENCES `(.*)` \(`(.*)`\)/ig);

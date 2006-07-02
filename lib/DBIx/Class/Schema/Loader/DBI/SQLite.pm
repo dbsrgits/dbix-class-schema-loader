@@ -3,8 +3,9 @@ package DBIx::Class::Schema::Loader::DBI::SQLite;
 use strict;
 use warnings;
 use base qw/DBIx::Class::Schema::Loader::DBI/;
-use Class::C3;
+use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
 use Text::Balanced qw( extract_bracketed );
+use Class::C3;
 
 =head1 NAME
 
@@ -105,7 +106,7 @@ sub _sqlite_parse_table {
         my $rcols;
         if($f_cols) {
             my @f_cols = map { s/\s*//g; lc $_ } split(/\s*,\s*/,$f_cols);
-            die "Mismatched column count in rel for $table => $f_table"
+            croak "Mismatched column count in rel for $table => $f_table"
               if @cols != @f_cols;
             $rcols = \@f_cols;
         }
