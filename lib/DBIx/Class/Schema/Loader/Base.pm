@@ -28,6 +28,7 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 inflect_plural
                                 debug
                                 dump_directory
+                                dump_overwrite
 
                                 legacy_default_inflections
 
@@ -63,6 +64,12 @@ Try to automatically detect/setup has_a and has_many relationships.
 
 If set to true, each constructive L<DBIx::Class> statement the loader
 decides to execute will be C<warn>-ed before execution.
+
+=head2 db_schema
+
+Set the name of the schema to load (schema in the sense that your database
+vendor means it).  Does not currently support loading more than one schema
+name.
 
 =head2 constraint
 
@@ -138,6 +145,10 @@ your existing code if you started developing on a version prior to 0.03 and
 don't wish to go around updating all your relationship names to the new
 defaults.
 
+This option will continue to be supported until at least version 0.05xxx,
+but may dissappear sometime thereafter.  It is recommended that you update
+your code to use the newer-style inflections when you have the time.
+
 =head2 dump_directory
 
 This option is designed to be a tool to help you transition from this
@@ -162,7 +173,15 @@ is meant for one-time manual usage.
 See L<DBIx::Class::Schema::Loader/dump_to_dir> for examples of the
 recommended way to access this functionality.
 
+=head2 dump_overwrite
+
+If set to a true value, the dumping code will overwrite existing files.
+The default is false, which means the dumping code will die if it encounters
+an existing file.
+
 =head1 DEPRECATED CONSTRUCTOR OPTIONS
+
+B<These will be removed in version 0.04000 !!!>
 
 =head2 inflect_map
 
@@ -177,7 +196,7 @@ Equivalent to L</inflect_plural>.
 You connect these schemas the same way you would any L<DBIx::Class::Schema>,
 which is by calling either C<connect> or C<connection> on a schema class
 or object.  These options are only supported via the deprecated
-C<load_from_connection> interface, which will be removed in the future.
+C<load_from_connection> interface, which is also being removed in 0.04000.
 
 =head1 METHODS
 
@@ -230,7 +249,8 @@ sub new {
     # Support deprecated arguments
     for(qw/inflect_map inflect/) {
         warn "Argument $_ is deprecated in favor of 'inflect_plural'"
-            if $self->{$_};
+           . ", and will be removed in 0.04000"
+                if $self->{$_};
     }
     $self->{inflect_plural} ||= $self->{inflect_map} || $self->{inflect};
 
@@ -326,6 +346,7 @@ sub _dump_to_dir {
     my ($self) = @_;
 
     my $target_dir = $self->dump_directory;
+
     my $schema_class = $self->schema_class;
 
     croak "Must specify target directory for dumping!" if ! $target_dir;
@@ -343,7 +364,9 @@ sub _dump_to_dir {
     $self->_ensure_dump_subdirs($schema_class);
 
     my $schema_fn = $self->_get_dump_filename($schema_class);
-    open(my $schema_fh, '>', $schema_fn)
+    croak "$schema_fn exists, will not overwrite"
+        if -f $schema_fn && !$self->dump_overwrite;
+    sysopen(my $schema_fh, '>', $schema_fn)
         or croak "Cannot open $schema_fn for writing: $!";
     print $schema_fh qq|package $schema_class;\n\n$tagline\n\n|;
     print $schema_fh qq|use strict;\nuse warnings;\n\n|;
@@ -356,6 +379,8 @@ sub _dump_to_dir {
     foreach my $src_class (sort keys %{$self->{_dump_storage}}) {
         $self->_ensure_dump_subdirs($src_class);
         my $src_fn = $self->_get_dump_filename($src_class);
+        croak "$src_fn exists, will not overwrite"
+            if -f $src_fn && !$self->dump_overwrite;
         open(my $src_fh, '>', $src_fn)
             or croak "Cannot open $src_fn for writing: $!";
         print $src_fh qq|package $src_class;\n\n$tagline\n\n|;

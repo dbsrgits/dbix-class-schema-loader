@@ -1,5 +1,17 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03004 XXX TDB
+        - make_schema_at efficiency improvements
+        - improved debugging output
+        - column metadata now included in dumped schemas
+        - new fatal error if loader_options not yet specified at clone() time
+        - Carp::Clan added, and some dies converted to croaks
+        - no longer overwrites files when dumping, unless asked
+          to do so via the dump_overwrite option
+        - loader_options can now be embedded in the connection info
+        - Documentation improvements
+        - Deprecation notices updated
+
 0.03003 Tue Jun  6 02:22:49 UTC 2006
         - Fix inclusion of external add-on class definitions
           in dump_to_dir output.
