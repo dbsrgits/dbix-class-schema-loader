@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base qw/DBIx::Class::Schema/;
 use base qw/Class::Data::Accessor/;
-use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
+use Carp::Clan qw/^DBIx::Class/;
 use UNIVERSAL::require;
 use Class::C3;
 use Scalar::Util qw/ weaken /;
@@ -83,10 +83,13 @@ This method is *required* at this time, for backwards compatibility
 reasons.  If you do not wish to change any options, just call it
 with an empty argument list during schema class initialization.
 
-You should either specify this method before setting the connection
-information for your schema, or specify these options as a part of
-your connection information (see below).  For now it will merely
-warn if the ordering is wrong, but in the future this will cause problems.
+Setting these options explicitly via this method B<after> calling
+C<connection> is deprecated and will stop working in version 0.04000.
+For now the code merely warns about this condition.
+
+The preferred way of doing things is to either call C<loader_options>
+before any connection is made, or embed the C<loader_options> in
+the connection information itself as shown below.
 
 =cut
 
@@ -102,7 +105,8 @@ sub loader_options {
 
     $self->_loader_args(\%args);
     if($self->storage && !$class->loader) {
-        warn "Do not set loader_options after specifying the connection info";
+        warn "Do not set loader_options after specifying the connection info,"
+           . " this will be unsupported in 0.04000";
         $self->_invoke_loader;
     }
 
@@ -155,7 +159,13 @@ sub connection {
     $self = $self->next::method(@_);
 
     my $class = ref $self || $self;
-    $self->_invoke_loader if $self->_loader_args && !$class->loader;
+    if($self->_loader_args && !$class->loader) {
+        $self->_invoke_loader
+    }
+    else {
+        warn "loader_options should be set before connecting the "
+           . "schema, see the DBIx::Class::Schema::Loader docs";
+    }
 
     return $self;
 }
@@ -169,14 +179,12 @@ See L<DBIx::Class::Schema>.
 sub clone {
     my $self = shift;
 
-    croak "You failed to specify the required loader_options"
-        if !$self->_loader_args;
-
     my $clone = $self->next::method(@_);
 
-    $clone->_loader_args($self->_loader_args);
-    $clone->_loader_args->{schema} = $clone;
-    weaken($clone->_loader_args->{schema});
+    if($clone->_loader_args) {
+        $clone->_loader_args->{schema} = $clone;
+        weaken($clone->_loader_args->{schema});
+    }
 
     $clone;
 }

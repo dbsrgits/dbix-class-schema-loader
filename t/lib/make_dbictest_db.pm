@@ -10,8 +10,8 @@ my $class = $@ ? 'SQLite2' : 'SQLite';
 my $fn = './t/dbictest.db';
 
 unlink($fn);
-
-my $dbh = DBI->connect("dbi:$class:dbname=./t/dbictest.db");
+our $dsn = "dbi:$class:dbname=$fn";
+my $dbh = DBI->connect($dsn);
 
 $dbh->do($_) for (
     q|CREATE TABLE foo (
@@ -23,7 +23,7 @@ $dbh->do($_) for (
         fooref INTEGER REFERENCES foo(fooid)
       )|,
     q|INSERT INTO foo VALUES (1,'Foo text for number 1')|,
-    q|INSERT INTO foo VALUES (2,'This is the text of the only Foo record associated with the Bar with barid 3')|,
+    q|INSERT INTO foo VALUES (2,'Foo record associated with the Bar with barid 3')|,
     q|INSERT INTO foo VALUES (3,'Foo text for number 3')|,
     q|INSERT INTO foo VALUES (4,'Foo text for number 4')|,
     q|INSERT INTO bar VALUES (1,4)|,

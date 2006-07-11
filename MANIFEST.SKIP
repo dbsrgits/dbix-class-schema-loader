@@ -29,8 +29,9 @@
 # avoid OS X finder files
 \.DS_Store$
 
-# Don't ship the test db
-^t/var
+# Don't ship the test junk
+^t/_dump
+^t/dbictest.db
 
 # Don't ship the last dist we built :)
 \.tar\.gz$

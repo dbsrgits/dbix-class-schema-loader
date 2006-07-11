@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base qw/Class::Accessor::Fast/;
 use Class::C3;
-use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
+use Carp::Clan qw/^DBIx::Class/;
 use UNIVERSAL::require;
 use DBIx::Class::Schema::Loader::RelBuilder;
 use Data::Dump qw/ dump /;
@@ -366,7 +366,7 @@ sub _dump_to_dir {
     my $schema_fn = $self->_get_dump_filename($schema_class);
     croak "$schema_fn exists, will not overwrite"
         if -f $schema_fn && !$self->dump_overwrite;
-    sysopen(my $schema_fh, '>', $schema_fn)
+    open(my $schema_fh, '>', $schema_fn)
         or croak "Cannot open $schema_fn for writing: $!";
     print $schema_fh qq|package $schema_class;\n\n$tagline\n\n|;
     print $schema_fh qq|use strict;\nuse warnings;\n\n|;

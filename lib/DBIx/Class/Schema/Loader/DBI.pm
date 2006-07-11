@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base qw/DBIx::Class::Schema::Loader::Base Class::Accessor::Fast/;
 use Class::C3;
-use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
+use Carp::Clan qw/^DBIx::Class/;
 use UNIVERSAL::require;
 
 =head1 NAME

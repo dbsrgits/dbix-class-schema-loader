@@ -3,7 +3,7 @@ package DBIx::Class::Schema::Loader::DBI::mysql;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI';
-use Carp::Clan qw/^DBIx::Class::Schema::Loader/;
+use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
 =head1 NAME
