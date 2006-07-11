@@ -399,14 +399,16 @@ sub _dump_to_dir {
 sub _use {
     my $self = shift;
     my $target = shift;
+    my $evalstr;
 
     foreach (@_) {
-        $_->require or croak ($_ . "->require: $@");
+        warn "$target: use $_;" if $self->debug;
         $self->_raw_stmt($target, "use $_;");
-        warn "$target: use $_" if $self->debug;
-        eval "package $target; use $_;";
-        croak "use $_: $@" if $@;
+        $_->require or croak ($_ . "->require: $@");
+        $evalstr .= "package $target; use $_;";
     }
+    eval $evalstr if $evalstr;
+    croak $@ if $@;
 }
 
 sub _inject {
@@ -415,8 +417,8 @@ sub _inject {
     my $schema_class = $self->schema_class;
 
     my $blist = join(q{ }, @_);
+    warn "$target: use base qw/ $blist /;" if $self->debug && @_;
     $self->_raw_stmt($target, "use base qw/ $blist /;") if @_;
-    warn "$target: use base qw/ $blist /" if $self->debug && @_;
     foreach (@_) {
         $_->require or croak ($_ . "->require: $@");
         $schema_class->inject_base($target, $_);
