@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.03004 XXX TDB
+0.03004 Tue Jul 11 04:38:09 UTC 2006
         - make_schema_at efficiency improvements
         - improved debugging output
         - column metadata now included in dumped schemas
@@ -9,7 +9,11 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           to do so via the dump_overwrite option
         - loader_options can now be embedded in the connection info
         - Documentation improvements
-        - Deprecation notices updated
+        - Deprecation notices updated, most things that became
+          "deprecated" in 0.03 are now marked for death in 0.04000
+        - All deprecated usage patterns should now generate annoying
+          warnings (most did before).
+        - Somewhat improved test coverage
 
 0.03003 Tue Jun  6 02:22:49 UTC 2006
         - Fix inclusion of external add-on class definitions
