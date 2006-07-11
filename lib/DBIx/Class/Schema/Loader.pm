@@ -148,6 +148,7 @@ sub connection {
     if($_[-1] && ref $_[-1] eq 'HASH') {
         if(my $loader_opts = delete $_[-1]->{loader_options}) {
             $self->loader_options($loader_opts);
+            pop @_ if !keys %{$_[-1]};
         }
     }
 
