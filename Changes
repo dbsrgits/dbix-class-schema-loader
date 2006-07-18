@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - dump code now skips+warns instead of dies when
+          dump_overwrite not set [from nilsonsfj]
+
 0.03004 Tue Jul 11 04:38:09 UTC 2006
         - make_schema_at efficiency improvements
         - improved debugging output

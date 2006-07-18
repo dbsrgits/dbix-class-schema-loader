@@ -176,8 +176,8 @@ recommended way to access this functionality.
 =head2 dump_overwrite
 
 If set to a true value, the dumping code will overwrite existing files.
-The default is false, which means the dumping code will die if it encounters
-an existing file.
+The default is false, which means the dumping code will skip the already
+existing files.
 
 =head1 DEPRECATED CONSTRUCTOR OPTIONS
 
@@ -364,23 +364,28 @@ sub _dump_to_dir {
     $self->_ensure_dump_subdirs($schema_class);
 
     my $schema_fn = $self->_get_dump_filename($schema_class);
-    croak "$schema_fn exists, will not overwrite"
-        if -f $schema_fn && !$self->dump_overwrite;
-    open(my $schema_fh, '>', $schema_fn)
-        or croak "Cannot open $schema_fn for writing: $!";
-    print $schema_fh qq|package $schema_class;\n\n$tagline\n\n|;
-    print $schema_fh qq|use strict;\nuse warnings;\n\n|;
-    print $schema_fh qq|use base 'DBIx::Class::Schema';\n\n|;
-    print $schema_fh qq|__PACKAGE__->load_classes;\n|;
-    print $schema_fh qq|\n1;\n\n|;
-    close($schema_fh)
-        or croak "Cannot close $schema_fn: $!";
+    if (-f $schema_fn && !$self->dump_overwrite) {
+        warn "$schema_fn exists, will not overwrite\n";
+    }
+    else {
+        open(my $schema_fh, '>', $schema_fn)
+            or croak "Cannot open $schema_fn for writing: $!";
+        print $schema_fh qq|package $schema_class;\n\n$tagline\n\n|;
+        print $schema_fh qq|use strict;\nuse warnings;\n\n|;
+        print $schema_fh qq|use base 'DBIx::Class::Schema';\n\n|;
+        print $schema_fh qq|__PACKAGE__->load_classes;\n|;
+        print $schema_fh qq|\n1;\n\n|;
+        close($schema_fh)
+            or croak "Cannot close $schema_fn: $!";
+    }
 
     foreach my $src_class (sort keys %{$self->{_dump_storage}}) {
         $self->_ensure_dump_subdirs($src_class);
         my $src_fn = $self->_get_dump_filename($src_class);
-        croak "$src_fn exists, will not overwrite"
-            if -f $src_fn && !$self->dump_overwrite;
+        if (-f $src_fn && !$self->dump_overwrite) {
+            warn "$src_fn exists, will not overwrite\n";
+            next;
+        }    
         open(my $src_fh, '>', $src_fn)
             or croak "Cannot open $src_fn for writing: $!";
         print $src_fh qq|package $src_class;\n\n$tagline\n\n|;
