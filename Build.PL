@@ -27,7 +27,6 @@ my %arguments = (
     },
     build_requires     => {
         'Test::More'                    => 0.32,
-        'Test::Warn'                    => 0.08,
         'DBI'                           => 1.50,
         'DBD::SQLite'                   => 1.12,
     },
