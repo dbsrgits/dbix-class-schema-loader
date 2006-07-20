@@ -493,11 +493,11 @@ sub _load_classes {
             $self->_dbic_stmt($table_class,'add_columns',@$cols);
         }
         else {
-            my %cols_hash;
-            foreach my $col (@$cols) {
-                $cols_hash{$col} = \%{($col_info->{$col})};
-            }
-            $self->_dbic_stmt($table_class,'add_columns',%cols_hash);
+            $self->_dbic_stmt(
+                $table_class,
+                'add_columns',
+                map { $_, $col_info->{$_} } @$cols
+            );
         }
 
         my $pks = $self->_table_pk_info($table) || [];

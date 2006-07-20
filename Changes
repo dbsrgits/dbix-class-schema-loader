@@ -1,7 +1,14 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03005 Wed Jul 19 15:09:30 UTC 2006
+        [ Pretty much everything in this release originates from nilsonsfj patches ]
+        - bugfix: mysql unique constraint code had an
+          obvious but longstanding error
+        - bugfix: columns were being specified out-of-order,
+          bug was introduced in the 0.03004 column metadata
+          dumping feature
         - dump code now skips+warns instead of dies when
-          dump_overwrite not set [from nilsonsfj]
+          dump_overwrite not set
 
 0.03004 Tue Jul 11 04:38:09 UTC 2006
         - make_schema_at efficiency improvements

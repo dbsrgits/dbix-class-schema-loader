@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 73;
+    plan tests => 76;
 
     $self->create();
 
@@ -123,6 +123,11 @@ sub run_tests {
     isa_ok( $rsobj2, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj23, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj24, "DBIx::Class::ResultSet" );
+
+    my @columns_lt2 = $class2->columns;
+    is($columns_lt2[0], 'id', "Column Ordering 0");
+    is($columns_lt2[1], 'dat', "Column Ordering 1");
+    is($columns_lt2[2], 'dat2', "Column Ordering 2");
 
     my %uniq1 = $class1->unique_constraints;
     my $uniq1_test = 0;
