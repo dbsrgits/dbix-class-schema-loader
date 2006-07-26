@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03006 Wed Jul 26 00:14:58 UTC 2006
+        - Fixed column-case issue w/ columns_info_for
+
 0.03005 Wed Jul 19 15:09:30 UTC 2006
         [ Pretty much everything in this release originates from nilsonsfj patches ]
         - bugfix: mysql unique constraint code had an

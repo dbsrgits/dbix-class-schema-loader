@@ -32,6 +32,9 @@
 # Don't ship the test junk
 ^t/_dump
 ^t/dbictest.db
+^t/dbictest.db-journal
+^t/sqlite.test
+^t/sqlite.test-journal
 
 # Don't ship the last dist we built :)
 \.tar\.gz$

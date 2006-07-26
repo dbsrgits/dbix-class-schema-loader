@@ -493,10 +493,11 @@ sub _load_classes {
             $self->_dbic_stmt($table_class,'add_columns',@$cols);
         }
         else {
+            my %col_info_lc = map { lc($_), $col_info->{$_} } keys %$col_info;
             $self->_dbic_stmt(
                 $table_class,
                 'add_columns',
-                map { $_, $col_info->{$_} } @$cols
+                map { $_, ($col_info_lc{$_}||{}) } @$cols
             );
         }
 
