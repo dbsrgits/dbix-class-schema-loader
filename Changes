@@ -1,5 +1,10 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03007 Thu Jul 27 16:19:59 UTC 2006
+        - Kill erroneous warning about connect/loader_options order (the real
+          case is warned about elsewhere)
+        - Fix t/22dump to work around ActiveState issues
+
 0.03006 Wed Jul 26 00:14:58 UTC 2006
         - Fixed column-case issue w/ columns_info_for
 
