@@ -21,49 +21,16 @@ sub test_schema {
 }
 
 my @invocations = (
-    'deprecated_one' => sub {
-        package DBICTest::Schema::1;
-        use base qw/ DBIx::Class::Schema::Loader /;
-        __PACKAGE__->connection($make_dbictest_db::dsn);
-        __PACKAGE__->load_from_connection( relationships => 1 );
-        __PACKAGE__;
-    },
-    'deprecated_two' => sub {
-        package DBICTest::Schema::2;
-        use base qw/ DBIx::Class::Schema::Loader /;
-        __PACKAGE__->load_from_connection(
-            relationships => 1,
-            connect_info => [ $make_dbictest_db::dsn ],
-        );
-        __PACKAGE__;
-    },
-    'deprecated_three' => sub {
-        package DBICTest::Schema::3;
-        use base qw/ DBIx::Class::Schema::Loader /;
-        __PACKAGE__->load_from_connection(
-            relationships => 1,
-            dsn => $make_dbictest_db::dsn,
-        );
-        __PACKAGE__;
-    },
-    'deprecated_four' => sub {
-        package DBICTest::Schema::4;
-        use base qw/ DBIx::Class::Schema::Loader /;
-        __PACKAGE__->connection($make_dbictest_db::dsn);
-        __PACKAGE__->loader_options( relationships => 1 );
-        __PACKAGE__;
-    },
     'hardcode' => sub {
         package DBICTest::Schema::5;
         use base qw/ DBIx::Class::Schema::Loader /;
-        __PACKAGE__->loader_options( relationships => 1 );
         __PACKAGE__->connection($make_dbictest_db::dsn);
         __PACKAGE__;
     },
     'normal' => sub {
         package DBICTest::Schema::6;
         use base qw/ DBIx::Class::Schema::Loader /;
-        __PACKAGE__->loader_options( relationships => 1 );
+        __PACKAGE__->loader_options();
         __PACKAGE__->connect($make_dbictest_db::dsn);
     },
     'make_schema_at' => sub {

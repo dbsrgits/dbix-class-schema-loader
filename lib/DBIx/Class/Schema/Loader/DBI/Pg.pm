@@ -18,9 +18,7 @@ PostgreSQL Implementation.
   package My::Schema;
   use base qw/DBIx::Class::Schema::Loader/;
 
-  __PACKAGE__->loader_options(
-    relationships => 1,
-  );
+  __PACKAGE__->loader_options( debug => 1 );
 
   1;
 

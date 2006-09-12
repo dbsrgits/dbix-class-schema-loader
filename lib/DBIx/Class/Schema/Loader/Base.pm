@@ -24,7 +24,7 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 left_base_classes
                                 components
                                 resultset_components
-                                relationships
+                                skip_relationships
                                 moniker_map
                                 inflect_singular
                                 inflect_plural
@@ -58,9 +58,10 @@ classes, and implements the common functionality between them.
 These constructor options are the base options for
 L<DBIx::Class::Schema::Loader/loader_opts>.  Available constructor options are:
 
-=head2 relationships
+=head2 skip_relationships
 
-Try to automatically detect/setup has_a and has_many relationships.
+Skip setting up relationships.  The default is to attempt the loading
+of relationships.
 
 =head2 debug
 
@@ -181,25 +182,6 @@ If set to a true value, the dumping code will overwrite existing files.
 The default is false, which means the dumping code will skip the already
 existing files.
 
-=head1 DEPRECATED CONSTRUCTOR OPTIONS
-
-B<These will be removed in version 0.04000 !!!>
-
-=head2 inflect_map
-
-Equivalent to L</inflect_plural>.
-
-=head2 inflect
-
-Equivalent to L</inflect_plural>.
-
-=head2 connect_info, dsn, user, password, options
-
-You connect these schemas the same way you would any L<DBIx::Class::Schema>,
-which is by calling either C<connect> or C<connection> on a schema class
-or object.  These options are only supported via the deprecated
-C<load_from_connection> interface, which is also being removed in 0.04000.
-
 =head1 METHODS
 
 None of these methods are intended for direct invocation by regular
@@ -247,14 +229,6 @@ sub new {
 
     $self->{monikers} = {};
     $self->{classes} = {};
-
-    # Support deprecated arguments
-    for(qw/inflect_map inflect/) {
-        warn "Argument $_ is deprecated in favor of 'inflect_plural'"
-           . ", and will be removed in 0.04000"
-                if $self->{$_};
-    }
-    $self->{inflect_plural} ||= $self->{inflect_map} || $self->{inflect};
 
     $self->{schema_class} ||= ( ref $self->{schema} || $self->{schema} );
     $self->{schema} ||= $self->{schema_class};
@@ -313,7 +287,7 @@ sub load {
     my $self = shift;
 
     $self->_load_classes;
-    $self->_load_relationships if $self->relationships;
+    $self->_load_relationships if ! $self->skip_relationships;
     $self->_load_external;
     $self->_dump_to_dir if $self->dump_directory;
 

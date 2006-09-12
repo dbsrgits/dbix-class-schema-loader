@@ -32,7 +32,7 @@ rmtree($dump_path, 1, 1);
 eval { DBICTest::Schema::1->connect($make_dbictest_db::dsn) };
 ok(!$@, 'no death with dump_directory set') or diag "Dump failed: $@";
 
-DBICTest::Schema::1->loader(undef);
+DBICTest::Schema::1->_loader_invoked(undef);
 
 SKIP: {
   skip "ActiveState perl produces additional warnings", 5
@@ -58,7 +58,7 @@ eval { DBICTest::Schema::2->connect($make_dbictest_db::dsn) };
 ok(!$@, 'no death with dump_directory set (overwrite1)')
     or diag "Dump failed: $@";
 
-DBICTest::Schema::2->loader(undef);
+DBICTest::Schema::2->_loader_invoked(undef);
 eval { DBICTest::Schema::2->connect($make_dbictest_db::dsn) };
 ok(!$@, 'no death with dump_directory set (overwrite2)')
     or diag "Dump failed: $@";

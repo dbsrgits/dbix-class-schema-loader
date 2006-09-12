@@ -100,8 +100,13 @@ sub run_tests {
     }
 
     my $conn = $schema_class->clone;
-    my $monikers = $schema_class->loader->monikers;
-    my $classes = $schema_class->loader->classes;
+    my $monikers = {};
+    my $classes = {};
+    foreach my $source_name ($schema_class->sources) {
+        my $table_name = $schema_class->source($source_name)->from;
+        $monikers->{$table_name} = $source_name;
+        $classes->{$table_name} = $schema_class . q{::} . $source_name;
+    }
 
     my $moniker1 = $monikers->{loader_test1};
     my $class1   = $classes->{loader_test1};

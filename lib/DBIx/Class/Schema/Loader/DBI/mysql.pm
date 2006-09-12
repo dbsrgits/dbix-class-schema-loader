@@ -17,9 +17,7 @@ DBIx::Class::Schema::Loader::DBI::mysql - DBIx::Class::Schema::Loader::DBI mysql
   package My::Schema;
   use base qw/DBIx::Class::Schema::Loader/;
 
-  __PACKAGE__->load_from_connection(
-    relationships => 1,
-  );
+  __PACKAGE__->loader_options( debug => 1 );
 
   1;
 

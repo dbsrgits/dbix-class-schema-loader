@@ -17,10 +17,7 @@ DBIx::Class::Schema::Loader::DBI::DB2 - DBIx::Class::Schema::Loader::DBI DB2 Imp
   package My::Schema;
   use base qw/DBIx::Class::Schema::Loader/;
 
-  __PACKAGE__->loader_options(
-    relationships => 1,
-    db_schema     => "MYSCHEMA",
-  );
+  __PACKAGE__->loader_options( db_schema => "MYSCHEMA" );
 
   1;
 
