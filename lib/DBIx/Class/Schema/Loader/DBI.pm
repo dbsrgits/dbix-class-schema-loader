@@ -2,7 +2,7 @@ package DBIx::Class::Schema::Loader::DBI;
 
 use strict;
 use warnings;
-use base qw/DBIx::Class::Schema::Loader::Base Class::Accessor::Fast/;
+use base qw/DBIx::Class::Schema::Loader::Base/;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use UNIVERSAL::require;
