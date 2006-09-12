@@ -83,6 +83,20 @@ sub _tables_list {
     return @tables;
 }
 
+=head2 load
+
+We override L<DBIx::Class::Schema::Loader::Base/load> here to hook in our localized settings for C<$dbh> error handling.
+
+=cut
+
+sub load {
+    my $self = shift;
+
+    local $self->schema->storage->dbh->{RaiseError} = 1;
+    local $self->schema->storage->dbh->{PrintError} = 0;
+    $self->next::method(@_);
+}
+
 # Returns an arrayref of column names
 sub _table_columns {
     my ($self, $table) = @_;
@@ -152,6 +166,63 @@ sub _table_fk_info {
 
     return \@rels;
 }
+
+# ported in from DBIx::Class::Storage::DBI:
+sub _columns_info_for {
+    my ($self, $table) = @_;
+
+    my $dbh = $self->schema->storage->dbh;
+
+    if ($dbh->can('column_info')) {
+        my %result;
+        eval {
+            my $sth = $dbh->column_info( undef, $self->db_schema, $table, '%' );
+            $sth->execute();
+            while ( my $info = $sth->fetchrow_hashref() ){
+                my %column_info;
+                $column_info{data_type}   = $info->{TYPE_NAME};
+                $column_info{size}      = $info->{COLUMN_SIZE};
+                $column_info{is_nullable}   = $info->{NULLABLE} ? 1 : 0;
+                $column_info{default_value} = $info->{COLUMN_DEF};
+                my $col_name = $info->{COLUMN_NAME};
+                $col_name =~ s/^\"(.*)\"$/$1/;
+
+                $result{$col_name} = \%column_info;
+            }
+        };
+      return \%result if !$@ && scalar keys %result;
+    }
+
+    if($self->db_schema) {
+        $table = $self->db_schema . $self->{_namesep} . $table;
+    }
+    my %result;
+    my $sth = $dbh->prepare("SELECT * FROM $table WHERE 1=0");
+    $sth->execute;
+    my @columns = @{$sth->{NAME_lc}};
+    for my $i ( 0 .. $#columns ){
+        my %column_info;
+        my $type_num = $sth->{TYPE}->[$i];
+        my $type_name;
+        if(defined $type_num && $dbh->can('type_info')) {
+            my $type_info = $dbh->type_info($type_num);
+            $type_name = $type_info->{TYPE_NAME} if $type_info;
+        }
+        $column_info{data_type} = $type_name ? $type_name : $type_num;
+        $column_info{size} = $sth->{PRECISION}->[$i];
+        $column_info{is_nullable} = $sth->{NULLABLE}->[$i] ? 1 : 0;
+
+        if ($column_info{data_type} =~ m/^(.*?)\((.*?)\)$/) {
+            $column_info{data_type} = $1;
+            $column_info{size}    = $2;
+        }
+
+        $result{$columns[$i]} = \%column_info;
+    }
+
+    return \%result;
+}
+
 
 =head1 SEE ALSO
 

@@ -464,7 +464,7 @@ sub _load_classes {
 
         my $cols = $self->_table_columns($table);
         my $col_info;
-        eval { $col_info = $schema->storage->columns_info_for($table) };
+        eval { $col_info = $self->_columns_info_for($table) };
         if($@) {
             $self->_dbic_stmt($table_class,'add_columns',@$cols);
         }
