@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Added $VERSION to all packages in this dist
+
 0.03007 Thu Jul 27 16:19:59 UTC 2006
         - Kill erroneous warning about connect/loader_options order (the real
           case is warned about elsewhere)

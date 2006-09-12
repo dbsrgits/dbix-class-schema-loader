@@ -11,6 +11,8 @@ use Data::Dump qw/ dump /;
 use POSIX qw//;
 require DBIx::Class;
 
+our $VERSION = '0.03999_01';
+
 __PACKAGE__->mk_ro_accessors(qw/
                                 schema
                                 schema_class

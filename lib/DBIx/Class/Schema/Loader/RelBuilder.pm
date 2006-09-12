@@ -6,6 +6,8 @@ use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect ();
 use Lingua::EN::Inflect::Number ();
 
+our $VERSION = '0.03999_01';
+
 =head1 NAME
 
 DBIx::Class::Schema::Loader::RelBuilder - Builds relationships for DBIx::Class::Schema::Loader

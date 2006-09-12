@@ -7,6 +7,8 @@ use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use UNIVERSAL::require;
 
+our $VERSION = '0.03999_01';
+
 =head1 NAME
 
 DBIx::Class::Schema::Loader::DBI - DBIx::Class::Schema::Loader DBI Implementation.
