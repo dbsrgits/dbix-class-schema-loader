@@ -550,8 +550,8 @@ sub create {
                 Id2 INTEGER,
                 loader_test2 INTEGER,
                 dat VARCHAR(8),
-                FOREIGN KEY (loader_test2) REFERENCES loader_test2 (id),
-                FOREIGN KEY (id, Id2 ) REFERENCES loader_test5 (id1,iD2)
+                FOREIGN KEY (loader_test2)  REFERENCES loader_test2 (id),
+                FOREIGN KEY(id,Id2) REFERENCES loader_test5 (id1,iD2)
             ) $self->{innodb}
         },
 

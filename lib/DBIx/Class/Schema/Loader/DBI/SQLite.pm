@@ -90,7 +90,7 @@ sub _sqlite_parse_table {
             push(@uniqs, [ $name => \@cols ]);
         }
 
-        next if $col !~ /^(.*)\s+REFERENCES\s+(\w+) (?: \s* \( (.*) \) )? /ix;
+        next if $col !~ /^(.*\S)\s+REFERENCES\s+(\w+) (?: \s* \( (.*) \) )? /ix;
 
         my ($cols, $f_table, $f_cols) = ($1, $2, $3);
 
