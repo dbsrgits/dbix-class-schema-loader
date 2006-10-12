@@ -33,8 +33,6 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 dump_directory
                                 dump_overwrite
 
-                                legacy_default_inflections
-
                                 db_schema
                                 _tables
                                 classes
@@ -139,19 +137,6 @@ List of additional ResultSet components to be loaded into your table
 classes.  A good example would be C<AlwaysRS>.  Component
 C<ResultSetManager> will be automatically added to the above
 C<components> list if this option is set.
-
-=head2 legacy_default_inflections
-
-Setting this option changes the default fallback for L</inflect_plural> to
-utilize L<Lingua::EN::Inflect/PL>, and L</inflect_singular> to a no-op.
-Those choices produce substandard results, but might be necessary to support
-your existing code if you started developing on a version prior to 0.03 and
-don't wish to go around updating all your relationship names to the new
-defaults.
-
-This option will continue to be supported until at least version 0.05xxx,
-but may dissappear sometime thereafter.  It is recommended that you update
-your code to use the newer-style inflections when you have the time.
 
 =head2 dump_directory
 

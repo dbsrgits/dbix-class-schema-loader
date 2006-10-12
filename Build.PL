@@ -9,7 +9,6 @@ my %arguments = (
         'Scalar::Util'                  => 0,
         'Data::Dump'                    => 1.06,
         'UNIVERSAL::require'            => 0.10,
-        'Lingua::EN::Inflect'           => 1.89,
         'Lingua::EN::Inflect::Number'   => 1.1,
         'Text::Balanced'                => 0,
         'Class::Accessor'               => 0.27,

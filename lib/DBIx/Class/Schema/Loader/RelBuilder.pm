@@ -3,7 +3,6 @@ package DBIx::Class::Schema::Loader::RelBuilder;
 use strict;
 use warnings;
 use Carp::Clan qw/^DBIx::Class/;
-use Lingua::EN::Inflect ();
 use Lingua::EN::Inflect::Number ();
 
 our $VERSION = '0.03999_01';
@@ -104,9 +103,7 @@ sub _inflect_plural {
         return $inflected if $inflected;
     }
 
-    return $self->{legacy_default_inflections}
-        ? Lingua::EN::Inflect::PL($relname)
-        : Lingua::EN::Inflect::Number::to_PL($relname);
+    return Lingua::EN::Inflect::Number::to_PL($relname);
 }
 
 # Singularize a relationship name
@@ -122,9 +119,7 @@ sub _inflect_singular {
         return $inflected if $inflected;
     }
 
-    return $self->{legacy_default_inflections}
-        ? $relname
-        : Lingua::EN::Inflect::Number::to_S($relname);
+    return Lingua::EN::Inflect::Number::to_S($relname);
 }
 
 sub generate_code {
