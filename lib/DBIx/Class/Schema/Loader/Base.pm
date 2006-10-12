@@ -9,6 +9,7 @@ use UNIVERSAL::require;
 use DBIx::Class::Schema::Loader::RelBuilder;
 use Data::Dump qw/ dump /;
 use POSIX qw//;
+use Cwd qw//;
 require DBIx::Class;
 
 __PACKAGE__->mk_ro_accessors(qw/
@@ -263,6 +264,11 @@ sub new {
 sub _load_external {
     my $self = shift;
 
+    my $abs_dump_dir;
+
+    $abs_dump_dir = Cwd::abs_path($self->dump_directory)
+        if $self->dump_directory;
+
     foreach my $table_class (values %{$self->classes}) {
         $table_class->require;
         if($@ && $@ !~ /^Can't locate /) {
@@ -275,14 +281,15 @@ sub _load_external {
         warn qq/# Loaded external class definition for '$table_class'\n/
             if $self->debug;
 
-        if($self->dump_directory) {
+        if($abs_dump_dir) {
             my $class_path = $table_class;
             $class_path =~ s{::}{/}g;
             $class_path .= '.pm';
-            my $filename = $INC{$class_path};
+            my $filename = Cwd::abs_path($INC{$class_path});
             croak 'Failed to locate actual external module file for '
                   . "'$table_class'"
                       if !$filename;
+            next if($filename =~ /^$abs_dump_dir/);
             open(my $fh, '<', $filename)
                 or croak "Failed to open $filename for reading: $!";
             $self->_raw_stmt($table_class,

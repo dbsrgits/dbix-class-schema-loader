@@ -1,5 +1,11 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03008 XXX Not yet released
+        - fix for rt.cpan.org #21084 (dump_overwrite pathological output recursion)
+        - fix for rt.cpan.org #21758 (mysql reserved words as table names)
+        - fix for rt.cpan.org #21025 (SQLite FK parsing)
+        - workaround for rt.cpan.org #21746 ($Class::Accessor::Fast::VERSION issues)
+
 0.03007 Thu Jul 27 16:19:59 UTC 2006
         - Kill erroneous warning about connect/loader_options order (the real
           case is warned about elsewhere)
