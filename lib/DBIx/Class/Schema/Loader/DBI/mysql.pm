@@ -31,7 +31,7 @@ sub _table_fk_info {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my $table_def_ref = $dbh->selectrow_arrayref("SHOW CREATE TABLE $table")
+    my $table_def_ref = $dbh->selectrow_arrayref("SHOW CREATE TABLE `$table`")
         or croak ("Cannot get table definition for $table");
     my $table_def = $table_def_ref->[1] || '';
     
@@ -67,7 +67,7 @@ sub _mysql_table_get_keys {
     if(!exists($self->{_cache}->{_mysql_keys}->{$table})) {
         my %keydata;
         my $dbh = $self->schema->storage->dbh;
-        my $sth = $dbh->prepare("SHOW INDEX FROM $table");
+        my $sth = $dbh->prepare("SHOW INDEX FROM `$table`");
         $sth->execute;
         while(my $row = $sth->fetchrow_hashref) {
             next if $row->{Non_unique};
