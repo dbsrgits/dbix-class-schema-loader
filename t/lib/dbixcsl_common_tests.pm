@@ -524,7 +524,7 @@ sub create {
                 id INTEGER NOT NULL PRIMARY KEY,
                 fkid INTEGER NOT NULL,
                 dat VARCHAR(32),
-                FOREIGN KEY (fkid) REFERENCES loader_test3 (id)
+                FOREIGN KEY( fkid ) REFERENCES loader_test3 (id)
             ) $self->{innodb}
         },
 
