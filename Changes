@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.03008 XXX Not yet released
+0.03008 Fri Oct 20 18:08:20 UTC 2006
         - fix for rt.cpan.org #21084 (dump_overwrite pathological output recursion)
         - fix for rt.cpan.org #21758 (mysql reserved words as table names)
         - fix for rt.cpan.org #21025 (SQLite FK parsing)
