@@ -194,7 +194,7 @@ sub generate_code {
             push(@{$all_code->{$local_class}},
                 { method => 'belongs_to',
                   args => [ $remote_relname,
-                            $remote_moniker,
+                            $remote_class,
                             \%cond,
                   ],
                 }
@@ -203,7 +203,7 @@ sub generate_code {
             push(@{$all_code->{$remote_class}},
                 { method => 'has_many',
                   args => [ $local_relname,
-                            $local_moniker,
+                            $local_class,
                             \%rev_cond,
                   ],
                 }
