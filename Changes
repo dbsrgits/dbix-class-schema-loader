@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03009 Wed Nov 15 14:03:37 UTC 2006
+	- fix for rt.cpan.org #22425 (use File::Spec where appropriate)
+	- use full instead of short classnames in relationships (from victori)
+
 0.03008 Fri Oct 20 18:08:20 UTC 2006
         - fix for rt.cpan.org #21084 (dump_overwrite pathological output recursion)
         - fix for rt.cpan.org #21758 (mysql reserved words as table names)
