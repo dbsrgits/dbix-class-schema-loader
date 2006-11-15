@@ -3,6 +3,8 @@ use Test::More;
 use lib qw(t/lib);
 use make_dbictest_db;
 
+$SIG{__WARN__} = sub { }; # Suppress warnings, as we test a lot of deprecated stuff here
+
 # Takes a $schema as input, runs 4 basic tests
 sub test_schema {
     my ($testname, $schema) = @_;
