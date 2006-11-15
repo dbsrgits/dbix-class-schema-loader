@@ -9,7 +9,7 @@ use UNIVERSAL::require;
 use DBIx::Class::Schema::Loader::RelBuilder;
 use Data::Dump qw/ dump /;
 use POSIX qw//;
-use Cwd qw//;
+use File::Spec qw//;
 require DBIx::Class;
 
 our $VERSION = '0.03999_01';
@@ -227,7 +227,7 @@ sub _load_external {
 
     my $abs_dump_dir;
 
-    $abs_dump_dir = Cwd::abs_path($self->dump_directory)
+    $abs_dump_dir = File::Spec->rel2abs($self->dump_directory)
         if $self->dump_directory;
 
     foreach my $table_class (values %{$self->classes}) {
@@ -246,7 +246,7 @@ sub _load_external {
             my $class_path = $table_class;
             $class_path =~ s{::}{/}g;
             $class_path .= '.pm';
-            my $filename = Cwd::abs_path($INC{$class_path});
+            my $filename = File::Spec->rel2abs($INC{$class_path});
             croak 'Failed to locate actual external module file for '
                   . "'$table_class'"
                       if !$filename;
@@ -300,10 +300,12 @@ sub _ensure_dump_subdirs {
     my ($self, $class) = (@_);
 
     my @name_parts = split(/::/, $class);
-    pop @name_parts;
+    pop @name_parts; # we don't care about the very last element,
+                     # which is a filename
+
     my $dir = $self->dump_directory;
     foreach (@name_parts) {
-        $dir .= q{/} . $_;
+        $dir = File::Spec->catdir($dir,$_);
         if(! -d $dir) {
             mkdir($dir) or croak "mkdir('$dir') failed: $!";
         }
