@@ -5,7 +5,7 @@ my %arguments = (
     license            => 'perl',
     module_name        => 'DBIx::Class::Schema::Loader',
     requires           => {
-        'Cwd'                           => 0,
+        'File::Spec'                    => 0,
         'Scalar::Util'                  => 0,
         'Data::Dump'                    => 1.06,
         'UNIVERSAL::require'            => 0.10,
@@ -30,6 +30,7 @@ my %arguments = (
         'Test::More'                    => 0.32,
         'DBI'                           => 1.50,
         'DBD::SQLite'                   => 1.12,
+        'File::Path'                    => 0,
     },
     create_makefile_pl => 'passthrough',
     create_readme      => 1,
