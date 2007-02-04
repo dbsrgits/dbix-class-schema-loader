@@ -91,7 +91,7 @@ sub _table_columns {
         $table = $self->{db_schema} . $self->{_namesep} . $table;
     }
 
-    my $sth = $dbh->prepare("SELECT * FROM $table WHERE 1=0");
+    my $sth = $dbh->prepare($self->schema->storage->sql_maker->select($table, undef, \'1 = 0'));
     $sth->execute;
     return \@{$sth->{NAME_lc}};
 }
