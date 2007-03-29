@@ -38,6 +38,11 @@ sub _setup {
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
+    # Use the default support if available
+    return $self->next::method($table)
+        if $DBI::VERSION >= 1.52
+            && $DBD::Pg::VERSION >= 1.50;
+
     my @uniqs;
     my $dbh = $self->schema->storage->dbh;
 

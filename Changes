@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Added support for DBI's new standard "statistics_info"
+          method to gather unique key info (only supported by
+          DBD::Pg trunk + DBI >= 1.52 so far)
         - columns_info_for imported from DBIx::Class
         - relationships are now on by default, use skip_relationships
           to disable them

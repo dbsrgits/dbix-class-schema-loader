@@ -114,7 +114,7 @@ sub _table_columns {
 
 # Returns arrayref of pk col names
 sub _table_pk_info { 
-    my ( $self, $table ) = @_;
+    my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
 
@@ -124,10 +124,40 @@ sub _table_pk_info {
     return \@primary;
 }
 
-# Override this for uniq info
+# Override this for vendor-specific uniq info
 sub _table_uniq_info {
-    warn "No UNIQUE constraint information can be gathered for this vendor";
-    return [];
+    my ($self, $table) = @_;
+
+    my $dbh = $self->schema->storage->dbh;
+    if(!$dbh->can('statistics_info')) {
+        warn "No UNIQUE constraint information can be gathered for this vendor";
+        return [];
+    }
+
+    my %indices;
+    my $sth = $dbh->statistics_info(undef, $self->db_schema, $table, 1, 1);
+    while(my $row = $sth->fetchrow_hashref) {
+        # skip table-level stats, conditional indexes, and any index missing
+        #  critical fields
+        next if $row->{TYPE} eq 'table'
+            || defined $row->{FILTER_CONDITION}
+            || !$row->{INDEX_NAME}
+            || !defined $row->{ORDINAL_POSITION}
+            || !$row->{COLUMN_NAME};
+
+        $indices{$row->{INDEX_NAME}}->{$row->{ORDINAL_POSITION}} = $row->{COLUMN_NAME};
+    }
+
+    my @retval;
+    foreach my $index_name (keys %indices) {
+        my $index = $indices{$index_name};
+        push(@retval, [ $index_name => [
+            map { $index->{$_} }
+                sort keys %$index
+        ]]);
+    }
+
+    return \@retval;
 }
 
 # Find relationships
