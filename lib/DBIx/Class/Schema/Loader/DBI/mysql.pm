@@ -27,6 +27,22 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
+# had to override here because MySQL apparently
+#  doesn't support '%' syntax.  Perhaps the other
+#  drivers support this syntax also, but I didn't
+#  want to risk breaking some esoteric DBD::foo version
+#  in a maint release...
+sub _tables_list { 
+    my $self = shift;
+
+    my $dbh = $self->schema->storage->dbh;
+    my @tables = $dbh->tables(undef, $self->db_schema, undef, undef);
+    s/\Q$self->{_quoter}\E//g for @tables;
+    s/^.*\Q$self->{_namesep}\E// for @tables;
+
+    return @tables;
+}
+
 sub _table_fk_info {
     my ($self, $table) = @_;
 

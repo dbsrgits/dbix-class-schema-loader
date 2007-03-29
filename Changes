@@ -6,9 +6,16 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Removed previously deprecated methods/options
         - Added $VERSION to all packages in this dist
 
+0.03010 Thu Mar 29 12:36:19 UTC 2007
+        - Workaround for new incompatible changes in DBD::mysql's "tables"
+          method, which was causing us to find no tables w/ DBD::mysql
+          4.002+
+        - Fixed quoting problem in _table_columns (could cause crash when 
+          dumping/doing a static create) (from ash)
+
 0.03009 Wed Nov 15 14:03:37 UTC 2006
-	- fix for rt.cpan.org #22425 (use File::Spec where appropriate)
-	- use full instead of short classnames in relationships (from victori)
+        - fix for rt.cpan.org #22425 (use File::Spec where appropriate)
+        - use full instead of short classnames in relationships (from victori)
 
 0.03008 Fri Oct 20 18:08:20 UTC 2006
         - fix for rt.cpan.org #21084 (dump_overwrite pathological output recursion)
@@ -111,7 +118,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
 0.02007 Wed Mar 22 06:03:53 UTC 2006
         - Backported Class::C3::reinitialize changes from -refactor
-	  branch, resulting in significantly reduced load time
+          branch, resulting in significantly reduced load time
 
 0.02006 Fri Mar 17 04:55:55 UTC 2006
         - Fix long-standing table/col-name case bugs
@@ -138,8 +145,8 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
 0.02005 Mon Feb 27 23:53:17 UTC 2006
         - Move the external file loading to after everything else
-	  loader does, in case people want to define, override, or
-	  build on top of the rels.
+          loader does, in case people want to define, override, or
+          build on top of the rels.
 
 0.02004 Mon Feb 27 23:53:17 UTC 2006
         - Minor fix to debugging message for loading external files
