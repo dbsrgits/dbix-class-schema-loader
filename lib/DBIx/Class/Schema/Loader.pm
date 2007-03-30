@@ -14,10 +14,8 @@ use Scalar::Util qw/ weaken /;
 # brain damage and presumably various other packaging systems too
 our $VERSION = '0.03999_01';
 
-__PACKAGE__->mk_classaccessor('dump_to_dir');
 __PACKAGE__->mk_classaccessor('_loader_args' => {});
-__PACKAGE__->mk_classaccessor('_loader_invoked');
-__PACKAGE__->mk_classaccessor('_loader');
+__PACKAGE__->mk_classaccessors(qw/dump_to_dir _loader_invoked _loader/);
 
 =head1 NAME
 
