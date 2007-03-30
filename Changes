@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03999_01 Not yet released
         - Added *experimental* Oracle support from work done
           by Tsunoda Kazuya some months ago.  Not well tested.
         - Added "rescan" schema (and loader) method, which picks
