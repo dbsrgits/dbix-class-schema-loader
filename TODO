@@ -1,11 +1,4 @@
 
-immediate stuff for 0.04:
---------------------------
-
-avinash240 wants a rescan method to pick up new tables at runtime
-
--------
-
 support multiple/all schemas, instead of just one
 
 support pk/uk/fk info on views, possibly.  May or may not be a sane thing to try to do.

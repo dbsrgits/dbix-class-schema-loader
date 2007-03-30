@@ -17,6 +17,7 @@ our $VERSION = '0.03999_01';
 __PACKAGE__->mk_classaccessor('dump_to_dir');
 __PACKAGE__->mk_classaccessor('_loader_args' => {});
 __PACKAGE__->mk_classaccessor('_loader_invoked');
+__PACKAGE__->mk_classaccessor('_loader');
 
 =head1 NAME
 
@@ -111,7 +112,8 @@ sub _invoke_loader {
       croak qq/Could not load storage_type loader "$impl": / .
             qq/"$UNIVERSAL::require::ERROR"/;
 
-    $impl->new(%$args)->load;
+    $self->_loader($impl->new(%$args));
+    $self->_loader->load;
     $self->_loader_invoked(1);
 
     $self;
@@ -283,6 +285,16 @@ sub make_schema_at {
     $target->loader_options($opts);
     $target->connection(@$connect_info);
 }
+
+=head2 rescan
+
+Re-scans the database for newly added tables since the initial
+load, and adds them to the schema at runtime, including relationships,
+etc.  Does not process drops or changes.
+
+=cut
+
+sub rescan { shift->_loader->rescan }
 
 =head1 EXAMPLE
 

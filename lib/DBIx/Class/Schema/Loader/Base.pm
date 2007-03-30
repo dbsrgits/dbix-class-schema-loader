@@ -308,26 +308,44 @@ Does the actual schema-construction work.
 sub load {
     my $self = shift;
 
+    $self->_load_tables($self->_tables_list);
+}
+
+=head2 rescan
+
+Rescan the database for newly added tables.  Does
+not process drops or changes.
+
+=cut
+
+sub rescan {
+    my $self = shift;
+
+    my @created;
+    my @current = $self->_tables_list;
+    foreach my $table ($self->_tables_list) {
+        if(!exists $self->{_tables}->{$table}) {
+            push(@created, $table);
+        }
+    }
+
+    $self->_load_tables(@created);
+}
+
+sub _load_tables {
+    my ($self, @tables) = @_;
+
     # First, use _tables_list with constraint and exclude
     #  to get a list of tables to operate on
 
     my $constraint   = $self->constraint;
     my $exclude      = $self->exclude;
-    my @tables       = sort $self->_tables_list;
 
-    if(!@tables) {
-        warn "No tables found in database, nothing to load";
-    }
-    else {
-        @tables = grep { /$constraint/ } @tables if $constraint;
-        @tables = grep { ! /$exclude/ } @tables if $exclude;
+    @tables = grep { /$constraint/ } @tables if $constraint;
+    @tables = grep { ! /$exclude/ } @tables if $exclude;
 
-        warn "All tables excluded by constraint/exclude, nothing to load"
-            if !@tables;
-    }
-
-    # Save the tables list
-    $self->{_tables} = \@tables;
+    # Save the new tables to the tables list
+    push(@{$self->{_tables}}, @tables);
 
     # Set up classes/monikers
     {
@@ -592,7 +610,7 @@ names.
 sub tables {
     my $self = shift;
 
-    return @{$self->_tables};
+    return keys %{$self->_tables};
 }
 
 # Make a moniker from a table
