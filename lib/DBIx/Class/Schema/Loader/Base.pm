@@ -226,6 +226,10 @@ sub new {
     $self->{schema_class} ||= ( ref $self->{schema} || $self->{schema} );
     $self->{schema} ||= $self->{schema_class};
 
+    $self->{relbuilder} = DBIx::Class::Schema::Loader::RelBuilder->new(
+        $self->schema_class, $self->inflect_plural, $self->inflect_singular
+    ) if !$self->{skip_relationships};
+
     $self;
 }
 
@@ -338,7 +342,10 @@ sub load {
 
     $self->_setup_src_meta($_) for @tables;
 
-    $self->_load_relationships if ! $self->skip_relationships;
+    if(!$self->skip_relationships) {
+        $self->_load_relationships($_) for @tables;
+    }
+
     $self->_load_external($_)
         for ($self->schema_class, values %{$self->classes});
 
@@ -607,27 +614,17 @@ sub _table2moniker {
 }
 
 sub _load_relationships {
-    my $self = shift;
+    my ($self, $table) = @_;
 
-    # Construct the fk_info RelBuilder wants to see, by
-    # translating table names to monikers in the _fk_info output
-    my %fk_info;
-    foreach my $table ($self->tables) {
-        my $tbl_fk_info = $self->_table_fk_info($table);
-        foreach my $fkdef (@$tbl_fk_info) {
-            $fkdef->{remote_source} =
-                $self->monikers->{delete $fkdef->{remote_table}};
-        }
-        my $moniker = $self->monikers->{$table};
-        $fk_info{$moniker} = $tbl_fk_info;
+    my $tbl_fk_info = $self->_table_fk_info($table);
+    foreach my $fkdef (@$tbl_fk_info) {
+        $fkdef->{remote_source} =
+            $self->monikers->{delete $fkdef->{remote_table}};
     }
 
-    my $relbuilder = DBIx::Class::Schema::Loader::RelBuilder->new(
-        $self->schema_class, \%fk_info, $self->inflect_plural,
-        $self->inflect_singular
-    );
+    my $local_moniker = $self->monikers->{$table};
+    my $rel_stmts = $self->{relbuilder}->generate_code($local_moniker, $tbl_fk_info);
 
-    my $rel_stmts = $relbuilder->generate_code;
     foreach my $src_class (sort keys %$rel_stmts) {
         my $src_stmts = $rel_stmts->{$src_class};
         foreach my $stmt (@$src_stmts) {
