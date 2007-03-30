@@ -10,6 +10,7 @@ use DBIx::Class::Schema::Loader::RelBuilder;
 use Data::Dump qw/ dump /;
 use POSIX qw//;
 use File::Spec qw//;
+use Cwd qw//;
 use Digest::MD5 qw//;
 require DBIx::Class;
 
@@ -228,56 +229,71 @@ sub new {
     $self;
 }
 
+sub _find_file_in_inc {
+    my ($self, $file) = @_;
+
+    foreach my $prefix (@INC) {
+        my $fullpath = $prefix . '/' . $file;
+        return $fullpath if -f $fullpath;
+    }
+
+    return;
+}
+
 sub _load_external {
     my $self = shift;
 
-    my $abs_dump_dir;
-
-    $abs_dump_dir = File::Spec->rel2abs($self->dump_directory)
-        if $self->dump_directory;
-
     foreach my $class ($self->schema_class, values %{$self->classes}) {
+        my $class_path = $class;
+        $class_path =~ s{::}{/}g;
+        $class_path .= '.pm';
+
+        my $inc_path = $self->_find_file_in_inc($class_path);
+
+        next if !$inc_path;
+
+        my $real_dump_path = $self->dump_directory
+            ? Cwd::abs_path(
+                  File::Spec->catfile($self->dump_directory, $class_path)
+              )
+            : '';
+        my $real_inc_path = Cwd::abs_path($inc_path);
+        next if $real_inc_path eq $real_dump_path;
+
         $class->require;
-        if($@ && $@ !~ /^Can't locate /) {
-            croak "Failed to load external class definition"
-                  . " for '$class': $@";
-        }
-        next if $@; # "Can't locate" error
+        croak "Failed to load external class definition"
+            . " for '$class': $@"
+                if $@;
 
         # If we make it to here, we loaded an external definition
         warn qq/# Loaded external class definition for '$class'\n/
             if $self->debug;
 
-        if($abs_dump_dir) {
-            my $class_path = $class;
-            $class_path =~ s{::}{/}g;
-            $class_path .= '.pm';
-            my $filename = File::Spec->rel2abs($INC{$class_path});
-            croak 'Failed to locate actual external module file for '
-                  . "'$class'"
-                      if !$filename;
-            # XXX this should be done MUCH EARLIER, do not require dump_dir files!!!
-            next if($filename =~ /^$abs_dump_dir/);
-            open(my $fh, '<', $filename)
-                or croak "Failed to open $filename for reading: $!";
-            $self->_ext_stmt($class,
-                qq|# These lines were loaded from '$filename' found in \@INC.|
-                .q|# They are now part of the custom portion of this file|
-                .q|# for you to hand-edit.  If you do not either delete|
-                .q|# this section or remove that file from @INC, this section|
-                .q|# will be repeated redundantly when you re-create this|
-                .q|# file again via Loader!|
-            );
-            while(<$fh>) {
-                chomp;
-                $self->_ext_stmt($class, $_);
-            }
-            $self->_ext_stmt($class,
-                q|# End of lines loaded from '$filename' |
-            );
-            close($fh)
-                or croak "Failed to close $filename: $!";
+        # The rest is only relevant when dumping
+        next if !$self->dump_directory;
+
+        croak 'Failed to locate actual external module file for '
+              . "'$class'"
+                  if !$real_inc_path;
+        open(my $fh, '<', $real_inc_path)
+            or croak "Failed to open '$real_inc_path' for reading: $!";
+        $self->_ext_stmt($class,
+            qq|# These lines were loaded from '$real_inc_path' found in \@INC.|
+            .q|# They are now part of the custom portion of this file|
+            .q|# for you to hand-edit.  If you do not either delete|
+            .q|# this section or remove that file from @INC, this section|
+            .q|# will be repeated redundantly when you re-create this|
+            .q|# file again via Loader!|
+        );
+        while(<$fh>) {
+            chomp;
+            $self->_ext_stmt($class, $_);
         }
+        $self->_ext_stmt($class,
+            q|# End of lines loaded from '$real_inc_path' |
+        );
+        close($fh)
+            or croak "Failed to close $real_inc_path: $!";
     }
 }
 
@@ -368,7 +384,7 @@ sub _write_classfile {
         unlink($filename);
     }    
 
-    my $custom_content = $self->_get_custom_content($filename);
+    my $custom_content = $self->_get_custom_content($class, $filename);
 
     $custom_content ||= qq|\n# You can replace this text with custom|
         . qq| content, and it will be preserved on regeneration|
@@ -406,7 +422,7 @@ sub _get_custom_content {
         or croak "Cannot open '$filename' for reading: $!";
 
     my $mark_re = 
-        /^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\n/;
+        qr{^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\n};
 
     my $found = 0;
     my $buffer = '';
@@ -414,9 +430,8 @@ sub _get_custom_content {
         if(!$found && /$mark_re/) {
             $found = 1;
             $buffer .= $1;
-            $checksum = $2;
             croak "Checksum mismatch in '$filename'"
-                if Digest::MD5::md5_base64($buffer) ne $checksum;
+                if Digest::MD5::md5_base64($buffer) ne $2;
 
             $buffer = '';
         }
@@ -426,7 +441,7 @@ sub _get_custom_content {
     }
 
     croak "Cannot not overwrite '$filename' without 'dump_overwrite',"
-        " it does not appear to have been generated by Loader";
+        . " it does not appear to have been generated by Loader"
             if !$found;
 
     return $buffer;
