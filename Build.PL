@@ -11,6 +11,7 @@ my %arguments = (
         'UNIVERSAL::require'            => 0.10,
         'Lingua::EN::Inflect::Number'   => 1.1,
         'Text::Balanced'                => 0,
+        'Digest::MD5'                   => 2.36,
         'Class::Accessor'               => 0.27,
         'Class::Data::Accessor'         => 0.02,
         'Class::C3'                     => 0.11,

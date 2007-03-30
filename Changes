@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Made dump_to_dir / dump_overwrite much more intelligent
+          (they now preserve customizations by default)
         - Added support for DBI's new standard "statistics_info"
           method to gather unique key info (only supported by
           DBD::Pg trunk + DBI >= 1.52 so far)

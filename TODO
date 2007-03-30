@@ -2,8 +2,6 @@
 immediate stuff for 0.04:
 --------------------------
 
-dump_to_dir needs to delimit its output so that it can update on overwrite without killing added things
-
 avinash240 wants a rescan method to pick up new tables at runtime
 
 -------

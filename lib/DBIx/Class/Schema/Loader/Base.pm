@@ -10,6 +10,7 @@ use DBIx::Class::Schema::Loader::RelBuilder;
 use Data::Dump qw/ dump /;
 use POSIX qw//;
 use File::Spec qw//;
+use Digest::MD5 qw//;
 require DBIx::Class;
 
 our $VERSION = '0.03999_01';
@@ -150,11 +151,7 @@ in memory.
 
 The created schema class will have the same classname as the one on
 which you are setting this option (and the ResultSource classes will be
-based on this name as well).  Therefore it is wise to note that if you
-point the C<dump_directory> option of a schema class at the live libdir
-where that class is currently located, it will overwrite itself with a
-manual version of itself.  This might be a really good or bad thing
-depending on your situation and perspective.
+based on this name as well).
 
 Normally you wouldn't hard-code this setting in your schema class, as it
 is meant for one-time manual usage.
@@ -164,9 +161,18 @@ recommended way to access this functionality.
 
 =head2 dump_overwrite
 
-If set to a true value, the dumping code will overwrite existing files.
-The default is false, which means the dumping code will skip the already
-existing files.
+Default false.  If true, Loader will unconditionally delete any existing
+files before creating the new ones from scratch when dumping a schema to disk.
+
+The default behavior is instead to only replace the top portion of the
+file, up to and including the final stanza which contains
+C<# DO NOT MODIFY THIS OR ANYTHING ABOVE!>
+leaving any customizations you placed after that as they were.
+
+When C<dump_overwrite> is not set, if the output file already exists,
+but the aforementioned final stanza is not found, or the checksum
+contained there does not match the generated contents, Loader will
+croak and not touch the file.
 
 =head1 METHODS
 
@@ -230,38 +236,44 @@ sub _load_external {
     $abs_dump_dir = File::Spec->rel2abs($self->dump_directory)
         if $self->dump_directory;
 
-    foreach my $table_class (values %{$self->classes}) {
-        $table_class->require;
+    foreach my $class ($self->schema_class, values %{$self->classes}) {
+        $class->require;
         if($@ && $@ !~ /^Can't locate /) {
             croak "Failed to load external class definition"
-                  . " for '$table_class': $@";
+                  . " for '$class': $@";
         }
         next if $@; # "Can't locate" error
 
         # If we make it to here, we loaded an external definition
-        warn qq/# Loaded external class definition for '$table_class'\n/
+        warn qq/# Loaded external class definition for '$class'\n/
             if $self->debug;
 
         if($abs_dump_dir) {
-            my $class_path = $table_class;
+            my $class_path = $class;
             $class_path =~ s{::}{/}g;
             $class_path .= '.pm';
             my $filename = File::Spec->rel2abs($INC{$class_path});
             croak 'Failed to locate actual external module file for '
-                  . "'$table_class'"
+                  . "'$class'"
                       if !$filename;
+            # XXX this should be done MUCH EARLIER, do not require dump_dir files!!!
             next if($filename =~ /^$abs_dump_dir/);
             open(my $fh, '<', $filename)
                 or croak "Failed to open $filename for reading: $!";
-            $self->_raw_stmt($table_class,
-                q|# These lines loaded from user-supplied external file: |
+            $self->_ext_stmt($class,
+                qq|# These lines were loaded from '$filename' found in \@INC.|
+                .q|# They are now part of the custom portion of this file|
+                .q|# for you to hand-edit.  If you do not either delete|
+                .q|# this section or remove that file from @INC, this section|
+                .q|# will be repeated redundantly when you re-create this|
+                .q|# file again via Loader!|
             );
             while(<$fh>) {
                 chomp;
-                $self->_raw_stmt($table_class, $_);
+                $self->_ext_stmt($class, $_);
             }
-            $self->_raw_stmt($table_class,
-                q|# End of lines loaded from user-supplied external file |
+            $self->_ext_stmt($class,
+                q|# End of lines loaded from '$filename' |
             );
             close($fh)
                 or croak "Failed to close $filename: $!";
@@ -304,11 +316,12 @@ sub _ensure_dump_subdirs {
                      # which is a filename
 
     my $dir = $self->dump_directory;
-    foreach (@name_parts) {
-        $dir = File::Spec->catdir($dir,$_);
-        if(! -d $dir) {
+    while (1) {
+        if(!-d $dir) {
             mkdir($dir) or croak "mkdir('$dir') failed: $!";
         }
+        last if !@name_parts;
+        $dir = File::Spec->catdir($dir, shift @name_parts);
     }
 }
 
@@ -323,52 +336,100 @@ sub _dump_to_dir {
 
     warn "Dumping manual schema for $schema_class to directory $target_dir ...\n";
 
-    if(! -d $target_dir) {
-        mkdir($target_dir) or croak "mkdir('$target_dir') failed: $!";
-    }
+    my $schema_text =
+          qq|package $schema_class;\n\n|
+        . qq|use strict;\nuse warnings;\n\n|
+        . qq|use base 'DBIx::Class::Schema';\n\n|
+        . qq|__PACKAGE__->load_classes;\n|;
 
-    my $verstr = $DBIx::Class::Schema::Loader::VERSION;
-    my $datestr = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
-    my $tagline = qq|# Created by DBIx::Class::Schema::Loader v$verstr @ $datestr|;
-
-    $self->_ensure_dump_subdirs($schema_class);
-
-    my $schema_fn = $self->_get_dump_filename($schema_class);
-    if (-f $schema_fn && !$self->dump_overwrite) {
-        warn "$schema_fn exists, will not overwrite\n";
-    }
-    else {
-        open(my $schema_fh, '>', $schema_fn)
-            or croak "Cannot open $schema_fn for writing: $!";
-        print $schema_fh qq|package $schema_class;\n\n$tagline\n\n|;
-        print $schema_fh qq|use strict;\nuse warnings;\n\n|;
-        print $schema_fh qq|use base 'DBIx::Class::Schema';\n\n|;
-        print $schema_fh qq|__PACKAGE__->load_classes;\n|;
-        print $schema_fh qq|\n1;\n\n|;
-        close($schema_fh)
-            or croak "Cannot close $schema_fn: $!";
-    }
+    $self->_write_classfile($schema_class, $schema_text);
 
     foreach my $src_class (sort keys %{$self->{_dump_storage}}) {
-        $self->_ensure_dump_subdirs($src_class);
-        my $src_fn = $self->_get_dump_filename($src_class);
-        if (-f $src_fn && !$self->dump_overwrite) {
-            warn "$src_fn exists, will not overwrite\n";
-            next;
-        }    
-        open(my $src_fh, '>', $src_fn)
-            or croak "Cannot open $src_fn for writing: $!";
-        print $src_fh qq|package $src_class;\n\n$tagline\n\n|;
-        print $src_fh qq|use strict;\nuse warnings;\n\n|;
-        print $src_fh qq|use base 'DBIx::Class';\n\n|;
-        print $src_fh qq|$_\n|
-            for @{$self->{_dump_storage}->{$src_class}};
-        print $src_fh qq|\n1;\n\n|;
-        close($src_fh)
-            or croak "Cannot close $src_fn: $!";
+        my $src_text = 
+              qq|package $src_class;\n\n|
+            . qq|use strict;\nuse warnings;\n\n|
+            . qq|use base 'DBIx::Class';\n\n|;
+
+        $self->_write_classfile($src_class, $src_text);
     }
 
     warn "Schema dump completed.\n";
+}
+
+sub _write_classfile {
+    my ($self, $class, $text) = @_;
+
+    my $filename = $self->_get_dump_filename($class);
+    $self->_ensure_dump_subdirs($class);
+
+    if (-f $filename && $self->dump_overwrite) {
+        warn "Deleting existing file '$filename' due to "
+            . "'dump_overwrite' setting\n";
+        unlink($filename);
+    }    
+
+    my $custom_content = (-f $filename)
+        ? $self->_get_custom_content($filename)
+        : undef;
+
+    $custom_content ||= qq|\n# You can replace this text with custom|
+        . qq| content, and it will be preserved on regeneration|
+        . qq|\n1;\n|;
+
+    $text .= qq|$_\n|
+        for @{$self->{_dump_storage}->{$class} || []};
+
+    $text .= qq|\n\n# Created by DBIx::Class::Schema::Loader|
+        . qq| v| . $DBIx::Class::Schema::Loader::VERSION
+        . q| @ | . POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
+        . qq|\n# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:|;
+
+    open(my $fh, '>', $filename)
+        or croak "Cannot open '$filename' for writing: $!";
+
+    # Write the top half and its MD5 sum
+    print $fh $text . Digest::MD5::md5_base64($text) . "\n\n";
+
+    # Write out anything loaded via external partial class file in @INC
+    print $fh qq|$_\n|
+        for @{$self->{_ext_storage}->{$class} || []};
+
+    print $fh $custom_content;
+
+    close($fh)
+        or croak "Cannot close '$filename': $!";
+}
+
+sub _get_custom_content {
+    my ($self, $class, $filename) = @_;
+
+    return if ! -f $filename;
+    open(my $fh, '<', $filename)
+        or croak "Cannot open '$filename' for reading: $!";
+
+    my $mark_re = 
+        /^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\n/;
+
+    my $found = 0;
+    my $buffer = '';
+    while(<$fh>) {
+        if(!$found && /$mark_re/) {
+            $found = 1;
+            $buffer .= $1;
+            $checksum = $2;
+            croak "Checksum mismatch in '$filename'"
+                if Digest::MD5::md5_base64($buffer) ne $checksum;
+
+            $buffer = '';
+        }
+        else {
+            $buffer .= $_;
+        }
+    }
+
+    if(!$found) {
+    }
+    return $buffer;
 }
 
 sub _use {
@@ -587,6 +648,12 @@ sub _dbic_stmt {
 sub _raw_stmt {
     my ($self, $class, $stmt) = @_;
     push(@{$self->{_dump_storage}->{$class}}, $stmt) if $self->dump_directory;
+}
+
+# Like above, but separately for the externally loaded stuff
+sub _ext_stmt {
+    my ($self, $class, $stmt) = @_;
+    push(@{$self->{_ext_storage}->{$class}}, $stmt) if $self->dump_directory;
 }
 
 =head2 monikers

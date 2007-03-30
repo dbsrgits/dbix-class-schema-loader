@@ -25,7 +25,7 @@ my $dump_path = './t/_dump';
     );
 }
 
-plan tests => 8;
+plan tests => 5;
 
 rmtree($dump_path, 1, 1);
 
@@ -45,7 +45,6 @@ SKIP: {
   }
   my @warnings_regexes = (
       qr|Dumping manual schema|,
-      (qr|DBICTest/Schema/1.*?.pm exists, will not overwrite|) x 3,
       qr|Schema dump completed|,
   );
 
@@ -63,4 +62,4 @@ eval { DBICTest::Schema::2->connect($make_dbictest_db::dsn) };
 ok(!$@, 'no death with dump_directory set (overwrite2)')
     or diag "Dump failed: $@";
 
-END { rmtree($dump_path, 1, 1); }
+# END { rmtree($dump_path, 1, 1); }
