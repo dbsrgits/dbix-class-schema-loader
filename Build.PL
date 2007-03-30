@@ -25,6 +25,7 @@ my %arguments = (
         'DBD::mysql'                    => 3.0003,
         'DBD::Pg'                       => 1.49,
         'DBD::DB2'                      => 0.78,
+        'DBD::Oracle'                   => 0.19,
     },
     build_requires     => {
         'Test::More'                    => 0.32,

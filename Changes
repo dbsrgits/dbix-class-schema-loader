@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Added *experimental* Oracle support from work done
+          by Tsunoda Kazuya some months ago.  Not well tested.
         - Added "rescan" schema (and loader) method, which picks
           up newly created tables at runtime
         - Made dump_to_dir / dump_overwrite much more intelligent
