@@ -241,60 +241,58 @@ sub _find_file_in_inc {
 }
 
 sub _load_external {
-    my $self = shift;
+    my ($self, $class) = @_;
 
-    foreach my $class ($self->schema_class, values %{$self->classes}) {
-        my $class_path = $class;
-        $class_path =~ s{::}{/}g;
-        $class_path .= '.pm';
+    my $class_path = $class;
+    $class_path =~ s{::}{/}g;
+    $class_path .= '.pm';
 
-        my $inc_path = $self->_find_file_in_inc($class_path);
+    my $inc_path = $self->_find_file_in_inc($class_path);
 
-        next if !$inc_path;
+    return if !$inc_path;
 
-        my $real_dump_path = $self->dump_directory
-            ? Cwd::abs_path(
-                  File::Spec->catfile($self->dump_directory, $class_path)
-              )
-            : '';
-        my $real_inc_path = Cwd::abs_path($inc_path);
-        next if $real_inc_path eq $real_dump_path;
+    my $real_dump_path = $self->dump_directory
+        ? Cwd::abs_path(
+              File::Spec->catfile($self->dump_directory, $class_path)
+          )
+        : '';
+    my $real_inc_path = Cwd::abs_path($inc_path);
+    return if $real_inc_path eq $real_dump_path;
 
-        $class->require;
-        croak "Failed to load external class definition"
-            . " for '$class': $@"
-                if $@;
+    $class->require;
+    croak "Failed to load external class definition"
+        . " for '$class': $@"
+            if $@;
 
-        # If we make it to here, we loaded an external definition
-        warn qq/# Loaded external class definition for '$class'\n/
-            if $self->debug;
+    # If we make it to here, we loaded an external definition
+    warn qq/# Loaded external class definition for '$class'\n/
+        if $self->debug;
 
-        # The rest is only relevant when dumping
-        next if !$self->dump_directory;
+    # The rest is only relevant when dumping
+    return if !$self->dump_directory;
 
-        croak 'Failed to locate actual external module file for '
-              . "'$class'"
-                  if !$real_inc_path;
-        open(my $fh, '<', $real_inc_path)
-            or croak "Failed to open '$real_inc_path' for reading: $!";
-        $self->_ext_stmt($class,
-            qq|# These lines were loaded from '$real_inc_path' found in \@INC.|
-            .q|# They are now part of the custom portion of this file|
-            .q|# for you to hand-edit.  If you do not either delete|
-            .q|# this section or remove that file from @INC, this section|
-            .q|# will be repeated redundantly when you re-create this|
-            .q|# file again via Loader!|
-        );
-        while(<$fh>) {
-            chomp;
-            $self->_ext_stmt($class, $_);
-        }
-        $self->_ext_stmt($class,
-            q|# End of lines loaded from '$real_inc_path' |
-        );
-        close($fh)
-            or croak "Failed to close $real_inc_path: $!";
+    croak 'Failed to locate actual external module file for '
+          . "'$class'"
+              if !$real_inc_path;
+    open(my $fh, '<', $real_inc_path)
+        or croak "Failed to open '$real_inc_path' for reading: $!";
+    $self->_ext_stmt($class,
+        qq|# These lines were loaded from '$real_inc_path' found in \@INC.|
+        .q|# They are now part of the custom portion of this file|
+        .q|# for you to hand-edit.  If you do not either delete|
+        .q|# this section or remove that file from @INC, this section|
+        .q|# will be repeated redundantly when you re-create this|
+        .q|# file again via Loader!|
+    );
+    while(<$fh>) {
+        chomp;
+        $self->_ext_stmt($class, $_);
     }
+    $self->_ext_stmt($class,
+        q|# End of lines loaded from '$real_inc_path' |
+    );
+    close($fh)
+        or croak "Failed to close $real_inc_path: $!";
 }
 
 =head2 load
@@ -306,9 +304,44 @@ Does the actual schema-construction work.
 sub load {
     my $self = shift;
 
-    $self->_load_classes;
+    # First, use _tables_list with constraint and exclude
+    #  to get a list of tables to operate on
+
+    my $constraint   = $self->constraint;
+    my $exclude      = $self->exclude;
+    my @tables       = sort $self->_tables_list;
+
+    if(!@tables) {
+        warn "No tables found in database, nothing to load";
+    }
+    else {
+        @tables = grep { /$constraint/ } @tables if $constraint;
+        @tables = grep { ! /$exclude/ } @tables if $exclude;
+
+        warn "All tables excluded by constraint/exclude, nothing to load"
+            if !@tables;
+    }
+
+    # Save the tables list
+    $self->{_tables} = \@tables;
+
+    # Set up classes/monikers
+    {
+        no warnings 'redefine';
+        local *Class::C3::reinitialize = sub { };
+        use warnings;
+
+        $self->_make_src_class($_) for @tables;
+    }
+
+    Class::C3::reinitialize;
+
+    $self->_setup_src_meta($_) for @tables;
+
     $self->_load_relationships if ! $self->skip_relationships;
-    $self->_load_external;
+    $self->_load_external($_)
+        for ($self->schema_class, values %{$self->classes});
+
     $self->_dump_to_dir if $self->dump_directory;
 
     # Drop temporary cache
@@ -476,87 +509,70 @@ sub _inject {
     }
 }
 
-# Load and setup classes
-sub _load_classes {
-    my $self = shift;
+# Create class with applicable bases, setup monikers, etc
+sub _make_src_class {
+    my ($self, $table) = @_;
 
     my $schema       = $self->schema;
     my $schema_class = $self->schema_class;
-    my $constraint   = $self->constraint;
-    my $exclude      = $self->exclude;
-    my @tables       = sort $self->_tables_list;
 
-    warn "No tables found in database, nothing to load" if !@tables;
+    my $table_moniker = $self->_table2moniker($table);
+    my $table_class = $schema_class . q{::} . $table_moniker;
 
-    if(@tables) {
-        @tables = grep { /$constraint/ } @tables if $constraint;
-        @tables = grep { ! /$exclude/ } @tables if $exclude;
+    my $table_normalized = lc $table;
+    $self->classes->{$table} = $table_class;
+    $self->classes->{$table_normalized} = $table_class;
+    $self->monikers->{$table} = $table_moniker;
+    $self->monikers->{$table_normalized} = $table_moniker;
 
-        warn "All tables excluded by constraint/exclude, nothing to load"
-            if !@tables;
+    { no strict 'refs'; @{"${table_class}::ISA"} = qw/DBIx::Class/ }
+
+    $self->_use   ($table_class, @{$self->additional_classes});
+    $self->_inject($table_class, @{$self->additional_base_classes});
+
+    $self->_dbic_stmt($table_class, 'load_components', @{$self->components}, qw/PK::Auto Core/);
+
+    $self->_dbic_stmt($table_class, 'load_resultset_components', @{$self->resultset_components})
+        if @{$self->resultset_components};
+    $self->_inject($table_class, @{$self->left_base_classes});
+}
+
+# Set up metadata (cols, pks, etc) and register the class with the schema
+sub _setup_src_meta {
+    my ($self, $table) = @_;
+
+    my $schema       = $self->schema;
+    my $schema_class = $self->schema_class;
+
+    my $table_class = $self->classes->{$table};
+    my $table_moniker = $self->monikers->{$table};
+
+    $self->_dbic_stmt($table_class,'table',$table);
+
+    my $cols = $self->_table_columns($table);
+    my $col_info;
+    eval { $col_info = $self->_columns_info_for($table) };
+    if($@) {
+        $self->_dbic_stmt($table_class,'add_columns',@$cols);
+    }
+    else {
+        my %col_info_lc = map { lc($_), $col_info->{$_} } keys %$col_info;
+        $self->_dbic_stmt(
+            $table_class,
+            'add_columns',
+            map { $_, ($col_info_lc{$_}||{}) } @$cols
+        );
     }
 
-    $self->{_tables} = \@tables;
+    my $pks = $self->_table_pk_info($table) || [];
+    @$pks ? $self->_dbic_stmt($table_class,'set_primary_key',@$pks)
+          : carp("$table has no primary key");
 
-    foreach my $table (@tables) {
-        my $table_moniker = $self->_table2moniker($table);
-        my $table_class = $schema_class . q{::} . $table_moniker;
+    my $uniqs = $self->_table_uniq_info($table) || [];
+    $self->_dbic_stmt($table_class,'add_unique_constraint',@$_) for (@$uniqs);
 
-        my $table_normalized = lc $table;
-        $self->classes->{$table} = $table_class;
-        $self->classes->{$table_normalized} = $table_class;
-        $self->monikers->{$table} = $table_moniker;
-        $self->monikers->{$table_normalized} = $table_moniker;
-
-        no warnings 'redefine';
-        local *Class::C3::reinitialize = sub { };
-        use warnings;
-
-        { no strict 'refs'; @{"${table_class}::ISA"} = qw/DBIx::Class/ }
-
-        $self->_use   ($table_class, @{$self->additional_classes});
-        $self->_inject($table_class, @{$self->additional_base_classes});
-
-        $self->_dbic_stmt($table_class, 'load_components', @{$self->components}, qw/PK::Auto Core/);
-
-        $self->_dbic_stmt($table_class, 'load_resultset_components', @{$self->resultset_components})
-            if @{$self->resultset_components};
-        $self->_inject($table_class, @{$self->left_base_classes});
-    }
-
-    Class::C3::reinitialize;
-
-    foreach my $table (@tables) {
-        my $table_class = $self->classes->{$table};
-        my $table_moniker = $self->monikers->{$table};
-
-        $self->_dbic_stmt($table_class,'table',$table);
-
-        my $cols = $self->_table_columns($table);
-        my $col_info;
-        eval { $col_info = $self->_columns_info_for($table) };
-        if($@) {
-            $self->_dbic_stmt($table_class,'add_columns',@$cols);
-        }
-        else {
-            my %col_info_lc = map { lc($_), $col_info->{$_} } keys %$col_info;
-            $self->_dbic_stmt(
-                $table_class,
-                'add_columns',
-                map { $_, ($col_info_lc{$_}||{}) } @$cols
-            );
-        }
-
-        my $pks = $self->_table_pk_info($table) || [];
-        @$pks ? $self->_dbic_stmt($table_class,'set_primary_key',@$pks)
-              : carp("$table has no primary key");
-
-        my $uniqs = $self->_table_uniq_info($table) || [];
-        $self->_dbic_stmt($table_class,'add_unique_constraint',@$_) for (@$uniqs);
-
-        $schema_class->register_class($table_moniker, $table_class);
-        $schema->register_class($table_moniker, $table_class) if $schema ne $schema_class;
-    }
+    $schema_class->register_class($table_moniker, $table_class);
+    $schema->register_class($table_moniker, $table_class) if $schema ne $schema_class;
 }
 
 =head2 tables
