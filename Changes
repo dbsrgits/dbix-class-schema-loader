@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Added "rescan" schema (and loader) method, which picks
+          up newly created tables at runtime
         - Made dump_to_dir / dump_overwrite much more intelligent
           (they now preserve customizations by default)
         - Added support for DBI's new standard "statistics_info"
