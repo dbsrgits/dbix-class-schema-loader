@@ -365,7 +365,7 @@ sub _load_tables {
     }
 
     $self->_load_external($_)
-        for ($self->schema_class, values %{$self->classes});
+        for map { $self->classes->{$_} } @tables;
 
     $self->_dump_to_dir if $self->dump_directory;
 
