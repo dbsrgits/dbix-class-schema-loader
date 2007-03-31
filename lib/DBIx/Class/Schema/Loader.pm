@@ -290,9 +290,11 @@ Re-scans the database for newly added tables since the initial
 load, and adds them to the schema at runtime, including relationships,
 etc.  Does not process drops or changes.
 
+Returns a list of the new monikers added.
+
 =cut
 
-sub rescan { shift->_loader->rescan }
+sub rescan { my $self = shift; $self->_loader->rescan($self) }
 
 =head1 EXAMPLE
 

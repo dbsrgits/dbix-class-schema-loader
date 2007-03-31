@@ -209,7 +209,6 @@ sub new {
 
     bless $self => $class;
 
-    $self->{db_schema}  ||= '';
     $self->_ensure_arrayref(qw/additional_classes
                                additional_base_classes
                                left_base_classes
@@ -313,13 +312,23 @@ sub load {
 
 =head2 rescan
 
+Arguments: schema
+
 Rescan the database for newly added tables.  Does
-not process drops or changes.
+not process drops or changes.  Returns a list of
+the newly added table monikers.
+
+The schema argument should be the schema class
+or object to be affected.  It should probably
+be derived from the original schema_class used
+during L</load>.
 
 =cut
 
 sub rescan {
-    my $self = shift;
+    my ($self, $schema) = @_;
+
+    $self->{schema} = $schema;
 
     my @created;
     my @current = $self->_tables_list;
@@ -330,6 +339,8 @@ sub rescan {
     }
 
     $self->_load_tables(@created);
+
+    return map { $self->monikers->{$_} } @created;
 }
 
 sub _load_tables {
@@ -345,7 +356,9 @@ sub _load_tables {
     @tables = grep { ! /$exclude/ } @tables if $exclude;
 
     # Save the new tables to the tables list
-    push(@{$self->{_tables}}, @tables);
+    foreach (@tables) {
+        $self->{_tables}->{$_} = 1;
+    }
 
     # Set up classes/monikers
     {
