@@ -444,38 +444,36 @@ sub run_tests {
             my $obj15 = $rsobj15->find(1);
             isa_ok( $obj15->loader_test14, $class14 );
         }
+    }
 
-        # rescan test
-        SKIP: {
-            skip 'SQLite does not like schema changes while connected', 4
-                if $self->{vendor} =~ /sqlite/i;
+    # rescan test
+    SKIP: {
+        skip $self->{skip_rels}, 4 if $self->{skip_rels};
 
-            my @statements_rescan = (
-                qq{
-                    CREATE TABLE loader_test25 (
-                        id INTEGER NOT NULL PRIMARY KEY,
-                        loader_test2 INTEGER NOT NULL,
-                        FOREIGN KEY (loader_test2) REFERENCES loader_test2 (id)
-                    ) $self->{innodb}
-                },
-                q{ INSERT INTO loader_test25 (id,loader_test2) VALUES(123, 1) },
-                q{ INSERT INTO loader_test25 (id,loader_test2) VALUES(321, 2) },
-            );
+        my @statements_rescan = (
+            qq{
+                CREATE TABLE loader_test25 (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    loader_test2 INTEGER NOT NULL,
+                    FOREIGN KEY (loader_test2) REFERENCES loader_test2 (id)
+                ) $self->{innodb}
+            },
+            q{ INSERT INTO loader_test25 (id,loader_test2) VALUES(123, 1) },
+            q{ INSERT INTO loader_test25 (id,loader_test2) VALUES(321, 2) },
+        );
 
-            my $dbh = $self->dbconnect(1);
-            $dbh->do($_) for @statements_rescan;
-            $dbh->disconnect;
+        my $dbh = $self->dbconnect(1);
+        $dbh->do($_) for @statements_rescan;
+        $dbh->disconnect;
 
-            my @new = $conn->rescan;
-            is(scalar(@new), 1);
-            is($new[0], 'LoaderTest25');
+        my @new = $conn->rescan;
+        is(scalar(@new), 1);
+        is($new[0], 'LoaderTest25');
 
-            my $rsobj25   = $conn->resultset('LoaderTest25');
-            isa_ok($rsobj25, 'DBIx::Class::ResultSet');
-            my $obj25 = $rsobj25->find(123);
-            isa_ok( $obj25->loader_test2, $class2);
-        }
-
+        my $rsobj25   = $conn->resultset('LoaderTest25');
+        isa_ok($rsobj25, 'DBIx::Class::ResultSet');
+        my $obj25 = $rsobj25->find(123);
+        isa_ok( $obj25->loader_test2, $class2);
     }
 }
 
@@ -876,8 +874,6 @@ sub drop_tables {
         unless($self->{no_implicit_rels}) {
             $dbh->do("DROP TABLE $_") for (@tables_implicit_rels);
         }
-    }
-    unless($self->{vendor} =~ /sqlite/i) {
         $dbh->do("DROP TABLE $_") for (@tables_rescan);
     }
     $dbh->do("DROP TABLE $_") for (@tables);

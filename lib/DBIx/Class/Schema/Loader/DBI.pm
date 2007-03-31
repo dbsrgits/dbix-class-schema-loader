@@ -109,7 +109,10 @@ sub _table_columns {
 
     my $sth = $dbh->prepare($self->schema->storage->sql_maker->select($table, undef, \'1 = 0'));
     $sth->execute;
-    return \@{$sth->{NAME_lc}};
+    my $retval = \@{$sth->{NAME_lc}};
+    $sth->finish;
+
+    $retval;
 }
 
 # Returns arrayref of pk col names
@@ -147,6 +150,7 @@ sub _table_uniq_info {
 
         $indices{$row->{INDEX_NAME}}->{$row->{ORDINAL_POSITION}} = $row->{COLUMN_NAME};
     }
+    $sth->finish;
 
     my @retval;
     foreach my $index_name (keys %indices) {
@@ -184,6 +188,7 @@ sub _table_fk_info {
         $rels{$relid}->{tbl} = $uk_tbl;
         $rels{$relid}->{cols}->{$uk_col} = $fk_col;
     }
+    $sth->finish;
 
     my @rels;
     foreach my $relid (keys %rels) {
@@ -219,6 +224,7 @@ sub _columns_info_for {
 
                 $result{$col_name} = \%column_info;
             }
+            $sth->finish;
         };
       return \%result if !$@ && scalar keys %result;
     }
