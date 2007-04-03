@@ -10,7 +10,6 @@ my $dump_path = './t/_dump';
     package DBICTest::Schema::1;
     use base qw/ DBIx::Class::Schema::Loader /;
     __PACKAGE__->loader_options(
-        relationships => 1,
         dump_directory => $dump_path,
     );
 }
@@ -19,7 +18,6 @@ my $dump_path = './t/_dump';
     package DBICTest::Schema::2;
     use base qw/ DBIx::Class::Schema::Loader /;
     __PACKAGE__->loader_options(
-        relationships => 1,
         dump_directory => $dump_path,
         dump_overwrite => 1,
     );

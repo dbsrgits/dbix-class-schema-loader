@@ -568,7 +568,7 @@ sub _make_src_class {
     $self->_use   ($table_class, @{$self->additional_classes});
     $self->_inject($table_class, @{$self->additional_base_classes});
 
-    $self->_dbic_stmt($table_class, 'load_components', @{$self->components}, qw/PK::Auto Core/);
+    $self->_dbic_stmt($table_class, 'load_components', @{$self->components}, 'Core');
 
     $self->_dbic_stmt($table_class, 'load_resultset_components', @{$self->resultset_components})
         if @{$self->resultset_components};
