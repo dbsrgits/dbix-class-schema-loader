@@ -77,12 +77,12 @@ sub _sqlite_parse_table {
         # Grab reference
         chomp $col;
 
-        if($col =~ /^(.*)\s+UNIQUE/) {
+        if($col =~ /^(.*)\s+UNIQUE/i) {
             my $colname = $1;
             $colname =~ s/\s+.*$//;
             push(@uniqs, [ "${colname}_unique" => [ lc $colname ] ]);
         }
-        elsif($col =~/^\s*UNIQUE\s*\(\s*(.*)\)/) {
+        elsif($col =~/^\s*UNIQUE\s*\(\s*(.*)\)/i) {
             my $cols = $1;
             $cols =~ s/\s+$//;
             my @cols = map { lc } split(/\s*,\s*/, $cols);
