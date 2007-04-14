@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03011 Sat Apr 14 19:03:07 UTC 2007
+        - fix case-sensitivity in UNIQUE parsing for SQLite
+
 0.03010 Thu Mar 29 12:36:19 UTC 2007
         - Workaround for new incompatible changes in DBD::mysql's "tables"
           method, which was causing us to find no tables w/ DBD::mysql
