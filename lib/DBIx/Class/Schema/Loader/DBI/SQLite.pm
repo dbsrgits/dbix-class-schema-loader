@@ -167,6 +167,7 @@ sub _tables_list {
     my @tables;
     while ( my $row = $sth->fetchrow_hashref ) {
         next unless lc( $row->{type} ) eq 'table';
+        next if $row->{tbl_name} =~ /^sqlite_/;
         push @tables, $row->{tbl_name};
     }
     $sth->finish;

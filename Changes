@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - skip ^sqlite_ tables in SQLite (thanks chromatic)
+
 0.03999_01 Sat Apr 14 19:57:40 GMT 2007
         - Added *experimental* Oracle support from work done
           by Tsunoda Kazuya some months ago.  Not well tested.
