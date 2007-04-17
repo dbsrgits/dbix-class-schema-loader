@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - skip ^sqlite_ tables in SQLite (thanks chromatic)
+
 0.03011 Sat Apr 14 19:03:07 UTC 2007
         - fix case-sensitivity in UNIQUE parsing for SQLite
 
