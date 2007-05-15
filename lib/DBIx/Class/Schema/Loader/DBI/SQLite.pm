@@ -42,7 +42,7 @@ sub _sqlite_parse_table {
     $sth->finish;
 
     # Cut "CREATE TABLE ( )" blabla...
-    $sql =~ /^[\w\s]+\((.*)\)$/si;
+    $sql =~ /^[\w\s']+\((.*)\)$/si;
     my $cols = $1;
 
     # strip single-line comments
