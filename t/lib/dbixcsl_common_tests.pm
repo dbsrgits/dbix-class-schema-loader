@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 76;
+    plan tests => 84;
 
     $self->create();
 
@@ -297,6 +297,14 @@ sub run_tests {
         my $class22   = $classes->{loader_test22};
         my $rsobj22   = $conn->resultset($moniker22);
 
+        my $moniker25 = $monikers->{loader_test25};
+        my $class25   = $classes->{loader_test25};
+        my $rsobj25   = $conn->resultset($moniker25);
+
+        my $moniker26 = $monikers->{loader_test26};
+        my $class26   = $classes->{loader_test26};
+        my $rsobj26   = $conn->resultset($moniker26);
+
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -311,6 +319,8 @@ sub run_tests {
         isa_ok( $rsobj20, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj21, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj22, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj25, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj26, "DBIx::Class::ResultSet" );
 
         # basic rel test
         my $obj4 = $rsobj4->find(123);
@@ -352,6 +362,22 @@ sub run_tests {
         # XXX test m:m 18 <- 20 -> 19
         
         # XXX test double-fk m:m 21 <- 22 -> 21
+
+        # test double multi-col fk 26 -> 25
+        my $obj26 = $rsobj26->find(33);
+
+        my $rs_rel25_one = $obj26->loader_test25_id_rel1;
+        isa_ok($rs_rel25_one, $class25);
+        is($rs_rel25_one->dat, 'x25');
+
+        my $rs_rel25_two = $obj26->loader_test25_id_rel2;
+        isa_ok($rs_rel25_two, $class25);
+        is($rs_rel25_two->dat, 'y25');
+
+        my $obj25 = $rsobj25->find(3,42);
+        my $rs_rel26 = $obj25->search_related('loader_test26_id_rel1s');
+        isa_ok($rs_rel26->first, $class26);
+        is($rs_rel26->first->id, 3);
 
         # from Chisel's tests...
         SKIP: {
@@ -671,6 +697,32 @@ sub create {
         q{ INSERT INTO loader_test22 (parent, child) VALUES (7,11)},
         q{ INSERT INTO loader_test22 (parent, child) VALUES (11,13)},
         q{ INSERT INTO loader_test22 (parent, child) VALUES (13,17)},
+
+	qq{
+            CREATE TABLE loader_test25 (
+                id1 INTEGER NOT NULL,
+                id2 INTEGER NOT NULL,
+                dat VARCHAR(8),
+                PRIMARY KEY (id1,id2)
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test25 (id1,id2,dat) VALUES (33,5,'x25') },
+        q{ INSERT INTO loader_test25 (id1,id2,dat) VALUES (33,7,'y25') },
+        q{ INSERT INTO loader_test25 (id1,id2,dat) VALUES (3,42,'z25') },
+
+        qq{
+            CREATE TABLE loader_test26 (
+               id INTEGER NOT NULL PRIMARY KEY,
+               rel1 INTEGER NOT NULL,
+               rel2 INTEGER NOT NULL,
+               FOREIGN KEY (id, rel1) REFERENCES loader_test25 (id1, id2),
+               FOREIGN KEY (id, rel2) REFERENCES loader_test25 (id1, id2)
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test26 (id,rel1,rel2) VALUES (33,5,7) },
+        q{ INSERT INTO loader_test26 (id,rel1,rel2) VALUES (3,42,42) },
     );
 
     my @statements_advanced = (
@@ -795,6 +847,8 @@ sub drop_tables {
         loader_test18
         loader_test22
         loader_test21
+        loader_test26
+        loader_test25
     /;
 
     my @tables_advanced = qw/
