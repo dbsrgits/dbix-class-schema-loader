@@ -478,14 +478,14 @@ sub run_tests {
 
         my @statements_rescan = (
             qq{
-                CREATE TABLE loader_test25 (
+                CREATE TABLE loader_test30 (
                     id INTEGER NOT NULL PRIMARY KEY,
                     loader_test2 INTEGER NOT NULL,
                     FOREIGN KEY (loader_test2) REFERENCES loader_test2 (id)
                 ) $self->{innodb}
             },
-            q{ INSERT INTO loader_test25 (id,loader_test2) VALUES(123, 1) },
-            q{ INSERT INTO loader_test25 (id,loader_test2) VALUES(321, 2) },
+            q{ INSERT INTO loader_test30 (id,loader_test2) VALUES(123, 1) },
+            q{ INSERT INTO loader_test30 (id,loader_test2) VALUES(321, 2) },
         );
 
         my $dbh = $self->dbconnect(1);
@@ -494,12 +494,12 @@ sub run_tests {
 
         my @new = $conn->rescan;
         is(scalar(@new), 1);
-        is($new[0], 'LoaderTest25');
+        is($new[0], 'LoaderTest30');
 
-        my $rsobj25   = $conn->resultset('LoaderTest25');
-        isa_ok($rsobj25, 'DBIx::Class::ResultSet');
-        my $obj25 = $rsobj25->find(123);
-        isa_ok( $obj25->loader_test2, $class2);
+        my $rsobj30   = $conn->resultset('LoaderTest30');
+        isa_ok($rsobj30, 'DBIx::Class::ResultSet');
+        my $obj30 = $rsobj30->find(123);
+        isa_ok( $obj30->loader_test2, $class2);
     }
 }
 
@@ -901,7 +901,7 @@ sub drop_tables {
         loader_test14
     /;
 
-    my @tables_rescan = qw/ loader_test25 /;
+    my @tables_rescan = qw/ loader_test30 /;
 
     my $drop_fk_mysql =
         q{ALTER TABLE loader_test10 DROP FOREIGN KEY loader_test11_fk;};
