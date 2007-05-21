@@ -155,27 +155,29 @@ sub generate_code {
             $cond{$remote_cols->[$i]} = $local_cols->[$i];
         }
 
-        # If more than one rel between this pair of tables, use the
-        #  local col name(s) as the relname in the foreign source, instead
-        #  of the local table name.
         my $local_relname;
-        if($counters{$remote_moniker} > 1) {
-            $local_relname = $self->_inflect_plural(
-                lc($local_table) . q{_} . join(q{_}, @$local_cols)
-            );
-        } else {
-            $local_relname = $self->_inflect_plural(lc $local_table);
-        }
-
-        # for single-column case, set the relname to the column name,
-        # to make filter accessors work
         my $remote_relname;
+
+        # for single-column case, set the remote relname to the column
+        # name, to make filter accessors work
         if(scalar keys %cond == 1) {
             my ($col) = keys %cond;
             $remote_relname = $self->_inflect_singular($cond{$col});
         }
         else {
             $remote_relname = $self->_inflect_singular(lc $remote_table);
+        }
+
+        # If more than one rel between this pair of tables, use the local
+        # col names to distinguish
+        if($counters{$remote_moniker} > 1) {
+            my $colnames = q{_} . join(q{_}, @$local_cols);
+            $local_relname = $self->_inflect_plural(
+                lc($local_table) . $colnames
+            );
+            $remote_relname .= $colnames if keys %cond > 1;
+        } else {
+            $local_relname = $self->_inflect_plural(lc $local_table);
         }
 
         my %rev_cond = reverse %cond;
