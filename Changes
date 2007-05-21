@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Relationship names for multiple multi-col rels between
+          the same table fixed by ilmari
+        - Fix from Marc Espie for CREATE TABLE 'foo' for SQLite
         - skip ^sqlite_ tables in SQLite (thanks chromatic)
 
 0.03011 Sat Apr 14 19:03:07 UTC 2007
