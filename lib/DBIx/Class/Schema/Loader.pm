@@ -2,8 +2,7 @@ package DBIx::Class::Schema::Loader;
 
 use strict;
 use warnings;
-use base qw/DBIx::Class::Schema/;
-use base qw/Class::Data::Accessor/;
+use base qw/DBIx::Class::Schema Class::Data::Accessor/;
 use Carp::Clan qw/^DBIx::Class/;
 use UNIVERSAL::require;
 use Class::C3;
