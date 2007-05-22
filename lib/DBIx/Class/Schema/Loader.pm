@@ -2,8 +2,7 @@ package DBIx::Class::Schema::Loader;
 
 use strict;
 use warnings;
-use base qw/DBIx::Class::Schema/;
-use base qw/Class::Data::Accessor/;
+use base qw/DBIx::Class::Schema Class::Data::Accessor/;
 use Carp::Clan qw/^DBIx::Class/;
 use UNIVERSAL::require;
 use Class::C3;
@@ -12,7 +11,7 @@ use Scalar::Util qw/ weaken /;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.03011';
+our $VERSION = '0.03012';
 
 __PACKAGE__->mk_classaccessor('dump_to_dir');
 __PACKAGE__->mk_classaccessor('loader');
