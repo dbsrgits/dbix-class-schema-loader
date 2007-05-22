@@ -11,7 +11,7 @@ use Scalar::Util qw/ weaken /;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.03999_01';
+our $VERSION = '0.03999_02';
 
 __PACKAGE__->mk_classaccessor('_loader_args' => {});
 __PACKAGE__->mk_classaccessors(qw/dump_to_dir _loader_invoked _loader/);
@@ -45,16 +45,17 @@ L<DBIx::Class::Schema> by scanning database table definitions and
 setting up the columns, primary keys, and relationships.
 
 DBIx::Class::Schema::Loader currently supports only the DBI storage type.
-It has explicit support for L<DBD::Pg>, L<DBD::mysql>, L<DBD::DB2>, and
-L<DBD::SQLite>.  Other DBI drivers may function to a greater or lesser
-degree with this loader, depending on how much of the DBI spec they
-implement, and how standard their implementation is.  Patches to make
-other DBDs work correctly welcome.
+It has explicit support for L<DBD::Pg>, L<DBD::mysql>, L<DBD::DB2>,
+L<DBD::SQLite>, and L<DBD::Oracle>.  Other DBI drivers may function to
+a greater or lesser degree with this loader, depending on how much of the
+DBI spec they implement, and how standard their implementation is.
+
+Patches to make other DBDs work correctly welcome.
 
 See L<DBIx::Class::Schema::Loader::DBI::Writing> for notes on writing
 your own vendor-specific subclass for an unsupported DBD driver.
 
-This module requires L<DBIx::Class> 0.06 or later, and obsoletes
+This module requires L<DBIx::Class> 0.07006 or later, and obsoletes
 the older L<DBIx::Class::Loader>.
 
 This module is designed more to get you up and running quickly against
@@ -75,9 +76,10 @@ detailed information on all of the arguments, most of which are
 only useful in fairly complex scenarios, see the
 L<DBIx::Class::Schema::Loader::Base> documentation.
 
-One must call C<loader_options> before any connection is made,
-or embed the C<loader_options> in the connection information itself
-as shown below.  Setting C<loader_options> after the connection has
+If you intend to use C<loader_options>, you must call
+C<loader_options> before any connection is made, or embed the
+C<loader_options> in the connection information itself as shown
+below.  Setting C<loader_options> after the connection has
 already been made is useless.
 
 =cut

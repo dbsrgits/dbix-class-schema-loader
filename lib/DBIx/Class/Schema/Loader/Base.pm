@@ -14,7 +14,7 @@ use Cwd qw//;
 use Digest::MD5 qw//;
 require DBIx::Class;
 
-our $VERSION = '0.03999_01';
+our $VERSION = '0.03999_02';
 
 __PACKAGE__->mk_ro_accessors(qw/
                                 schema

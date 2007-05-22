@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03999_02 Tue May 22, 2007
+        - Converted to Module::Install
+
 0.03012 Tue May 22, 2007
         - Relationship names for multiple multi-col rels between
           the same table fixed by ilmari
