@@ -1,10 +1,29 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.03999_02 Tue May 22, 2007
+        - Converted to Module::Install
+
 0.03012 Tue May 22, 2007
         - Relationship names for multiple multi-col rels between
           the same table fixed by ilmari
         - Fix from Marc Espie for CREATE TABLE 'foo' for SQLite
         - skip ^sqlite_ tables in SQLite (thanks chromatic)
+
+0.03999_01 Sat Apr 14 19:57:40 GMT 2007
+        - Added *experimental* Oracle support from work done
+          by Tsunoda Kazuya some months ago.  Not well tested.
+        - Added "rescan" schema (and loader) method, which picks
+          up newly created tables at runtime
+        - Made dump_to_dir / dump_overwrite much more intelligent
+          (they now preserve customizations by default)
+        - Added support for DBI's new standard "statistics_info"
+          method to gather unique key info (only supported by
+          DBD::Pg trunk afaik)
+        - columns_info_for imported from DBIx::Class
+        - relationships are now on by default, use skip_relationships
+          to disable them
+        - Removed previously deprecated methods/options
+        - Added $VERSION to all packages in this dist
 
 0.03011 Sat Apr 14 19:03:07 UTC 2007
         - fix case-sensitivity in UNIQUE parsing for SQLite

@@ -50,3 +50,6 @@ TODO
 
 # Don't try to add dist dirs to MANIFEST
 ^DBIx-Class-Schema-Loader
+
+# Build.PL for maint only
+Build.PL

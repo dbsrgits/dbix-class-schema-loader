@@ -7,6 +7,8 @@ use Carp::Clan qw/^DBIx::Class/;
 use Text::Balanced qw( extract_bracketed );
 use Class::C3;
 
+our $VERSION = '0.03999_02';
+
 =head1 NAME
 
 DBIx::Class::Schema::Loader::DBI::SQLite - DBIx::Class::Schema::Loader::DBI SQLite Implementation.
@@ -16,7 +18,7 @@ DBIx::Class::Schema::Loader::DBI::SQLite - DBIx::Class::Schema::Loader::DBI SQLi
   package My::Schema;
   use base qw/DBIx::Class::Schema::Loader/;
 
-  __PACKAGE__->loader_optoins( relationships => 1 );
+  __PACKAGE__->loader_options( debug => 1 );
 
   1;
 
@@ -24,7 +26,25 @@ DBIx::Class::Schema::Loader::DBI::SQLite - DBIx::Class::Schema::Loader::DBI SQLi
 
 See L<DBIx::Class::Schema::Loader::Base>.
 
+=head1 METHODS
+
+=head2 rescan
+
+SQLite will fail all further commands on a connection if the
+underlying schema has been modified.  Therefore, any runtime
+changes requiring C<rescan> also require us to re-connect
+to the database.  The C<rescan> method here handles that
+reconnection for you, but beware that this must occur for
+any other open sqlite connections as well.
+
 =cut
+
+sub rescan {
+    my ($self, $schema) = @_;
+
+    $schema->storage->disconnect if $schema->storage;
+    $self->next::method($schema);
+}
 
 # XXX this really needs a re-factor
 sub _sqlite_parse_table {
@@ -150,6 +170,7 @@ sub _tables_list {
         next if $row->{tbl_name} =~ /^sqlite_/;
         push @tables, $row->{tbl_name};
     }
+    $sth->finish;
     return @tables;
 }
 

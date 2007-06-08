@@ -6,6 +6,8 @@ use base 'DBIx::Class::Schema::Loader::DBI';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
+our $VERSION = '0.03999_02';
+
 =head1 NAME
 
 DBIx::Class::Schema::Loader::DBI::DB2 - DBIx::Class::Schema::Loader::DBI DB2 Implementation.
@@ -15,10 +17,7 @@ DBIx::Class::Schema::Loader::DBI::DB2 - DBIx::Class::Schema::Loader::DBI DB2 Imp
   package My::Schema;
   use base qw/DBIx::Class::Schema::Loader/;
 
-  __PACKAGE__->loader_options(
-    relationships => 1,
-    db_schema     => "MYSCHEMA",
-  );
+  __PACKAGE__->loader_options( db_schema => "MYSCHEMA" );
 
   1;
 
