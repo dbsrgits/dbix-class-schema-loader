@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04000 Thu Jun 7, 2007
+        - Added some env vars for controlling the Makefile.PL feature
+          questions, to make automation easier.
+
 0.03999_02 Tue May 22, 2007
         - Converted to Module::Install
 
