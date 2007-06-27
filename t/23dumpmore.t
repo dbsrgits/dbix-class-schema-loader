@@ -138,7 +138,7 @@ do_dump_test(
 
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
-    options => { dump_overwrite => 1 },
+    options => { really_erase_my_files => 1 },
     error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,

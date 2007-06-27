@@ -1,5 +1,12 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04001 Tue Jun 26, 2007
+        - Deprecated dump_overwrite.  The changed behavior from
+          0.03xxx was confusing.
+        - Added new option really_erase_my_files, which does what
+          dump_overwrite did in 0.04000, which is not what it did
+          in 0.03xxx.
+
 0.04000 Thu Jun 7, 2007
         - Added some env vars for controlling the Makefile.PL feature
           questions, to make automation easier.

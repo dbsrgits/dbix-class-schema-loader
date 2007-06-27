@@ -19,7 +19,7 @@ my $dump_path = './t/_dump';
     use base qw/ DBIx::Class::Schema::Loader /;
     __PACKAGE__->loader_options(
         dump_directory => $dump_path,
-        dump_overwrite => 1,
+        really_erase_my_files => 1,
     );
 }
 
