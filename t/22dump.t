@@ -33,7 +33,7 @@ ok(!$@, 'no death with dump_directory set') or diag "Dump failed: $@";
 DBICTest::Schema::1->_loader_invoked(undef);
 
 SKIP: {
-  skip "ActiveState perl produces additional warnings", 5
+  skip "ActiveState perl produces additional warnings", 3
     if ($^O eq 'MSWin32');
 
   my @warn_output;

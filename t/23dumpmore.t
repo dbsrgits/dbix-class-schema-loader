@@ -5,10 +5,9 @@ use File::Path;
 use make_dbictest_db;
 require DBIx::Class::Schema::Loader;
 
-plan tests => 40;
-
-plan skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths"
-    if ($^O eq 'MSWin32');
+$^O eq 'MSWin32'
+    ? plan(skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths")
+    : plan(tests => 40);
 
 my $DUMP_PATH = './t/_dump';
 
