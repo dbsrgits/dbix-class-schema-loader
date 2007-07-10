@@ -19,7 +19,7 @@ my $dump_path = './t/_dump';
     use base qw/ DBIx::Class::Schema::Loader /;
     __PACKAGE__->loader_options(
         dump_directory => $dump_path,
-        dump_overwrite => 1,
+        really_erase_my_files => 1,
     );
 }
 
@@ -33,7 +33,7 @@ ok(!$@, 'no death with dump_directory set') or diag "Dump failed: $@";
 DBICTest::Schema::1->_loader_invoked(undef);
 
 SKIP: {
-  skip "ActiveState perl produces additional warnings", 5
+  skip "ActiveState perl produces additional warnings", 3
     if ($^O eq 'MSWin32');
 
   my @warn_output;

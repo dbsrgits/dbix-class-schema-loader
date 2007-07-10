@@ -37,7 +37,7 @@ my @invocations = (
         use DBIx::Class::Schema::Loader qw/ make_schema_at /;
         make_schema_at(
             'DBICTest::Schema::7',
-            { dump_overwrite => 1 },
+            { really_erase_my_files => 1 },
             [ $make_dbictest_db::dsn ],
         );
         DBICTest::Schema::7->clone;
@@ -47,7 +47,7 @@ my @invocations = (
         use base qw/ DBIx::Class::Schema::Loader /;
         __PACKAGE__->connect(
             $make_dbictest_db::dsn,
-            { loader_options => { dump_overwrite => 1 } }
+            { loader_options => { really_erase_my_files => 1 } }
         );
     },
     'embedded_options_in_attrs' => sub {
@@ -57,7 +57,7 @@ my @invocations = (
             $make_dbictest_db::dsn,
             undef,
             undef,
-            { AutoCommit => 1, loader_options => { dump_overwrite => 1 } }
+            { AutoCommit => 1, loader_options => { really_erase_my_files => 1 } }
         );
     },
     'embedded_options_make_schema_at' => sub {
@@ -67,7 +67,7 @@ my @invocations = (
             { },
             [
                 $make_dbictest_db::dsn,
-                { loader_options => { dump_overwrite => 1 } },
+                { loader_options => { really_erase_my_files => 1 } },
             ],
         );
         "DBICTest::Schema::10";
@@ -75,7 +75,7 @@ my @invocations = (
     'almost_embedded' => sub {
         package DBICTest::Schema::11;
         use base qw/ DBIx::Class::Schema::Loader /;
-        __PACKAGE__->loader_options( dump_overwrite => 1 );
+        __PACKAGE__->loader_options( really_erase_my_files => 1 );
         __PACKAGE__->connect(
             $make_dbictest_db::dsn,
             undef, undef, { AutoCommit => 1 }
@@ -85,7 +85,7 @@ my @invocations = (
         use DBIx::Class::Schema::Loader;
         DBIx::Class::Schema::Loader::make_schema_at(
             'DBICTest::Schema::12',
-            { dump_overwrite => 1 },
+            { really_erase_my_files => 1 },
             [ $make_dbictest_db::dsn ],
         );
         DBICTest::Schema::12->clone;
