@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Fix Win32 test skip counts (RT #27715)
+        - Fix a small output quoting bug (RT #28073)
+
 0.04001 Tue Jun 26, 2007
         - Deprecated dump_overwrite.  The changed behavior from
           0.03xxx was confusing.
