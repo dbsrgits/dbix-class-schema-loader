@@ -306,7 +306,7 @@ sub _load_external {
         $self->_ext_stmt($class, $_);
     }
     $self->_ext_stmt($class,
-        q|# End of lines loaded from '$real_inc_path' |
+        qq|# End of lines loaded from '$real_inc_path' |
     );
     close($fh)
         or croak "Failed to close $real_inc_path: $!";
