@@ -7,7 +7,7 @@ use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use UNIVERSAL::require;
 
-our $VERSION = '0.04001';
+our $VERSION = '0.04002';
 
 =head1 NAME
 

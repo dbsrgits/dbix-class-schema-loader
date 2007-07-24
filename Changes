@@ -1,5 +1,13 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04002 Tue Jul 24, 2007
+        - rescan method now returns the actual list of new tables
+          loaded (previously, the return value wasn't taking
+          constraint/exclude into account, even though the meat
+          of the operation was).
+        - Hid the Oracle module so that search.cpan.org will stop
+          ignoring this package, temporary fix until perms are
+          sorted out
         - Fix Win32 test skip counts (RT #27715, Alexandr Ciornii)
         - Fix a small output quoting bug (RT #28073, Tokuhiro Matsuno)
 

@@ -6,7 +6,7 @@ use base 'DBIx::Class::Schema::Loader::DBI';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-our $VERSION = '0.04001';
+our $VERSION = '0.04002';
 
 =head1 NAME
 

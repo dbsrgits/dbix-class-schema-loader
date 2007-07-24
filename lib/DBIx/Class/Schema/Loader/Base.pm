@@ -14,7 +14,7 @@ use Cwd qw//;
 use Digest::MD5 qw//;
 require DBIx::Class;
 
-our $VERSION = '0.04001';
+our $VERSION = '0.04002';
 
 __PACKAGE__->mk_ro_accessors(qw/
                                 schema
@@ -352,9 +352,9 @@ sub rescan {
         }
     }
 
-    $self->_load_tables(@created);
+    my $loaded = $self->_load_tables(@created);
 
-    return map { $self->monikers->{$_} } @created;
+    return map { $self->monikers->{$_} } @$loaded;
 }
 
 sub _load_tables {
@@ -399,7 +399,7 @@ sub _load_tables {
     # Drop temporary cache
     delete $self->{_cache};
 
-    1;
+    return \@tables;
 }
 
 sub _get_dump_filename {
