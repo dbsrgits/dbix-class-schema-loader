@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Fix extra whitespace being added to output on
+          regeneration (from ilmari)
+
 0.04002 Tue Jul 24, 2007
         - rescan method now returns the actual list of new tables
           loaded (previously, the return value wasn't taking
