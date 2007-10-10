@@ -1,5 +1,10 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04003 Wed Oct 4, 2007
+        - Prevent users from running Kwalitee test automatically
+        - Fix extra whitespace being added to output on
+          regeneration (from ilmari)
+
 0.04002 Tue Jul 24, 2007
         - rescan method now returns the actual list of new tables
           loaded (previously, the return value wasn't taking

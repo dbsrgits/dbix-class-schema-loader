@@ -14,7 +14,7 @@ use Cwd qw//;
 use Digest::MD5 qw//;
 require DBIx::Class;
 
-our $VERSION = '0.04002';
+our $VERSION = '0.04003';
 
 __PACKAGE__->mk_ro_accessors(qw/
                                 schema
@@ -471,7 +471,7 @@ sub _write_classfile {
 
     my $custom_content = $self->_get_custom_content($class, $filename);
 
-    $custom_content ||= qq|\n# You can replace this text with custom|
+    $custom_content ||= qq|\n\n# You can replace this text with custom|
         . qq| content, and it will be preserved on regeneration|
         . qq|\n1;\n|;
 
@@ -487,7 +487,7 @@ sub _write_classfile {
         or croak "Cannot open '$filename' for writing: $!";
 
     # Write the top half and its MD5 sum
-    print $fh $text . Digest::MD5::md5_base64($text) . "\n\n";
+    print $fh $text . Digest::MD5::md5_base64($text) . "\n";
 
     # Write out anything loaded via external partial class file in @INC
     print $fh qq|$_\n|
