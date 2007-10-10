@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 88;
+    plan tests => 97;
 
     $self->create();
 
@@ -310,6 +310,18 @@ sub run_tests {
         my $class26   = $classes->{loader_test26};
         my $rsobj26   = $conn->resultset($moniker26);
 
+        my $moniker27 = $monikers->{loader_test27};
+        my $class27   = $classes->{loader_test27};
+        my $rsobj27   = $conn->resultset($moniker27);
+
+        my $moniker28 = $monikers->{loader_test28};
+        my $class28   = $classes->{loader_test28};
+        my $rsobj28   = $conn->resultset($moniker28);
+
+        my $moniker29 = $monikers->{loader_test29};
+        my $class29   = $classes->{loader_test29};
+        my $rsobj29   = $conn->resultset($moniker29);
+
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -326,6 +338,9 @@ sub run_tests {
         isa_ok( $rsobj22, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj25, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj26, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj27, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj28, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj29, "DBIx::Class::ResultSet" );
 
         # basic rel test
         my $obj4 = $rsobj4->find(123);
@@ -383,6 +398,20 @@ sub run_tests {
         my $rs_rel26 = $obj25->search_related('loader_test26_id_rel1s');
         isa_ok($rs_rel26->first, $class26);
         is($rs_rel26->first->id, 3);
+
+        # test one-to-one rels
+        my $obj27 = $rsobj27->find(1);
+        my $obj28 = $obj27->loader_test28;
+        isa_ok($obj28, $class28);
+        is($obj28->get_column('id'), 1);
+
+        my $obj29 = $obj27->loader_test29;
+        isa_ok($obj29, $class29);
+        is($obj29->id, 1);
+
+        $obj27 = $rsobj27->find(2);
+        is($obj27->loader_test28, undef);
+        is($obj27->loader_test29, undef);
 
         # from Chisel's tests...
         SKIP: {
@@ -758,6 +787,34 @@ sub create {
 
         q{ INSERT INTO loader_test26 (id,rel1,rel2) VALUES (33,5,7) },
         q{ INSERT INTO loader_test26 (id,rel1,rel2) VALUES (3,42,42) },
+
+        qq{
+            CREATE TABLE loader_test27 (
+                id INTEGER NOT NULL PRIMARY KEY
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test27 (id) VALUES (1) },
+        q{ INSERT INTO loader_test27 (id) VALUES (2) },
+
+        qq{
+            CREATE TABLE loader_test28 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                FOREIGN KEY (id) REFERENCES loader_test27 (id)
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test28 (id) VALUES (1) },
+
+        qq{
+            CREATE TABLE loader_test29 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                fk INTEGER UNIQUE,
+                FOREIGN KEY (fk) REFERENCES loader_test27 (id)
+            ) $self->{innodb}
+        },
+
+        q{ INSERT INTO loader_test29 (id,fk) VALUES (1,1) },
     );
 
     my @statements_advanced = (
@@ -884,6 +941,9 @@ sub drop_tables {
         loader_test21
         loader_test26
         loader_test25
+        loader_test28
+        loader_test29
+        loader_test27
     /;
 
     my @tables_advanced = qw/
