@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Default Oracle db_schema to db username (patch
+          from Johannes Plunien)
+
 0.04003 Wed Oct 4, 2007
         - Prevent users from running Kwalitee test automatically
         - Fix extra whitespace being added to output on

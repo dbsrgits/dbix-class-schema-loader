@@ -32,6 +32,16 @@ This module is considered experimental and not well tested yet.
 
 =cut
 
+sub _setup {
+    my $self = shift;
+
+    $self->next::method(@_);
+
+    my $dbh = $self->schema->storage->dbh;
+    $self->{db_schema} ||= $dbh->selectrow_array('SELECT USER FROM DUAL', {});
+}
+
+
 sub _table_columns {
     my ($self, $table) = @_;
 
