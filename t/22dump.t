@@ -33,7 +33,12 @@ ok(!$@, 'no death with dump_directory set') or diag "Dump failed: $@";
 DBICTest::Schema::1->_loader_invoked(undef);
 
 SKIP: {
-  skip "ActiveState perl produces additional warnings", 3
+  my @warnings_regexes = (
+      qr|Dumping manual schema|,
+      qr|Schema dump completed|,
+  );
+
+  skip "ActiveState perl produces additional warnings", scalar @warnings_regexes
     if ($^O eq 'MSWin32');
 
   my @warn_output;
@@ -41,10 +46,6 @@ SKIP: {
       local $SIG{__WARN__} = sub { push(@warn_output, @_) };
       DBICTest::Schema::1->connect($make_dbictest_db::dsn);
   }
-  my @warnings_regexes = (
-      qr|Dumping manual schema|,
-      qr|Schema dump completed|,
-  );
 
   like(shift @warn_output, $_) foreach (@warnings_regexes);
 
