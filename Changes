@@ -2,6 +2,9 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
 0.04999_01 Not yet released
         - Generate one-to-one accessors for unique foreign keys (ilmari)
+        - Fix Win32 test skip counts for good (RT #30568, Kenichi Ishigaki)
+        - Default Oracle db_schema to db username (patch
+          from Johannes Plunien)
 
 0.04003 Wed Oct 4, 2007
         - Prevent users from running Kwalitee test automatically
