@@ -7,7 +7,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Text::Balanced qw( extract_bracketed );
 use Class::C3;
 
-our $VERSION = '0.04003';
+our $VERSION = '0.04004';
 
 =head1 NAME
 
