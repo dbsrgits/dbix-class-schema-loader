@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+Not yet released
+        - Fix test skip count for main skip_rels block
+
 0.04004 Thu Nov 15, 2007
         - Fix Win32 test skip counts for good (RT #30568, Kenichi Ishigaki)
         - Default Oracle db_schema to db username (patch
