@@ -8,7 +8,7 @@ my $class = $@ ? 'SQLite2' : 'SQLite';
 {
     my $tester = dbixcsl_common_tests->new(
         vendor          => 'SQLite',
-        auto_inc_pk     => 'INTEGER NOT NULL PRIMARY KEY',
+        auto_inc_pk     => 'INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT',
         dsn             => "dbi:$class:dbname=./t/sqlite_test",
         user            => '',
         password        => '',

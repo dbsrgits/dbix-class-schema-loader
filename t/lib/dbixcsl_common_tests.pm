@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 97;
+    plan tests => 98;
 
     $self->create();
 
@@ -223,6 +223,14 @@ sub run_tests {
         #}
     }
 
+    SKIP: {
+        skip "This vendor doesn't detect auto-increment columns", 1
+            if $self->{no_auto_increment};
+
+        is( $rsobj1->result_source->column_info('id')->{is_auto_increment}, 1,
+            'Setting is_auto_incrment works'
+        );
+    }
 
     my $obj    = $rsobj1->find(1);
     is( $obj->id,  1 );

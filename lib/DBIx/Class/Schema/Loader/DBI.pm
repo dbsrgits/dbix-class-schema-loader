@@ -222,6 +222,10 @@ sub _columns_info_for {
                 my $col_name = $info->{COLUMN_NAME};
                 $col_name =~ s/^\"(.*)\"$/$1/;
 
+                if ($self->_column_is_auto_increment($info)) {
+                    $column_info{is_auto_increment} = 1;
+                }
+
                 $result{$col_name} = \%column_info;
             }
             $sth->finish;
@@ -247,6 +251,10 @@ sub _columns_info_for {
             $column_info{size}    = $2;
         }
 
+        if ($self->_column_is_auto_increment($table, $columns[$i], $sth, $i)) {
+            $column_info{is_auto_increment} = 1;
+        }
+
         $result{$columns[$i]} = \%column_info;
     }
     $sth->finish;
@@ -264,6 +272,10 @@ sub _columns_info_for {
 
     return \%result;
 }
+
+# Override this in vendor class to return whether a column is
+# auto-incremented
+sub _column_is_auto_increment {}
 
 =head1 SEE ALSO
 

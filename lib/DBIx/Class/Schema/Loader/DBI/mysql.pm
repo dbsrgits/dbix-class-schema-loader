@@ -121,6 +121,12 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
+sub _column_is_auto_increment {
+    my ($self, $info) = @_;
+
+    return $info->{mysql_is_auto_increment};
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,

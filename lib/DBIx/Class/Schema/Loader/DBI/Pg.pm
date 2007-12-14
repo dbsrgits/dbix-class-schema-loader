@@ -95,6 +95,12 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
+sub _column_is_auto_increment {
+    my ($self, $info) = @_;
+
+    return $info->{COLUMN_DEF} && $info->{COLUMN_DEF} =~ /\bnextval\(/i;
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,

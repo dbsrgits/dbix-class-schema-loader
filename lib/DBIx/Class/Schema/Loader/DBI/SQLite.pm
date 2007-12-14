@@ -52,6 +52,7 @@ sub _sqlite_parse_table {
 
     my @rels;
     my @uniqs;
+    my %auto_inc;
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $self->{_cache}->{sqlite_master}
@@ -110,6 +111,11 @@ sub _sqlite_parse_table {
             push(@uniqs, [ $name => \@cols ]);
         }
 
+        if ($col =~ /AUTOINCREMENT/i) {
+            $col =~ /^(\S+)/;
+            $auto_inc{lc $1} = 1;
+        }
+
         next if $col !~ /^(.*\S)\s+REFERENCES\s+(\w+) (?: \s* \( (.*) \) )? /ix;
 
         my ($cols, $f_table, $f_cols) = ($1, $2, $3);
@@ -137,7 +143,16 @@ sub _sqlite_parse_table {
         });
     }
 
-    return { rels => \@rels, uniqs => \@uniqs };
+    return { rels => \@rels, uniqs => \@uniqs, auto_inc => \%auto_inc };
+}
+
+sub _column_is_auto_increment {
+    my ($self, $table, $col_name, $sth, $col_num) = @_;
+    
+    $self->{_sqlite_parse_data}->{$table} ||=
+        $self->_sqlite_parse_table($table);
+
+    return $self->{_sqlite_parse_data}->{$table}->{auto_inc}->{$col_name};
 }
 
 sub _table_fk_info {
