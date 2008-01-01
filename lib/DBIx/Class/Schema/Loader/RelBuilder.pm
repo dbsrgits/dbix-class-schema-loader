@@ -208,11 +208,17 @@ sub generate_code {
             $local_relname = $self->_inflect_singular($local_relname);
         }
 
+        # If the referring column is nullable, make 'belongs_to' an outer join:
+        my $local_source = $self->{schema}->source($local_moniker);
+        my $nullable = grep { $local_source->column_info($_)->{is_nullable} }
+          @$local_cols;
+
         push(@{$all_code->{$local_class}},
             { method => 'belongs_to',
               args => [ $remote_relname,
                         $remote_class,
                         \%cond,
+                        $nullable ? { join_type => 'LEFT OUTER' } : ()
               ],
             }
         );

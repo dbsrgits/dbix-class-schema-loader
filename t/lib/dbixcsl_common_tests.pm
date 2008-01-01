@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 98;
+    plan tests => 108;
 
     $self->create();
 
@@ -330,6 +330,22 @@ sub run_tests {
         my $class29   = $classes->{loader_test29};
         my $rsobj29   = $conn->resultset($moniker29);
 
+        my $moniker31 = $monikers->{loader_test31};
+        my $class31   = $classes->{loader_test31};
+        my $rsobj31   = $conn->resultset($moniker31);
+
+        my $moniker32 = $monikers->{loader_test32};
+        my $class32   = $classes->{loader_test32};
+        my $rsobj32   = $conn->resultset($moniker32);
+
+        my $moniker33 = $monikers->{loader_test33};
+        my $class33   = $classes->{loader_test33};
+        my $rsobj33   = $conn->resultset($moniker33);
+
+        my $moniker34 = $monikers->{loader_test34};
+        my $class34   = $classes->{loader_test34};
+        my $rsobj34   = $conn->resultset($moniker34);
+
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -349,6 +365,10 @@ sub run_tests {
         isa_ok( $rsobj27, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj28, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj29, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj31, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj32, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj33, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj34, "DBIx::Class::ResultSet" );
 
         # basic rel test
         my $obj4 = $rsobj4->find(123);
@@ -420,6 +440,35 @@ sub run_tests {
         $obj27 = $rsobj27->find(2);
         is($obj27->loader_test28, undef);
         is($obj27->loader_test29, undef);
+
+        # test outer join for nullable referring columns:
+        SKIP: {
+          skip "unreliable column info from db driver",6 unless 
+            ($class32->column_info('rel2')->{is_nullable});
+
+          my $obj32 = $rsobj32->find(1,{prefetch=>[qw/rel1 rel2/]});
+          my $obj34 = $rsobj34->find(
+            1,{prefetch=>[qw/loader_test33_id_rel1 loader_test33_id_rel2/]}
+          );
+          my $skip_outerjoin;
+          isa_ok($obj32,$class32) or $skip_outerjoin = 1;
+          isa_ok($obj34,$class34) or $skip_outerjoin = 1;
+
+          SKIP: {
+            skip "Pre-requisite test failed", 4 if $skip_outerjoin;
+            my $rs_rel31_one = $obj32->rel1;
+            my $rs_rel31_two = $obj32->rel2;
+            isa_ok($rs_rel31_one,$class31);
+            is($rs_rel31_two,undef);
+
+            my $rs_rel33_one = $obj34->loader_test33_id_rel1;
+            my $rs_rel33_two = $obj34->loader_test33_id_rel2;
+
+            isa_ok($rs_rel33_one,$class33);
+            is($rs_rel33_two,undef);
+
+          }
+        }
 
         # from Chisel's tests...
         SKIP: {
@@ -823,6 +872,44 @@ sub create {
         },
 
         q{ INSERT INTO loader_test29 (id,fk) VALUES (1,1) },
+
+        qq{
+          CREATE TABLE loader_test31 (
+            id INTEGER NOT NULL PRIMARY KEY
+          ) $self->{innodb}
+        },
+        q{ INSERT INTO loader_test31 (id) VALUES (1) },
+
+        qq{
+          CREATE TABLE loader_test32 (
+            id INTEGER NOT NULL PRIMARY KEY,
+            rel1 INTEGER NOT NULL,
+            rel2 INTEGER NULL,
+            FOREIGN KEY (rel1) REFERENCES loader_test31(id),
+            FOREIGN KEY (rel2) REFERENCES loader_test31(id)
+          ) $self->{innodb}
+        },
+        q{ INSERT INTO loader_test32 (id,rel1) VALUES (1,1) },
+
+        qq{
+          CREATE TABLE loader_test33 (
+            id1 INTEGER NOT NULL,
+            id2 INTEGER NOT NULL,
+            PRIMARY KEY (id1,id2)
+          ) $self->{innodb}
+        },
+        q{ INSERT INTO loader_test33 (id1,id2) VALUES (1,2) },
+
+        qq{
+          CREATE TABLE loader_test34 (
+            id INTEGER NOT NULL PRIMARY KEY,
+            rel1 INTEGER NOT NULL,
+            rel2 INTEGER NULL,
+            FOREIGN KEY (id,rel1) REFERENCES loader_test33(id1,id2),
+            FOREIGN KEY (id,rel2) REFERENCES loader_test33(id1,id2)
+          ) $self->{innodb}
+        },
+        q{ INSERT INTO loader_test34 (id,rel1) VALUES (1,2) },
     );
 
     my @statements_advanced = (
@@ -952,6 +1039,10 @@ sub drop_tables {
         loader_test28
         loader_test29
         loader_test27
+        loader_test32
+        loader_test31
+        loader_test34
+        loader_test33
     /;
 
     my @tables_advanced = qw/
