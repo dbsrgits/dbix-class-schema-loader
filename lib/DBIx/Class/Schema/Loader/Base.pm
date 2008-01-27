@@ -35,6 +35,10 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 dump_directory
                                 dump_overwrite
                                 really_erase_my_files
+                                use_namespaces
+                                result_namespace
+                                resultset_namespace
+                                default_resultset_class
 
                                 db_schema
                                 _tables
@@ -140,6 +144,15 @@ List of additional ResultSet components to be loaded into your table
 classes.  A good example would be C<AlwaysRS>.  Component
 C<ResultSetManager> will be automatically added to the above
 C<components> list if this option is set.
+
+=head2 use_namespaces
+
+Generate result class names suitable for
+L<DBIx::Class::Schema/load_namespaces> and call that instead of
+L<DBIx::Class::Schema/load_classes>. When using this option you can also
+specify any of the options for C<load_namespaces> (i.e. C<result_namespace>,
+C<resultset_namespace>, C<default_resultset_class>), and they will be added
+to the call (and the generated result class names adjusted appropriately).
 
 =head2 dump_directory
 
@@ -440,8 +453,26 @@ sub _dump_to_dir {
     my $schema_text =
           qq|package $schema_class;\n\n|
         . qq|use strict;\nuse warnings;\n\n|
-        . qq|use base 'DBIx::Class::Schema';\n\n|
-        . qq|__PACKAGE__->load_classes;\n|;
+        . qq|use base 'DBIx::Class::Schema';\n\n|;
+
+    
+    if ($self->use_namespaces) {
+        $schema_text .= qq|__PACKAGE__->load_namespaces|;
+        my $namespace_options;
+        for my $attr (qw(result_namespace
+                         resultset_namespace
+                         default_resultset_class)) {
+            if ($self->$attr) {
+                $namespace_options .= qq|    $attr => '| . $self->$attr . qq|',\n|
+            }
+        }
+        $schema_text .= qq|(\n$namespace_options)| if $namespace_options;
+        $schema_text .= qq|;\n|;
+    }
+    else {
+        $schema_text .= qq|__PACKAGE__->load_classes;\n|;
+
+    }
 
     $self->_write_classfile($schema_class, $schema_text);
 
@@ -569,7 +600,19 @@ sub _make_src_class {
     my $schema_class = $self->schema_class;
 
     my $table_moniker = $self->_table2moniker($table);
-    my $table_class = $schema_class . q{::} . $table_moniker;
+    my @result_namespace = ($schema_class);
+    if ($self->use_namespaces) {
+        my $result_namespace = $self->result_namespace || 'Result';
+        if ($result_namespace =~ /^\+(.*)/) {
+            # Fully qualified namespace
+            @result_namespace =  ($1)
+        }
+        else {
+            # Relative namespace
+            push @result_namespace, $result_namespace;
+        }
+    }
+    my $table_class = join(q{::}, @result_namespace, $table_moniker);
 
     my $table_normalized = lc $table;
     $self->classes->{$table} = $table_class;

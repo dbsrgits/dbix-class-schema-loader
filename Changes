@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
 Not yet released
+        - Add support for load_namespaces-style class layout.
         - Fix test skip count for main skip_rels block
 
 0.04004 Thu Nov 15, 2007
