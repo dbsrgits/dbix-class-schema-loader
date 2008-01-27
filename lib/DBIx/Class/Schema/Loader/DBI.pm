@@ -226,6 +226,10 @@ sub _columns_info_for {
                     $column_info{is_auto_increment} = 1;
                 }
 
+                if (my $extra = $self->_column_extra_attr($info)) {
+                    $column_info{extra} = $extra;
+                }
+
                 $result{$col_name} = \%column_info;
             }
             $sth->finish;
@@ -255,6 +259,10 @@ sub _columns_info_for {
             $column_info{is_auto_increment} = 1;
         }
 
+        if (my $extra = $self->_column_extra_attr($table, $columns[$i], $sth, $i)) {
+            $column_info{extra} = $extra;
+        }
+
         $result{$columns[$i]} = \%column_info;
     }
     $sth->finish;
@@ -276,6 +284,9 @@ sub _columns_info_for {
 # Override this in vendor class to return whether a column is
 # auto-incremented
 sub _column_is_auto_increment {}
+
+# Override this in vendor class to return any "extra" column attributes
+sub _column_extra_attr {}
 
 =head1 SEE ALSO
 
