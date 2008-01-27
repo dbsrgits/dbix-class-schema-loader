@@ -127,6 +127,17 @@ sub _column_is_auto_increment {
     return $info->{mysql_is_auto_increment};
 }
 
+sub _column_extra_attr {
+    my ($self, $info) = @_;
+    
+    my $extra_attr;
+    if ($info->{mysql_type_name} =~ /\bunsigned\b/i) {
+        $extra_attr->{unsigned} = 1;
+    }
+
+    return $extra_attr;
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
