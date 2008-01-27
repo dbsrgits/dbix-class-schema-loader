@@ -25,6 +25,9 @@ sub new {
     
     $self->{verbose} = $ENV{TEST_VERBOSE} || 0;
 
+    # Optional extra tables and tests
+    $self->{extra} ||= {};
+
     return bless $self => $class;
 }
 
@@ -43,7 +46,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 108;
+    plan tests => 108 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -53,7 +56,7 @@ sub run_tests {
 
     my @connect_info = ( $self->{dsn}, $self->{user}, $self->{password} );
     my %loader_opts = (
-        constraint              => qr/^(?:\S+\.)?loader_test[0-9]+$/i,
+        constraint              => qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+$/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
@@ -587,6 +590,8 @@ sub run_tests {
         my $obj30 = $rsobj30->find(123);
         isa_ok( $obj30->loader_test2, $class2);
     }
+
+    $self->{extra}->{run}->($conn, $monikers, $classes) if $self->{extra}->{run};
 }
 
 sub dbconnect {
@@ -1006,6 +1011,8 @@ sub create {
             $dbh->do($_) for (@statements_implicit_rels);
         }
     }
+
+    $dbh->do($_) for @{ $self->{extra}->{create} || [] };
     $dbh->disconnect();
 }
 
@@ -1069,6 +1076,8 @@ sub drop_tables {
         q{ALTER TABLE loader_test10 DROP CONSTRAINT loader_test11_fk;};
 
     my $dbh = $self->dbconnect(0);
+
+    $dbh->do("DROP TABLE $_") for @{ $self->{extra}->{drop} || [] };
 
     unless($self->{skip_rels}) {
         $dbh->do("DROP TABLE $_") for (@tables_reltests);
