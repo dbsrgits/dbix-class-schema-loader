@@ -201,15 +201,14 @@ sub generate_code {
         my $remote_method = 'has_many';
 
         # If the local columns have a UNIQUE constraint, this is a one-to-one rel
-        my $primary = [ $self->{schema}->source($local_moniker)->primary_columns ];
-        if (_array_eq($primary, $local_cols) ||
+        my $local_source = $self->{schema}->source($local_moniker);
+        if (_array_eq([ $local_source->primary_columns ], $local_cols) ||
             grep { _array_eq($_->[1], $local_cols) } @$uniqs) {
             $remote_method = 'might_have';
             $local_relname = $self->_inflect_singular($local_relname);
         }
 
         # If the referring column is nullable, make 'belongs_to' an outer join:
-        my $local_source = $self->{schema}->source($local_moniker);
         my $nullable = grep { $local_source->column_info($_)->{is_nullable} }
           @$local_cols;
 
