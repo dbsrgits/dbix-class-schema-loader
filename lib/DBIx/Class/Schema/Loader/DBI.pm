@@ -222,15 +222,9 @@ sub _columns_info_for {
                 my $col_name = $info->{COLUMN_NAME};
                 $col_name =~ s/^\"(.*)\"$/$1/;
 
-                if ($self->_column_is_auto_increment($info)) {
-                    $column_info{is_auto_increment} = 1;
-                }
+                my $extra_info = $self->_extra_column_info($info) || {};
 
-                if (my $extra = $self->_column_extra_attr($info)) {
-                    $column_info{extra} = $extra;
-                }
-
-                $result{$col_name} = \%column_info;
+                $result{$col_name} = { %column_info, %$extra_info };
             }
             $sth->finish;
         };
@@ -255,15 +249,9 @@ sub _columns_info_for {
             $column_info{size}    = $2;
         }
 
-        if ($self->_column_is_auto_increment($table, $columns[$i], $sth, $i)) {
-            $column_info{is_auto_increment} = 1;
-        }
+        my $extra_info = $self->_extra_column_info($table, $columns[$i], $sth, $i) || {};
 
-        if (my $extra = $self->_column_extra_attr($table, $columns[$i], $sth, $i)) {
-            $column_info{extra} = $extra;
-        }
-
-        $result{$columns[$i]} = \%column_info;
+        $result{$columns[$i]} = { %column_info, %$extra_info };
     }
     $sth->finish;
 
@@ -281,12 +269,9 @@ sub _columns_info_for {
     return \%result;
 }
 
-# Override this in vendor class to return whether a column is
-# auto-incremented
-sub _column_is_auto_increment {}
-
-# Override this in vendor class to return any "extra" column attributes
-sub _column_extra_attr {}
+# Override this in vendor class to return any additional column
+# attributes
+sub _extra_column_info {}
 
 =head1 SEE ALSO
 

@@ -146,13 +146,18 @@ sub _sqlite_parse_table {
     return { rels => \@rels, uniqs => \@uniqs, auto_inc => \%auto_inc };
 }
 
-sub _column_is_auto_increment {
+sub _extra_column_info {
     my ($self, $table, $col_name, $sth, $col_num) = @_;
-    
+    my %extra_info;
+
     $self->{_sqlite_parse_data}->{$table} ||=
         $self->_sqlite_parse_table($table);
 
-    return $self->{_sqlite_parse_data}->{$table}->{auto_inc}->{$col_name};
+    if ($self->{_sqlite_parse_data}->{$table}->{auto_inc}->{$col_name}) {
+        $extra_info{is_auto_increment} = 1;
+    }
+
+    return \%extra_info;
 }
 
 sub _table_fk_info {

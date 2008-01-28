@@ -95,10 +95,15 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
-sub _column_is_auto_increment {
+sub _extra_column_info {
     my ($self, $info) = @_;
+    my %extra_info;
 
-    return $info->{COLUMN_DEF} && $info->{COLUMN_DEF} =~ /\bnextval\(/i;
+    if ($info->{COLUMN_DEF} && $info->{COLUMN_DEF} =~ /\bnextval\(/i) {
+        $extra_info{is_auto_increment} = 1;
+    }
+
+    return \%extra_info;
 }
 
 =head1 SEE ALSO
