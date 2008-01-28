@@ -609,6 +609,12 @@ sub _setup_src_meta {
     }
     else {
         my %col_info_lc = map { lc($_), $col_info->{$_} } keys %$col_info;
+        my $fks = $self->_table_fk_info($table);
+        for my $fkdef (@$fks) {
+            for my $col (@{ $fkdef->{local_columns} }) {
+                $col_info_lc{$col}->{is_foreign_key} = 1;
+            }
+        }
         $self->_dbic_stmt(
             $table_class,
             'add_columns',

@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
 0.04999_01 Not yet released
+        - Mark foreign key columns with is_foreign_key => 1
         - Add support for vendor-specific extra column attributes.
         - Add support for extra => { unsigned => 1 } for MySQL.
         - Set join_type => 'LEFT OUTER' for nullable foreign keys

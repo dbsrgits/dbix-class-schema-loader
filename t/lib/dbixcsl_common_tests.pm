@@ -46,7 +46,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 108 + ($self->{extra}->{count} || 0);
+    plan tests => 136 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -255,7 +255,7 @@ sub run_tests {
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 42 if $self->{skip_rels};
+        skip $self->{skip_rels}, 69 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -377,6 +377,8 @@ sub run_tests {
         my $obj4 = $rsobj4->find(123);
         isa_ok( $obj4->fkid_singular, $class3);
 
+        ok($class4->column_info('fkid')->{is_foreign_key});
+
         my $obj3 = $rsobj3->find(1);
         my $rs_rel4 = $obj3->search_related('loader_test4zes');
         isa_ok( $rs_rel4->first, $class4);
@@ -390,9 +392,15 @@ sub run_tests {
         isa_ok( $obj6->loader_test2, $class2);
         isa_ok( $obj6->loader_test5, $class5);
 
+        ok($class6->column_info('loader_test2')->{is_foreign_key});
+        ok($class6->column_info('id')->{is_foreign_key});
+        ok($class6->column_info('id2')->{is_foreign_key});
+
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
         isa_ok( $obj8->loader_test7, $class7);
+
+        ok($class8->column_info('loader_test7')->{is_foreign_key});
 
         # test double-fk 17 ->-> 16
         my $obj17 = $rsobj17->find(33);
@@ -401,9 +409,13 @@ sub run_tests {
         isa_ok($rs_rel16_one, $class16);
         is($rs_rel16_one->dat, 'y16');
 
+        ok($class17->column_info('loader16_one')->{is_foreign_key});
+
         my $rs_rel16_two = $obj17->loader16_two;
         isa_ok($rs_rel16_two, $class16);
         is($rs_rel16_two->dat, 'z16');
+
+        ok($class17->column_info('loader16_two')->{is_foreign_key});
 
         my $obj16 = $rsobj16->find(2);
         my $rs_rel17 = $obj16->search_related('loader_test17_loader16_ones');
@@ -411,8 +423,12 @@ sub run_tests {
         is($rs_rel17->first->id, 3);
         
         # XXX test m:m 18 <- 20 -> 19
+        ok($class20->column_info('parent')->{is_foreign_key});
+        ok($class20->column_info('child')->{is_foreign_key});
         
         # XXX test double-fk m:m 21 <- 22 -> 21
+        ok($class22->column_info('parent')->{is_foreign_key});
+        ok($class22->column_info('child')->{is_foreign_key});
 
         # test double multi-col fk 26 -> 25
         my $obj26 = $rsobj26->find(33);
@@ -420,6 +436,10 @@ sub run_tests {
         my $rs_rel25_one = $obj26->loader_test25_id_rel1;
         isa_ok($rs_rel25_one, $class25);
         is($rs_rel25_one->dat, 'x25');
+
+        ok($class26->column_info('id')->{is_foreign_key});
+        ok($class26->column_info('rel1')->{is_foreign_key});
+        ok($class26->column_info('rel2')->{is_foreign_key});
 
         my $rs_rel25_two = $obj26->loader_test25_id_rel2;
         isa_ok($rs_rel25_two, $class25);
@@ -436,9 +456,13 @@ sub run_tests {
         isa_ok($obj28, $class28);
         is($obj28->get_column('id'), 1);
 
+        ok($class28->column_info('id')->{is_foreign_key});
+
         my $obj29 = $obj27->loader_test29;
         isa_ok($obj29, $class29);
         is($obj29->id, 1);
+
+        ok($class29->column_info('fk')->{is_foreign_key});
 
         $obj27 = $rsobj27->find(2);
         is($obj27->loader_test28, undef);
@@ -446,9 +470,12 @@ sub run_tests {
 
         # test outer join for nullable referring columns:
         SKIP: {
-          skip "unreliable column info from db driver",6 unless 
+          skip "unreliable column info from db driver",11 unless 
             ($class32->column_info('rel2')->{is_nullable});
 
+          ok($class32->column_info('rel1')->{is_foreign_key});
+          ok($class32->column_info('rel2')->{is_foreign_key});
+          
           my $obj32 = $rsobj32->find(1,{prefetch=>[qw/rel1 rel2/]});
           my $obj34 = $rsobj34->find(
             1,{prefetch=>[qw/loader_test33_id_rel1 loader_test33_id_rel2/]}
@@ -456,6 +483,10 @@ sub run_tests {
           my $skip_outerjoin;
           isa_ok($obj32,$class32) or $skip_outerjoin = 1;
           isa_ok($obj34,$class34) or $skip_outerjoin = 1;
+
+          ok($class34->column_info('id')->{is_foreign_key});
+          ok($class34->column_info('rel1')->{is_foreign_key});
+          ok($class34->column_info('rel2')->{is_foreign_key});
 
           SKIP: {
             skip "Pre-requisite test failed", 4 if $skip_outerjoin;
@@ -476,7 +507,7 @@ sub run_tests {
         # from Chisel's tests...
         SKIP: {
             if($self->{vendor} =~ /sqlite/i) {
-                skip 'SQLite cannot do the advanced tests', 8;
+                skip 'SQLite cannot do the advanced tests', 10;
             }
 
             my $moniker10 = $monikers->{loader_test10};
@@ -489,6 +520,9 @@ sub run_tests {
 
             isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
+
+            ok($class10->column_info('loader_test11')->{is_foreign_key});
+            ok($class11->column_info('loader_test10')->{is_foreign_key});
 
             my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
@@ -522,7 +556,7 @@ sub run_tests {
         }
 
         SKIP: {
-            skip 'This vendor cannot do inline relationship definitions', 5
+            skip 'This vendor cannot do inline relationship definitions', 8
                 if $self->{no_inline_rels};
 
             my $moniker12 = $monikers->{loader_test12};
@@ -536,6 +570,10 @@ sub run_tests {
             isa_ok( $rsobj12, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj13, "DBIx::Class::ResultSet" );
 
+            ok($class13->column_info('id')->{is_foreign_key});
+            ok($class13->column_info('loader_test12')->{is_foreign_key});
+            ok($class13->column_info('dat')->{is_foreign_key});
+
             my $obj13 = $rsobj13->find(1);
             isa_ok( $obj13->id, $class12 );
             isa_ok( $obj13->loader_test12, $class12);
@@ -543,7 +581,7 @@ sub run_tests {
         }
 
         SKIP: {
-            skip 'This vendor cannot do out-of-line implicit rel defs', 3
+            skip 'This vendor cannot do out-of-line implicit rel defs', 4
                 if $self->{no_implicit_rels};
             my $moniker14 = $monikers->{loader_test14};
             my $class14   = $classes->{loader_test14};
@@ -556,6 +594,8 @@ sub run_tests {
             isa_ok( $rsobj14, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj15, "DBIx::Class::ResultSet" );
 
+            ok($class15->column_info('loader_test14')->{is_foreign_key});
+
             my $obj15 = $rsobj15->find(1);
             isa_ok( $obj15->loader_test14, $class14 );
         }
@@ -563,7 +603,7 @@ sub run_tests {
 
     # rescan test
     SKIP: {
-        skip $self->{skip_rels}, 4 if $self->{skip_rels};
+        skip $self->{skip_rels}, 5 if $self->{skip_rels};
 
         my @statements_rescan = (
             qq{
@@ -589,6 +629,8 @@ sub run_tests {
         isa_ok($rsobj30, 'DBIx::Class::ResultSet');
         my $obj30 = $rsobj30->find(123);
         isa_ok( $obj30->loader_test2, $class2);
+
+        ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key});
     }
 
     $self->{extra}->{run}->($conn, $monikers, $classes) if $self->{extra}->{run};
