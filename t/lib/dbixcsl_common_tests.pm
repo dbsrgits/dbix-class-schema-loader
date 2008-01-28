@@ -230,7 +230,7 @@ sub run_tests {
         skip "This vendor doesn't detect auto-increment columns", 1
             if $self->{no_auto_increment};
 
-        is( $rsobj1->result_source->column_info('id')->{is_auto_increment}, 1,
+        is( $class1->column_info('id')->{is_auto_increment}, 1,
             'Setting is_auto_incrment works'
         );
     }
