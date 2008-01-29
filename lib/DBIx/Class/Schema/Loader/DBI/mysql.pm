@@ -129,7 +129,10 @@ sub _extra_column_info {
         $extra_info{is_auto_increment} = 1
     }
     if ($info->{mysql_type_name} =~ /\bunsigned\b/i) {
-        $extra_info{extra} = { unsigned => 1 };
+        $extra_info{extra}{unsigned} = 1;
+    }
+    if ($info->{mysql_values}) {
+        $extra_info{extra}{list} = $info->{mysql_values};
     }
 
     return \%extra_info;

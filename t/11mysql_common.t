@@ -24,19 +24,26 @@ my $tester = dbixcsl_common_tests->new(
         create => [
             qq{
                 CREATE TABLE mysql_loader_test1 (
-                    id INTEGER UNSIGNED NOT NULL PRIMARY KEY
+                    id INTEGER UNSIGNED NOT NULL PRIMARY KEY,
+                    value ENUM('foo', 'bar', 'baz')
                 )
             },
         ],
         drop   => [ qw/ mysql_loader_test1 / ],
-        count  => 1,
+        count  => 3,
         run    => sub {
             my ($schema, $monikers, $classes) = @_;
         
             my $rs = $schema->resultset($monikers->{mysql_loader_test1});
             my $column_info = $rs->result_source->column_info('id');
-        
+            
             is($column_info->{extra}->{unsigned}, 1, 'Unsigned MySQL columns');
+
+            $column_info = $rs->result_source->column_info('value');
+
+            like($column_info->{data_type}, qr/^enum$/i, 'MySQL ENUM type');
+            is_deeply($column_info->{extra}->{list}, [qw/foo bar baz/],
+                      'MySQL ENUM values');
         },
     }
 );
