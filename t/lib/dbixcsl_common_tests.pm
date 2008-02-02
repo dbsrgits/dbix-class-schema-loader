@@ -526,6 +526,7 @@ sub create {
 
     $self->{_created} = 1;
 
+    my $make_auto_inc = $self->{auto_inc_cb} || sub {};
     my @statements = (
         qq{
             CREATE TABLE loader_test1 (
@@ -533,6 +534,7 @@ sub create {
                 dat VARCHAR(32) NOT NULL UNIQUE
             ) $self->{innodb}
         },
+        $make_auto_inc->(qw/loader_test1 id/),
 
         q{ INSERT INTO loader_test1 (dat) VALUES('foo') },
         q{ INSERT INTO loader_test1 (dat) VALUES('bar') }, 
@@ -546,6 +548,7 @@ sub create {
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
+        $make_auto_inc->(qw/loader_test2 id/),
 
         q{ INSERT INTO loader_test2 (dat, dat2) VALUES('aaa', 'zzz') }, 
         q{ INSERT INTO loader_test2 (dat, dat2) VALUES('bbb', 'yyy') }, 
@@ -768,6 +771,7 @@ sub create {
                 loader_test11 INTEGER
             ) $self->{innodb}
         },
+        $make_auto_inc->(qw/loader_test10 id10/),
 
         qq{
             CREATE TABLE loader_test11 (
@@ -777,6 +781,7 @@ sub create {
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb}
         },
+        $make_auto_inc->(qw/loader_test11 id11/),
 
         (q{ ALTER TABLE loader_test10 ADD CONSTRAINT } .
          q{ loader_test11_fk FOREIGN KEY (loader_test11) } .
@@ -866,6 +871,11 @@ sub drop_tables {
         LOADER_TEST23
         LoAdEr_test24
     /;
+    
+    my @tables_auto_inc = (
+        [ qw/loader_test1 id/ ],
+        [ qw/loader_test2 id/ ],
+    );
 
     my @tables_reltests = qw/
         loader_test4
@@ -890,6 +900,11 @@ sub drop_tables {
         loader_test11
         loader_test10
     /;
+    
+    my @tables_advanced_auto_inc = (
+        [ qw/loader_test10 id10/ ],
+        [ qw/loader_test11 id11/ ],
+    );
 
     my @tables_inline_rels = qw/
         loader_test13
@@ -904,12 +919,14 @@ sub drop_tables {
     my @tables_rescan = qw/ loader_test30 /;
 
     my $drop_fk_mysql =
-        q{ALTER TABLE loader_test10 DROP FOREIGN KEY loader_test11_fk;};
+        q{ALTER TABLE loader_test10 DROP FOREIGN KEY loader_test11_fk};
 
     my $drop_fk =
-        q{ALTER TABLE loader_test10 DROP CONSTRAINT loader_test11_fk;};
+        q{ALTER TABLE loader_test10 DROP CONSTRAINT loader_test11_fk};
 
     my $dbh = $self->dbconnect(0);
+
+    my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
 
     unless($self->{skip_rels}) {
         $dbh->do("DROP TABLE $_") for (@tables_reltests);
@@ -921,6 +938,7 @@ sub drop_tables {
                 $dbh->do($drop_fk);
             }
             $dbh->do("DROP TABLE $_") for (@tables_advanced);
+            $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
         }
         unless($self->{no_inline_rels}) {
             $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
@@ -931,6 +949,7 @@ sub drop_tables {
         $dbh->do("DROP TABLE $_") for (@tables_rescan);
     }
     $dbh->do("DROP TABLE $_") for (@tables);
+    $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
     $dbh->disconnect;
 }
 
