@@ -76,68 +76,50 @@ sub _tables_list {
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
-    my @uniqs;
     my $dbh = $self->schema->storage->dbh;
 
     my $sth = $dbh->prepare_cached(
-        qq{SELECT constraint_name, ucc.column_name FROM user_constraints JOIN user_cons_columns ucc USING (constraint_name) WHERE ucc.table_name=? AND constraint_type='U'}
-    ,{}, 1);
+        q{
+            SELECT constraint_name, ucc.column_name
+            FROM user_constraints JOIN user_cons_columns ucc USING (constraint_name)
+            WHERE ucc.table_name=? AND constraint_type='U'
+        },
+        {}, 1);
 
     $sth->execute(uc $table);
     my %constr_names;
     while(my $constr = $sth->fetchrow_arrayref) {
-        my $constr_name = $constr->[0];
-        my $constr_def  = $constr->[1];
+        my $constr_name = lc $constr->[0];
+        my $constr_def  = lc $constr->[1];
         $constr_name =~ s/\Q$self->{_quoter}\E//;
         $constr_def =~ s/\Q$self->{_quoter}\E//;
-        push @{$constr_names{$constr_name}}, lc $constr_def;
+        push @{$constr_names{$constr_name}}, $constr_def;
     }
-    map {
-        push(@uniqs, [ lc $_ => $constr_names{$_} ]);
-    } keys %constr_names;
-
+    
+    my @uniqs = map { [ $_ => $constr_names{$_} ] } keys %constr_names;
     return \@uniqs;
 }
 
 sub _table_pk_info {
-    my ( $self, $table ) = @_;
-    return $self->SUPER::_table_pk_info(uc $table);
+    my ($self, $table) = @_;
+    return $self->next::method(uc $table);
 }
 
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->foreign_key_info( '', '', '', '',
-        $self->db_schema, uc $table );
-    return [] if !$sth;
+    my $rels = $self->next::method(uc $table);
 
-    my %rels;
-
-    my $i = 1; # for unnamed rels, which hopefully have only 1 column ...
-    while(my $raw_rel = $sth->fetchrow_arrayref) {
-        my $uk_tbl  = lc $raw_rel->[2];
-        my $uk_col  = lc $raw_rel->[3];
-        my $fk_col  = lc $raw_rel->[7];
-        my $relid   = ($raw_rel->[11] || ( "__dcsld__" . $i++ ));
-        $uk_tbl =~ s/\Q$self->{_quoter}\E//g;
-        $uk_col =~ s/\Q$self->{_quoter}\E//g;
-        $fk_col =~ s/\Q$self->{_quoter}\E//g;
-        $relid  =~ s/\Q$self->{_quoter}\E//g;
-        $rels{$relid}->{tbl} = $uk_tbl;
-        $rels{$relid}->{cols}->{$uk_col} = $fk_col;
+    foreach my $rel (@$rels) {
+        $rel->{remote_table} = lc $rel->{remote_table};
     }
 
-    my @rels;
-    foreach my $relid (keys %rels) {
-        push(@rels, {
-            remote_columns => [ keys   %{$rels{$relid}->{cols}} ],
-            local_columns  => [ values %{$rels{$relid}->{cols}} ],
-            remote_table   => $rels{$relid}->{tbl},
-        });
-    }
+    return $rels;
+}
 
-    return \@rels;
+sub _columns_info_for {
+    my ($self, $table) = @_;
+    return $self->next::method(uc $table);
 }
 
 =head1 SEE ALSO
