@@ -1,9 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
 Not yet released
-        - Add support for load_namespaces-style class layout.
+        - Add support for load_namespaces-style class layout
         - Fix test skip count for main skip_rels block
-        - Fix auto-inc column cration for the Oracle tests
+        - Fix auto-inc column creation for the Oracle tests
 
 0.04004 Thu Nov 15, 2007
         - Fix Win32 test skip counts for good (RT #30568, Kenichi Ishigaki)
