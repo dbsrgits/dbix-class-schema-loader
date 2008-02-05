@@ -83,6 +83,7 @@ sub _table_uniq_info {
             SELECT constraint_name, ucc.column_name
             FROM user_constraints JOIN user_cons_columns ucc USING (constraint_name)
             WHERE ucc.table_name=? AND constraint_type='U'
+            ORDER BY ucc.position
         },
         {}, 1);
 
