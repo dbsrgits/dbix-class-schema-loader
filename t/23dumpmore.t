@@ -7,7 +7,7 @@ require DBIx::Class::Schema::Loader;
 
 $^O eq 'MSWin32'
     ? plan(skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths")
-    : plan(tests => 40);
+    : plan(tests => 82);
 
 my $DUMP_PATH = './t/_dump';
 
@@ -165,6 +165,98 @@ do_dump_test(
     neg_regexes => {
         Foo => [
             qr/# XXX This is my custom content XXX/,
+        ],
+    },
+);
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => { use_namespaces => 1 },
+    error => '',
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        schema => [
+            qr/package DBICTest::DumpMore::1;/,
+            qr/->load_namespaces/,
+        ],
+        'Result/Foo' => [
+            qr/package DBICTest::DumpMore::1::Result::Foo;/,
+            qr/->set_primary_key/,
+            qr/1;\n$/,
+        ],
+        'Result/Bar' => [
+            qr/package DBICTest::DumpMore::1::Result::Bar;/,
+            qr/->set_primary_key/,
+            qr/1;\n$/,
+        ],
+    },
+);
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => { use_namespaces => 1,
+                 result_namespace => 'Res',
+                 resultset_namespace => 'RSet',
+                 default_resultset_class => 'RSetBase',
+             },
+    error => '',
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        schema => [
+            qr/package DBICTest::DumpMore::1;/,
+            qr/->load_namespaces/,
+            qr/result_namespace => 'Res'/,
+            qr/resultset_namespace => 'RSet'/,
+            qr/default_resultset_class => 'RSetBase'/,
+        ],
+        'Res/Foo' => [
+            qr/package DBICTest::DumpMore::1::Res::Foo;/,
+            qr/->set_primary_key/,
+            qr/1;\n$/,
+        ],
+        'Res/Bar' => [
+            qr/package DBICTest::DumpMore::1::Res::Bar;/,
+            qr/->set_primary_key/,
+            qr/1;\n$/,
+        ],
+    },
+);
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => { use_namespaces => 1,
+                 result_namespace => '+DBICTest::DumpMore::1::Res',
+                 resultset_namespace => 'RSet',
+                 default_resultset_class => 'RSetBase',
+             },
+    error => '',
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        schema => [
+            qr/package DBICTest::DumpMore::1;/,
+            qr/->load_namespaces/,
+            qr/result_namespace => '\+DBICTest::DumpMore::1::Res'/,
+            qr/resultset_namespace => 'RSet'/,
+            qr/default_resultset_class => 'RSetBase'/,
+        ],
+        'Res/Foo' => [
+            qr/package DBICTest::DumpMore::1::Res::Foo;/,
+            qr/->set_primary_key/,
+            qr/1;\n$/,
+        ],
+        'Res/Bar' => [
+            qr/package DBICTest::DumpMore::1::Res::Bar;/,
+            qr/->set_primary_key/,
+            qr/1;\n$/,
         ],
     },
 );
