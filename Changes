@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04999_02 Not yet released
+        - Add is_auto_increment detection for Oracle
+
 0.04999_01 Tue Feb 5, 2008
         - Mark foreign key columns with is_foreign_key => 1
         - Add support for vendor-specific extra column attributes.

@@ -123,6 +123,31 @@ sub _columns_info_for {
     return $self->next::method(uc $table);
 }
 
+sub _extra_column_info {
+    my ($self, $info) = @_;
+    my %extra_info;
+
+    my ($table, $column) = @$info{qw/TABLE_NAME COLUMN_NAME/};
+
+    my $dbh = $self->schema->storage->dbh;
+    my $sth = $dbh->prepare_cached(
+        q{
+            SELECT COUNT(*)
+            FROM user_triggers ut JOIN user_trigger_cols utc USING (trigger_name)
+            WHERE utc.table_name = ? AND utc.column_name = ?
+            AND column_usage LIKE '%NEW%' AND column_usage LIKE '%OUT%'
+            AND trigger_type = 'BEFORE EACH ROW' AND triggering_event LIKE '%INSERT%'
+        },
+        {}, 1);
+
+    $sth->execute($table, $column);
+    if ($sth->fetchrow_array) {
+        $extra_info{is_auto_increment} = 1;
+    }
+
+    return \%extra_info;
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
@@ -131,6 +156,8 @@ L<DBIx::Class::Schema::Loader::DBI>
 =head1 AUTHOR
 
 TSUNODA Kazuya C<drk@drk7.jp>
+
+Dagfinn Ilmari Mannsåker C<ilmari@ilmari.org>
 
 =cut
 
