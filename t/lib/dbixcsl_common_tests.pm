@@ -46,7 +46,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 136 + ($self->{extra}->{count} || 0);
+    plan tests => 135 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -89,16 +89,17 @@ sub run_tests {
         };
         ok(!$@, "Loader initialization") or diag $@;
         if($self->{skip_rels}) {
-            is(scalar(@loader_warnings), 0)
-              or diag "Did not get the expected 0 warnings.  Warnings are: "
-                . join('',@loader_warnings);
-            ok(1);
+            SKIP: {
+                is(scalar(@loader_warnings), 0, "No loader warnings")
+                    or diag @loader_warnings;
+                skip "No missing PK warnings without rels", 1;
+            }
         }
         else {
-            is(scalar(@loader_warnings), 1)
-              or diag "Did not get the expected 1 warning.  Warnings are: "
-                . join('',@loader_warnings);
-            like($loader_warnings[0], qr/loader_test9 has no primary key/i);
+            is(scalar(@loader_warnings), 1, "Expected loader warning")
+                or diag @loader_warnings;
+            like($loader_warnings[0], qr/loader_test9 has no primary key/i,
+                 "Missing PK warning");
         }
     }
 
@@ -133,9 +134,7 @@ sub run_tests {
     isa_ok( $rsobj24, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
-    is($columns_lt2[0], 'id', "Column Ordering 0");
-    is($columns_lt2[1], 'dat', "Column Ordering 1");
-    is($columns_lt2[2], 'dat2', "Column Ordering 2");
+    is_deeply( \@columns_lt2, [ qw/id dat dat2/ ], "Column Ordering" );
 
     my %uniq1 = $class1->unique_constraints;
     my $uniq1_test = 0;
@@ -146,7 +145,7 @@ sub run_tests {
            last;
         }
     }
-    ok($uniq1_test) or diag "Unique constraints not working";
+    ok($uniq1_test, "Unique constraint");
 
     my %uniq2 = $class2->unique_constraints;
     my $uniq2_test = 0;
@@ -159,7 +158,7 @@ sub run_tests {
             last;
         }
     }
-    ok($uniq2_test) or diag "Multi-col unique constraints not working";
+    ok($uniq2_test, "Multi-col unique constraint");
 
     is($moniker2, 'LoaderTest2X', "moniker_map testing");
 
@@ -200,7 +199,8 @@ sub run_tests {
         SKIP: {
             skip "Pre-requisite test failed", 1 if $skip_tcomp;
             is( $class1->dbix_class_testcomponent,
-                'dbix_class_testcomponent works' );
+                'dbix_class_testcomponent works',
+                'Additional Component' );
         }
 
         SKIP: {
@@ -210,52 +210,50 @@ sub run_tests {
             SKIP: {
                 skip "Pre-requisite test failed", 1 if $skip_trscomp;
                 is( $rsobj1->dbix_class_testrscomponent,
-                    'dbix_class_testrscomponent works' );
+                    'dbix_class_testrscomponent works',
+                    'ResultSet component' );
             }
         }
 
         SKIP: {
             skip "Pre-requisite test failed", 1 if $skip_cmeth;
-            is( $class1->loader_test1_classmeth, 'all is well' );
+            is( $class1->loader_test1_classmeth, 'all is well', 'Class method' );
         }
 
-        # XXX put this back in when the TODO above works...
-        #SKIP: {
-        #    skip "Pre-requisite test failed", 1 if $skip_rsmeth;
-        #    is( $rsobj1->loader_test1_rsmeth, 'all is still well' );
-        #}
+        SKIP: {
+            skip "Pre-requisite test failed", 1 if $skip_rsmeth;
+            is( $rsobj1->loader_test1_rsmeth, 'all is still well', 'Result set method' );
+        }
     }
 
     SKIP: {
         skip "This vendor doesn't detect auto-increment columns", 1
             if $self->{no_auto_increment};
 
-        is( $class1->column_info('id')->{is_auto_increment}, 1,
-            'Setting is_auto_incrment works'
-        );
+        ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_incrment detection' );
     }
 
     my $obj    = $rsobj1->find(1);
-    is( $obj->id,  1 );
-    is( $obj->dat, "foo" );
-    is( $rsobj2->count, 4 );
+    is( $obj->id,  1, "Find got the right row" );
+    is( $obj->dat, "foo", "Column value" );
+    is( $rsobj2->count, 4, "Count" );
     my $saved_id;
     eval {
         my $new_obj1 = $rsobj1->create({ dat => 'newthing' });
         $saved_id = $new_obj1->id;
     };
-    ok(!$@) or diag "Died during create new record using a PK::Auto key: $@";
-    ok($saved_id) or diag "Failed to get PK::Auto-generated id";
+    ok(!$@, "Inserting new record using a PK::Auto key didn't die") or diag $@;
+    ok($saved_id, "Got PK::Auto-generated id");
 
     my $new_obj1 = $rsobj1->search({ dat => 'newthing' })->first;
-    ok($new_obj1) or diag "Cannot find newly inserted PK::Auto record";
-    is($new_obj1->id, $saved_id);
+    ok($new_obj1, "Found newly inserted PK::Auto record");
+    is($new_obj1->id, $saved_id, "Correct PK::Auto-generated id");
 
     my ($obj2) = $rsobj2->search({ dat => 'bbb' })->first;
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 69 if $self->{skip_rels};
+        skip $self->{skip_rels}, 96 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
