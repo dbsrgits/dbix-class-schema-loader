@@ -1,6 +1,4 @@
-package # hide from pause/cpan for now, as there's a permissions
-        # issue and it's screwing the rest of the package
-  DBIx::Class::Schema::Loader::DBI::Oracle;
+package DBIx::Class::Schema::Loader::DBI::Oracle;
 
 use strict;
 use warnings;
