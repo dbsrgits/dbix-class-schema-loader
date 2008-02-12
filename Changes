@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.04999_02 Not yet released
+0.04999_02 Tue Feb 12, 2008
         - Add is_auto_increment detection for Oracle
         - Unnhide the Oracle module now that the CPAN perms are sorted
           out. Thanks to Tsunoda Kazuya for the quick response.
