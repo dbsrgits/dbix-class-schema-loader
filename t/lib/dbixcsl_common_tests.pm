@@ -46,7 +46,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 135 + ($self->{extra}->{count} || 0);
+    plan tests => 134 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -375,7 +375,7 @@ sub run_tests {
         my $obj4 = $rsobj4->find(123);
         isa_ok( $obj4->fkid_singular, $class3);
 
-        ok($class4->column_info('fkid')->{is_foreign_key});
+        ok($class4->column_info('fkid')->{is_foreign_key}, 'Foreign key detected');
 
         my $obj3 = $rsobj3->find(1);
         my $rs_rel4 = $obj3->search_related('loader_test4zes');
@@ -383,96 +383,96 @@ sub run_tests {
 
         # find on multi-col pk
         my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});
-        is( $obj5->id2, 1 );
+        is( $obj5->id2, 1, "Find on multi-col PK" );
 
         # mulit-col fk def
         my $obj6 = $rsobj6->find(1);
         isa_ok( $obj6->loader_test2, $class2);
         isa_ok( $obj6->loader_test5, $class5);
 
-        ok($class6->column_info('loader_test2')->{is_foreign_key});
-        ok($class6->column_info('id')->{is_foreign_key});
-        ok($class6->column_info('id2')->{is_foreign_key});
+        ok($class6->column_info('loader_test2')->{is_foreign_key}, 'Foreign key detected');
+        ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
+        ok($class6->column_info('id2')->{is_foreign_key}, 'Foreign key detected');
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
         isa_ok( $obj8->loader_test7, $class7);
 
-        ok($class8->column_info('loader_test7')->{is_foreign_key});
+        ok($class8->column_info('loader_test7')->{is_foreign_key}, 'Foreign key detected');
 
         # test double-fk 17 ->-> 16
         my $obj17 = $rsobj17->find(33);
 
         my $rs_rel16_one = $obj17->loader16_one;
         isa_ok($rs_rel16_one, $class16);
-        is($rs_rel16_one->dat, 'y16');
+        is($rs_rel16_one->dat, 'y16', "Multiple FKs to same table");
 
-        ok($class17->column_info('loader16_one')->{is_foreign_key});
+        ok($class17->column_info('loader16_one')->{is_foreign_key}, 'Foreign key detected');
 
         my $rs_rel16_two = $obj17->loader16_two;
         isa_ok($rs_rel16_two, $class16);
-        is($rs_rel16_two->dat, 'z16');
+        is($rs_rel16_two->dat, 'z16', "Multiple FKs to same table");
 
-        ok($class17->column_info('loader16_two')->{is_foreign_key});
+        ok($class17->column_info('loader16_two')->{is_foreign_key}, 'Foreign key detected');
 
         my $obj16 = $rsobj16->find(2);
         my $rs_rel17 = $obj16->search_related('loader_test17_loader16_ones');
         isa_ok($rs_rel17->first, $class17);
-        is($rs_rel17->first->id, 3);
+        is($rs_rel17->first->id, 3, "search_related with multiple FKs from same table");
         
         # XXX test m:m 18 <- 20 -> 19
-        ok($class20->column_info('parent')->{is_foreign_key});
-        ok($class20->column_info('child')->{is_foreign_key});
+        ok($class20->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
+        ok($class20->column_info('child')->{is_foreign_key}, 'Foreign key detected');
         
         # XXX test double-fk m:m 21 <- 22 -> 21
-        ok($class22->column_info('parent')->{is_foreign_key});
-        ok($class22->column_info('child')->{is_foreign_key});
+        ok($class22->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
+        ok($class22->column_info('child')->{is_foreign_key}, 'Foreign key detected');
 
         # test double multi-col fk 26 -> 25
         my $obj26 = $rsobj26->find(33);
 
         my $rs_rel25_one = $obj26->loader_test25_id_rel1;
         isa_ok($rs_rel25_one, $class25);
-        is($rs_rel25_one->dat, 'x25');
+        is($rs_rel25_one->dat, 'x25', "Multiple multi-col FKs to same table");
 
-        ok($class26->column_info('id')->{is_foreign_key});
-        ok($class26->column_info('rel1')->{is_foreign_key});
-        ok($class26->column_info('rel2')->{is_foreign_key});
+        ok($class26->column_info('id')->{is_foreign_key}, 'Foreign key detected');
+        ok($class26->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
+        ok($class26->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
 
         my $rs_rel25_two = $obj26->loader_test25_id_rel2;
         isa_ok($rs_rel25_two, $class25);
-        is($rs_rel25_two->dat, 'y25');
+        is($rs_rel25_two->dat, 'y25', "Multiple multi-col FKs to same table");
 
         my $obj25 = $rsobj25->find(3,42);
         my $rs_rel26 = $obj25->search_related('loader_test26_id_rel1s');
         isa_ok($rs_rel26->first, $class26);
-        is($rs_rel26->first->id, 3);
+        is($rs_rel26->first->id, 3, "search_related with multiple multi-col FKs from same table");
 
         # test one-to-one rels
         my $obj27 = $rsobj27->find(1);
         my $obj28 = $obj27->loader_test28;
         isa_ok($obj28, $class28);
-        is($obj28->get_column('id'), 1);
+        is($obj28->get_column('id'), 1, "One-to-one relationship with PRIMARY FK");
 
-        ok($class28->column_info('id')->{is_foreign_key});
+        ok($class28->column_info('id')->{is_foreign_key}, 'Foreign key detected');
 
         my $obj29 = $obj27->loader_test29;
         isa_ok($obj29, $class29);
-        is($obj29->id, 1);
+        is($obj29->id, 1, "One-to-one relationship with UNIQUE FK");
 
-        ok($class29->column_info('fk')->{is_foreign_key});
+        ok($class29->column_info('fk')->{is_foreign_key}, 'Foreign key detected');
 
         $obj27 = $rsobj27->find(2);
-        is($obj27->loader_test28, undef);
-        is($obj27->loader_test29, undef);
+        is($obj27->loader_test28, undef, "Undef for missing one-to-one row");
+        is($obj27->loader_test29, undef, "Undef for missing one-to-one row");
 
         # test outer join for nullable referring columns:
         SKIP: {
           skip "unreliable column info from db driver",11 unless 
             ($class32->column_info('rel2')->{is_nullable});
 
-          ok($class32->column_info('rel1')->{is_foreign_key});
-          ok($class32->column_info('rel2')->{is_foreign_key});
+          ok($class32->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
+          ok($class32->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
           
           my $obj32 = $rsobj32->find(1,{prefetch=>[qw/rel1 rel2/]});
           my $obj34 = $rsobj34->find(
@@ -482,22 +482,22 @@ sub run_tests {
           isa_ok($obj32,$class32) or $skip_outerjoin = 1;
           isa_ok($obj34,$class34) or $skip_outerjoin = 1;
 
-          ok($class34->column_info('id')->{is_foreign_key});
-          ok($class34->column_info('rel1')->{is_foreign_key});
-          ok($class34->column_info('rel2')->{is_foreign_key});
+          ok($class34->column_info('id')->{is_foreign_key}, 'Foreign key detected');
+          ok($class34->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
+          ok($class34->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
 
           SKIP: {
             skip "Pre-requisite test failed", 4 if $skip_outerjoin;
             my $rs_rel31_one = $obj32->rel1;
             my $rs_rel31_two = $obj32->rel2;
-            isa_ok($rs_rel31_one,$class31);
-            is($rs_rel31_two,undef);
+            isa_ok($rs_rel31_one, $class31);
+            is($rs_rel31_two, undef);
 
             my $rs_rel33_one = $obj34->loader_test33_id_rel1;
             my $rs_rel33_two = $obj34->loader_test33_id_rel2;
 
             isa_ok($rs_rel33_one,$class33);
-            is($rs_rel33_two,undef);
+            is($rs_rel33_two, undef);
 
           }
         }
@@ -519,37 +519,35 @@ sub run_tests {
             isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
 
-            ok($class10->column_info('loader_test11')->{is_foreign_key});
-            ok($class11->column_info('loader_test10')->{is_foreign_key});
+            ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
+            ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
 
             my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
             $obj10->update();
-            ok( defined $obj10, '$obj10 is defined' );
+            ok( defined $obj10, 'Create row' );
 
             my $obj11 = $rsobj11->create({ loader_test10 => $obj10->id() });
             $obj11->update();
-            ok( defined $obj11, '$obj11 is defined' );
+            ok( defined $obj11, 'Create related row' );
 
             eval {
                 my $obj10_2 = $obj11->loader_test10;
                 $obj10_2->loader_test11( $obj11->id11() );
                 $obj10_2->update();
             };
-            is($@, '', 'No errors after eval{}');
+            ok(!$@, "Setting up circular relationship");
 
             SKIP: {
-                skip 'Previous eval block failed', 3
-                    unless ($@ eq '');
+                skip 'Previous eval block failed', 3 if $@;
         
                 my $results = $rsobj10->search({ subject => 'xyzzy' });
-                is( $results->count(), 1,
-                    'One $rsobj10 returned from search' );
+                is( $results->count(), 1, 'No duplicate row created' );
 
                 my $obj10_3 = $results->first();
                 isa_ok( $obj10_3, $class10 );
                 is( $obj10_3->loader_test11()->id(), $obj11->id(),
-                    'found same $rsobj11 object we expected' );
+                    'Circular rel leads back to same row' );
             }
         }
 
@@ -568,9 +566,9 @@ sub run_tests {
             isa_ok( $rsobj12, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj13, "DBIx::Class::ResultSet" );
 
-            ok($class13->column_info('id')->{is_foreign_key});
-            ok($class13->column_info('loader_test12')->{is_foreign_key});
-            ok($class13->column_info('dat')->{is_foreign_key});
+            ok($class13->column_info('id')->{is_foreign_key}, 'Foreign key detected');
+            ok($class13->column_info('loader_test12')->{is_foreign_key}, 'Foreign key detected');
+            ok($class13->column_info('dat')->{is_foreign_key}, 'Foreign key detected');
 
             my $obj13 = $rsobj13->find(1);
             isa_ok( $obj13->id, $class12 );
@@ -592,7 +590,7 @@ sub run_tests {
             isa_ok( $rsobj14, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj15, "DBIx::Class::ResultSet" );
 
-            ok($class15->column_info('loader_test14')->{is_foreign_key});
+            ok($class15->column_info('loader_test14')->{is_foreign_key}, 'Foreign key detected');
 
             my $obj15 = $rsobj15->find(1);
             isa_ok( $obj15->loader_test14, $class14 );
@@ -620,15 +618,15 @@ sub run_tests {
         $dbh->disconnect;
 
         my @new = $conn->rescan;
-        is(scalar(@new), 1);
-        is($new[0], 'LoaderTest30');
+        is_deeply(\@new, [ qw/LoaderTest30/ ], "Rescan");
 
         my $rsobj30   = $conn->resultset('LoaderTest30');
         isa_ok($rsobj30, 'DBIx::Class::ResultSet');
         my $obj30 = $rsobj30->find(123);
         isa_ok( $obj30->loader_test2, $class2);
 
-        ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key});
+        ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key},
+           'Foreign key detected');
     }
 
     $self->{extra}->{run}->($conn, $monikers, $classes) if $self->{extra}->{run};
