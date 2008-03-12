@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-Not yet released
+0.04999_04 Wed Mar 12, 2008
         - Add is_auto_increment detecton for DB2
 
 0.04999_03 Wed Mar 12, 2008
