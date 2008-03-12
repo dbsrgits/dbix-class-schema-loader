@@ -86,6 +86,29 @@ sub _columns_info_for {
     return $self->next::method(uc $table);
 }
 
+sub _extra_column_info {
+    my ($self, $info) = @_;
+    my %extra_info;
+
+    my ($table, $column) = @$info{qw/TABLE_NAME COLUMN_NAME/};
+
+    my $dbh = $self->schema->storage->dbh;
+    my $sth = $dbh->prepare_cached(
+        q{
+            SELECT COUNT(*)
+            FROM syscat.columns
+            WHERE tabschema = ? AND tabname = ? AND colname = ?
+            AND identity = 'Y' AND generated != ''
+        },
+        {}, 1);
+    $sth->execute($self->db_schema, $table, $column);
+    if ($sth->fetchrow_array) {
+        $extra_info{is_auto_increment} = 1;
+    }
+
+    return \%extra_info;
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
