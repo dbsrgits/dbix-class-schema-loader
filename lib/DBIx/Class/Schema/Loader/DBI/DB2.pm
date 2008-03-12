@@ -41,7 +41,7 @@ sub _table_uniq_info {
         WHERE tc.TABSCHEMA = ? and tc.TABNAME = ? and tc.TYPE = 'U'}
     ) or die $DBI::errstr;
 
-    $sth->execute($self->db_schema, $table) or die $DBI::errstr;
+    $sth->execute($self->db_schema, uc $table) or die $DBI::errstr;
 
     my %keydata;
     while(my $row = $sth->fetchrow_arrayref) {
@@ -57,6 +57,33 @@ sub _table_uniq_info {
     $sth->finish;
     
     return \@uniqs;
+}
+
+sub _tables_list {
+    my $self = shift;
+    return map lc, $self->next::method;
+}
+
+sub _table_pk_info {
+    my ($self, $table) = @_;
+    return $self->next::method(uc $table);
+}
+
+sub _table_fk_info {
+    my ($self, $table) = @_;
+
+    my $rels = $self->next::method(uc $table);
+
+    foreach my $rel (@$rels) {
+        $rel->{remote_table} = lc $rel->{remote_table};
+    }
+
+    return $rels;
+}
+
+sub _columns_info_for {
+    my ($self, $table) = @_;
+    return $self->next::method(uc $table);
 }
 
 =head1 SEE ALSO

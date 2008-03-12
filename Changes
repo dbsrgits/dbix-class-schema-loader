@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
 Not yet released
+        - Fix DB2 support
         - Add support for load_namespaces-style class layout
         - Fix test skip count for main skip_rels block
         - Fix auto-inc column creation for the Oracle tests

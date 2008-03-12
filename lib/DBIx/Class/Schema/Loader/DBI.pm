@@ -169,8 +169,8 @@ sub _table_fk_info {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->foreign_key_info( '', '', '', '',
-        $self->db_schema, $table );
+    my $sth = $dbh->foreign_key_info( '', $self->db_schema, '',
+                                      '', $self->db_schema, $table );
     return [] if !$sth;
 
     my %rels;
