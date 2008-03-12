@@ -912,7 +912,7 @@ sub create {
         qq{
             CREATE TABLE loader_test29 (
                 id INTEGER NOT NULL PRIMARY KEY,
-                fk INTEGER UNIQUE,
+                fk INTEGER NOT NULL UNIQUE,
                 FOREIGN KEY (fk) REFERENCES loader_test27 (id)
             ) $self->{innodb}
         },
@@ -930,7 +930,7 @@ sub create {
           CREATE TABLE loader_test32 (
             id INTEGER NOT NULL PRIMARY KEY,
             rel1 INTEGER NOT NULL,
-            rel2 INTEGER NULL,
+            rel2 INTEGER,
             FOREIGN KEY (rel1) REFERENCES loader_test31(id),
             FOREIGN KEY (rel2) REFERENCES loader_test31(id)
           ) $self->{innodb}
@@ -950,7 +950,7 @@ sub create {
           CREATE TABLE loader_test34 (
             id INTEGER NOT NULL PRIMARY KEY,
             rel1 INTEGER NOT NULL,
-            rel2 INTEGER NULL,
+            rel2 INTEGER,
             FOREIGN KEY (id,rel1) REFERENCES loader_test33(id1,id2),
             FOREIGN KEY (id,rel2) REFERENCES loader_test33(id1,id2)
           ) $self->{innodb}
