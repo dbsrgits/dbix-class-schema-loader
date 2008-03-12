@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+Not yet released
+        - Fix DB2 support
+
 0.04999_02 Tue Feb 12, 2008
         - Add is_auto_increment detection for Oracle
         - Unnhide the Oracle module now that the CPAN perms are sorted
@@ -15,7 +18,6 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Set is_auto_increment for auto-increment columns (RT #31473)
           (Only SQLite, MySQL and PostgreSQL are currently supported)
         - Generate one-to-one accessors for unique foreign keys (ilmari)
-        - Fix DB2 support
         - Add support for load_namespaces-style class layout
         - Fix test skip count for main skip_rels block
         - Fix auto-inc column creation for the Oracle tests
