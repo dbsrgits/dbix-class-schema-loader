@@ -212,7 +212,6 @@ sub _columns_info_for {
         my %result;
         eval {
             my $sth = $dbh->column_info( undef, $self->db_schema, $table, '%' );
-            $sth->execute();
             while ( my $info = $sth->fetchrow_hashref() ){
                 my %column_info;
                 $column_info{data_type}   = $info->{TYPE_NAME};
