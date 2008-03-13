@@ -59,9 +59,18 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
-sub _tables_list {
+# DBD::DB2 doesn't follow the DBI API for ->tables
+sub _tables_list { 
     my $self = shift;
-    return map lc, $self->next::method;
+    
+    my $dbh = $self->schema->storage->dbh;
+    my @tables = map { lc } $dbh->tables(
+        $self->db_schema ? { TABLE_SCHEM => $self->db_schema } : undef
+    );
+    s/\Q$self->{_quoter}\E//g for @tables;
+    s/^.*\Q$self->{_namesep}\E// for @tables;
+
+    return @tables;
 }
 
 sub _table_pk_info {
