@@ -27,6 +27,15 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
+sub _setup {
+    my $self = shift;
+
+    $self->next::method(@_);
+
+    my $dbh = $self->schema->storage->dbh;
+    $self->{db_schema} ||= $dbh->selectrow_array('VALUES(CURRENT_USER)', {});
+}
+
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
