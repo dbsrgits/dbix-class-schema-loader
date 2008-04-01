@@ -106,7 +106,8 @@ sub _invoke_loader {
     $args->{dump_directory} ||= $self->dump_to_dir;
 
     # XXX this only works for relative storage_type, like ::DBI ...
-    my $impl = "DBIx::Class::Schema::Loader" . $self->storage_type;
+    my $impl = $args->{loader_class}
+      || "DBIx::Class::Schema::Loader" . $self->storage_type;
     $impl->require or
       croak qq/Could not load storage_type loader "$impl": / .
             qq/"$UNIVERSAL::require::ERROR"/;

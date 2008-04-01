@@ -45,7 +45,7 @@ sub new {
         croak "Failed to require $subclass: $@";
     }
     elsif(!$@) {
-        bless $self, "DBIx::Class::Schema::Loader::DBI::${driver}";
+        bless $self, $subclass unless $self->isa($subclass);
     }
 
     # Set up the default quoting character and name seperators

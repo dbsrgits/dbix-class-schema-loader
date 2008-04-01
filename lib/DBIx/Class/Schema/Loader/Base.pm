@@ -64,6 +64,13 @@ classes, and implements the common functionality between them.
 These constructor options are the base options for
 L<DBIx::Class::Schema::Loader/loader_opts>.  Available constructor options are:
 
+=head2 loader_class
+
+Use the specified class as the loader instead of
+C<DBIx::Class::Schema::Loader${storage_type}>. This is mostly useful for
+subclassing existing loaders or in conjunction with
+L<DBIx::Class::Schema::Loader/dump_to_dir>.
+
 =head2 skip_relationships
 
 Skip setting up relationships.  The default is to attempt the loading
