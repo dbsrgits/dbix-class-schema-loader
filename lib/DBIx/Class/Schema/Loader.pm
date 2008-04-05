@@ -14,7 +14,7 @@ use Scalar::Util qw/ weaken /;
 our $VERSION = '0.04999_04';
 
 __PACKAGE__->mk_classaccessor('_loader_args' => {});
-__PACKAGE__->mk_classaccessors(qw/dump_to_dir _loader_invoked _loader/);
+__PACKAGE__->mk_classaccessors(qw/dump_to_dir _loader_invoked _loader loader_class/);
 
 =head1 NAME
 
@@ -69,6 +69,16 @@ the road.
 
 =head1 METHODS
 
+=head2 loader_class
+
+Set the loader class to be instantiated when L</connection> is called.
+If the classname starts with "::", "DBIx::Class::Schema::Loader" is
+prepended. Defaults to L<DBIx::Class::Schema/storage_type> (which must
+start with "::" when using L<DBIx::Class::Schema::Loader>).
+
+This is mostly useful for subclassing existing loaders or in conjunction
+with L</dump_to_dir>.
+
 =head2 loader_options
 
 Example in Synopsis above demonstrates a few common arguments.  For
@@ -106,8 +116,9 @@ sub _invoke_loader {
     $args->{dump_directory} ||= $self->dump_to_dir;
 
     # XXX this only works for relative storage_type, like ::DBI ...
-    my $impl = $args->{loader_class}
+    my $impl = $self->loader_class
       || "DBIx::Class::Schema::Loader" . $self->storage_type;
+    $impl = "DBIx::Class::Schema::Loader${impl}" if $impl =~ /^::/;
     $impl->require or
       croak qq/Could not load storage_type loader "$impl": / .
             qq/"$UNIVERSAL::require::ERROR"/;
@@ -123,9 +134,10 @@ sub _invoke_loader {
 
 See L<DBIx::Class::Schema> for basic usage.
 
-If the final argument is a hashref, and it contains a key C<loader_options>,
-that key will be deleted, and its value will be used for the loader options,
-just as if set via the L</loader_options> method above.
+If the final argument is a hashref, and it contains the keys C<loader_options>
+or C<loader_class>, those keys will be deleted, and their values value will be
+used for the loader options or class, respectively, just as if set via the
+L</loader_options> or L</loader_class> methods above.
 
 The actual auto-loading operation (the heart of this module) will be invoked
 as soon as the connection information is defined.
@@ -136,10 +148,12 @@ sub connection {
     my $self = shift;
 
     if($_[-1] && ref $_[-1] eq 'HASH') {
-        if(my $loader_opts = delete $_[-1]->{loader_options}) {
-            $self->loader_options($loader_opts);
-            pop @_ if !keys %{$_[-1]};
+        for my $option (qw/ loader_class loader_options /) {
+            if(my $value = delete $_[-1]->{$option}) {
+                $self->$option($value);
+            }
         }
+        pop @_ if !keys %{$_[-1]};
     }
 
     $self = $self->next::method(@_);
