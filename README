@@ -48,6 +48,15 @@ DESCRIPTION
     down the road.
 
 METHODS
+  loader_class
+    Set the loader class to be instantiated when "connection" is called. If
+    the classname starts with "::", "DBIx::Class::Schema::Loader" is
+    prepended. Defaults to "storage_type" in DBIx::Class::Schema (which must
+    start with "::" when using DBIx::Class::Schema::Loader).
+
+    This is mostly useful for subclassing existing loaders or in conjunction
+    with "dump_to_dir".
+
   loader_options
     Example in Synopsis above demonstrates a few common arguments. For
     detailed information on all of the arguments, most of which are only
@@ -62,10 +71,11 @@ METHODS
   connection
     See DBIx::Class::Schema for basic usage.
 
-    If the final argument is a hashref, and it contains a key
-    "loader_options", that key will be deleted, and its value will be used
-    for the loader options, just as if set via the "loader_options" method
-    above.
+    If the final argument is a hashref, and it contains the keys
+    "loader_options" or "loader_class", those keys will be deleted, and
+    their values value will be used for the loader options or class,
+    respectively, just as if set via the "loader_options" or "loader_class"
+    methods above.
 
     The actual auto-loading operation (the heart of this module) will be
     invoked as soon as the connection information is defined.
