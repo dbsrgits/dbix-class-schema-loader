@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-Not yet released
+0.04005 Sat Apr 05, 2008
         - Fix DB2 support
         - Add support for load_namespaces-style class layout
         - Fix test skip count for main skip_rels block
