@@ -587,9 +587,9 @@ sub _inject {
     my $target = shift;
     my $schema_class = $self->schema_class;
 
-    my $blist = join(q{ }, @_);
-    warn "$target: use base qw/ $blist /;" if $self->debug && @_;
-    $self->_raw_stmt($target, "use base qw/ $blist /;") if @_;
+    my $blist = join(q{ }, map "+$_", @_);
+    warn "$target: __PACKAGE__->load_components( qw/ $blist / );" if $self->debug && @_;
+    $self->_raw_stmt($target, "__PACKAGE__->load_components( qw/ $blist / );") if @_;
     foreach (@_) {
         $_->require or croak ($_ . "->require: $@");
         $schema_class->inject_base($target, $_);

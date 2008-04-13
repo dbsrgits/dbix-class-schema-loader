@@ -4,10 +4,11 @@ use inc::Module::Install 0.71;
 name           'DBIx-Class-Schema-Loader';
 all_from       'lib/DBIx/Class/Schema/Loader.pm';
 
-test_requires 'Test::More'  => '0.47';
-test_requires 'DBI'         => '1.56';
-test_requires 'DBD::SQLite' => '1.12';
-test_requires 'File::Path'  => 0;
+test_requires 'Test::More'    => '0.47';
+test_requires 'DBI'           => '1.56';
+test_requires 'DBD::SQLite'   => '1.12';
+test_requires 'File::Path'    => 0;
+test_requires 'Class::Unload' => 0;
 
 requires 'File::Spec'                  => 0;
 requires 'Scalar::Util'                => 0;

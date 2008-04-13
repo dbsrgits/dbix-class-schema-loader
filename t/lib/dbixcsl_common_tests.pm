@@ -5,8 +5,12 @@ use warnings;
 
 use Test::More;
 use DBIx::Class::Schema::Loader;
-use Class::Inspector;
+use Class::Unload;
+use File::Path;
 use DBI;
+
+my $DUMP_DIR = './t/_common_dump';
+rmtree $DUMP_DIR;
 
 sub new {
     my $class = shift;
@@ -47,15 +51,35 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 134 + ($self->{extra}->{count} || 0);
+    plan tests => 3 + 2 * (131 + ($self->{extra}->{count} || 0));
 
     $self->create();
+
+    my @connect_info = ( $self->{dsn}, $self->{user}, $self->{password} );
+
+    # First, with in-memory classes
+    my $schema_class = $self->setup_schema(@connect_info);
+    $self->test_schema($schema_class);
+
+    # Then, with dumped classes
+    $self->drop_tables;
+    $self->create;
+    $self->{dump} = 1;
+
+    unshift @INC, $DUMP_DIR;
+    $self->reload_schema($schema_class);
+    $schema_class->connection(@connect_info);
+    $self->test_schema($schema_class);
+}
+
+sub setup_schema {
+    my $self = shift;
+    my @connect_info = @_;
 
     my $schema_class = 'DBIXCSL_Test::Schema';
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
-    my @connect_info = ( $self->{dsn}, $self->{user}, $self->{password} );
     my %loader_opts = (
         constraint              => qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+$/i,
         relationships           => 1,
@@ -68,6 +92,7 @@ sub run_tests {
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
         debug                   => $debug,
+        dump_directory          => $DUMP_DIR,
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
@@ -82,21 +107,29 @@ sub run_tests {
             __PACKAGE__->loader_options(\%loader_opts);
             __PACKAGE__->connection(\@connect_info);
         };
+
         ok(!$@, "Loader initialization") or diag $@;
         if($self->{skip_rels}) {
             SKIP: {
-                is(scalar(@loader_warnings), 0, "No loader warnings")
+                is(scalar(@loader_warnings), 2, "No loader warnings")
                     or diag @loader_warnings;
                 skip "No missing PK warnings without rels", 1;
             }
         }
         else {
-            is(scalar(@loader_warnings), 1, "Expected loader warning")
+            is(scalar(@loader_warnings), 3, "Expected loader warning")
                 or diag @loader_warnings;
             like($loader_warnings[0], qr/loader_test9 has no primary key/i,
                  "Missing PK warning");
         }
     }
+    
+    return $schema_class;
+}
+
+sub test_schema {
+    my $self = shift;
+    my $schema_class = shift;
 
     my $conn = $schema_class->clone;
     my $monikers = {};
@@ -576,6 +609,7 @@ sub run_tests {
     # rescan test
     SKIP: {
         skip $self->{skip_rels}, 4 if $self->{skip_rels};
+        skip "Can't rescan dumped schema", 4 if $self->{dump};
 
         my @statements_rescan = (
             qq{
@@ -1135,9 +1169,22 @@ sub drop_tables {
     $dbh->disconnect;
 }
 
+sub reload_schema {
+    my ($self, $schema) = @_;
+    
+    for my $source ($schema->sources) {
+        Class::Unload->unload( $schema->class( $source ) );
+        Class::Unload->unload( ref $schema->resultset( $source ) );
+    }
+
+    Class::Unload->unload( $schema );
+    eval "require $schema" or die $@;
+}
+
 sub DESTROY {
     my $self = shift;
     $self->drop_tables if $self->{_created};
+    rmtree $DUMP_DIR;
 }
 
 1;

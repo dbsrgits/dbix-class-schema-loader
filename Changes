@@ -8,6 +8,9 @@ Not yet released
         - Cosmetic fixes to dumping of externally defined classes
         - Make ResultSetManager notice externally defined :ResultSet methods
         - Fix test failure for non-InnoDB MySQL due to wrong skip count
+        - Fix base class ordering in dumped classes
+        - Run the common tests against both dynamic and dumped versions of
+          the schema
 
 0.04999_04 Wed Mar 12, 2008
         - Add is_auto_increment detecton for DB2
