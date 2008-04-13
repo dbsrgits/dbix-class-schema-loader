@@ -5,6 +5,7 @@ use warnings;
 
 use Test::More;
 use DBIx::Class::Schema::Loader;
+use Class::Inspector;
 use DBI;
 
 sub new {
@@ -62,6 +63,7 @@ sub run_tests {
         additional_base_classes => 'TestAdditionalBase',
         left_base_classes       => [ qw/TestLeftBase/ ],
         components              => [ qw/TestComponent/ ],
+        resultset_components    => [ qw/TestRSComponent/ ],
         inflect_plural          => { loader_test4 => 'loader_test4zes' },
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
@@ -69,13 +71,6 @@ sub run_tests {
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
-    eval { require Class::Inspector };
-    if($@) {
-        $self->{_no_rs_components} = 1;
-    }
-    else {
-        $loader_opts{resultset_components} = [ qw/TestRSComponent/ ];
-    }
 
     {
        my @loader_warnings;
@@ -162,72 +157,57 @@ sub run_tests {
 
     is($moniker2, 'LoaderTest2X', "moniker_map testing");
 
-    {
-        my ($skip_tab, $skip_tabo, $skip_taba, $skip_cmeth,
-            $skip_rsmeth, $skip_tcomp, $skip_trscomp);
-
-        can_ok( $class1, 'test_additional_base' ) or $skip_tab = 1;
-        can_ok( $class1, 'test_additional_base_override' ) or $skip_tabo = 1;
-        can_ok( $class1, 'test_additional_base_additional' ) or $skip_taba = 1;
-        can_ok( $class1, 'dbix_class_testcomponent' ) or $skip_tcomp = 1;
-        can_ok( $class1, 'loader_test1_classmeth' ) or $skip_cmeth = 1;
-        can_ok( $rsobj1, 'loader_test1_rsmeth' ) or $skip_rsmeth = 1;
-
-        SKIP: {
-            skip "Pre-requisite test failed", 1 if $skip_tab;
-            is( $class1->test_additional_base, "test_additional_base",
-                "Additional Base method" );
-        }
-
-        SKIP: {
-            skip "Pre-requisite test failed", 1 if $skip_tabo;
-            is( $class1->test_additional_base_override,
-                "test_left_base_override",
-                "Left Base overrides Additional Base method" );
-        }
-
-        SKIP: {
-            skip "Pre-requisite test failed", 1 if $skip_taba;
-            is( $class1->test_additional_base_additional, "test_additional",
-                "Additional Base can use Additional package method" );
-        }
-
-        SKIP: {
-            skip "Pre-requisite test failed", 1 if $skip_tcomp;
-            is( $class1->dbix_class_testcomponent,
-                'dbix_class_testcomponent works',
-                'Additional Component' );
-        }
-
-        SKIP: {
-            skip "These two tests need Class::Inspector installed", 2
-                     if $self->{_no_rs_components};
-            can_ok($rsobj1, 'dbix_class_testrscomponent') or $skip_trscomp = 1;
-            SKIP: {
-                skip "Pre-requisite test failed", 1 if $skip_trscomp;
-                is( $rsobj1->dbix_class_testrscomponent,
-                    'dbix_class_testrscomponent works',
-                    'ResultSet component' );
-            }
-        }
-
-        SKIP: {
-            skip "Pre-requisite test failed", 1 if $skip_cmeth;
-            is( $class1->loader_test1_classmeth, 'all is well', 'Class method' );
-        }
-
-        SKIP: {
-            skip "Pre-requisite test failed", 1 if $skip_rsmeth;
-            is( $rsobj1->loader_test1_rsmeth, 'all is still well', 'Result set method' );
-        }
+    SKIP: {
+        can_ok( $class1, 'test_additional_base' )
+            or skip "Pre-requisite test failed", 1;
+        is( $class1->test_additional_base, "test_additional_base",
+            "Additional Base method" );
     }
 
     SKIP: {
-        skip "This vendor doesn't detect auto-increment columns", 1
-            if $self->{no_auto_increment};
-
-        ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_incrment detection' );
+        can_ok( $class1, 'test_additional_base_override' )
+            or skip "Pre-requisite test failed", 1;
+        is( $class1->test_additional_base_override,
+            "test_left_base_override",
+            "Left Base overrides Additional Base method" );
     }
+
+    SKIP: {
+        can_ok( $class1, 'test_additional_base_additional' )
+            or skip "Pre-requisite test failed", 1;
+        is( $class1->test_additional_base_additional, "test_additional",
+            "Additional Base can use Additional package method" );
+    }
+
+    SKIP: {
+        can_ok( $class1, 'dbix_class_testcomponent' )
+            or skip "Pre-requisite test failed", 1;
+        is( $class1->dbix_class_testcomponent,
+            'dbix_class_testcomponent works',
+            'Additional Component' );
+    }
+
+    SKIP: {
+        can_ok($rsobj1, 'dbix_class_testrscomponent')
+            or skip "Pre-requisite test failed", 1;
+        is( $rsobj1->dbix_class_testrscomponent,
+            'dbix_class_testrscomponent works',
+            'ResultSet component' );
+    }
+
+    SKIP: {
+        can_ok( $class1, 'loader_test1_classmeth' )
+            or skip "Pre-requisite test failed", 1;
+        is( $class1->loader_test1_classmeth, 'all is well', 'Class method' );
+    }
+
+    SKIP: {
+        can_ok( $rsobj1, 'loader_test1_rsmeth' )
+            or skip "Pre-requisite test failed";
+        is( $rsobj1->loader_test1_rsmeth, 'all is still well', 'Result set method' );
+    }
+    
+    ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_incrment detection' );
 
     my $obj    = $rsobj1->find(1);
     is( $obj->id,  1, "Find got the right row" );
