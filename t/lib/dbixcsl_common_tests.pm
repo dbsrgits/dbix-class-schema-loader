@@ -595,7 +595,7 @@ sub run_tests {
 
     # rescan test
     SKIP: {
-        skip $self->{skip_rels}, 5 if $self->{skip_rels};
+        skip $self->{skip_rels}, 4 if $self->{skip_rels};
 
         my @statements_rescan = (
             qq{

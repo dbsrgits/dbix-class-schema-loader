@@ -7,6 +7,7 @@ Not yet released
           storage_type-based detection
         - Cosmetic fixes to dumping of externally defined classes
         - Make ResultSetManager notice externally defined :ResultSet methods
+        - Fix test failure for non-InnoDB MySQL due to wrong skip count
 
 0.04999_04 Wed Mar 12, 2008
         - Add is_auto_increment detecton for DB2
