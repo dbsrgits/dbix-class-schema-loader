@@ -5,6 +5,7 @@ Not yet released
         - Default db_schema to the username for DB2
         - Allow specifying a custom loader_class, overriding the
           storage_type-based detection
+        - Cosmetic fixes to dumping of externally defined classes
 
 0.04999_04 Wed Mar 12, 2008
         - Add is_auto_increment detecton for DB2

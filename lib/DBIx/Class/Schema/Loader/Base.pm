@@ -307,12 +307,12 @@ sub _load_external {
     open(my $fh, '<', $real_inc_path)
         or croak "Failed to open '$real_inc_path' for reading: $!";
     $self->_ext_stmt($class,
-        qq|# These lines were loaded from '$real_inc_path' found in \@INC.|
-        .q|# They are now part of the custom portion of this file|
-        .q|# for you to hand-edit.  If you do not either delete|
-        .q|# this section or remove that file from @INC, this section|
-        .q|# will be repeated redundantly when you re-create this|
-        .q|# file again via Loader!|
+         qq|# These lines were loaded from '$real_inc_path' found in \@INC.\n|
+        .qq|# They are now part of the custom portion of this file\n|
+        .qq|# for you to hand-edit.  If you do not either delete\n|
+        .qq|# this section or remove that file from \@INC, this section\n|
+        .qq|# will be repeated redundantly when you re-create this\n|
+        .qq|# file again via Loader!\n|
     );
     while(<$fh>) {
         chomp;
