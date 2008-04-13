@@ -1,5 +1,5 @@
 
-use inc::Module::Install 0.65;
+use inc::Module::Install 0.71;
 
 name           'DBIx-Class-Schema-Loader';
 all_from       'lib/DBIx/Class/Schema/Loader.pm';
