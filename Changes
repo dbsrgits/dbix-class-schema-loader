@@ -6,6 +6,7 @@ Not yet released
         - Allow specifying a custom loader_class, overriding the
           storage_type-based detection
         - Cosmetic fixes to dumping of externally defined classes
+        - Make ResultSetManager notice externally defined :ResultSet methods
 
 0.04999_04 Wed Mar 12, 2008
         - Add is_auto_increment detecton for DB2

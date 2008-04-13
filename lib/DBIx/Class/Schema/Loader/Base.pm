@@ -298,6 +298,10 @@ sub _load_external {
     warn qq/# Loaded external class definition for '$class'\n/
         if $self->debug;
 
+    # Make sure ResultSetManager picks up any :ResultSet methods from
+    # the external definition
+    $class->table($class->table);
+
     # The rest is only relevant when dumping
     return if !$self->dump_directory;
 
