@@ -284,7 +284,7 @@ sub _load_external {
     my $real_dump_path = $self->dump_directory
         ? Cwd::abs_path(
               File::Spec->catfile($self->dump_directory, $class_path)
-          )
+          ) || ''
         : '';
     my $real_inc_path = Cwd::abs_path($inc_path);
     return if $real_inc_path eq $real_dump_path;
