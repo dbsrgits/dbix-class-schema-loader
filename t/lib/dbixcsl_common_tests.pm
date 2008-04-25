@@ -401,7 +401,7 @@ sub test_schema {
         isa_ok( $obj6->loader_test2, $class2);
         isa_ok( $obj6->loader_test5, $class5);
 
-        ok($class6->column_info('loader_test2')->{is_foreign_key}, 'Foreign key detected');
+        ok($class6->column_info('loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
         ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
         ok($class6->column_info('id2')->{is_foreign_key}, 'Foreign key detected');
 
@@ -753,14 +753,14 @@ sub create {
             CREATE TABLE loader_test6 (
                 id INTEGER NOT NULL PRIMARY KEY,
                 Id2 INTEGER,
-                loader_test2 INTEGER,
+                loader_test2_id INTEGER,
                 dat VARCHAR(8),
-                FOREIGN KEY (loader_test2)  REFERENCES loader_test2 (id),
+                FOREIGN KEY (loader_test2_id)  REFERENCES loader_test2 (id),
                 FOREIGN KEY(id,Id2) REFERENCES loader_test5 (id1,iD2)
             ) $self->{innodb}
         },
 
-        (q{ INSERT INTO loader_test6 (id, id2,loader_test2,dat) } .
+        (q{ INSERT INTO loader_test6 (id, id2,loader_test2_id,dat) } .
          q{ VALUES (1, 1,1,'aaa') }),
 
         qq{

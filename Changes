@@ -2,6 +2,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
 0.04999_06 Not Yet Released
         - Singularise table monikers by default
+        - Strip trailing _id from single-column belongs_to relationships
 
 0.04999_05 Mon Apr 14, 2008
         - Fix limiting table list to the specified schema for DB2
