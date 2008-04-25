@@ -51,7 +51,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 3 + 2 * (131 + ($self->{extra}->{count} || 0));
+    plan tests => 3 + 2 * (132 + ($self->{extra}->{count} || 0));
 
     $self->create();
 
@@ -81,7 +81,7 @@ sub setup_schema {
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
     my %loader_opts = (
-        constraint              => qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+$/i,
+        constraint              => qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+s?$/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
@@ -140,8 +140,8 @@ sub test_schema {
         $classes->{$table_name} = $schema_class . q{::} . $source_name;
     }
 
-    my $moniker1 = $monikers->{loader_test1};
-    my $class1   = $classes->{loader_test1};
+    my $moniker1 = $monikers->{loader_test1s};
+    my $class1   = $classes->{loader_test1s};
     my $rsobj1   = $conn->resultset($moniker1);
 
     my $moniker2 = $monikers->{loader_test2};
@@ -174,6 +174,8 @@ sub test_schema {
         }
     }
     ok($uniq1_test, "Unique constraint");
+
+    is($moniker1, 'LoaderTest1', 'moniker singularisation');
 
     my %uniq2 = $class2->unique_constraints;
     my $uniq2_test = 0;
@@ -668,16 +670,16 @@ sub create {
     my $make_auto_inc = $self->{auto_inc_cb} || sub {};
     my @statements = (
         qq{
-            CREATE TABLE loader_test1 (
+            CREATE TABLE loader_test1s (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL UNIQUE
             ) $self->{innodb}
         },
-        $make_auto_inc->(qw/loader_test1 id/),
+        $make_auto_inc->(qw/loader_test1s id/),
 
-        q{ INSERT INTO loader_test1 (dat) VALUES('foo') },
-        q{ INSERT INTO loader_test1 (dat) VALUES('bar') }, 
-        q{ INSERT INTO loader_test1 (dat) VALUES('baz') }, 
+        q{ INSERT INTO loader_test1s (dat) VALUES('foo') },
+        q{ INSERT INTO loader_test1s (dat) VALUES('bar') }, 
+        q{ INSERT INTO loader_test1s (dat) VALUES('baz') }, 
 
         qq{ 
             CREATE TABLE loader_test2 (
@@ -1073,14 +1075,14 @@ sub drop_tables {
     my $self = shift;
 
     my @tables = qw/
-        loader_test1
+        loader_test1s
         loader_test2
         LOADER_TEST23
         LoAdEr_test24
     /;
     
     my @tables_auto_inc = (
-        [ qw/loader_test1 id/ ],
+        [ qw/loader_test1s id/ ],
         [ qw/loader_test2 id/ ],
     );
 

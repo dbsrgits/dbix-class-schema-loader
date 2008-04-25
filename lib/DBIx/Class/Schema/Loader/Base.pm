@@ -12,6 +12,7 @@ use POSIX qw//;
 use File::Spec qw//;
 use Cwd qw//;
 use Digest::MD5 qw//;
+use Lingua::EN::Inflect::Number qw//;
 require DBIx::Class;
 
 our $VERSION = '0.04999_05';
@@ -706,7 +707,8 @@ sub _table2moniker {
         $moniker = $self->moniker_map->($table);
     }
 
-    $moniker ||= join '', map ucfirst, split /[\W_]+/, lc $table;
+    $moniker ||= join '', map ucfirst, split /[\W_]+/,
+        Lingua::EN::Inflect::Number::to_S(lc $table);
 
     return $moniker;
 }

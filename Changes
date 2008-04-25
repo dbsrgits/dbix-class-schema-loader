@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04999_06 Not Yet Released
+        - Singularise table monikers by default
+
 0.04999_05 Mon Apr 14, 2008
         - Fix limiting table list to the specified schema for DB2
         - Default db_schema to the username for DB2
