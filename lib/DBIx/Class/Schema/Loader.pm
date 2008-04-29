@@ -71,6 +71,12 @@ the road.
 
 =head2 loader_class
 
+=over 4
+
+=item Argument: $loader_class
+
+=back
+
 Set the loader class to be instantiated when L</connection> is called.
 If the classname starts with "::", "DBIx::Class::Schema::Loader" is
 prepended. Defaults to L<DBIx::Class::Schema/storage_type> (which must
@@ -80,6 +86,12 @@ This is mostly useful for subclassing existing loaders or in conjunction
 with L</dump_to_dir>.
 
 =head2 loader_options
+
+=over 4
+
+=item Argument: \%loader_options
+
+=back
 
 Example in Synopsis above demonstrates a few common arguments.  For
 detailed information on all of the arguments, most of which are
@@ -132,7 +144,15 @@ sub _invoke_loader {
 
 =head2 connection
 
-See L<DBIx::Class::Schema> for basic usage.
+=over 4
+
+=item Arguments: @args
+
+=item Return Value: $new_schema
+
+=back
+
+See L<DBIx::Class::Schema/connection> for basic usage.
 
 If the final argument is a hashref, and it contains the keys C<loader_options>
 or C<loader_class>, those keys will be deleted, and their values value will be
@@ -168,7 +188,7 @@ sub connection {
 
 =head2 clone
 
-See L<DBIx::Class::Schema>.
+See L<DBIx::Class::Schema/clone>.
 
 =cut
 
@@ -187,7 +207,11 @@ sub clone {
 
 =head2 dump_to_dir
 
-Argument: directory name.
+=over 4
+
+=item Argument: $directory
+
+=back
 
 Calling this as a class method on either L<DBIx::Class::Schema::Loader>
 or any derived schema class will cause all affected schemas to dump
@@ -253,6 +277,14 @@ sub import {
 
 =head2 make_schema_at
 
+=over 4
+
+=item Arguments: $schema_name, \%loader_options, \@connect_info
+
+=item Return Value: $schema_name
+
+=back
+
 This simple function allows one to create a Loader-based schema
 in-memory on the fly without any on-disk class files of any
 kind.  When used with the C<dump_directory> option, you can
@@ -301,6 +333,12 @@ sub make_schema_at {
 }
 
 =head2 rescan
+
+=over 4
+
+=item Return Value: @new_monikers
+
+=back
 
 Re-scans the database for newly added tables since the initial
 load, and adds them to the schema at runtime, including relationships,
