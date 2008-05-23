@@ -49,6 +49,8 @@ DESCRIPTION
 
 METHODS
   loader_class
+    Argument: $loader_class
+
     Set the loader class to be instantiated when "connection" is called. If
     the classname starts with "::", "DBIx::Class::Schema::Loader" is
     prepended. Defaults to "storage_type" in DBIx::Class::Schema (which must
@@ -58,6 +60,8 @@ METHODS
     with "dump_to_dir".
 
   loader_options
+    Argument: \%loader_options
+
     Example in Synopsis above demonstrates a few common arguments. For
     detailed information on all of the arguments, most of which are only
     useful in fairly complex scenarios, see the
@@ -69,7 +73,10 @@ METHODS
     after the connection has already been made is useless.
 
   connection
-    See DBIx::Class::Schema for basic usage.
+    Arguments: @args
+    Return Value: $new_schema
+
+    See "connection" in DBIx::Class::Schema for basic usage.
 
     If the final argument is a hashref, and it contains the keys
     "loader_options" or "loader_class", those keys will be deleted, and
@@ -81,10 +88,10 @@ METHODS
     invoked as soon as the connection information is defined.
 
   clone
-    See DBIx::Class::Schema.
+    See "clone" in DBIx::Class::Schema.
 
   dump_to_dir
-    Argument: directory name.
+    Argument: $directory
 
     Calling this as a class method on either DBIx::Class::Schema::Loader or
     any derived schema class will cause all affected schemas to dump manual
@@ -132,6 +139,9 @@ METHODS
         My::OtherSchema->connection(.......);
 
   make_schema_at
+    Arguments: $schema_name, \%loader_options, \@connect_info
+    Return Value: $schema_name
+
     This simple function allows one to create a Loader-based schema
     in-memory on the fly without any on-disk class files of any kind. When
     used with the "dump_directory" option, you can use this to generate a
@@ -165,6 +175,8 @@ METHODS
         );
 
   rescan
+    Return Value: @new_monikers
+
     Re-scans the database for newly added tables since the initial load, and
     adds them to the schema at runtime, including relationships, etc. Does
     not process drops or changes.
