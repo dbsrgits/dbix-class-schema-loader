@@ -8,7 +8,6 @@ test_requires 'Test::More'    => '0.47';
 test_requires 'DBI'           => '1.56';
 test_requires 'DBD::SQLite'   => '1.12';
 test_requires 'File::Path'    => 0;
-test_requires 'Class::Unload' => 0;
 test_requires 'IPC::Open3'    => 0;
 
 requires 'File::Spec'                  => 0;
@@ -24,6 +23,7 @@ requires 'Class::C3'                   => '0.18';
 requires 'Carp::Clan'                  => 0;
 requires 'Class::Inspector'            => 0;
 requires 'DBIx::Class'                 => '0.07006';
+requires 'Class::Unload'               => 0;
 
 install_script 'script/dbicdump';
 
