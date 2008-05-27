@@ -385,14 +385,10 @@ sub _load_tables {
     $self->_make_src_class($_) for @tables;
     $self->_setup_src_meta($_) for @tables;
 
-    my %moniker_class = map { $self->monikers->{$_} => $self->classes->{$_} } @tables;
-
     if(!$self->skip_relationships) {
-        # Dump and load what we have so far, so the relationship loader
-        # can get at it, but be quiet
+        # The relationship loader needs a working schema
         $self->{quiet} = 1;
-        $self->_dump_to_dir(values %moniker_class);
-        $self->_reload_classes(\%moniker_class);
+        $self->_reload_classes(@tables);
         $self->_load_relationships($_) for @tables;
         $self->{quiet} = 0;
     }
@@ -400,10 +396,7 @@ sub _load_tables {
     $self->_load_external($_)
         for map { $self->classes->{$_} } @tables;
 
-    $self->_dump_to_dir(values %moniker_class);
-
-    # Make sure stuff gets reloaded
-    $self->_reload_classes(\%moniker_class);
+    $self->_reload_classes(@tables);
 
     # Drop temporary cache
     delete $self->{_cache};
@@ -412,9 +405,14 @@ sub _load_tables {
 }
 
 sub _reload_classes {
-    my ($self, $moniker_class) = @_;
+    my ($self, @tables) = @_;
+
+    $self->_dump_to_dir(map { $self->classes->{$_} } @tables);
     
-    while (my ($moniker, $class) = each %$moniker_class) {
+    for my $table (@tables) {
+        my $moniker = $self->monikers->{$table};
+        my $class = $self->classes->{$table};
+
         if ( Class::Unload->unload( $class ) ) {
             my $resultset_class = ref $self->schema->resultset($moniker);
             Class::Unload->unload( $resultset_class )
