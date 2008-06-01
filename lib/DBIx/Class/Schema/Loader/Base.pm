@@ -412,13 +412,19 @@ sub _reload_classes {
     for my $table (@tables) {
         my $moniker = $self->monikers->{$table};
         my $class = $self->classes->{$table};
+        
+        {
+            no warnings 'redefine';
+            local *Class::C3::reinitialize = sub {};
+            use warnings;
 
-        if ( Class::Unload->unload( $class ) ) {
-            my $resultset_class = ref $self->schema->resultset($moniker);
-            Class::Unload->unload( $resultset_class )
-                  if $resultset_class ne 'DBIx::Class::ResultSet';
+            if ( Class::Unload->unload( $class ) ) {
+                my $resultset_class = ref $self->schema->resultset($moniker);
+                Class::Unload->unload( $resultset_class )
+                      if $resultset_class ne 'DBIx::Class::ResultSet';
+            }
+            $class->require or die "Can't load $class: $@";
         }
-        $class->require or die "Can't load $class: $@";
 
         $self->schema_class->register_class($moniker, $class);
         $self->schema->register_class($moniker, $class)
