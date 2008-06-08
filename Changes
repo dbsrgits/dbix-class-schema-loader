@@ -6,6 +6,8 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Add "dbicdump" script for easy commandline dumping
         - Throw out the in-memory class generation, just dump to a temporary
           directory if the user didn't specify one
+        - Fix Oracle constraint and auto-increment detection for non-owned schemas
+          (RT #35732)
 
 0.04999_05 Mon Apr 14, 2008
         - Fix limiting table list to the specified schema for DB2

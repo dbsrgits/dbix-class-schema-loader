@@ -78,10 +78,10 @@ sub _table_uniq_info {
 
     my $sth = $dbh->prepare_cached(
         q{
-            SELECT constraint_name, ucc.column_name
-            FROM user_constraints JOIN user_cons_columns ucc USING (constraint_name)
-            WHERE ucc.table_name=? AND constraint_type='U'
-            ORDER BY ucc.position
+            SELECT constraint_name, acc.column_name
+            FROM all_constraints JOIN all_cons_columns acc USING (constraint_name)
+            WHERE acc.table_name=? AND constraint_type='U'
+            ORDER BY acc.position
         },
         {}, 1);
 
@@ -131,8 +131,8 @@ sub _extra_column_info {
     my $sth = $dbh->prepare_cached(
         q{
             SELECT COUNT(*)
-            FROM user_triggers ut JOIN user_trigger_cols utc USING (trigger_name)
-            WHERE utc.table_name = ? AND utc.column_name = ?
+            FROM all_triggers ut JOIN all_trigger_cols atc USING (trigger_name)
+            WHERE atc.table_name = ? AND atc.column_name = ?
             AND column_usage LIKE '%NEW%' AND column_usage LIKE '%OUT%'
             AND trigger_type = 'BEFORE EACH ROW' AND triggering_event LIKE '%INSERT%'
         },
