@@ -80,10 +80,10 @@ sub _table_uniq_info {
 
     my $sth = $dbh->prepare_cached(
         q{
-            SELECT constraint_name, ucc.column_name
-            FROM user_constraints JOIN user_cons_columns ucc USING (constraint_name)
-            WHERE ucc.table_name=? AND constraint_type='U'
-            ORDER BY ucc.position
+            SELECT constraint_name, acc.column_name
+            FROM all_constraints JOIN all_cons_columns acc USING (constraint_name)
+            WHERE acc.table_name=? AND constraint_type='U'
+            ORDER BY acc.position
         },
         {}, 1);
 

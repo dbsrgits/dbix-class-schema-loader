@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04006 Not Yet Released
+        - Fix Oracle constraint detection for non-owned schemas (RT #35732)
+
 0.04005 Sat Apr 05, 2008
         - Fix DB2 support
         - Add support for load_namespaces-style class layout
