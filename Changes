@@ -8,6 +8,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           directory if the user didn't specify one
         - Fix Oracle constraint and auto-increment detection for non-owned schemas
           (RT #35732)
+	- Handle ResultSetManager deprecation warning in common tests
 
 0.04999_05 Mon Apr 14, 2008
         - Fix limiting table list to the specified schema for DB2

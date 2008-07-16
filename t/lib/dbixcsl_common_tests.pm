@@ -109,17 +109,22 @@ sub setup_schema {
         };
 
         ok(!$@, "Loader initialization") or diag $@;
+
+       my $warn_count = 2;
+       $warn_count++ if grep /ResultSetManager/, @loader_warnings;
+
         if($self->{skip_rels}) {
             SKIP: {
-                is(scalar(@loader_warnings), 2, "No loader warnings")
+                is(scalar(@loader_warnings), $warn_count, "No loader warnings")
                     or diag @loader_warnings;
                 skip "No missing PK warnings without rels", 1;
             }
         }
         else {
-            is(scalar(@loader_warnings), 3, "Expected loader warning")
+	    $warn_count++;
+            is(scalar(@loader_warnings), $warn_count, "Expected loader warning")
                 or diag @loader_warnings;
-            like($loader_warnings[0], qr/loader_test9 has no primary key/i,
+            is(grep(/loader_test9 has no primary key/, @loader_warnings), 1,
                  "Missing PK warning");
         }
     }
