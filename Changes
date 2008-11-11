@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.04999_06 Not Yet Released
+0.04999_06 Tue Nov 11, 2008
         - Singularise table monikers by default
         - Strip trailing _id from single-column belongs_to relationships
         - Add "dbicdump" script for easy commandline dumping
