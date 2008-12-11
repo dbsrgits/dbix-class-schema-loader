@@ -218,7 +218,7 @@ sub generate_code {
               args => [ $remote_relname,
                         $remote_class,
                         \%cond,
-                        $nullable ? { join_type => 'LEFT OUTER' } : ()
+                        $nullable ? { join_type => 'LEFT' } : ()
               ],
             }
         );
