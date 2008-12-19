@@ -7,7 +7,7 @@ require DBIx::Class::Schema::Loader;
 
 $^O eq 'MSWin32'
     ? plan(skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths")
-    : plan(tests => 82);
+    : plan(tests => 91);
 
 my $DUMP_PATH = './t/_dump';
 
@@ -52,6 +52,34 @@ sub do_dump_test {
         my $src_file = $schema_path . '/' . $src . '.pm';
         dump_file_not_like($src_file, @{$file_neg_regexes->{$src}});
     }
+
+    my $current_md5sums = {}; # keep track of the md5sums we make so we can return them.
+    my $file_md5sum_equals = $tdata{md5sum_equals} || {};
+    foreach my $src (keys %$file_md5sum_equals) {
+        my $src_file;
+        if ($src eq 'schema' ) {
+            $src_file = $schema_path . '.pm';
+        } else {
+            $src_file = $schema_path . '/' . $src . '.pm';
+        }
+        my $current_md5sum = get_md5sum_from_dump_file($src_file);
+        is( $current_md5sum, $file_md5sum_equals->{$src}, "found the same md5sum ($current_md5sum) for file $src_file" );
+        $current_md5sums->{$src} = $current_md5sum;
+    }
+
+    my $file_md5sum_ne = $tdata{md5sum_ne} || {};
+    foreach my $src (keys %$file_md5sum_ne) {
+        my $src_file;
+        if ($src eq 'schema' ) {
+            $src_file = $schema_path . '.pm';
+        } else {
+            $src_file = $schema_path . '/' . $src . '.pm';
+        }
+        my $current_md5sum = get_md5sum_from_dump_file($src_file);
+        isnt( $current_md5sum, $file_md5sum_equals->{$src}, "found different md5sum ($current_md5sum) for file $src_file" );
+        $current_md5sums->{$src} = $current_md5sum;
+    }
+    return { md5sums => $current_md5sums };
 }
 
 sub dump_file_like {
@@ -79,9 +107,20 @@ sub append_to_class {
     close($appendfh);
 }
 
+sub get_md5sum_from_dump_file {
+    my $path = shift;
+    open(my $dumpfh, '<', $path) or die "Failed to open '$path': $!";
+    my $contents = do { local $/; <$dumpfh>; };
+    close($dumpfh);
+    if ( $contents =~ /md5sum:([^\s]+)/ ) {
+        return $1;
+    }
+    return;
+}
+
 rmtree($DUMP_PATH, 1, 1);
 
-do_dump_test(
+my $dumped = do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { },
     error => '',
@@ -105,11 +144,16 @@ do_dump_test(
             qr/1;\n$/,
         ],
     },
+    md5sum_ne => {
+                  schema => '',
+                  Foo    => '',
+                  Bar    => '',
+              },
 );
 
 append_to_class('DBICTest::DumpMore::1::Foo',q{# XXX This is my custom content XXX});
 
-do_dump_test(
+$dumped = do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { },
     error => '',
@@ -133,9 +177,10 @@ do_dump_test(
             qr/1;\n$/,
         ],
     },
+    md5sum_equals => $dumped->{'md5sums'},
 );
 
-do_dump_test(
+$dumped = do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { really_erase_my_files => 1 },
     error => '',
@@ -167,6 +212,7 @@ do_dump_test(
             qr/# XXX This is my custom content XXX/,
         ],
     },
+    md5sum_ne => $dumped->{'md5sums'},
 );
 
 do_dump_test(

@@ -502,6 +502,13 @@ sub _write_classfile {
 
     my $custom_content = $self->_get_custom_content($class, $filename);
 
+    # only re-write the file if new content ($text) is different from old ($custom_content)
+    if ( $custom_content ) {
+        my $no_timestamp = $custom_content;
+        $no_timestamp =~ s/^# Created by DBIx::Class::Schema::Loader.*//;
+        return if ($no_timestamp eq $text);
+    }
+
     $custom_content ||= qq|\n\n# You can replace this text with custom|
         . qq| content, and it will be preserved on regeneration|
         . qq|\n1;\n|;
