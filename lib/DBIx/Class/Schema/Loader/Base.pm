@@ -162,7 +162,8 @@ loader to a manually-defined schema when you decide it's time to do so.
 The value of this option is a perl libdir pathname.  Within
 that directory this module will create a baseline manual
 L<DBIx::Class::Schema> module set, based on what it creates at runtime
-in memory.
+in memory. Existing files for schemas that have not changed will not
+be overwritten.
 
 The created schema class will have the same classname as the one on
 which you are setting this option (and the ResultSource classes will be
