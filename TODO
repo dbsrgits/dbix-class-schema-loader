@@ -13,8 +13,6 @@ DBIx::Class::Schema, so that other modules (SQLT) can use it easier.  And then
 when/if we get there, break it out as a seperate distribution with a new name.
 
 Relationship stuff:
-   If local column is UNIQUE or PK, use has_one() for relation?
    Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up?
-   Check NULLability of columns involved in the relationship, which might suggest a more optimal non-default -join-type?
    While scanning for many-to-many, scan for implied rels as well? (if foo->belongs_to('bar') and baz->belongs_to('bar'), does that impliy foo->might_have('baz') and the reverse?)
    ...
