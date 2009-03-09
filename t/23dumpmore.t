@@ -7,7 +7,7 @@ require DBIx::Class::Schema::Loader;
 
 $^O eq 'MSWin32'
     ? plan(skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths")
-    : plan(tests => 82);
+    : plan(tests => 85);
 
 my $DUMP_PATH = './t/_dump';
 
