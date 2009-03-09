@@ -1,3 +1,12 @@
+0.05 BLOCKERS
+=============
+
+Fix failures with DBIC trunk
+
+Add backwards-compatibility mode when regenerating a 0.04-generated schema
+
+OTHER STUFF
+===========
 
 support multiple/all schemas, instead of just one
 
