@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04999_07 Not Yet Released
+        - Add result_base_class and schema_base_class options (RT #43977)
+
 0.04999_06 Tue Nov 11, 2008
         - Singularise table monikers by default
         - Strip trailing _id from single-column belongs_to relationships

@@ -42,6 +42,8 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 result_namespace
                                 resultset_namespace
                                 default_resultset_class
+                                schema_base_class
+                                result_base_class
 
                                 db_schema
                                 _tables
@@ -122,6 +124,14 @@ L<Lingua::EN::Inflect::Number/to_PL>.
 
 As L</inflect_plural> above, but for singularizing relationship names.
 Default behavior is to utilize L<Lingua::EN::Inflect::Number/to_S>.
+
+=head2 schema_base_class
+
+Base class for your schema classes. Defaults to 'DBIx::Class::Schema'.
+
+=head2 result_base_class
+
+Base class for your table classes (aka result classes). Defaults to 'DBIx::Class'.
 
 =head2 additional_base_classes
 
@@ -462,6 +472,7 @@ sub _dump_to_dir {
     my $target_dir = $self->dump_directory;
 
     my $schema_class = $self->schema_class;
+    my $schema_base_class = $self->schema_base_class || 'DBIx::Class::Schema';
 
     warn "Dumping manual schema for $schema_class to directory $target_dir ...\n"
         unless $self->{dynamic} or $self->{quiet};
@@ -469,7 +480,7 @@ sub _dump_to_dir {
     my $schema_text =
           qq|package $schema_class;\n\n|
         . qq|use strict;\nuse warnings;\n\n|
-        . qq|use base 'DBIx::Class::Schema';\n\n|;
+        . qq|use base '$schema_base_class';\n\n|;
 
     
     if ($self->use_namespaces) {
@@ -492,11 +503,13 @@ sub _dump_to_dir {
 
     $self->_write_classfile($schema_class, $schema_text);
 
+    my $result_base_class = $self->result_base_class || 'DBIx::Class';
+
     foreach my $src_class (@classes) {
         my $src_text = 
               qq|package $src_class;\n\n|
             . qq|use strict;\nuse warnings;\n\n|
-            . qq|use base 'DBIx::Class';\n\n|;
+            . qq|use base '$result_base_class';\n\n|;
 
         $self->_write_classfile($src_class, $src_text);
     }

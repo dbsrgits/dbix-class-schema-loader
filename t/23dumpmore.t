@@ -8,7 +8,7 @@ require DBIx::Class::Schema::Loader;
 
 $^O eq 'MSWin32'
     ? plan(skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths")
-    : plan(tests => 140);
+    : plan(tests => 143);
 
 my $DUMP_PATH = './t/_dump';
 
@@ -276,6 +276,8 @@ do_dump_test(
                  result_namespace => '+DBICTest::DumpMore::1::Res',
                  resultset_namespace => 'RSet',
                  default_resultset_class => 'RSetBase',
+                 result_base_class => 'My::ResultBaseClass',
+                 schema_base_class => 'My::SchemaBaseClass',
              },
     error => '',
     warnings => [
@@ -289,14 +291,17 @@ do_dump_test(
             qr/result_namespace => '\+DBICTest::DumpMore::1::Res'/,
             qr/resultset_namespace => 'RSet'/,
             qr/default_resultset_class => 'RSetBase'/,
+            qr/use base 'My::SchemaBaseClass'/,
         ],
         'Res/Foo' => [
             qr/package DBICTest::DumpMore::1::Res::Foo;/,
+            qr/use base 'My::ResultBaseClass'/,
             qr/->set_primary_key/,
             qr/1;\n$/,
         ],
         'Res/Bar' => [
             qr/package DBICTest::DumpMore::1::Res::Bar;/,
+            qr/use base 'My::ResultBaseClass'/,
             qr/->set_primary_key/,
             qr/1;\n$/,
         ],
