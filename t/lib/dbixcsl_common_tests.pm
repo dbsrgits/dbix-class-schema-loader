@@ -51,7 +51,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 3 + 2 * (132 + ($self->{extra}->{count} || 0));
+    plan tests => 3 + 2 * (134 + ($self->{extra}->{count} || 0));
 
     $self->create();
 
@@ -148,10 +148,12 @@ sub test_schema {
     my $moniker1 = $monikers->{loader_test1s};
     my $class1   = $classes->{loader_test1s};
     my $rsobj1   = $conn->resultset($moniker1);
+    check_no_duplicate_unique_constraints($class1);
 
     my $moniker2 = $monikers->{loader_test2};
     my $class2   = $classes->{loader_test2};
     my $rsobj2   = $conn->resultset($moniker2);
+    check_no_duplicate_unique_constraints($class2);
 
     my $moniker23 = $monikers->{LOADER_TEST23};
     my $class23   = $classes->{LOADER_TEST23};
@@ -647,6 +649,19 @@ sub test_schema {
     }
 
     $self->{extra}->{run}->($conn, $monikers, $classes) if $self->{extra}->{run};
+}
+
+sub check_no_duplicate_unique_constraints {
+    my ($class) = @_;
+
+    # unique_constraints() automatically includes the PK, if any
+    my %uc_cols;
+    ++$uc_cols{ join ", ", @$_ }
+        for values %{ { $class->unique_constraints } };
+    my $dup_uc = grep { $_ > 1 } values %uc_cols;
+
+    is($dup_uc, 0, "duplicate unique constraints ($class)")
+        or diag "uc_cols: @{[ %uc_cols ]}";
 }
 
 sub dbconnect {
