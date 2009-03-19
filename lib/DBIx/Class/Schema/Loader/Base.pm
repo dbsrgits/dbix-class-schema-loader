@@ -672,21 +672,12 @@ sub _setup_src_meta {
         );
     }
 
-    my %uniq_tag; # used to eliminate duplicate uniqs
-
     my $pks = $self->_table_pk_info($table) || [];
     @$pks ? $self->_dbic_stmt($table_class,'set_primary_key',@$pks)
           : carp("$table has no primary key");
-    $uniq_tag{ join("\0", @$pks) }++ if @$pks; # pk is a uniq
 
     my $uniqs = $self->_table_uniq_info($table) || [];
-    for (@$uniqs) {
-        my ($name, $cols) = @$_;
-
-        next if $uniq_tag{ join("\0", @$cols) }++; # skip duplicates
-
-        $self->_dbic_stmt($table_class,'add_unique_constraint', $name, $cols);
-    }
+    $self->_dbic_stmt($table_class,'add_unique_constraint',@$_) for (@$uniqs);
 
     $schema_class->register_class($table_moniker, $table_class);
     $schema->register_class($table_moniker, $table_class) if $schema ne $schema_class;
