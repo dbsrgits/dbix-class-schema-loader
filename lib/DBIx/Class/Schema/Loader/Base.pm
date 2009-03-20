@@ -299,10 +299,10 @@ sub _load_external {
     my $real_inc_path = Cwd::abs_path($inc_path);
     return if $real_inc_path eq $real_dump_path;
 
-    $class->require;
-    croak "Failed to load external class definition"
-        . " for '$class': $@"
-            if $@;
+    # must use $UNIVERSAL::require::ERROR, $@ is not safe. See RT #44444 --kane
+    $class->require or 
+        croak "Failed to load external class definition"
+            . " for '$class': $UNIVERSAL::require::ERROR";
 
     # If we make it to here, we loaded an external definition
     warn qq/# Loaded external class definition for '$class'\n/
@@ -584,7 +584,7 @@ sub _use {
     foreach (@_) {
         warn "$target: use $_;" if $self->debug;
         $self->_raw_stmt($target, "use $_;");
-        $_->require or croak ($_ . "->require: $@");
+        $_->require or croak ($_ . "->require: $UNIVERSAL::require::ERROR");
         $evalstr .= "package $target; use $_;";
     }
     eval $evalstr if $evalstr;
@@ -600,7 +600,7 @@ sub _inject {
     warn "$target: use base qw/ $blist /;" if $self->debug && @_;
     $self->_raw_stmt($target, "use base qw/ $blist /;") if @_;
     foreach (@_) {
-        $_->require or croak ($_ . "->require: $@");
+        $_->require or croak ($_ . "->require: $UNIVERSAL::require::ERROR");
         $schema_class->inject_base($target, $_);
     }
 }

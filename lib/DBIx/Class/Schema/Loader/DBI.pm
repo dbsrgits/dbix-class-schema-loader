@@ -40,8 +40,12 @@ sub new {
     my $dbh = $self->schema->storage->dbh;
     my $driver = $dbh->{Driver}->{Name};
     my $subclass = 'DBIx::Class::Schema::Loader::DBI::' . $driver;
+    
+    # must use $UNIVERSAL::require::ERROR, $@ is not safe. See RT #44444 --kane
     $subclass->require;
-    if($@ && $@ !~ /^Can't locate /) {
+    if($UNIVERSAL::require::ERROR && 
+       $UNIVERSAL::require::ERROR !~ /^Can't locate /
+    ) {
         croak "Failed to require $subclass: $@";
     }
     elsif(!$@) {
