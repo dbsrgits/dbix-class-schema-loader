@@ -418,6 +418,8 @@ sub _reload_classes {
     my ($self, @tables) = @_;
 
     $self->_dump_to_dir(map { $self->classes->{$_} } @tables);
+
+    unshift @INC, $self->dump_directory;
     
     for my $table (@tables) {
         my $moniker = $self->monikers->{$table};
@@ -469,11 +471,10 @@ sub _ensure_dump_subdirs {
 sub _dump_to_dir {
     my ($self, @classes) = @_;
 
-    my $target_dir = $self->dump_directory;
-
     my $schema_class = $self->schema_class;
     my $schema_base_class = $self->schema_base_class || 'DBIx::Class::Schema';
 
+    my $target_dir = $self->dump_directory;
     warn "Dumping manual schema for $schema_class to directory $target_dir ...\n"
         unless $self->{dynamic} or $self->{quiet};
 
@@ -482,7 +483,6 @@ sub _dump_to_dir {
         . qq|use strict;\nuse warnings;\n\n|
         . qq|use base '$schema_base_class';\n\n|;
 
-    
     if ($self->use_namespaces) {
         $schema_text .= qq|__PACKAGE__->load_namespaces|;
         my $namespace_options;
@@ -498,7 +498,6 @@ sub _dump_to_dir {
     }
     else {
         $schema_text .= qq|__PACKAGE__->load_classes;\n|;
-
     }
 
     $self->_write_classfile($schema_class, $schema_text);
@@ -516,7 +515,6 @@ sub _dump_to_dir {
 
     warn "Schema dump completed.\n" unless $self->{dynamic} or $self->{quiet};
 
-    unshift @INC, $target_dir;
 }
 
 sub _write_classfile {
@@ -559,7 +557,7 @@ sub _write_classfile {
     print $fh $custom_content;
 
     close($fh)
-        or croak "Cannot close '$filename': $!";
+        or croak "Error closing '$filename': $!";
 }
 
 sub _get_custom_content {
