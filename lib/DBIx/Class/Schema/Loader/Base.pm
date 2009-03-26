@@ -531,12 +531,6 @@ sub _write_classfile {
         unlink($filename);
     }    
 
-    my $custom_content = $self->_get_custom_content($class, $filename);
-
-    $custom_content ||= qq|\n\n# You can replace this text with custom|
-        . qq| content, and it will be preserved on regeneration|
-        . qq|\n1;\n|;
-
     $text .= qq|$_\n|
         for @{$self->{_dump_storage}->{$class} || []};
 
@@ -554,6 +548,13 @@ sub _write_classfile {
     # Write out anything loaded via external partial class file in @INC
     print $fh qq|$_\n|
         for @{$self->{_ext_storage}->{$class} || []};
+
+    # Write out any custom content the user has added
+    my $custom_content = $self->_get_custom_content($class, $filename);
+
+    $custom_content ||= qq|\n\n# You can replace this text with custom|
+        . qq| content, and it will be preserved on regeneration|
+        . qq|\n1;\n|;
 
     print $fh $custom_content;
 
