@@ -148,6 +148,7 @@ sub _sqlite_parse_table {
 
 sub _extra_column_info {
     my ($self, $table, $col_name, $sth, $col_num) = @_;
+    ($table, $col_name) = @{$table}{qw/TABLE_NAME COLUMN_NAME/} if ref $table;
     my %extra_info;
 
     $self->{_sqlite_parse_data}->{$table} ||=
