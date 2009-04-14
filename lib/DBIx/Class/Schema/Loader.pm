@@ -168,7 +168,7 @@ sub connection {
     my $self = shift;
 
     if($_[-1] && ref $_[-1] eq 'HASH') {
-        for my $option (qw/ loader_class loader_options /) {
+        for my $option (qw/ loader_class loader_options result_base_class schema_base_class/) {
             if(my $value = delete $_[-1]->{$option}) {
                 $self->$option($value);
             }
