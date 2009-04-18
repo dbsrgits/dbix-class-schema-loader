@@ -51,7 +51,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 3 + 2 * (134 + ($self->{extra}->{count} || 0));
+    plan tests => 3 + 134 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -60,16 +60,7 @@ sub run_tests {
     # First, with in-memory classes
     my $schema_class = $self->setup_schema(@connect_info);
     $self->test_schema($schema_class);
-
-    # Then, with dumped classes
     $self->drop_tables;
-    $self->create;
-    $self->{dump} = 1;
-
-    unshift @INC, $DUMP_DIR;
-    $self->reload_schema($schema_class);
-    $schema_class->connection(@connect_info);
-    $self->test_schema($schema_class);
 }
 
 sub setup_schema {
@@ -1189,18 +1180,6 @@ sub drop_tables {
     $dbh->do("DROP TABLE $_") for (@tables);
     $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
     $dbh->disconnect;
-}
-
-sub reload_schema {
-    my ($self, $schema) = @_;
-    
-    for my $source ($schema->sources) {
-        Class::Unload->unload( $schema->class( $source ) );
-        Class::Unload->unload( ref $schema->resultset( $source ) );
-    }
-
-    Class::Unload->unload( $schema );
-    eval "require $schema" or die $@;
 }
 
 sub DESTROY {
