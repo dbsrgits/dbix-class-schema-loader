@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.04999_07 Not Yet Released
+0.04999_07 2009-04-18
         - Add result_base_class and schema_base_class options (RT #43977)
         - Ignore duplicate uniq indices (including duplicates of the PK).
         - Fix for DBD::SQLite 1.20

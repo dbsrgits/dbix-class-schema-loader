@@ -5,7 +5,7 @@ use warnings;
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
 
-our $VERSION = '0.04999_06';
+our $VERSION = '0.04999_07';
 
 =head1 NAME
 
