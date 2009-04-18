@@ -5,7 +5,6 @@ use warnings;
 use base qw/Class::Accessor::Fast/;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
-use UNIVERSAL::require;
 use DBIx::Class::Schema::Loader::RelBuilder;
 use Data::Dump qw/ dump /;
 use POSIX qw//;
@@ -272,7 +271,7 @@ sub new {
                                                    );
 
     $self->{relbuilder} = DBIx::Class::Schema::Loader::RelBuilder->new(
-        $self->schema_class, $self->inflect_plural, $self->inflect_singular
+        $self->schema, $self->inflect_plural, $self->inflect_singular
     ) if !$self->{skip_relationships};
 
     $self;
@@ -361,6 +360,7 @@ sub rescan {
     my ($self, $schema) = @_;
 
     $self->{schema} = $schema;
+    $self->{relbuilder}{schema} = $schema;
 
     my @created;
     my @current = $self->_tables_list;
@@ -421,6 +421,10 @@ sub _reload_classes {
 
     unshift @INC, $self->dump_directory;
     
+    my @to_register;
+    my %have_source = map { $_ => $self->schema->source($_) }
+        $self->schema->sources;
+
     for my $table (@tables) {
         my $moniker = $self->monikers->{$table};
         my $class = $self->classes->{$table};
@@ -430,17 +434,25 @@ sub _reload_classes {
             local *Class::C3::reinitialize = sub {};
             use warnings;
 
-            if ( Class::Unload->unload( $class ) ) {
-                my $resultset_class = ref $self->schema->resultset($moniker);
-                Class::Unload->unload( $resultset_class )
-                      if $resultset_class ne 'DBIx::Class::ResultSet';
+            Class::Unload->unload($class);
+            my ($source, $resultset_class);
+            if (
+                ($source = $have_source{$moniker})
+                && ($resultset_class = $source->resultset_class)
+                && ($resultset_class ne 'DBIx::Class::ResultSet')
+            ) {
+                my $has_file = Class::Inspector->loaded_filename($resultset_class);
+                Class::Unload->unload($resultset_class);
+                $self->schema->ensure_class_loaded($resultset_class) if $has_file;
             }
-            $class->require or die "Can't load $class: $@";
+            $self->schema->ensure_class_loaded($class);
         }
+        push @to_register, [$moniker, $class];
+    }
 
-        $self->schema_class->register_class($moniker, $class);
-        $self->schema->register_class($moniker, $class)
-            if $self->schema ne $self->schema_class;
+    Class::C3->reinitialize;
+    for (@to_register) {
+        $self->schema->register_class(@$_);
     }
 }
 
