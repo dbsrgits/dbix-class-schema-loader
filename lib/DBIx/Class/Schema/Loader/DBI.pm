@@ -5,7 +5,6 @@ use warnings;
 use base qw/DBIx::Class::Schema::Loader::Base/;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
-use UNIVERSAL::require;
 
 our $VERSION = '0.04999_07';
 
@@ -39,13 +38,13 @@ sub new {
     # rebless to vendor-specific class if it exists and loads
     my $dbh = $self->schema->storage->dbh;
     my $driver = $dbh->{Driver}->{Name};
+
     my $subclass = 'DBIx::Class::Schema::Loader::DBI::' . $driver;
-    $subclass->require;
-    if($@ && $@ !~ /^Can't locate /) {
-        croak "Failed to require $subclass: $@";
-    }
-    elsif(!$@) {
+    if ($self->ensure_class_found($subclass)) {
+        eval { $self->ensure_class_loaded($subclass) };
+        croak "Failed to load $subclass: $@" if $@;
         bless $self, $subclass unless $self->isa($subclass);
+        $self->_rebless();
     }
 
     # Set up the default quoting character and name seperators
@@ -70,6 +69,9 @@ sub new {
 
 # Override this in vendor modules to do things at the end of ->new()
 sub _setup { }
+
+# Override this in vendor module to load a subclass if necessary
+sub _rebless { }
 
 # Returns an array of table names
 sub _tables_list { 

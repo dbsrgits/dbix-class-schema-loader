@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use base qw/DBIx::Class::Schema Class::Data::Accessor/;
 use Carp::Clan qw/^DBIx::Class/;
-use UNIVERSAL::require;
 use Class::C3;
 use Scalar::Util qw/ weaken /;
 
@@ -131,9 +130,8 @@ sub _invoke_loader {
     my $impl = $self->loader_class
       || "DBIx::Class::Schema::Loader" . $self->storage_type;
     $impl = "DBIx::Class::Schema::Loader${impl}" if $impl =~ /^::/;
-    $impl->require or
-      croak qq/Could not load storage_type loader "$impl": / .
-            qq/"$UNIVERSAL::require::ERROR"/;
+    eval { $self->ensure_class_loaded($impl) };
+    croak qq/Could not load storage_type loader "$impl": "$@"/ if $@;
 
     $self->_loader($impl->new(%$args));
     $self->_loader->load;

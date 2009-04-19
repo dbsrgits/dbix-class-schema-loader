@@ -2,7 +2,7 @@ package DBIx::Class::Schema::Loader::Base;
 
 use strict;
 use warnings;
-use base qw/Class::Accessor::Fast/;
+use base qw/Class::Accessor::Fast Class::C3::Componentised/;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use DBIx::Class::Schema::Loader::RelBuilder;
@@ -443,9 +443,9 @@ sub _reload_classes {
             ) {
                 my $has_file = Class::Inspector->loaded_filename($resultset_class);
                 Class::Unload->unload($resultset_class);
-                $self->schema->ensure_class_loaded($resultset_class) if $has_file;
+                $self->ensure_class_loaded($resultset_class) if $has_file;
             }
-            $self->schema->ensure_class_loaded($class);
+            $self->ensure_class_loaded($class);
         }
         push @to_register, [$moniker, $class];
     }
