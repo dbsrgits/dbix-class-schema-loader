@@ -725,6 +725,13 @@ sub tables {
 }
 
 # Make a moniker from a table
+sub _default_table2moniker {
+    my ($self, $table) = @_;
+
+    return join '', map ucfirst, split /[\W_]+/,
+        Lingua::EN::Inflect::Number::to_S(lc $table);
+}
+
 sub _table2moniker {
     my ( $self, $table ) = @_;
 
@@ -737,8 +744,7 @@ sub _table2moniker {
         $moniker = $self->moniker_map->($table);
     }
 
-    $moniker ||= join '', map ucfirst, split /[\W_]+/,
-        Lingua::EN::Inflect::Number::to_S(lc $table);
+    $moniker ||= $self->_default_table2moniker($table);
 
     return $moniker;
 }
