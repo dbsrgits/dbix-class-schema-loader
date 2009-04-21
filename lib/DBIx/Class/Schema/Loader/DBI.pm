@@ -40,11 +40,9 @@ sub new {
     my $driver = $dbh->{Driver}->{Name};
 
     my $subclass = 'DBIx::Class::Schema::Loader::DBI::' . $driver;
-    if ($self->ensure_class_found($subclass)) {
-        eval { $self->ensure_class_loaded($subclass) };
-        croak "Failed to load $subclass: $@" if $@;
+    if ($self->load_optional_class($subclass)) {
         bless $self, $subclass unless $self->isa($subclass);
-        $self->_rebless();
+        $self->_rebless;
     }
 
     # Set up the default quoting character and name seperators
