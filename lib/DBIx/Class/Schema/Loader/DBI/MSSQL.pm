@@ -43,7 +43,7 @@ sub _table_pk_info {
     my @keydata;
 
     while (my $row = $sth->fetchrow_hashref) {
-      push @keydata, lc $row->{COLUMN_NAME};
+        push @keydata, lc $row->{COLUMN_NAME};
     }
 
     return \@keydata;
@@ -58,18 +58,18 @@ sub _table_fk_info {
     $sth->execute;
 
     while (my $row = $sth->fetchrow_hashref) {
-      my $fk = $row->{FK_NAME};
-      push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
-      push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
-      $remote_table->{$fk} = $row->{PKTABLE_NAME};
+        my $fk = $row->{FK_NAME};
+        push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
+        push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
+        $remote_table->{$fk} = $row->{PKTABLE_NAME};
     }
 
     foreach my $fk (keys %$remote_table) {
-      push @rels, {
-                    local_columns => \@{$local_cols->{$fk}},
-                    remote_columns => \@{$remote_cols->{$fk}},
-                    remote_table => $remote_table->{$fk},
-                  };
+        push @rels, {
+                      local_columns => \@{$local_cols->{$fk}},
+                      remote_columns => \@{$remote_cols->{$fk}},
+                      remote_table => $remote_table->{$fk},
+                    };
 
     }
     return \@rels;

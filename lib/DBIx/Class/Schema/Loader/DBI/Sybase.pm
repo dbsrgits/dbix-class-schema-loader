@@ -40,10 +40,10 @@ sub _rebless {
     my $dbh = $self->schema->storage->dbh;
     my $DBMS_VERSION = @{$dbh->selectrow_arrayref(qq{sp_server_info \@attribute_id=1})}[2];
     if ($DBMS_VERSION =~ /^Microsoft /i) {
-      my $subclass = 'DBIx::Class::Schema::Loader::DBI::MSSQL';
-      if ($self->load_optional_class($subclass)) {
-        bless $self, $subclass unless $self->isa($subclass);
-        $self->_rebless;
+        my $subclass = 'DBIx::Class::Schema::Loader::DBI::MSSQL';
+        if ($self->load_optional_class($subclass) && !$self->isa($subclass)) {
+            bless $self, $subclass;
+            $self->_rebless;
       }
     }
 }
@@ -67,7 +67,7 @@ sub _table_pk_info {
     my @keydata;
 
     while (my $row = $sth->fetchrow_hashref) {
-      push @keydata, lc $row->{column_name};
+        push @keydata, lc $row->{column_name};
     }
 
     return \@keydata;
@@ -84,19 +84,19 @@ sub _table_fk_info {
     $sth->execute;
 
     while (my $row = $sth->fetchrow_hashref) {
-      next unless $row->{FK_NAME};
-      my $fk = $row->{FK_NAME};
-      push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
-      push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
-      $remote_table->{$fk} = $row->{PKTABLE_NAME};
+        next unless $row->{FK_NAME};
+        my $fk = $row->{FK_NAME};
+        push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
+        push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
+        $remote_table->{$fk} = $row->{PKTABLE_NAME};
     }
 
     foreach my $fk (keys %$remote_table) {
-      push @rels, {
-                    local_columns => \@{$local_cols->{$fk}},
-                    remote_columns => \@{$remote_cols->{$fk}},
-                    remote_table => $remote_table->{$fk},
-                  };
+        push @rels, {
+                     local_columns => \@{$local_cols->{$fk}},
+                     remote_columns => \@{$remote_cols->{$fk}},
+                     remote_table => $remote_table->{$fk},
+                    };
 
     }
     return \@rels;
@@ -106,10 +106,6 @@ sub _table_uniq_info {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-#    my $sth = $dbh->prepare(qq{SELECT CCU.CONSTRAINT_NAME, CCU.COLUMN_NAME FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE CCU
-#                               JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TC ON (CCU.CONSTRAINT_NAME = TC.CONSTRAINT_NAME)
-#                               JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU ON (CCU.CONSTRAINT_NAME = KCU.CONSTRAINT_NAME AND CCU.COLUMN_NAME = KCU.COLUMN_NAME)
-#                               WHERE CCU.TABLE_NAME = '$table' AND CONSTRAINT_TYPE = 'UNIQUE' ORDER BY KCU.ORDINAL_POSITION});
     my $sth = $dbh->prepare(qq{sp_helpconstraint \@objname='$table', \@nomsg='nomsg'});
     $sth->execute;
 
@@ -117,8 +113,8 @@ sub _table_uniq_info {
     while (my $row = $sth->fetchrow_hashref) {
         my $type = $row->{constraint_type} || '';
         if ($type =~ /^unique/i) {
-          my $name = lc $row->{constraint_name};
-          push @{$constraints->{$name}}, ( split /,/, lc $row->{constraint_keys} );
+            my $name = lc $row->{constraint_name};
+            push @{$constraints->{$name}}, ( split /,/, lc $row->{constraint_keys} );
         }
     }
 
