@@ -85,17 +85,22 @@ sub run_tests {
             __PACKAGE__->connection(\@connect_info);
         };
         ok(!$@, "Loader initialization") or diag $@;
+
+        my $warn_count = 0;
+        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
+
         if($self->{skip_rels}) {
-            is(scalar(@loader_warnings), 0)
+            is(scalar(@loader_warnings), $warn_count)
               or diag "Did not get the expected 0 warnings.  Warnings are: "
                 . join('',@loader_warnings);
             ok(1);
         }
         else {
-            is(scalar(@loader_warnings), 1)
+            $warn_count++;
+            is(scalar(@loader_warnings), $warn_count)
               or diag "Did not get the expected 1 warning.  Warnings are: "
                 . join('',@loader_warnings);
-            like($loader_warnings[0], qr/loader_test9 has no primary key/i);
+            is(grep(/loader_test9 has no primary key/, @loader_warnings), 1);
         }
     }
 
