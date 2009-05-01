@@ -24,9 +24,9 @@ is module is not (yet) for external use.
 
 =head2 new
 
-Arguments: schema_class (scalar), inflect_plural, inflect_singular
+Arguments: schema  inflect_plural, inflect_singular
 
-C<$schema_class> should be a schema class name, where the source
+C<$schema> should be a schema instance, where the source
 classes have already been set up and registered.  Column info, primary
 key, and unique constraints will be drawn from this schema for all
 of the existing source monikers.
@@ -187,7 +187,7 @@ sub generate_code {
             delete $rev_cond{$_};
         }
 
-        push(@{$all_code->{$local_class}},
+        push(@{$all_code->{$local_class}{stmts}},
             { method => 'belongs_to',
               args => [ $remote_relname,
                         $remote_class,
@@ -195,8 +195,9 @@ sub generate_code {
               ],
             }
         );
+        $all_code->{$local_class}{moniker} = $local_moniker;
 
-        push(@{$all_code->{$remote_class}},
+        push(@{$all_code->{$remote_class}{stmts}},
             { method => 'has_many',
               args => [ $local_relname,
                         $local_class,
@@ -204,6 +205,7 @@ sub generate_code {
               ],
             }
         );
+        $all_code->{$remote_class}{moniker} = $remote_moniker;
     }
 
     return $all_code;

@@ -263,7 +263,7 @@ sub new {
             if $self->{dump_overwrite};
 
     $self->{relbuilder} = DBIx::Class::Schema::Loader::RelBuilder->new(
-        $self->schema_class, $self->inflect_plural, $self->inflect_singular
+        $self->schema, $self->inflect_plural, $self->inflect_singular
     ) if !$self->{skip_relationships};
 
     $self;
@@ -728,9 +728,11 @@ sub _load_relationships {
 
     foreach my $src_class (sort keys %$rel_stmts) {
         my $src_stmts = $rel_stmts->{$src_class};
-        foreach my $stmt (@$src_stmts) {
+        foreach my $stmt (@{$src_stmts->{stmts}}) {
             $self->_dbic_stmt($src_class,$stmt->{method},@{$stmt->{args}});
         }
+        $self->schema_class->register_class($src_stmts->{moniker}, $src_class);
+        $self->schema->register_class($src_stmts->{moniker}, $src_class) if $self->schema_class ne $self->schema;
     }
 }
 

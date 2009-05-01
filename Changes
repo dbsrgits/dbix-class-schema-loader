@@ -4,6 +4,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Fix Oracle constraint detection for non-owned schemas (RT #35732)
         - Add result_base_class and schema_base_class options (RT #43977)
         - Handle ResultSetManager deprecation warning in common tests
+        - Fix for DBIx::Class 0.081
 
 0.04005 Sat Apr 05, 2008
         - Fix DB2 support
