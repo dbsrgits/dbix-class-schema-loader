@@ -46,12 +46,12 @@ sub new {
     }
 
     # Set up the default quoting character and name seperators
-    $self->{_quoter} = $self->schema->storage->sql_maker->quote_char
-                    || $dbh->get_info(29)
+    $self->{_quoter} = $dbh->get_info(29)
+                    || $self->schema->storage->sql_maker->quote_char
                     || q{"};
 
-    $self->{_namesep} = $self->schema->storage->sql_maker->name_sep
-                     || $dbh->get_info(41)
+    $self->{_namesep} = $dbh->get_info(41)
+                     || $self->schema->storage->sql_maker->name_sep
                      || q{.};
 
     # For our usage as regex matches, concatenating multiple quoter
