@@ -1,16 +1,42 @@
 package DBIx::Class::Schema::Loader::DBI::ODBC::Microsoft_SQL_Server;
 
+use strict;
+use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI::MSSQL';
+use Carp::Clan qw/^DBIx::Class/;
+use Class::C3;
+
+our $VERSION = '0.04999_06';
+
+=head1 NAME
+
+DBIx::Class::Schema::Loader::DBI::ODBC::Microsoft_SQL_Server - ODBC wrapper for
+L<DBIx::Class::Schema::Loader::DBI::MSSQL>
+
+=head1 DESCRIPTION
+
+Proxy for L<DBIx::Class::Schema::Loader::DBI::MSSQL> when using L<DBD::ODBC>.
+
+See L<DBIx::Class::Schema::Loader::Base> for usage information.
+
+=cut
 
 sub _tables_list { 
     my $self = shift;
 
-    my $dbh = $self->schema->storage->dbh;
-    my @tables = $dbh->tables(undef, $self->db_schema);
-    s/\Q$self->{_quoter}\E//g for @tables;
-    s/^.*\Q$self->{_namesep}\E// for @tables;
-
-    return @tables;
+    return $self->next::method(undef, undef);
 }
+
+=head1 SEE ALSO
+
+L<DBIx::Class::Schema::Loader::DBI::MSSQL>,
+L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
+L<DBIx::Class::Schema::Loader::DBI>
+
+=head1 AUTHOR
+
+Rafael Kitover C<rkitover@cpan.org>
+
+=cut
 
 1;
