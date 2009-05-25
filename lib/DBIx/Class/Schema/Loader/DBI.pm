@@ -46,14 +46,8 @@ sub new {
     }
 
     # Set up the default quoting character and name seperators
-    $self->{_quoter} = $dbh->get_info(29)
-                    || $self->schema->storage->sql_maker->quote_char
-                    || q{"};
-
-    $self->{_namesep} = $dbh->get_info(41)
-                     || $self->schema->storage->sql_maker->name_sep
-                     || q{.};
-
+    $self->{_quoter} = $self->_build_quoter;
+    $self->{_namesep} = $self->_build_namesep;
     # For our usage as regex matches, concatenating multiple quoter
     # values works fine (e.g. s/\Q<>\E// if quoter was [ '<', '>' ])
     if( ref $self->{_quoter} eq 'ARRAY') {
@@ -63,6 +57,22 @@ sub new {
     $self->_setup;
 
     $self;
+}
+
+sub _build_quoter {
+    my $self = shift;
+    my $dbh = $self->schema->storage->dbh;
+    return $dbh->get_info(29)
+           || $self->schema->storage->sql_maker->quote_char
+           || q{"};
+}
+
+sub _build_namesep {
+    my $self = shift;
+    my $dbh = $self->schema->storage->dbh;
+    return $dbh->get_info(41)
+           || $self->schema->storage->sql_maker->name_sep
+           || q{.};
 }
 
 # Override this in vendor modules to do things at the end of ->new()
@@ -79,7 +89,8 @@ sub _tables_list {
 
     my $dbh = $self->schema->storage->dbh;
     my @tables = $dbh->tables(undef, $self->db_schema, $table, $type);
-    s/\Q$self->{_quoter}\E//g for @tables;
+
+    s/\Q$self->{_quoter}\E//g    for @tables;
     s/^.*\Q$self->{_namesep}\E// for @tables;
 
     return @tables;
