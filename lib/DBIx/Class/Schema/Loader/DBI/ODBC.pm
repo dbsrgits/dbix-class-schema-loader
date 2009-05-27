@@ -35,7 +35,10 @@ sub _rebless {
     # Translate the backend name into a perl identifier
     $dbtype =~ s/\W/_/gi;
     my $class = "DBIx::Class::Schema::Loader::DBI::ODBC::${dbtype}";
-    bless $self, $class if $self->load_optional_class($class);
+    if ($self->load_optional_class($class) && !$self->isa($class)) {
+        bless $self, $class;
+        $self->_rebless;
+    }
   }
 }
 
