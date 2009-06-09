@@ -75,8 +75,10 @@ sub _rebless { }
 sub _tables_list { 
     my $self = shift;
 
+    my ($table, $type) = @_ ? @_ : ('%', '%');
+
     my $dbh = $self->schema->storage->dbh;
-    my @tables = $dbh->tables(undef, $self->db_schema, '%', '%');
+    my @tables = $dbh->tables(undef, $self->db_schema, $table, $type);
     s/\Q$self->{_quoter}\E//g for @tables;
     s/^.*\Q$self->{_namesep}\E// for @tables;
 
