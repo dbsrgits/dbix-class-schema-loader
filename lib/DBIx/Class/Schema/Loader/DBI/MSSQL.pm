@@ -34,6 +34,11 @@ sub _setup {
     $self->{db_schema} ||= 'dbo';
 }
 
+# DBD::Sybase doesn't implement get_info properly
+#sub _build_quoter  { [qw/[ ]/] }
+sub _build_quoter  { '"' }
+sub _build_namesep { '.' }
+
 sub _table_pk_info {
     my ($self, $table) = @_;
     my $dbh = $self->schema->storage->dbh;
