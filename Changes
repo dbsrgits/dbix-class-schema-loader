@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+	- use $dbh->get_info(29/41) for qote_car/name_sep if available(semifor)
+	- add MSSQL support through DBD::ODBC
+
 0.04999_08 Not Yet Released
         - Replace UNIVERSAL::require with Class::C3::Componentised
 
