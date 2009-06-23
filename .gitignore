@@ -1,6 +1,7 @@
 /Build
 /_build
 /*.bak
+/*.old
 /blib
 /*gz
 /inc
