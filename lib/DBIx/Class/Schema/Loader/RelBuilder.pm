@@ -158,6 +158,24 @@ sub _remote_attrs {
 	return $nullable ? { join_type => 'LEFT' } : ();
 }
 
+sub _remote_relname {
+    my ($self, $remote_table, $cond) = @_;
+
+    my $remote_relname;
+    # for single-column case, set the remote relname to the column
+    # name, to make filter accessors work, but strip trailing _id
+    if(scalar keys %{$cond} == 1) {
+        my ($col) = values %{$cond};
+        $col =~ s/_id$//;
+        $remote_relname = $self->_inflect_singular($col);
+    }
+    else {
+        $remote_relname = $self->_inflect_singular(lc $remote_table);
+    }
+
+    return $remote_relname;
+}
+
 sub generate_code {
     my ($self, $local_moniker, $rels, $uniqs) = @_;
 
@@ -193,18 +211,7 @@ sub generate_code {
         }
 
         my $local_relname;
-        my $remote_relname;
-
-        # for single-column case, set the remote relname to the column
-        # name, to make filter accessors work, but strip trailing _id
-        if(scalar keys %cond == 1) {
-            my ($col) = values %cond;
-            $col =~ s/_id$//;
-            $remote_relname = $self->_inflect_singular($col);
-        }
-        else {
-            $remote_relname = $self->_inflect_singular(lc $remote_table);
-        }
+        my $remote_relname = $self->_remote_relname($remote_table, \%cond);
 
         # If more than one rel between this pair of tables, use the local
         # col names to distinguish
