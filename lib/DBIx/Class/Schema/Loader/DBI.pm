@@ -90,8 +90,14 @@ sub _tables_list {
     my $dbh = $self->schema->storage->dbh;
     my @tables = $dbh->tables(undef, $self->db_schema, $table, $type);
 
-    s/\Q$self->{_quoter}\E//g    for @tables;
-    s/^.*\Q$self->{_namesep}\E// for @tables;
+    my $qt = qr/\Q$self->{_quoter}\E/;
+
+    if ($self->{_quoter} && $tables[0] =~ /$qt/) {
+        s/.* $qt (?= .* $qt)//xg for @tables;
+    } else {
+        s/^.*\Q$self->{_namesep}\E// for @tables;
+    }
+    s/$qt//g for @tables;
 
     return @tables;
 }
@@ -110,6 +116,18 @@ sub load {
     $self->next::method(@_);
 }
 
+sub _quote_table_name {
+    my ($self, $table) = @_;
+
+    my $qt = $self->schema->storage->sql_maker->quote_char;
+
+    if (ref $qt) {
+        return $qt->[0] . $table . $qt->[1];
+    }
+
+    return $qt . $table . $qt;
+}
+
 # Returns an arrayref of column names
 sub _table_columns {
     my ($self, $table) = @_;
@@ -117,10 +135,13 @@ sub _table_columns {
     my $dbh = $self->schema->storage->dbh;
 
     if($self->{db_schema}) {
-        $table = $self->{db_schema} . $self->{_namesep} . $table;
+        $table = $self->{db_schema} . $self->{_namesep} .
+            $self->_quote_table_name($table);
+    } else {
+        $table = $self->_quote_table_name($table);
     }
 
-    my $sth = $dbh->prepare($self->schema->storage->sql_maker->select($table, undef, \'1 = 0'));
+    my $sth = $dbh->prepare($self->schema->storage->sql_maker->select(\$table, undef, \'1 = 0'));
     $sth->execute;
     my $retval = \@{$sth->{NAME_lc}};
     $sth->finish;
