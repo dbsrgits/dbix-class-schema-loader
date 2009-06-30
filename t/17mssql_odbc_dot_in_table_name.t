@@ -27,9 +27,9 @@ my $dbh = DBI->connect($dsn, $user, $password, {
     RaiseError => 1, PrintError => 0
 });
 
-eval { $dbh->do('DROP TABLE [test.dot]') };
+eval { $dbh->do('DROP TABLE [loadertest.dot]') };
 $dbh->do(q{
-    CREATE TABLE [test.dot] (
+    CREATE TABLE [loadertest.dot] (
         id INT IDENTITY NOT NULL PRIMARY KEY,
         dat VARCHAR(8)
     )
@@ -40,7 +40,10 @@ rmtree $DUMP_DIR;
 eval {
     make_schema_at(
         'TestSL::Schema', 
-        { use_namespaces => 1 },
+        {
+            use_namespaces => 1,
+            constraint => qr/^loadertest\.dot\z/
+        },
         [ $dsn, $user, $password, ]
     );
 };
@@ -48,7 +51,7 @@ eval {
 ok !$@, 'table name with . parsed correctly';
 diag $@ if $@;
 
-#system qq{$^X -pi -e 's/"test\.dot"/\\\\"[test.dot]"/' t/_common_dump/TestSL/Schema/Result/TestDot.pm};
+#system qq{$^X -pi -e 's/"test\.dot"/\\\\"[loadertest.dot]"/' t/_common_dump/TestSL/Schema/Result/TestDot.pm};
 #diag do { local ($/, @ARGV) = (undef, "t/_common_dump/TestSL/Schema/Result/TestDot.pm"); <> };
 #do "t/_common_dump/TestSL/Schema/Result/TestDot.pm";
 
@@ -61,7 +64,7 @@ TODO: {
 and it doesn't work in the released version yet};
 
     eval {
-        my $rs = TestSL::Schema->resultset('TestDot');
+        my $rs = TestSL::Schema->resultset('LoadertestDot');
         my $row = $rs->create({ dat => 'foo' });
         $row->update({ dat => 'bar' });
         $row = $rs->find($row->id);
@@ -73,4 +76,4 @@ and it doesn't work in the released version yet};
 
 rmtree $DUMP_DIR;
 
-$dbh->do('DROP TABLE [test.dot]');
+$dbh->do('DROP TABLE [loadertest.dot]');
