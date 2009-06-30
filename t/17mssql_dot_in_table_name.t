@@ -12,12 +12,19 @@ use lib $DUMP_DIR;
 use DBIx::Class::Schema::Loader 'make_schema_at', "dump_to_dir:$DUMP_DIR";
 use File::Path;
 
-my $dsn      = $ENV{DBICTEST_MSSQL_ODBC_DSN} || '';
-my $user     = $ENV{DBICTEST_MSSQL_ODBC_USER} || '';
-my $password = $ENV{DBICTEST_MSSQL_ODBC_PASS} || '';
+my $dsn      = $ENV{DBICTEST_MSSQL_ODBC_DSN}  ||
+               $ENV{DBICTEST_MSSQL_DSN}  || '';
+
+my $user     = $ENV{DBICTEST_MSSQL_ODBC_USER} ||
+               $ENV{DBICTEST_MSSQL_USER} || '';
+
+my $password = $ENV{DBICTEST_MSSQL_ODBC_PASS} ||
+               $ENV{DBICTEST_MSSQL_PASS} || '';
 
 if( !$dsn || !$user ) {
-    plan skip_all => 'You need to set the DBICTEST_MSSQL_ODBC_DSN, _USER, and _PASS environment variables';
+    plan skip_all =>
+'You need to set the DBICTEST_MSSQL_ODBC_DSN (or DBICTEST_MSSQL_DSN), _USER,' .
+' and _PASS environment variables';
     exit;
 }
 
