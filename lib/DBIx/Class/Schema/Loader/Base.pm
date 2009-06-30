@@ -672,7 +672,14 @@ sub _setup_src_meta {
     my $table_class = $self->classes->{$table};
     my $table_moniker = $self->monikers->{$table};
 
-    $self->_dbic_stmt($table_class,'table',$table);
+    my $table_name = $table;
+    my $name_sep   = $self->schema->storage->sql_maker->name_sep;
+
+    if ($table_name =~ /\Q$name_sep\E/) {
+        $table_name = \ $self->_quote_table_name($table_name);
+    }
+
+    $self->_dbic_stmt($table_class,'table',$table_name);
 
     my $cols = $self->_table_columns($table);
     my $col_info;

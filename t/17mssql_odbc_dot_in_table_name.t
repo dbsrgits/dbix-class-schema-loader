@@ -48,12 +48,9 @@ eval {
 ok !$@, 'table name with . parsed correctly';
 diag $@ if $@;
 
-## this doesn't work either
-system qq{$^X -pi -e 's/"test\.dot"/\\\\"[test.dot]"/' t/_common_dump/TestSL/Schema/Result/TestDot.pm};
-
+#system qq{$^X -pi -e 's/"test\.dot"/\\\\"[test.dot]"/' t/_common_dump/TestSL/Schema/Result/TestDot.pm};
 #diag do { local ($/, @ARGV) = (undef, "t/_common_dump/TestSL/Schema/Result/TestDot.pm"); <> };
-
-do "t/_common_dump/TestSL/Schema/Result/TestDot.pm";
+#do "t/_common_dump/TestSL/Schema/Result/TestDot.pm";
 
 eval 'use TestSL::Schema';
 ok !$@, 'loaded schema';
@@ -74,6 +71,6 @@ and it doesn't work in the released version yet};
     diag $@ if $@;
 }
 
-#rmtree $DUMP_DIR;
+rmtree $DUMP_DIR;
 
 $dbh->do('DROP TABLE [test.dot]');
