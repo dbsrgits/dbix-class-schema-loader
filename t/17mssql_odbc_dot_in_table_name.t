@@ -41,28 +41,39 @@ eval {
     make_schema_at(
         'TestSL::Schema', 
         { use_namespaces => 1 },
-        [ $dsn, $user, $password, { quote_char => [qw/[ ]/], name_sep => '.' }]
+        [ $dsn, $user, $password, ]
     );
 };
 
 ok !$@, 'table name with . parsed correctly';
 diag $@ if $@;
 
+## this doesn't work either
+system qq{$^X -pi -e 's/"test\.dot"/\\\\"[test.dot]"/' t/_common_dump/TestSL/Schema/Result/TestDot.pm};
+
+#diag do { local ($/, @ARGV) = (undef, "t/_common_dump/TestSL/Schema/Result/TestDot.pm"); <> };
+
+do "t/_common_dump/TestSL/Schema/Result/TestDot.pm";
+
 eval 'use TestSL::Schema';
 ok !$@, 'loaded schema';
 diag $@ if $@;
 
-## this doesn't work either
-#system qq{$^X -pi -e 's/"test\.dot"/\\\\"test.dot"/' t/_common_dump/TestSL/Schema/Result/TestDot.pm};
+TODO: {
+    local $TODO = q{this is really a DBIC test to check if the table is usable,
+and it doesn't work in the released version yet};
 
-#diag do { local ($/, @ARGV) = (undef, "t/_common_dump/TestSL/Schema/Result/TestDot.pm"); <> };
+    eval {
+        my $rs = TestSL::Schema->resultset('TestDot');
+        my $row = $rs->create({ dat => 'foo' });
+        $row->update({ dat => 'bar' });
+        $row = $rs->find($row->id);
+        $row->delete;
+    };
+    ok !$@, 'used table from DBIC succeessfully';
+    diag $@ if $@;
+}
 
-eval {
-    TestSL::Schema->resultset('TestDot')->create({ dat => 'foo' });
-};
-ok !$@, 'used table from DBIC succeessfully';
-diag $@ if $@;
-
-rmtree $DUMP_DIR;
+#rmtree $DUMP_DIR;
 
 $dbh->do('DROP TABLE [test.dot]');

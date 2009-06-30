@@ -27,6 +27,16 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
+sub _rebless {
+    my $self = shift;
+
+    $self->schema->storage->sql_maker->quote_char([qw/[ ]/])
+        unless $self->schema->storage->sql_maker->quote_char;
+
+    $self->schema->storage->sql_maker->name_sep('.')
+        unless $self->schema->storage->sql_maker->name_sep;
+}
+
 sub _setup {
     my $self = shift;
 
