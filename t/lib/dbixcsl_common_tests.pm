@@ -1185,7 +1185,8 @@ sub drop_tables {
 sub DESTROY {
     my $self = shift;
     $self->drop_tables if $self->{_created};
-    rmtree $DUMP_DIR;
+    rmtree $DUMP_DIR
+	unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 }
 
 1;

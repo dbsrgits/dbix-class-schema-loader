@@ -8,7 +8,6 @@ my $password = $ENV{DBICTEST_MSSQL_ODBC_PASS} || '';
 
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'Microsoft',
-    quote_char  => [qw/[ ]/],
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
     dsn         => $dsn,
     user        => $user,

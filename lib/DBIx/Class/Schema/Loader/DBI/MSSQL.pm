@@ -42,19 +42,19 @@ sub _setup {
 
     $self->next::method(@_);
 
-    $self->{db_schema} ||= $self->_determine_db_schema;
+    $self->{db_schema} ||= $self->_build_db_schema;
 }
 
-sub _determine_db_schema {
+sub _build_db_schema {
     my $self = shift;
     my $dbh  = $self->schema->storage->dbh;
     
     my $test_table = "_loader_test_$$";
-    $dbh->do("create table $test_table (id integer)");
 
     my $db_schema = 'dbo'; # default
 
     eval {
+        $dbh->do("create table $test_table (id integer)");
         my $sth = $dbh->prepare('sp_tables');
         $sth->execute;
         while (my $row = $sth->fetchrow_hashref) {
@@ -64,10 +64,12 @@ sub _determine_db_schema {
             last;
         }
         $sth->finish;
+        $dbh->do("drop table $test_table");
     };
     my $exception = $@;
-    $dbh->do("drop table $test_table");
-    croak $exception if $exception;
+    eval { $dbh->do("drop table $test_table") };
+    carp "Could not determine db_schema, defaulting to $db_schema : $exception"
+        if $exception;
 
     return $db_schema;
 }
