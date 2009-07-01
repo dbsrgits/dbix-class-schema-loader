@@ -41,8 +41,37 @@ sub _setup {
     my $self = shift;
 
     $self->next::method(@_);
-    $self->{db_schema} ||= 'dbo';
+
+    $self->{db_schema} ||= $self->_determine_db_schema;
 }
+
+sub _determine_db_schema {
+    my $self = shift;
+    my $dbh  = $self->schema->storage->dbh;
+    
+    my $test_table = "_loader_test_$$";
+    $dbh->do("create table $test_table (id integer)");
+
+    my $db_schema = 'dbo'; # default
+
+    eval {
+        my $sth = $dbh->prepare('sp_tables');
+        $sth->execute;
+        while (my $row = $sth->fetchrow_hashref) {
+            next unless $row->{TABLE_NAME} eq $test_table;
+
+            $db_schema = $row->{TABLE_OWNER};
+            last;
+        }
+        $sth->finish;
+    };
+    my $exception = $@;
+    $dbh->do("drop table $test_table");
+    croak $exception if $exception;
+
+    return $db_schema;
+}
+
 
 # DBD::Sybase doesn't implement get_info properly
 #sub _build_quoter  { [qw/[ ]/] }
