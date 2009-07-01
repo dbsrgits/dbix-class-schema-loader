@@ -986,7 +986,7 @@ sub create {
             CREATE TABLE loader_test10 (
                 id10 $self->{auto_inc_pk},
                 subject VARCHAR(8),
-                loader_test11 INTEGER
+                loader_test11 INTEGER NULL
             ) $self->{innodb}
         },
         $make_auto_inc->(qw/loader_test10 id10/),
@@ -995,7 +995,7 @@ sub create {
             CREATE TABLE loader_test11 (
                 id11 $self->{auto_inc_pk},
                 message VARCHAR(8) DEFAULT 'foo',
-                loader_test10 INTEGER,
+                loader_test10 INTEGER NULL,
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb}
         },
