@@ -2,7 +2,10 @@ package DBIx::Class::Schema::Loader::DBI::MSSQL;
 
 use strict;
 use warnings;
-use base 'DBIx::Class::Schema::Loader::DBI';
+use base qw/
+    DBIx::Class::Schema::Loader::DBI
+    DBIx::Class::Schema::Loader::DBI::Sybase::Common
+/;
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
@@ -27,58 +30,13 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
-sub _rebless {
-    my $self = shift;
-
-    $self->schema->storage->sql_maker->quote_char([qw/[ ]/])
-        unless $self->schema->storage->sql_maker->quote_char;
-
-    $self->schema->storage->sql_maker->name_sep('.')
-        unless $self->schema->storage->sql_maker->name_sep;
-}
-
 sub _setup {
     my $self = shift;
 
     $self->next::method(@_);
-
     $self->{db_schema} ||= $self->_build_db_schema;
+    $self->_set_quote_char_and_name_sep;
 }
-
-sub _build_db_schema {
-    my $self = shift;
-    my $dbh  = $self->schema->storage->dbh;
-    
-    my $test_table = "_loader_test_$$";
-
-    my $db_schema = 'dbo'; # default
-
-    eval {
-        $dbh->do("create table $test_table (id integer)");
-        my $sth = $dbh->prepare('sp_tables');
-        $sth->execute;
-        while (my $row = $sth->fetchrow_hashref) {
-            next unless $row->{TABLE_NAME} eq $test_table;
-
-            $db_schema = $row->{TABLE_OWNER};
-            last;
-        }
-        $sth->finish;
-        $dbh->do("drop table $test_table");
-    };
-    my $exception = $@;
-    eval { $dbh->do("drop table $test_table") };
-    carp "Could not determine db_schema, defaulting to $db_schema : $exception"
-        if $exception;
-
-    return $db_schema;
-}
-
-
-# DBD::Sybase doesn't implement get_info properly
-#sub _build_quoter  { [qw/[ ]/] }
-sub _build_quoter  { '"' }
-sub _build_namesep { '.' }
 
 sub _table_pk_info {
     my ($self, $table) = @_;

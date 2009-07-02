@@ -2,7 +2,10 @@ package DBIx::Class::Schema::Loader::DBI::Sybase;
 
 use strict;
 use warnings;
-use base 'DBIx::Class::Schema::Loader::DBI';
+use base qw/
+    DBIx::Class::Schema::Loader::DBI
+    DBIx::Class::Schema::Loader::DBI::Sybase::Common
+/;
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
@@ -31,7 +34,8 @@ sub _setup {
     my $self = shift;
 
     $self->next::method(@_);
-    $self->{db_schema} ||= 'dbo';
+    $self->{db_schema} ||= $self->_build_db_schema;
+    $self->_set_quote_char_and_name_sep;
 }
 
 sub _rebless {
@@ -45,12 +49,6 @@ sub _rebless {
             bless $self, $subclass;
             $self->_rebless;
       }
-    } else {
-        $self->schema->storage->sql_maker->quote_char([qw/[ ]/])
-            unless $self->schema->storage->sql_maker->quote_char;
-
-        $self->schema->storage->sql_maker->name_sep('.')
-            unless $self->schema->storage->sql_maker->name_sep;
     }
 }
 
@@ -73,7 +71,7 @@ sub _table_pk_info {
     my @keydata;
 
     while (my $row = $sth->fetchrow_hashref) {
-        push @keydata, lc $row->{column_name};
+        push @keydata, $row->{column_name};
     }
 
     return \@keydata;
@@ -92,8 +90,8 @@ sub _table_fk_info {
     while (my $row = $sth->fetchrow_hashref) {
         next unless $row->{FK_NAME};
         my $fk = $row->{FK_NAME};
-        push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
-        push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
+        push @{$local_cols->{$fk}}, $row->{FKCOLUMN_NAME};
+        push @{$remote_cols->{$fk}}, $row->{PKCOLUMN_NAME};
         $remote_table->{$fk} = $row->{PKTABLE_NAME};
     }
 
@@ -120,17 +118,17 @@ sub _table_uniq_info {
         if (exists $row->{constraint_type}) {
             my $type = $row->{constraint_type} || '';
             if ($type =~ /^unique/i) {
-                my $name = lc $row->{constraint_name};
+                my $name = $row->{constraint_name};
                 push @{$constraints->{$name}},
-                    ( split /,/, lc $row->{constraint_keys} );
+                    ( split /,/, $row->{constraint_keys} );
             }
         } else {
             my $def = $row->{definition} || next;
             next unless $def =~ /^unique/i;
-            my $name = lc $row->{name};
+            my $name = $row->{name};
             my ($keys) = $def =~ /\((.*)\)/;
             $keys =~ s/\s*//g;
-            my @keys = map lc, split /,/ => $keys;
+            my @keys = split /,/ => $keys;
             push @{$constraints->{$name}}, @keys;
         }
     }

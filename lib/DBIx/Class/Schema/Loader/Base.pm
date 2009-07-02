@@ -688,7 +688,15 @@ sub _setup_src_meta {
         $self->_dbic_stmt($table_class,'add_columns',@$cols);
     }
     else {
-        my %col_info_lc = map { lc($_), $col_info->{$_} } keys %$col_info;
+        my %col_info_lc;
+        for my $col (keys %$col_info) {
+            my $lc_col = lc $col;
+            $col_info_lc{$lc_col} = $col_info->{$_};
+
+            $col_info_lc{$lc_col}->{accessor} = $lc_col
+                if $col ne $lc_col;
+        }
+
         my $fks = $self->_table_fk_info($table);
         for my $fkdef (@$fks) {
             for my $col (@{ $fkdef->{local_columns} }) {
