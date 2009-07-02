@@ -45,6 +45,12 @@ sub _rebless {
             bless $self, $subclass;
             $self->_rebless;
       }
+    } else {
+        $self->schema->storage->sql_maker->quote_char([qw/[ ]/])
+            unless $self->schema->storage->sql_maker->quote_char;
+
+        $self->schema->storage->sql_maker->name_sep('.')
+            unless $self->schema->storage->sql_maker->name_sep;
     }
 }
 
@@ -111,10 +117,21 @@ sub _table_uniq_info {
 
     my $constraints;
     while (my $row = $sth->fetchrow_hashref) {
-        my $type = $row->{constraint_type} || '';
-        if ($type =~ /^unique/i) {
-            my $name = lc $row->{constraint_name};
-            push @{$constraints->{$name}}, ( split /,/, lc $row->{constraint_keys} );
+        if (exists $row->{constraint_type}) {
+            my $type = $row->{constraint_type} || '';
+            if ($type =~ /^unique/i) {
+                my $name = lc $row->{constraint_name};
+                push @{$constraints->{$name}},
+                    ( split /,/, lc $row->{constraint_keys} );
+            }
+        } else {
+            my $def = $row->{definition} || next;
+            next unless $def =~ /^unique/i;
+            my $name = lc $row->{name};
+            my ($keys) = $def =~ /\((.*)\)/;
+            $keys =~ s/\s*//g;
+            my @keys = map lc, split /,/ => $keys;
+            push @{$constraints->{$name}}, @keys;
         }
     }
 
