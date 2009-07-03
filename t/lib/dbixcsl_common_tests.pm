@@ -391,7 +391,7 @@ sub test_schema {
         isa_ok( $rs_rel4->first, $class4);
 
         # find on multi-col pk
-        my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});
+        my $obj5 = $rsobj5->find({id1 => 1, iD2 => 1});
         is( $obj5->id2, 1, "Find on multi-col PK" );
 
         # mulit-col fk def
@@ -1184,9 +1184,10 @@ sub drop_tables {
 
 sub DESTROY {
     my $self = shift;
-    $self->drop_tables if $self->{_created};
-    rmtree $DUMP_DIR
-	unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
+    unless ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
+	$self->drop_tables if $self->{_created};
+	rmtree $DUMP_DIR
+    }
 }
 
 1;

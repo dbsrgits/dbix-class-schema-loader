@@ -116,18 +116,6 @@ sub load {
     $self->next::method(@_);
 }
 
-sub _quote_table_name {
-    my ($self, $table) = @_;
-
-    my $qt = $self->schema->storage->sql_maker->quote_char;
-
-    if (ref $qt) {
-        return $qt->[0] . $table . $qt->[1];
-    }
-
-    return $qt . $table . $qt;
-}
-
 # Returns an arrayref of column names
 sub _table_columns {
     my ($self, $table) = @_;

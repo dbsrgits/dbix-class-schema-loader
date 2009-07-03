@@ -30,6 +30,8 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
+sub _is_case_sensitive { 1 }
+
 sub _setup {
     my $self = shift;
 
@@ -82,17 +84,22 @@ sub _table_fk_info {
 
     my ($local_cols, $remote_cols, $remote_table, @rels);
     my $dbh = $self->schema->storage->dbh;
+
+    local $dbh->{FetchHashKeyName} = 'NAME_lc';
+
     # hide "Object does not exist in this database." when trying to fetch fkeys
     $dbh->{syb_err_handler} = sub { return 0 if $_[0] == 17461; }; 
-    my $sth = $dbh->prepare(qq{sp_fkeys \@FKTABLE_NAME = '$table'});
+    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = '$table'});
     $sth->execute;
 
     while (my $row = $sth->fetchrow_hashref) {
-        next unless $row->{FK_NAME};
-        my $fk = $row->{FK_NAME};
-        push @{$local_cols->{$fk}}, $row->{FKCOLUMN_NAME};
-        push @{$remote_cols->{$fk}}, $row->{PKCOLUMN_NAME};
-        $remote_table->{$fk} = $row->{PKTABLE_NAME};
+        my $fk = $row->{fk_name} ||
+'fk_'.$row->{fktable_qualifier}.'_'.$row->{fktable_owner}.'_'
+.$row->{fktable_name}.'_'.$row->{fkcolumn_name};
+
+        push @{$local_cols->{$fk}}, $row->{fkcolumn_name};
+        push @{$remote_cols->{$fk}}, $row->{pkcolumn_name};
+        $remote_table->{$fk} = $row->{pktable_name};
     }
 
     foreach my $fk (keys %$remote_table) {
