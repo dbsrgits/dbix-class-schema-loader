@@ -129,6 +129,10 @@ L<DBIx::Class::Schema::Loader::DBI>
 
 Justin Hunter C<justin.d.hunter@gmail.com>
 
+=head1 CONTRIBUTORS
+
+Rafael Kitover <rkitover@cpan.org>
+
 =cut
 
 1;
