@@ -675,7 +675,7 @@ sub _setup_src_meta {
     my $table_name = $table;
     my $name_sep   = $self->schema->storage->sql_maker->name_sep;
 
-    if ($table_name =~ /\Q$name_sep\E/) {
+    if ($name_sep && $table_name =~ /\Q$name_sep\E/) {
         $table_name = \ $self->_quote_table_name($table_name);
     }
 
@@ -832,6 +832,8 @@ sub _quote_table_name {
     my ($self, $table) = @_;
 
     my $qt = $self->schema->storage->sql_maker->quote_char;
+
+    return $table unless $qt;
 
     if (ref $qt) {
         return $qt->[0] . $table . $qt->[1];
