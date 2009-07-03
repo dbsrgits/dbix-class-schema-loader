@@ -401,7 +401,10 @@ sub test_schema {
 
         ok($class6->column_info('loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
         ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
-        ok($class6->column_info('id2')->{is_foreign_key}, 'Foreign key detected');
+
+	my $id2_info = eval { $class6->column_info('id2') } ||
+			$class6->column_info('Id2');
+        ok($id2_info->{is_foreign_key}, 'Foreign key detected');
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);

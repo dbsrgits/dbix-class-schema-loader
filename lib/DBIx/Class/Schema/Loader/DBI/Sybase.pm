@@ -94,8 +94,7 @@ sub _table_fk_info {
 
     while (my $row = $sth->fetchrow_hashref) {
         my $fk = $row->{fk_name} ||
-'fk_'.$row->{fktable_qualifier}.'_'.$row->{fktable_owner}.'_'
-.$row->{fktable_name}.'_'.$row->{fkcolumn_name};
+'fk_'.$row->{fktable_name}.'_'.$row->{pktable_name};
 
         push @{$local_cols->{$fk}}, $row->{fkcolumn_name};
         push @{$remote_cols->{$fk}}, $row->{pkcolumn_name};
