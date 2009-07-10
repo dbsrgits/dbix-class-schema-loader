@@ -27,6 +27,9 @@ sub new {
 
     # Only MySQL uses this
     $self->{innodb} ||= '';
+
+    # DB2 doesn't support this
+    $self->{null} = 'NULL' unless defined $self->{null};
     
     $self->{verbose} = $ENV{TEST_VERBOSE} || 0;
 
@@ -391,7 +394,11 @@ sub test_schema {
         isa_ok( $rs_rel4->first, $class4);
 
         # find on multi-col pk
-        my $obj5 = $rsobj5->find({id1 => 1, iD2 => 1});
+        my $obj5 = 
+	    eval { $rsobj5->find({id1 => 1, iD2 => 1}) } ||
+	    eval { $rsobj5->find({id1 => 1, id2 => 1}) };
+	die $@ if $@;
+
         is( $obj5->id2, 1, "Find on multi-col PK" );
 
         # mulit-col fk def
@@ -956,7 +963,7 @@ sub create {
           CREATE TABLE loader_test32 (
             id INTEGER NOT NULL PRIMARY KEY,
             rel1 INTEGER NOT NULL,
-            rel2 INTEGER NULL,
+            rel2 INTEGER $self->{null},
             FOREIGN KEY (rel1) REFERENCES loader_test31(id),
             FOREIGN KEY (rel2) REFERENCES loader_test31(id)
           ) $self->{innodb}
@@ -976,7 +983,7 @@ sub create {
           CREATE TABLE loader_test34 (
             id INTEGER NOT NULL PRIMARY KEY,
             rel1 INTEGER NOT NULL,
-            rel2 INTEGER NULL,
+            rel2 INTEGER $self->{null},
             FOREIGN KEY (id,rel1) REFERENCES loader_test33(id1,id2),
             FOREIGN KEY (id,rel2) REFERENCES loader_test33(id1,id2)
           ) $self->{innodb}
@@ -989,7 +996,7 @@ sub create {
             CREATE TABLE loader_test10 (
                 id10 $self->{auto_inc_pk},
                 subject VARCHAR(8),
-                loader_test11 INTEGER NULL
+                loader_test11 INTEGER $self->{null}
             ) $self->{innodb}
         },
         $make_auto_inc->(qw/loader_test10 id10/),
@@ -998,7 +1005,7 @@ sub create {
             CREATE TABLE loader_test11 (
                 id11 $self->{auto_inc_pk},
                 message VARCHAR(8) DEFAULT 'foo',
-                loader_test10 INTEGER NULL,
+                loader_test10 INTEGER $self->{null},
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb}
         },

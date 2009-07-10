@@ -688,16 +688,19 @@ sub _setup_src_meta {
         $self->_dbic_stmt($table_class,'add_columns',@$cols);
     }
     else {
-        for my $col (keys %$col_info) {
-            $col_info->{$col}{accessor} = lc $col
-                if $col ne lc($col);
+        if ($self->_is_case_sensitive) {
+            for my $col (keys %$col_info) {
+                $col_info->{$col}{accessor} = lc $col
+                    if $col ne lc($col);
+            }
+        } else {
+            $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
         }
 
         my $fks = $self->_table_fk_info($table);
 
         for my $fkdef (@$fks) {
             for my $col (@{ $fkdef->{local_columns} }) {
-                $col = lc $col unless $self->_is_case_sensitive;
                 $col_info->{$col}{is_foreign_key} = 1;
             }
         }
