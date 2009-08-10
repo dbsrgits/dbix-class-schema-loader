@@ -21,6 +21,31 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
 
 =head1 SYNOPSIS
 
+  ### use this module to generate a set of class files
+
+  # in a script
+  use DBIx::Class::Schema::Loader qw/ make_schema_at /;
+  make_schema_at(
+      'My::Schema',
+      { debug => 1,
+        dump_directory => './lib',
+      },
+      [ 'dbi:Pg:dbname="foo"', 'myuser', 'mypassword' ],
+  );
+
+  # from the command line or a shell script with dbicdump (distributed
+  # with this module).  Do `perldoc dbicdump` for usage.
+  dbicdump -o dump_directory=./lib \
+           -o debug=1 \
+           My::Schema \
+           'dbi:Pg:dbname=foo' \
+           myuser \
+           mypassword
+
+  ### or generate and load classes at runtime
+  # note: this technique is not recommended
+  # for use in production code
+
   package My::Schema;
   use base qw/DBIx::Class::Schema::Loader/;
 
@@ -29,7 +54,7 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
       # debug                 => 1,
   );
 
-  # in seperate application code ...
+  #### in application code elsewhere:
 
   use My::Schema;
 
@@ -212,7 +237,7 @@ sub clone {
 =back
 
 Calling this as a class method on either L<DBIx::Class::Schema::Loader>
-or any derived schema class will cause all affected schemas to dump
+or any derived schema class will cause all schemas to dump
 manual versions of themselves to the named directory when they are
 loaded.  In order to be effective, this must be set before defining a
 connection on this schema class or any derived object (as the loading
@@ -277,23 +302,23 @@ sub import {
 
 =over 4
 
-=item Arguments: $schema_name, \%loader_options, \@connect_info
+=item Arguments: $schema_class_name, \%loader_options, \@connect_info
 
-=item Return Value: $schema_name
+=item Return Value: $schema_class_name
 
 =back
 
-This simple function allows one to create a Loader-based schema
-in-memory on the fly without any on-disk class files of any
-kind.  When used with the C<dump_directory> option, you can
-use this to generate a rough draft manual schema from a dsn
-without the intermediate step of creating a physical Loader-based
-schema class.
+This function creates a DBIx::Class schema from an existing RDBMS
+schema.  With the C<dump_directory> option, generates a set of
+DBIx::Class classes from an existing database schema read from the
+given dsn.  Without a C<dump_directory>, creates schema classes in
+memory at runtime without generating on-disk class files.
 
-The return value is the input class name.
+For a complete list of supported loader_options, see
+L<DBIx::Class::Schema::Loader::Base>
 
-This function can be exported/imported by the normal means, as
-illustrated in these Examples:
+This function can be imported in the usual way, as illustrated in
+these Examples:
 
     # Simple example, creates as a new class 'New::Schema::Name' in
     #  memory in the running perl interpreter.
@@ -304,11 +329,8 @@ illustrated in these Examples:
         [ 'dbi:Pg:dbname="foo"','postgres' ],
     );
 
-    # Complex: dump loaded schema to disk, all from the commandline:
-    perl -MDBIx::Class::Schema::Loader=make_schema_at,dump_to_dir:./lib -e 'make_schema_at("New::Schema::Name", { debug => 1 }, [ "dbi:Pg:dbname=foo","postgres" ])'
-
-    # Same, but inside a script, and using a different way to specify the
-    # dump directory:
+    # Inside a script, specifying a dump directory in which to write
+    # class files
     use DBIx::Class::Schema::Loader qw/ make_schema_at /;
     make_schema_at(
         'New::Schema::Name',
@@ -348,35 +370,17 @@ Returns a list of the new monikers added.
 
 sub rescan { my $self = shift; $self->_loader->rescan($self) }
 
-=head1 EXAMPLE
-
-Using the example in L<DBIx::Class::Manual::ExampleSchema> as a basis
-replace the DB::Main with the following code:
-
-  package DB::Main;
-
-  use base qw/DBIx::Class::Schema::Loader/;
-
-  __PACKAGE__->loader_options(
-      debug         => 1,
-  );
-  __PACKAGE__->connection('dbi:SQLite:example.db');
-
-  1;
-
-and remove the Main directory tree (optional).  Every thing else
-should work the same
 
 =head1 KNOWN ISSUES
 
 =head2 Multiple Database Schemas
 
 Currently the loader is limited to working within a single schema
-(using the database vendors' definition of "schema").  If you
-have a multi-schema database with inter-schema relationships (which
-is easy to do in PostgreSQL or DB2 for instance), you only get to
-automatically load the tables of one schema, and any relationships
-to tables in other schemas will be silently ignored.
+(using the underlying RDBMS's definition of "schema").  If you have a
+multi-schema database with inter-schema relationships (which is easy
+to do in PostgreSQL or DB2 for instance), you currently can only
+automatically load the tables of one schema, and relationships to
+tables in other schemas will be silently ignored.
 
 At some point in the future, an intelligent way around this might be
 devised, probably by allowing the C<db_schema> option to be an

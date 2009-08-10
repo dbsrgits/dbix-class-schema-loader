@@ -39,6 +39,9 @@ under the same terms as Perl itself.
 use strict;
 use warnings;
 use Getopt::Long;
+
+use Pod::Usage;
+
 use DBIx::Class::Schema::Loader qw/ make_schema_at /;
 require DBIx::Class::Schema::Loader::Base;
 
@@ -47,7 +50,8 @@ my $loader_options;
 GetOptions( 'loader-option|o=s%' => \&handle_option );
 $loader_options->{dump_directory} ||= '.';
 
-my ($schema_class, @loader_connect_info) = @ARGV;
+my ($schema_class, @loader_connect_info) = @ARGV
+    or pod2usage(1);
 
 sub handle_option {
     my ($self, $key, $value) = @_;
