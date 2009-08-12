@@ -28,9 +28,16 @@ my $tester = dbixcsl_common_tests->new(
                     value ENUM('foo', 'bar', 'baz')
                 )
             },
+            qq{
+                CREATE TABLE mysql_loader_test2 (
+                  id INTEGER UNSIGNED NOT NULL PRIMARY KEY,
+                  somedate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  somestr VARCHAR(100) NOT NULL DEFAULT 'foo'
+                )
+            },
         ],
-        drop   => [ qw/ mysql_loader_test1 / ],
-        count  => 3,
+        drop   => [ qw/ mysql_loader_test1 mysql_loader_test2 / ],
+        count  => 5,
         run    => sub {
             my ($schema, $monikers, $classes) = @_;
         
@@ -44,6 +51,14 @@ my $tester = dbixcsl_common_tests->new(
             like($column_info->{data_type}, qr/^enum$/i, 'MySQL ENUM type');
             is_deeply($column_info->{extra}->{list}, [qw/foo bar baz/],
                       'MySQL ENUM values');
+
+            $rs = $schema->resultset($monikers->{mysql_loader_test2});
+            my $column_info = $rs->result_source->column_info('somedate');
+            my $default     = $column_info->{default_value};
+            ok (ref($default) eq 'SCALAR'),
+                'CURRENT_TIMESTAMP default_value is a scalar ref';
+            like $$default, qr/^CURRENT_TIMESTAMP\z/i,
+                'CURRENT_TIMESTAMP default eq "CURRENT_TIMESTAMP"';
         },
     }
 );
