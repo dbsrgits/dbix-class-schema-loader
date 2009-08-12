@@ -9,6 +9,7 @@ test_requires 'DBI'           => '1.56';
 test_requires 'DBD::SQLite'   => '1.12';
 test_requires 'File::Path'    => 0;
 test_requires 'IPC::Open3'    => 0;
+test_requires 'Test::Exception';
 
 requires 'File::Spec'                  => 0;
 requires 'Scalar::Util'                => 0;
