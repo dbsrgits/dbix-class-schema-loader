@@ -22,7 +22,7 @@ requires 'Class::C3'                   => '0.18';
 requires 'Class::C3::Componentised'    => '1.0005';
 requires 'Carp::Clan'                  => 0;
 requires 'Class::Inspector'            => 0;
-requires 'DBIx::Class'                 => '0.07006';
+requires 'DBIx::Class'                 => '0.08109';
 requires 'Class::Unload'               => 0;
 
 install_script 'script/dbicdump';

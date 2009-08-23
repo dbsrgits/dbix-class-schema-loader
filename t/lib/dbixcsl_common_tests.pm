@@ -75,7 +75,8 @@ sub setup_schema {
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
     my %loader_opts = (
-        constraint              => qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+s?$/i,
+        constraint              =>
+	    qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+(?!.*_)/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',

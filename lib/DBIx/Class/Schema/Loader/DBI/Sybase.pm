@@ -46,7 +46,8 @@ sub _rebless {
     my $dbh = $self->schema->storage->dbh;
     my $DBMS_VERSION = @{$dbh->selectrow_arrayref(qq{sp_server_info \@attribute_id=1})}[2];
     if ($DBMS_VERSION =~ /^Microsoft /i) {
-        my $subclass = 'DBIx::Class::Schema::Loader::DBI::MSSQL';
+        $DBMS_VERSION =~ s/\s/_/g;
+        my $subclass = "DBIx::Class::Schema::Loader::DBI::Sybase::$DBMS_VERSION";
         if ($self->load_optional_class($subclass) && !$self->isa($subclass)) {
             bless $self, $subclass;
             $self->_rebless;
