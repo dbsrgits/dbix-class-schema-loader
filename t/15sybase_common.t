@@ -9,11 +9,14 @@ my $user     = $ENV{DBICTEST_SYBASE_USER} || '';
 my $password = $ENV{DBICTEST_SYBASE_PASS} || '';
 
 my $tester = dbixcsl_common_tests->new(
-    vendor      => 'Sybase',
+    vendor      => 'sybase',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
     dsn         => $dsn,
     user        => $user,
     password    => $password,
+# This is necessary because there are too many cursors open for transactions on
+# insert to work.
+    connect_info_opts => { on_connect_call => 'unsafe_insert' }
 );
 
 if( !$dsn || !$user ) {

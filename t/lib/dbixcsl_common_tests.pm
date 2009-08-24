@@ -58,7 +58,12 @@ sub run_tests {
 
     $self->create();
 
-    my @connect_info = ( $self->{dsn}, $self->{user}, $self->{password} );
+    my @connect_info = (
+	$self->{dsn},
+	$self->{user},
+	$self->{password},
+	$self->{connect_info_opts},
+    );
 
     # First, with in-memory classes
     my $schema_class = $self->setup_schema(@connect_info);
