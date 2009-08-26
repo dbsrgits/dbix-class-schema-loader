@@ -269,12 +269,36 @@ sub new {
                                                      TMPDIR  => 1,
                                                      CLEANUP => 1,
                                                    );
-
-    $self->{relbuilder} = DBIx::Class::Schema::Loader::RelBuilder->new(
-        $self->schema, $self->inflect_plural, $self->inflect_singular
-    ) if !$self->{skip_relationships};
-
+    $self->_check_back_compat;
     $self;
+}
+
+sub _check_back_compat {
+    my ($self) = @_;
+
+    my $filename = $self->_get_dump_filename($self->schema_class);
+    return unless -e $filename;
+
+    open(my $fh, '<', $filename)
+        or croak "Cannot open '$filename' for reading: $!";
+
+    while (<$fh>) {
+        if (/^# Created by DBIx::Class::Schema::Loader (v\d+)\.(\d+)/) {
+            my $ver = "${1}_${2}";
+            while (1) {
+                my $compat_class = "DBIx::Class::Schema::Loader::Compat::${ver}";
+                if ($self->load_optional_class($compat_class)) {
+                    no strict 'refs';
+                    my $class = ref $self || $self;
+                    unshift @{"${class}::ISA"}, $compat_class;
+                    last;
+                }
+                $ver =~ s/\d\z// or last;
+            }
+            last;
+        }
+    }
+    close $fh;
 }
 
 sub _find_file_in_inc {
@@ -360,7 +384,7 @@ sub rescan {
     my ($self, $schema) = @_;
 
     $self->{schema} = $schema;
-    $self->{relbuilder}{schema} = $schema;
+    $self->_relbuilder->{schema} = $schema;
 
     my @created;
     my @current = $self->_tables_list;
@@ -373,6 +397,13 @@ sub rescan {
     my $loaded = $self->_load_tables(@created);
 
     return map { $self->monikers->{$_} } @$loaded;
+}
+
+sub _relbuilder {
+    my ($self) = @_;
+    $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new(
+        $self->schema, $self->inflect_plural, $self->inflect_singular
+    );
 }
 
 sub _load_tables {
@@ -760,7 +791,7 @@ sub _load_relationships {
     my $tbl_uniq_info = $self->_table_uniq_info($table);
 
     my $local_moniker = $self->monikers->{$table};
-    my $rel_stmts = $self->{relbuilder}->generate_code($local_moniker, $tbl_fk_info, $tbl_uniq_info);
+    my $rel_stmts = $self->_relbuilder->generate_code($local_moniker, $tbl_fk_info, $tbl_uniq_info);
 
     foreach my $src_class (sort keys %$rel_stmts) {
         my $src_stmts = $rel_stmts->{$src_class};
