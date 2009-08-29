@@ -2,8 +2,6 @@ use strict;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
-# you need maxConnect=256 in your DSN for this test to pass
-
 my $dsn      = $ENV{DBICTEST_SYBASE_DSN} || '';
 my $user     = $ENV{DBICTEST_SYBASE_USER} || '';
 my $password = $ENV{DBICTEST_SYBASE_PASS} || '';
