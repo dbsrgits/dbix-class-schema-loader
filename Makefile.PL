@@ -23,7 +23,7 @@ requires 'Class::C3'                   => '0.18';
 requires 'Class::C3::Componentised'    => '1.0005';
 requires 'Carp::Clan'                  => 0;
 requires 'Class::Inspector'            => 0;
-requires 'DBIx::Class'                 => '0.07006';
+requires 'DBIx::Class'                 => '0.08109';
 requires 'Class::Unload'               => 0;
 
 install_script 'script/dbicdump';
@@ -79,6 +79,30 @@ my $_features = [
         deps  => [
             'DBI'         => '1.56',
             'DBD::Oracle' => '0.19',
+        ],
+    },
+    SYBASE => {
+        label => 'Sybase Support (experimental)',
+        def   => $ENV{DBIC_FEATURE_SYBASE} || 0,
+        deps  => [
+            'DBI'         => '1.56',
+            'DBD::Sybase' => '1.09',
+        ],
+    },
+    MSSQL => {
+        label => 'Microsoft SQL Server Support via DBD::Sybase (experimental)',
+        def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
+        deps  => [
+            'DBI'         => '1.56',
+            'DBD::Sybase' => '1.09',
+        ],
+    },
+    MSSQL_ODBC => {
+        label => 'Microsoft SQL Server Support via DBD::ODBC (experimental)',
+        def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
+        deps  => [
+            'DBI'       => '1.56',
+            'DBD::ODBC' => '1.22',
         ],
     },
 ];

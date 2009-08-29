@@ -672,7 +672,14 @@ sub _setup_src_meta {
     my $table_class = $self->classes->{$table};
     my $table_moniker = $self->monikers->{$table};
 
-    $self->_dbic_stmt($table_class,'table',$table);
+    my $table_name = $table;
+    my $name_sep   = $self->schema->storage->sql_maker->name_sep;
+
+    if ($name_sep && $table_name =~ /\Q$name_sep\E/) {
+        $table_name = \ $self->_quote_table_name($table_name);
+    }
+
+    $self->_dbic_stmt($table_class,'table',$table_name);
 
     my $cols = $self->_table_columns($table);
     my $col_info;
@@ -681,17 +688,26 @@ sub _setup_src_meta {
         $self->_dbic_stmt($table_class,'add_columns',@$cols);
     }
     else {
-        my %col_info_lc = map { lc($_), $col_info->{$_} } keys %$col_info;
+        if ($self->_is_case_sensitive) {
+            for my $col (keys %$col_info) {
+                $col_info->{$col}{accessor} = lc $col
+                    if $col ne lc($col);
+            }
+        } else {
+            $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
+        }
+
         my $fks = $self->_table_fk_info($table);
+
         for my $fkdef (@$fks) {
             for my $col (@{ $fkdef->{local_columns} }) {
-                $col_info_lc{$col}->{is_foreign_key} = 1;
+                $col_info->{$col}{is_foreign_key} = 1;
             }
         }
         $self->_dbic_stmt(
             $table_class,
             'add_columns',
-            map { $_, ($col_info_lc{$_}||{}) } @$cols
+            map { $_, ($col_info->{$_}||{}) } @$cols
         );
     }
 
@@ -814,6 +830,22 @@ sub _ext_stmt {
     my ($self, $class, $stmt) = @_;
     push(@{$self->{_ext_storage}->{$class}}, $stmt);
 }
+
+sub _quote_table_name {
+    my ($self, $table) = @_;
+
+    my $qt = $self->schema->storage->sql_maker->quote_char;
+
+    return $table unless $qt;
+
+    if (ref $qt) {
+        return $qt->[0] . $table . $qt->[1];
+    }
+
+    return $qt . $table . $qt;
+}
+
+sub _is_case_sensitive { 0 }
 
 =head2 monikers
 

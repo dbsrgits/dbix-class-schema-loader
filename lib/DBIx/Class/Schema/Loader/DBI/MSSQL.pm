@@ -2,7 +2,10 @@ package DBIx::Class::Schema::Loader::DBI::MSSQL;
 
 use strict;
 use warnings;
-use base 'DBIx::Class::Schema::Loader::DBI';
+use base qw/
+    DBIx::Class::Schema::Loader::DBI
+    DBIx::Class::Schema::Loader::DBI::Sybase::Common
+/;
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
@@ -31,13 +34,9 @@ sub _setup {
     my $self = shift;
 
     $self->next::method(@_);
-    $self->{db_schema} ||= 'dbo';
+    $self->{db_schema} ||= $self->_build_db_schema;
+    $self->_set_quote_char_and_name_sep;
 }
-
-# DBD::Sybase doesn't implement get_info properly
-#sub _build_quoter  { [qw/[ ]/] }
-sub _build_quoter  { '"' }
-sub _build_namesep { '.' }
 
 sub _table_pk_info {
     my ($self, $table) = @_;
@@ -129,6 +128,10 @@ L<DBIx::Class::Schema::Loader::DBI>
 =head1 AUTHOR
 
 Justin Hunter C<justin.d.hunter@gmail.com>
+
+=head1 CONTRIBUTORS
+
+Rafael Kitover <rkitover@cpan.org>
 
 =cut
 

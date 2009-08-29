@@ -27,6 +27,9 @@ sub new {
 
     # Only MySQL uses this
     $self->{innodb} ||= '';
+
+    # DB2 doesn't support this
+    $self->{null} = 'NULL' unless defined $self->{null};
     
     $self->{verbose} = $ENV{TEST_VERBOSE} || 0;
 
@@ -55,7 +58,12 @@ sub run_tests {
 
     $self->create();
 
-    my @connect_info = ( $self->{dsn}, $self->{user}, $self->{password} );
+    my @connect_info = (
+	$self->{dsn},
+	$self->{user},
+	$self->{password},
+	$self->{connect_info_opts},
+    );
 
     # First, with in-memory classes
     my $schema_class = $self->setup_schema(@connect_info);
@@ -72,7 +80,8 @@ sub setup_schema {
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
     my %loader_opts = (
-        constraint              => qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+s?$/i,
+        constraint              =>
+	    qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+(?!.*_)/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
@@ -391,7 +400,11 @@ sub test_schema {
         isa_ok( $rs_rel4->first, $class4);
 
         # find on multi-col pk
-        my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});
+        my $obj5 = 
+	    eval { $rsobj5->find({id1 => 1, iD2 => 1}) } ||
+	    eval { $rsobj5->find({id1 => 1, id2 => 1}) };
+	die $@ if $@;
+
         is( $obj5->id2, 1, "Find on multi-col PK" );
 
         # mulit-col fk def
@@ -401,7 +414,10 @@ sub test_schema {
 
         ok($class6->column_info('loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
         ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
-        ok($class6->column_info('id2')->{is_foreign_key}, 'Foreign key detected');
+
+	my $id2_info = eval { $class6->column_info('id2') } ||
+			$class6->column_info('Id2');
+        ok($id2_info->{is_foreign_key}, 'Foreign key detected');
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
@@ -754,11 +770,11 @@ sub create {
                 id1 INTEGER NOT NULL,
                 iD2 INTEGER NOT NULL,
                 dat VARCHAR(8),
-                PRIMARY KEY (id1,id2)
+                PRIMARY KEY (id1,iD2)
             ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test5 (id1,id2,dat) VALUES (1,1,'aaa') },
+        q{ INSERT INTO loader_test5 (id1,iD2,dat) VALUES (1,1,'aaa') },
 
         qq{
             CREATE TABLE loader_test6 (
@@ -771,7 +787,7 @@ sub create {
             ) $self->{innodb}
         },
 
-        (q{ INSERT INTO loader_test6 (id, id2,loader_test2_id,dat) } .
+        (q{ INSERT INTO loader_test6 (id, Id2,loader_test2_id,dat) } .
          q{ VALUES (1, 1,1,'aaa') }),
 
         qq{
@@ -953,7 +969,7 @@ sub create {
           CREATE TABLE loader_test32 (
             id INTEGER NOT NULL PRIMARY KEY,
             rel1 INTEGER NOT NULL,
-            rel2 INTEGER,
+            rel2 INTEGER $self->{null},
             FOREIGN KEY (rel1) REFERENCES loader_test31(id),
             FOREIGN KEY (rel2) REFERENCES loader_test31(id)
           ) $self->{innodb}
@@ -973,7 +989,7 @@ sub create {
           CREATE TABLE loader_test34 (
             id INTEGER NOT NULL PRIMARY KEY,
             rel1 INTEGER NOT NULL,
-            rel2 INTEGER,
+            rel2 INTEGER $self->{null},
             FOREIGN KEY (id,rel1) REFERENCES loader_test33(id1,id2),
             FOREIGN KEY (id,rel2) REFERENCES loader_test33(id1,id2)
           ) $self->{innodb}
@@ -986,7 +1002,7 @@ sub create {
             CREATE TABLE loader_test10 (
                 id10 $self->{auto_inc_pk},
                 subject VARCHAR(8),
-                loader_test11 INTEGER
+                loader_test11 INTEGER $self->{null}
             ) $self->{innodb}
         },
         $make_auto_inc->(qw/loader_test10 id10/),
@@ -995,7 +1011,7 @@ sub create {
             CREATE TABLE loader_test11 (
                 id11 $self->{auto_inc_pk},
                 message VARCHAR(8) DEFAULT 'foo',
-                loader_test10 INTEGER,
+                loader_test10 INTEGER $self->{null},
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb}
         },
@@ -1184,8 +1200,10 @@ sub drop_tables {
 
 sub DESTROY {
     my $self = shift;
-    $self->drop_tables if $self->{_created};
-    rmtree $DUMP_DIR;
+    unless ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
+	$self->drop_tables if $self->{_created};
+	rmtree $DUMP_DIR
+    }
 }
 
 1;
