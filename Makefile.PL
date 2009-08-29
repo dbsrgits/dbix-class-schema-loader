@@ -81,6 +81,30 @@ my $_features = [
             'DBD::Oracle' => '0.19',
         ],
     },
+    SYBASE => {
+        label => 'Sybase Support (experimental)',
+        def   => $ENV{DBIC_FEATURE_SYBASE} || 0,
+        deps  => [
+            'DBI'         => '1.56',
+            'DBD::Sybase' => '1.09',
+        ],
+    },
+    MSSQL => {
+        label => 'Microsoft SQL Server Support via DBD::Sybase (experimental)',
+        def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
+        deps  => [
+            'DBI'         => '1.56',
+            'DBD::Sybase' => '1.09',
+        ],
+    },
+    MSSQL_ODBC => {
+        label => 'Microsoft SQL Server Support via DBD::ODBC (experimental)',
+        def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
+        deps  => [
+            'DBI'       => '1.56',
+            'DBD::ODBC' => '1.22',
+        ],
+    },
 ];
 
 for(my $i = 0; $i <= $#$_features - 1; $i += 2) {
