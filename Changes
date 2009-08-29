@@ -1,10 +1,12 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.04999_08 Not Yet Released
+0.04999_08 2009-08-28
         - Replace UNIVERSAL::require with Class::C3::Componentised
         - Add Sybase/MSSQL support through DBD::Sybase
-        - use $dbh->get_info(29/41) for qote_car/name_sep if available(semifor)
+        - use $dbh->get_info(29/41) for qote_car/name_sep if available (semifor)
         - add MSSQL support through DBD::ODBC
+        - support MSSQL table names with a '.' in the name
+        - support MySQL CURRENT_TIMESTAMP()
 
 0.04999_07 2009-04-18
         - Add result_base_class and schema_base_class options (RT #43977)
