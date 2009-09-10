@@ -15,9 +15,6 @@ my $tester = dbixcsl_common_tests->new(
     dsn         => $dsn,
     user        => $user,
     password    => $password,
-# This is necessary because there are too many cursors open for transactions on
-# insert to work.
-    connect_info_opts => { on_connect_call => 'unsafe_insert' }
 );
 
 if( !$dsn || !$user ) {
