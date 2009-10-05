@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Only redump the files when something has actually changed
+
 0.04999_08 2009-08-28
         - Replace UNIVERSAL::require with Class::C3::Componentised
         - Add Sybase/MSSQL support through DBD::Sybase
