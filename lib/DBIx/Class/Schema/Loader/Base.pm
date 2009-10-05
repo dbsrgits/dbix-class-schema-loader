@@ -498,6 +498,8 @@ sub _dump_to_dir {
 
     my $schema_text =
           qq|package $schema_class;\n\n|
+        . qq|# Created by DBIx::Class::Schema::Loader\n|
+        . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
         . qq|use strict;\nuse warnings;\n\n|
         . qq|use base '$schema_base_class';\n\n|;
 
@@ -525,6 +527,8 @@ sub _dump_to_dir {
     foreach my $src_class (@classes) {
         my $src_text = 
               qq|package $src_class;\n\n|
+            . qq|# Created by DBIx::Class::Schema::Loader\n|
+            . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
             . qq|use strict;\nuse warnings;\n\n|
             . qq|use base '$result_base_class';\n\n|;
 
