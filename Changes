@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - patch from Robert Bohne to make _table_uniq_info more correct for
+          Oracle
+
 0.04999_09 2009-10-08
         - Only redump the files when something has actually changed
         - Place a warning at the top of the files saying 'do not modify' to
