@@ -38,6 +38,18 @@ sub _setup {
     $self->_set_quote_char_and_name_sep;
 }
 
+# remove 'IDENTITY' from column data_type
+sub _columns_info_for {
+    my $self   = shift;
+    my $result = $self->next::method(@_);
+
+    for my $col (keys %$result) {
+        $result->{$col}->{data_type} =~ s/\s* identity \s*//ix;
+    }
+
+    return $result;
+}
+
 sub _table_pk_info {
     my ($self, $table) = @_;
     my $dbh = $self->schema->storage->dbh;
