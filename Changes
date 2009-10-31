@@ -1,7 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04999_10  2009-10-31 12:28:53
         - patch from Robert Bohne to make _table_uniq_info more correct for
           Oracle
+        - fix data_type for identity columns with MSSQL
 
 0.04999_09 2009-10-08
         - Only redump the files when something has actually changed
