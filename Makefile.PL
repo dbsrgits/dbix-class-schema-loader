@@ -127,6 +127,11 @@ if(-e 'MANIFEST.SKIP') {
     system("pod2text lib/DBIx/Class/Schema/Loader.pm > README");
 }
 
+resources 'IRC'         => 'irc://irc.perl.org/#dbix-class';
+resources 'license'     => 'http://dev.perl.org/licenses/';
+resources 'repository'  => 'http://dev.catalyst.perl.org/repos/bast/branches/DBIx-Class-Schema-Loader/current/';
+resources 'MailingList' => 'http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/dbix-class';
+
 auto_provides;
 auto_install;
 WriteAll;
