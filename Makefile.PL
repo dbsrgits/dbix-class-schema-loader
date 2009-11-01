@@ -1,5 +1,4 @@
-
-use inc::Module::Install 0.71;
+use inc::Module::Install 0.91;
 
 name           'DBIx-Class-Schema-Loader';
 all_from       'lib/DBIx/Class/Schema/Loader.pm';
@@ -23,7 +22,7 @@ requires 'Class::C3'                   => '0.18';
 requires 'Class::C3::Componentised'    => '1.0005';
 requires 'Carp::Clan'                  => 0;
 requires 'Class::Inspector'            => 0;
-requires 'DBIx::Class'                 => '0.07006';
+requires 'DBIx::Class'                 => '0.08109';
 requires 'Class::Unload'               => 0;
 
 install_script 'script/dbicdump';
@@ -81,6 +80,30 @@ my $_features = [
             'DBD::Oracle' => '0.19',
         ],
     },
+    SYBASE => {
+        label => 'Sybase Support (experimental)',
+        def   => $ENV{DBIC_FEATURE_SYBASE} || 0,
+        deps  => [
+            'DBI'         => '1.56',
+            'DBD::Sybase' => '1.09',
+        ],
+    },
+    MSSQL => {
+        label => 'Microsoft SQL Server Support via DBD::Sybase (experimental)',
+        def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
+        deps  => [
+            'DBI'         => '1.56',
+            'DBD::Sybase' => '1.09',
+        ],
+    },
+    MSSQL_ODBC => {
+        label => 'Microsoft SQL Server Support via DBD::ODBC (experimental)',
+        def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
+        deps  => [
+            'DBI'       => '1.56',
+            'DBD::ODBC' => '1.22',
+        ],
+    },
 ];
 
 for(my $i = 0; $i <= $#$_features - 1; $i += 2) {
@@ -103,6 +126,11 @@ for(my $i = 0; $i <= $#$_features - 1; $i += 2) {
 if(-e 'MANIFEST.SKIP') {
     system("pod2text lib/DBIx/Class/Schema/Loader.pm > README");
 }
+
+resources 'IRC'         => 'irc://irc.perl.org/#dbix-class';
+resources 'license'     => 'http://dev.perl.org/licenses/';
+resources 'repository'  => 'http://dev.catalyst.perl.org/repos/bast/branches/DBIx-Class-Schema-Loader/current/';
+resources 'MailingList' => 'http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/dbix-class';
 
 auto_provides;
 auto_install;

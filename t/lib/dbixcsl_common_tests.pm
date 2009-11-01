@@ -27,6 +27,9 @@ sub new {
 
     # Only MySQL uses this
     $self->{innodb} ||= '';
+
+    # DB2 doesn't support this
+    $self->{null} = 'NULL' unless defined $self->{null};
     
     $self->{verbose} = $ENV{TEST_VERBOSE} || 0;
 
@@ -55,7 +58,12 @@ sub run_tests {
 
     $self->create();
 
-    my @connect_info = ( $self->{dsn}, $self->{user}, $self->{password} );
+    my @connect_info = (
+	$self->{dsn},
+	$self->{user},
+	$self->{password},
+	$self->{connect_info_opts},
+    );
 
     # First, with in-memory classes
     my $schema_class = $self->setup_schema(@connect_info);
@@ -72,7 +80,8 @@ sub setup_schema {
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
     my %loader_opts = (
-        constraint              => qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+s?$/i,
+        constraint              =>
+	    qr/^(?:\S+\.)?(?:$self->{vendor}_)?loader_test[0-9]+(?!.*_)/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
@@ -391,7 +400,11 @@ sub test_schema {
         isa_ok( $rs_rel4->first, $class4);
 
         # find on multi-col pk
-        my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});
+        my $obj5 = 
+	    eval { $rsobj5->find({id1 => 1, iD2 => 1}) } ||
+	    eval { $rsobj5->find({id1 => 1, id2 => 1}) };
+	die $@ if $@;
+
         is( $obj5->id2, 1, "Find on multi-col PK" );
 
         # mulit-col fk def
@@ -401,7 +414,10 @@ sub test_schema {
 
         ok($class6->column_info('loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
         ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
-        ok($class6->column_info('id2')->{is_foreign_key}, 'Foreign key detected');
+
+	my $id2_info = eval { $class6->column_info('id2') } ||
+			$class6->column_info('Id2');
+        ok($id2_info->{is_foreign_key}, 'Foreign key detected');
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
@@ -512,52 +528,46 @@ sub test_schema {
         }
 
         # from Chisel's tests...
+        my $moniker10 = $monikers->{loader_test10};
+        my $class10   = $classes->{loader_test10};
+        my $rsobj10   = $conn->resultset($moniker10);
+
+        my $moniker11 = $monikers->{loader_test11};
+        my $class11   = $classes->{loader_test11};
+        my $rsobj11   = $conn->resultset($moniker11);
+
+        isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
+        isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
+
+        ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
+        ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
+
+        my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
+
+        $obj10->update();
+        ok( defined $obj10, 'Create row' );
+
+        my $obj11 = $rsobj11->create({ loader_test10 => $obj10->id() });
+        $obj11->update();
+        ok( defined $obj11, 'Create related row' );
+
+        eval {
+            my $obj10_2 = $obj11->loader_test10;
+            $obj10_2->loader_test11( $obj11->id11() );
+            $obj10_2->update();
+        };
+        ok(!$@, "Setting up circular relationship");
+
         SKIP: {
-            if($self->{vendor} =~ /sqlite/i) {
-                skip 'SQLite cannot do the advanced tests', 10;
-            }
+            skip 'Previous eval block failed', 3 if $@;
+    
+            my $results = $rsobj10->search({ subject => 'xyzzy' });
+            is( $results->count(), 1, 'No duplicate row created' );
 
-            my $moniker10 = $monikers->{loader_test10};
-            my $class10   = $classes->{loader_test10};
-            my $rsobj10   = $conn->resultset($moniker10);
-
-            my $moniker11 = $monikers->{loader_test11};
-            my $class11   = $classes->{loader_test11};
-            my $rsobj11   = $conn->resultset($moniker11);
-
-            isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
-            isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
-
-            ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
-            ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
-
-            my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
-
-            $obj10->update();
-            ok( defined $obj10, 'Create row' );
-
-            my $obj11 = $rsobj11->create({ loader_test10 => $obj10->id() });
-            $obj11->update();
-            ok( defined $obj11, 'Create related row' );
-
-            eval {
-                my $obj10_2 = $obj11->loader_test10;
-                $obj10_2->loader_test11( $obj11->id11() );
-                $obj10_2->update();
-            };
-            ok(!$@, "Setting up circular relationship");
-
-            SKIP: {
-                skip 'Previous eval block failed', 3 if $@;
-        
-                my $results = $rsobj10->search({ subject => 'xyzzy' });
-                is( $results->count(), 1, 'No duplicate row created' );
-
-                my $obj10_3 = $results->first();
-                isa_ok( $obj10_3, $class10 );
-                is( $obj10_3->loader_test11()->id(), $obj11->id(),
-                    'Circular rel leads back to same row' );
-            }
+            my $obj10_3 = $results->first();
+            isa_ok( $obj10_3, $class10 );
+            is( $obj10_3->loader_test11()->id(), $obj11->id(),
+                'Circular rel leads back to same row' );
         }
 
         SKIP: {
@@ -754,11 +764,11 @@ sub create {
                 id1 INTEGER NOT NULL,
                 iD2 INTEGER NOT NULL,
                 dat VARCHAR(8),
-                PRIMARY KEY (id1,id2)
+                PRIMARY KEY (id1,iD2)
             ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test5 (id1,id2,dat) VALUES (1,1,'aaa') },
+        q{ INSERT INTO loader_test5 (id1,iD2,dat) VALUES (1,1,'aaa') },
 
         qq{
             CREATE TABLE loader_test6 (
@@ -771,7 +781,7 @@ sub create {
             ) $self->{innodb}
         },
 
-        (q{ INSERT INTO loader_test6 (id, id2,loader_test2_id,dat) } .
+        (q{ INSERT INTO loader_test6 (id, Id2,loader_test2_id,dat) } .
          q{ VALUES (1, 1,1,'aaa') }),
 
         qq{
@@ -953,7 +963,7 @@ sub create {
           CREATE TABLE loader_test32 (
             id INTEGER NOT NULL PRIMARY KEY,
             rel1 INTEGER NOT NULL,
-            rel2 INTEGER,
+            rel2 INTEGER $self->{null},
             FOREIGN KEY (rel1) REFERENCES loader_test31(id),
             FOREIGN KEY (rel2) REFERENCES loader_test31(id)
           ) $self->{innodb}
@@ -973,7 +983,7 @@ sub create {
           CREATE TABLE loader_test34 (
             id INTEGER NOT NULL PRIMARY KEY,
             rel1 INTEGER NOT NULL,
-            rel2 INTEGER,
+            rel2 INTEGER $self->{null},
             FOREIGN KEY (id,rel1) REFERENCES loader_test33(id1,id2),
             FOREIGN KEY (id,rel2) REFERENCES loader_test33(id1,id2)
           ) $self->{innodb}
@@ -986,7 +996,7 @@ sub create {
             CREATE TABLE loader_test10 (
                 id10 $self->{auto_inc_pk},
                 subject VARCHAR(8),
-                loader_test11 INTEGER
+                loader_test11 INTEGER $self->{null}
             ) $self->{innodb}
         },
         $make_auto_inc->(qw/loader_test10 id10/),
@@ -995,7 +1005,7 @@ sub create {
             CREATE TABLE loader_test11 (
                 id11 $self->{auto_inc_pk},
                 message VARCHAR(8) DEFAULT 'foo',
-                loader_test10 INTEGER,
+                loader_test10 INTEGER $self->{null},
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb}
         },
@@ -1004,6 +1014,29 @@ sub create {
         (q{ ALTER TABLE loader_test10 ADD CONSTRAINT } .
          q{ loader_test11_fk FOREIGN KEY (loader_test11) } .
          q{ REFERENCES loader_test11 (id11) }),
+    );
+
+    my @statements_advanced_sqlite = (
+        qq{
+            CREATE TABLE loader_test10 (
+                id10 $self->{auto_inc_pk},
+                subject VARCHAR(8)
+            ) $self->{innodb}
+        },
+        $make_auto_inc->(qw/loader_test10 id10/),
+
+        qq{
+            CREATE TABLE loader_test11 (
+                id11 $self->{auto_inc_pk},
+                message VARCHAR(8) DEFAULT 'foo',
+                loader_test10 INTEGER $self->{null},
+                FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
+            ) $self->{innodb}
+        },
+        $make_auto_inc->(qw/loader_test11 id11/),
+
+        (q{ ALTER TABLE loader_test10 ADD COLUMN } .
+         q{ loader_test11 INTEGER REFERENCES loader_test11 (id11) }),
     );
 
     my @statements_inline_rels = (
@@ -1067,7 +1100,10 @@ sub create {
         # to test one for mysql, which works on everyone else...
         # this all needs to be refactored anyways.
         $dbh->do($_) for (@statements_reltests);
-        unless($self->{vendor} =~ /sqlite/i) {
+        if($self->{vendor} =~ /sqlite/i) {
+            $dbh->do($_) for (@statements_advanced_sqlite);
+        }
+        else {
             $dbh->do($_) for (@statements_advanced);
         }
         unless($self->{no_inline_rels}) {
@@ -1159,16 +1195,15 @@ sub drop_tables {
 
     unless($self->{skip_rels}) {
         $dbh->do("DROP TABLE $_") for (@tables_reltests);
-        unless($self->{vendor} =~ /sqlite/i) {
-            if($self->{vendor} =~ /mysql/i) {
-                $dbh->do($drop_fk_mysql);
-            }
-            else {
-                $dbh->do($drop_fk);
-            }
-            $dbh->do("DROP TABLE $_") for (@tables_advanced);
-            $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
+        if($self->{vendor} =~ /mysql/i) {
+            $dbh->do($drop_fk_mysql);
         }
+        else {
+            $dbh->do($drop_fk);
+        }
+        $dbh->do("DROP TABLE $_") for (@tables_advanced);
+        $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
+
         unless($self->{no_inline_rels}) {
             $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
         }
@@ -1184,8 +1219,10 @@ sub drop_tables {
 
 sub DESTROY {
     my $self = shift;
-    $self->drop_tables if $self->{_created};
-    rmtree $DUMP_DIR;
+    unless ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
+	$self->drop_tables if $self->{_created};
+	rmtree $DUMP_DIR
+    }
 }
 
 1;

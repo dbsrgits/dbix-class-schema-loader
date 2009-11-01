@@ -53,10 +53,10 @@ my $tester = dbixcsl_common_tests->new(
                       'MySQL ENUM values');
 
             $rs = $schema->resultset($monikers->{mysql_loader_test2});
-            my $column_info = $rs->result_source->column_info('somedate');
-            my $default     = $column_info->{default_value};
-            ok (ref($default) eq 'SCALAR'),
-                'CURRENT_TIMESTAMP default_value is a scalar ref';
+            $column_info = $rs->result_source->column_info('somedate');
+            my $default  = $column_info->{default_value};
+            ok ((ref($default) eq 'SCALAR'),
+                'CURRENT_TIMESTAMP default_value is a scalar ref');
             like $$default, qr/^CURRENT_TIMESTAMP\z/i,
                 'CURRENT_TIMESTAMP default eq "CURRENT_TIMESTAMP"';
         },

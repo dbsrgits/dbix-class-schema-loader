@@ -6,7 +6,7 @@ use base 'DBIx::Class::Schema::Loader::DBI';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-our $VERSION = '0.04999_07';
+our $VERSION = '0.04999_10';
 
 =head1 NAME
 
@@ -80,12 +80,12 @@ sub _table_uniq_info {
         q{
             SELECT constraint_name, acc.column_name
             FROM all_constraints JOIN all_cons_columns acc USING (constraint_name)
-            WHERE acc.table_name=? AND constraint_type='U'
+            WHERE acc.table_name=? and acc.owner = ? AND constraint_type='U'
             ORDER BY acc.position
         },
         {}, 1);
 
-    $sth->execute(uc $table);
+    $sth->execute(uc $table,$self->{db_schema} );
     my %constr_names;
     while(my $constr = $sth->fetchrow_arrayref) {
         my $constr_name = lc $constr->[0];

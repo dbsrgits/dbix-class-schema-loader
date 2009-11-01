@@ -2,13 +2,15 @@ use strict;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
+# You need the sybase branch of DBIx::Class, from:
+# http://dev.catalyst.perl.org/repos/bast/DBIx-Class/0.08/branches/sybase
+
 my $dsn      = $ENV{DBICTEST_SYBASE_DSN} || '';
 my $user     = $ENV{DBICTEST_SYBASE_USER} || '';
 my $password = $ENV{DBICTEST_SYBASE_PASS} || '';
 
 my $tester = dbixcsl_common_tests->new(
-    vendor      => 'Sybase',
-    quote_char  => [qw/[ ]/],
+    vendor      => 'sybase',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
     dsn         => $dsn,
     user        => $user,

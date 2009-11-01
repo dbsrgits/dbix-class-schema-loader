@@ -16,7 +16,7 @@ use File::Temp qw//;
 use Class::Unload;
 require DBIx::Class;
 
-our $VERSION = '0.04999_07';
+our $VERSION = '0.04999_10';
 
 __PACKAGE__->mk_ro_accessors(qw/
                                 schema
@@ -265,11 +265,19 @@ sub new {
             if $self->{dump_overwrite};
 
     $self->{dynamic} = ! $self->{dump_directory};
-    $self->{dump_directory} ||= File::Temp::tempdir( 'dbicXXXX',
+    $self->{temp_directory} ||= File::Temp::tempdir( 'dbicXXXX',
                                                      TMPDIR  => 1,
                                                      CLEANUP => 1,
                                                    );
+
+    $self->{dump_directory} ||= $self->{temp_directory};
+
+    $self->{relbuilder} = DBIx::Class::Schema::Loader::RelBuilder->new(
+        $self->schema, $self->inflect_plural, $self->inflect_singular
+    ) if !$self->{skip_relationships};
+
     $self->_check_back_compat;
+
     $self;
 }
 
@@ -429,9 +437,13 @@ sub _load_tables {
     if(!$self->skip_relationships) {
         # The relationship loader needs a working schema
         $self->{quiet} = 1;
+        local $self->{dump_directory} = $self->{temp_directory};
         $self->_reload_classes(@tables);
         $self->_load_relationships($_) for @tables;
         $self->{quiet} = 0;
+
+        # Remove that temp dir from INC so it doesn't get reloaded
+        @INC = grep { $_ ne $self->{dump_directory} } @INC;
     }
 
     $self->_load_external($_)
@@ -523,6 +535,8 @@ sub _dump_to_dir {
 
     my $schema_text =
           qq|package $schema_class;\n\n|
+        . qq|# Created by DBIx::Class::Schema::Loader\n|
+        . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
         . qq|use strict;\nuse warnings;\n\n|
         . qq|use base '$schema_base_class';\n\n|;
 
@@ -550,6 +564,8 @@ sub _dump_to_dir {
     foreach my $src_class (@classes) {
         my $src_text = 
               qq|package $src_class;\n\n|
+            . qq|# Created by DBIx::Class::Schema::Loader\n|
+            . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
             . qq|use strict;\nuse warnings;\n\n|
             . qq|use base '$result_base_class';\n\n|;
 
@@ -558,6 +574,14 @@ sub _dump_to_dir {
 
     warn "Schema dump completed.\n" unless $self->{dynamic} or $self->{quiet};
 
+}
+
+sub _sig_comment {
+    my ($self, $version, $ts) = @_;
+    return qq|\n\n# Created by DBIx::Class::Schema::Loader|
+         . qq| v| . $version
+         . q| @ | . $ts 
+         . qq|\n# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:|;
 }
 
 sub _write_classfile {
@@ -572,18 +596,27 @@ sub _write_classfile {
         unlink($filename);
     }    
 
-    my $custom_content = $self->_get_custom_content($class, $filename);
-    $custom_content ||= qq|\n\n# You can replace this text with custom|
-        . qq| content, and it will be preserved on regeneration|
-        . qq|\n1;\n|;
+    my ($custom_content, $old_md5, $old_ver, $old_ts) = $self->_get_custom_content($class, $filename);
 
     $text .= qq|$_\n|
         for @{$self->{_dump_storage}->{$class} || []};
 
-    $text .= qq|\n\n# Created by DBIx::Class::Schema::Loader|
-        . qq| v| . $DBIx::Class::Schema::Loader::VERSION
-        . q| @ | . POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
-        . qq|\n# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:|;
+    # Check and see if the dump is infact differnt
+
+    my $compare_to;
+    if ($old_md5) {
+      $compare_to = $text . $self->_sig_comment($old_ver, $old_ts);
+      
+
+      if (Digest::MD5::md5_base64($compare_to) eq $old_md5) {
+        return;
+      }
+    }
+
+    $text .= $self->_sig_comment(
+      $DBIx::Class::Schema::Loader::VERSION, 
+      POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
+    );
 
     open(my $fh, '>', $filename)
         or croak "Cannot open '$filename' for writing: $!";
@@ -602,24 +635,36 @@ sub _write_classfile {
         or croak "Error closing '$filename': $!";
 }
 
+sub _default_custom_content {
+    return qq|\n\n# You can replace this text with custom|
+         . qq| content, and it will be preserved on regeneration|
+         . qq|\n1;\n|;
+}
+
 sub _get_custom_content {
     my ($self, $class, $filename) = @_;
 
-    return if ! -f $filename;
+    return ($self->_default_custom_content) if ! -f $filename;
+
     open(my $fh, '<', $filename)
         or croak "Cannot open '$filename' for reading: $!";
 
     my $mark_re = 
         qr{^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\n};
 
-    my $found = 0;
     my $buffer = '';
+    my ($md5, $ts, $ver);
     while(<$fh>) {
-        if(!$found && /$mark_re/) {
-            $found = 1;
-            $buffer .= $1;
+        if(!$md5 && /$mark_re/) {
+            $md5 = $2;
+            my $line = $1;
+
+            # Pull out the previous version and timestamp
+            ($ver, $ts) = $buffer =~ m/# Created by DBIx::Class::Schema::Loader v(.*?) @ (.*?)$/s;
+
+            $buffer .= $line;
             croak "Checksum mismatch in '$filename'"
-                if Digest::MD5::md5_base64($buffer) ne $2;
+                if Digest::MD5::md5_base64($buffer) ne $md5;
 
             $buffer = '';
         }
@@ -630,9 +675,12 @@ sub _get_custom_content {
 
     croak "Cannot not overwrite '$filename' without 'really_erase_my_files',"
         . " it does not appear to have been generated by Loader"
-            if !$found;
+            if !$md5;
 
-    return $buffer;
+    # Default custom content:
+    $buffer ||= $self->_default_custom_content;
+
+    return ($buffer, $md5, $ver, $ts);
 }
 
 sub _use {
@@ -703,7 +751,14 @@ sub _setup_src_meta {
     my $table_class = $self->classes->{$table};
     my $table_moniker = $self->monikers->{$table};
 
-    $self->_dbic_stmt($table_class,'table',$table);
+    my $table_name = $table;
+    my $name_sep   = $self->schema->storage->sql_maker->name_sep;
+
+    if ($name_sep && $table_name =~ /\Q$name_sep\E/) {
+        $table_name = \ $self->_quote_table_name($table_name);
+    }
+
+    $self->_dbic_stmt($table_class,'table',$table_name);
 
     my $cols = $self->_table_columns($table);
     my $col_info;
@@ -712,17 +767,26 @@ sub _setup_src_meta {
         $self->_dbic_stmt($table_class,'add_columns',@$cols);
     }
     else {
-        my %col_info_lc = map { lc($_), $col_info->{$_} } keys %$col_info;
+        if ($self->_is_case_sensitive) {
+            for my $col (keys %$col_info) {
+                $col_info->{$col}{accessor} = lc $col
+                    if $col ne lc($col);
+            }
+        } else {
+            $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
+        }
+
         my $fks = $self->_table_fk_info($table);
+
         for my $fkdef (@$fks) {
             for my $col (@{ $fkdef->{local_columns} }) {
-                $col_info_lc{$col}->{is_foreign_key} = 1;
+                $col_info->{$col}{is_foreign_key} = 1;
             }
         }
         $self->_dbic_stmt(
             $table_class,
             'add_columns',
-            map { $_, ($col_info_lc{$_}||{}) } @$cols
+            map { $_, ($col_info->{$_}||{}) } @$cols
         );
     }
 
@@ -845,6 +909,22 @@ sub _ext_stmt {
     my ($self, $class, $stmt) = @_;
     push(@{$self->{_ext_storage}->{$class}}, $stmt);
 }
+
+sub _quote_table_name {
+    my ($self, $table) = @_;
+
+    my $qt = $self->schema->storage->sql_maker->quote_char;
+
+    return $table unless $qt;
+
+    if (ref $qt) {
+        return $qt->[0] . $table . $qt->[1];
+    }
+
+    return $qt . $table . $qt;
+}
+
+sub _is_case_sensitive { 0 }
 
 =head2 monikers
 

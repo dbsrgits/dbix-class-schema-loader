@@ -12,6 +12,7 @@ my $tester = dbixcsl_common_tests->new(
     dsn            => $dsn,
     user           => $user,
     password       => $password,
+    null           => '',
 );
 
 if( !$dsn || !$user ) {
