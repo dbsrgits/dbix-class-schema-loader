@@ -528,52 +528,46 @@ sub test_schema {
         }
 
         # from Chisel's tests...
+        my $moniker10 = $monikers->{loader_test10};
+        my $class10   = $classes->{loader_test10};
+        my $rsobj10   = $conn->resultset($moniker10);
+
+        my $moniker11 = $monikers->{loader_test11};
+        my $class11   = $classes->{loader_test11};
+        my $rsobj11   = $conn->resultset($moniker11);
+
+        isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
+        isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
+
+        ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
+        ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
+
+        my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
+
+        $obj10->update();
+        ok( defined $obj10, 'Create row' );
+
+        my $obj11 = $rsobj11->create({ loader_test10 => $obj10->id() });
+        $obj11->update();
+        ok( defined $obj11, 'Create related row' );
+
+        eval {
+            my $obj10_2 = $obj11->loader_test10;
+            $obj10_2->loader_test11( $obj11->id11() );
+            $obj10_2->update();
+        };
+        ok(!$@, "Setting up circular relationship");
+
         SKIP: {
-            if($self->{vendor} =~ /sqlite/i) {
-                skip 'SQLite cannot do the advanced tests', 10;
-            }
+            skip 'Previous eval block failed', 3 if $@;
+    
+            my $results = $rsobj10->search({ subject => 'xyzzy' });
+            is( $results->count(), 1, 'No duplicate row created' );
 
-            my $moniker10 = $monikers->{loader_test10};
-            my $class10   = $classes->{loader_test10};
-            my $rsobj10   = $conn->resultset($moniker10);
-
-            my $moniker11 = $monikers->{loader_test11};
-            my $class11   = $classes->{loader_test11};
-            my $rsobj11   = $conn->resultset($moniker11);
-
-            isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
-            isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
-
-            ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
-            ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
-
-            my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
-
-            $obj10->update();
-            ok( defined $obj10, 'Create row' );
-
-            my $obj11 = $rsobj11->create({ loader_test10 => $obj10->id() });
-            $obj11->update();
-            ok( defined $obj11, 'Create related row' );
-
-            eval {
-                my $obj10_2 = $obj11->loader_test10;
-                $obj10_2->loader_test11( $obj11->id11() );
-                $obj10_2->update();
-            };
-            ok(!$@, "Setting up circular relationship");
-
-            SKIP: {
-                skip 'Previous eval block failed', 3 if $@;
-        
-                my $results = $rsobj10->search({ subject => 'xyzzy' });
-                is( $results->count(), 1, 'No duplicate row created' );
-
-                my $obj10_3 = $results->first();
-                isa_ok( $obj10_3, $class10 );
-                is( $obj10_3->loader_test11()->id(), $obj11->id(),
-                    'Circular rel leads back to same row' );
-            }
+            my $obj10_3 = $results->first();
+            isa_ok( $obj10_3, $class10 );
+            is( $obj10_3->loader_test11()->id(), $obj11->id(),
+                'Circular rel leads back to same row' );
         }
 
         SKIP: {
@@ -1022,6 +1016,29 @@ sub create {
          q{ REFERENCES loader_test11 (id11) }),
     );
 
+    my @statements_advanced_sqlite = (
+        qq{
+            CREATE TABLE loader_test10 (
+                id10 $self->{auto_inc_pk},
+                subject VARCHAR(8)
+            ) $self->{innodb}
+        },
+        $make_auto_inc->(qw/loader_test10 id10/),
+
+        qq{
+            CREATE TABLE loader_test11 (
+                id11 $self->{auto_inc_pk},
+                message VARCHAR(8) DEFAULT 'foo',
+                loader_test10 INTEGER $self->{null},
+                FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
+            ) $self->{innodb}
+        },
+        $make_auto_inc->(qw/loader_test11 id11/),
+
+        (q{ ALTER TABLE loader_test10 ADD COLUMN } .
+         q{ loader_test11 INTEGER REFERENCES loader_test11 (id11) }),
+    );
+
     my @statements_inline_rels = (
         qq{
             CREATE TABLE loader_test12 (
@@ -1083,7 +1100,10 @@ sub create {
         # to test one for mysql, which works on everyone else...
         # this all needs to be refactored anyways.
         $dbh->do($_) for (@statements_reltests);
-        unless($self->{vendor} =~ /sqlite/i) {
+        if($self->{vendor} =~ /sqlite/i) {
+            $dbh->do($_) for (@statements_advanced_sqlite);
+        }
+        else {
             $dbh->do($_) for (@statements_advanced);
         }
         unless($self->{no_inline_rels}) {
@@ -1175,16 +1195,15 @@ sub drop_tables {
 
     unless($self->{skip_rels}) {
         $dbh->do("DROP TABLE $_") for (@tables_reltests);
-        unless($self->{vendor} =~ /sqlite/i) {
-            if($self->{vendor} =~ /mysql/i) {
-                $dbh->do($drop_fk_mysql);
-            }
-            else {
-                $dbh->do($drop_fk);
-            }
-            $dbh->do("DROP TABLE $_") for (@tables_advanced);
-            $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
+        if($self->{vendor} =~ /mysql/i) {
+            $dbh->do($drop_fk_mysql);
         }
+        else {
+            $dbh->do($drop_fk);
+        }
+        $dbh->do("DROP TABLE $_") for (@tables_advanced);
+        $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
+
         unless($self->{no_inline_rels}) {
             $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
         }
