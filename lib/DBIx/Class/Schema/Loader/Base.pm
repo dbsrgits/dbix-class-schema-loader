@@ -272,10 +272,6 @@ sub new {
 
     $self->{dump_directory} ||= $self->{temp_directory};
 
-    $self->{relbuilder} = DBIx::Class::Schema::Loader::RelBuilder->new(
-        $self->schema, $self->inflect_plural, $self->inflect_singular
-    ) if !$self->{skip_relationships};
-
     $self->_check_back_compat;
 
     $self;
@@ -409,6 +405,9 @@ sub rescan {
 
 sub _relbuilder {
     my ($self) = @_;
+
+    return if $self->{skip_relationships};
+
     $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new(
         $self->schema, $self->inflect_plural, $self->inflect_singular
     );
