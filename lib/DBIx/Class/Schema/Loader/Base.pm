@@ -33,6 +33,7 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 moniker_map
                                 inflect_singular
                                 inflect_plural
+                                naming
                                 debug
                                 dump_directory
                                 dump_overwrite
@@ -72,6 +73,55 @@ L<DBIx::Class::Schema::Loader/loader_options>.  Available constructor options ar
 
 Skip setting up relationships.  The default is to attempt the loading
 of relationships.
+
+=head2 naming
+
+Static schemas (ones dumped to disk) will, by default, use the new-style 0.05XXX
+relationship names and singularized Results, unless you're overwriting an
+existing dump made by a 0.04XXX version of L<DBIx::Class::Schema::Loader>, in
+which case the backward compatible RelBuilder will be activated, and
+singularization will be turned off.
+
+Specifying
+
+    naming => 'v5'
+
+will disable the backward-compatible RelBuilder and use
+the new-style relationship names along with singularized Results, even when
+overwriting a dump made with an earlier version.
+
+The option also takes a hashref:
+
+    naming => { relationships => 'v5', results => 'v4' }
+
+The values can be:
+
+=over 4
+
+=item current
+
+Latest default style, whatever that happens to be.
+
+=item v5
+
+Version 0.05XXX style.
+
+=item v4
+
+Version 0.04XXX style.
+
+=back
+
+Dynamic schemas will always default to the 0.04XXX relationship names and won't
+singularize Results for backward compatibility, to activate the new RelBuilder
+and singularization put this in your C<Schema.pm> file:
+
+    __PACKAGE__->naming('current');
+
+Or if you prefer to use 0.05XXX features but insure that nothing breaks in the
+next major version upgrade:
+
+    __PACKAGE__->naming('v5');
 
 =head2 debug
 
