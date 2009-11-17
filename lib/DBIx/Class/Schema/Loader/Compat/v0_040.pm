@@ -14,9 +14,10 @@ sub _default_table2moniker {
 
 sub _relbuilder {
 	my ($self) = @_;
-    $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::v04Compat->new(
-        $self->schema, $self->inflect_plural, $self->inflect_singular
-    );
+    $self->{relbuilder} ||=
+      DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040->new(
+          $self->schema, $self->inflect_plural, $self->inflect_singular
+      );
 }
 
 1;
