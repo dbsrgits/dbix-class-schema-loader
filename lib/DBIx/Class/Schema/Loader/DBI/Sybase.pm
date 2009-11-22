@@ -59,7 +59,7 @@ sub _table_columns {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my $columns = $dbh->selectcol_arrayref(qq{SELECT name FROM syscolumns WHERE id = (SELECT id FROM sysobjects WHERE name = '$table' AND type = 'U')});
+    my $columns = $dbh->selectcol_arrayref(qq{SELECT name FROM syscolumns WHERE id = (SELECT id FROM sysobjects WHERE name = @{[ $dbh->quote($table) ]} AND type = 'U')});
 
     return $columns;
 }
@@ -68,7 +68,7 @@ sub _table_pk_info {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{sp_pkeys '$table'});
+    my $sth = $dbh->prepare(qq{sp_pkeys @{[ $dbh->quote($table) ]}});
     $sth->execute;
 
     my @keydata;
@@ -89,7 +89,7 @@ sub _table_fk_info {
     local $dbh->{FetchHashKeyName} = 'NAME_lc';
     # hide "Object does not exist in this database." when trying to fetch fkeys
     local $dbh->{syb_err_handler} = sub { return $_[0] == 17461 ? 0 : 1 }; 
-    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = '$table'});
+    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = @{[ $dbh->quote($table) ]}});
     $sth->execute;
     my $row = $sth->fetchrow_hashref;
 
@@ -112,7 +112,7 @@ sub _table_fk_info_by_name {
     local $dbh->{FetchHashKeyName} = 'NAME_lc';
     # hide "Object does not exist in this database." when trying to fetch fkeys
     local $dbh->{syb_err_handler} = sub { return $_[0] == 17461 ? 0 : 1 }; 
-    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = '$table'});
+    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = @{[ $dbh->quote($table) ]}});
     $sth->execute;
 
     while (my $row = $sth->fetchrow_hashref) {
@@ -142,7 +142,7 @@ sub _table_fk_info_builder {
     local $dbh->{FetchHashKeyName} = 'NAME_lc';
     # hide "Object does not exist in this database." when trying to fetch fkeys
     local $dbh->{syb_err_handler} = sub { return 0 if $_[0] == 17461; }; 
-    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = '$table'});
+    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = @{[ $dbh->quote($table) ]}});
     $sth->execute;
 
     my @fk_info;
@@ -199,7 +199,7 @@ sub _table_uniq_info {
 
     my $dbh = $self->schema->storage->dbh;
     local $dbh->{FetchHashKeyName} = 'NAME_lc';
-    my $sth = $dbh->prepare(qq{sp_helpconstraint \@objname='$table', \@nomsg='nomsg'});
+    my $sth = $dbh->prepare(qq{sp_helpconstraint \@objname=@{[ $dbh->quote($table) ]}, \@nomsg='nomsg'});
     eval { $sth->execute };
     return if $@;
 
@@ -234,7 +234,7 @@ sub _extra_column_info {
     my ($table, $column) = @$info{qw/TABLE_NAME COLUMN_NAME/};
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{SELECT name FROM syscolumns WHERE id = (SELECT id FROM sysobjects WHERE name = '$table') AND (status & 0x80) = 0x80 AND name = '$column'});
+    my $sth = $dbh->prepare(qq{SELECT name FROM syscolumns WHERE id = (SELECT id FROM sysobjects WHERE name = @{[ $dbh->quote($table) ]}) AND (status & 0x80) = 0x80 AND name = @{[ $dbh->quote($column) ]}});
     $sth->execute();
 
     if ($sth->fetchrow_array) {
