@@ -153,9 +153,12 @@ L<DBIx::Class::Schema::Loader::DBI>
 
 =head1 AUTHOR
 
-TSUNODA Kazuya C<drk@drk7.jp>
+See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
 
-Dagfinn Ilmari Mannsåker C<ilmari@ilmari.org>
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 

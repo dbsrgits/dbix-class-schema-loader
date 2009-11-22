@@ -251,11 +251,12 @@ L<DBIx::Class::Schema::Loader::DBI>
 
 =head1 AUTHOR
 
-Justin Hunter C<justin.d.hunter@gmail.com>
+See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
 
-=head1 CONTRIBUTORS
+=head1 LICENSE
 
-Rafael Kitover <rkitover@cpan.org>
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 

@@ -5,8 +5,6 @@ our $VERSION = '0.04999_10';
 
 # Empty. POD only.
 
-1;
-
 =head1 NAME                                                                     
                                                                                 
 DBIx::Class::Schema::Loader::DBI::Writing - Loader subclass writing guide for DBI
@@ -54,6 +52,15 @@ override one or more of the other methods.  The other methods one might
 likely want to override are: C<_table_pk_info>, C<_table_fk_info>,
 C<_tables_list> and C<_extra_column_info>.  See the included DBD drivers
 for examples of these.
+
+=head1 AUTHOR
+
+See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 
