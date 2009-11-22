@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix default_value for MSSQL
+
 0.04999_10  2009-10-31 12:28:53
         - patch from Robert Bohne to make _table_uniq_info more correct for
           Oracle

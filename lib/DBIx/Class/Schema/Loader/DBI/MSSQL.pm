@@ -128,9 +128,26 @@ sub _extra_column_info {
         $extra_info{is_auto_increment} = 1;
     }
 
+# get default
+    $sth = $dbh->prepare(qq{
+        SELECT COLUMN_DEFAULT
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = '$table' AND COLUMN_NAME = '$column'
+    });
+    $sth->execute;
+    my ($default) = $sth->fetchrow_array;
+
+    if (defined $default) {
+        # strip parens
+        $default =~ s/^\( (.*) \)\z/$1/x;
+
+        # literal or function?
+        $extra_info{default_value} =
+            $default =~ /^' (.*) '\z/x ? $1 : \$default;
+    }
+
     return \%extra_info;
 }
-
 
 =head1 SEE ALSO
 

@@ -17,9 +17,16 @@ sub extra { +{
                 dat VARCHAR(8)
             )
         },
+        qq{
+            CREATE TABLE ${vendor}_loader_test2 (
+                id INT IDENTITY NOT NULL PRIMARY KEY,
+                dat VARCHAR(100) DEFAULT 'foo',
+                ts DATETIME DEFAULT getdate()
+            )
+        },
     ],
-    drop   => [ "[${vendor}_loader_test1.dot]" ],
-    count  => 6,
+    drop   => [ "[${vendor}_loader_test1.dot]", "${vendor}_loader_test2"  ],
+    count  => 11,
     run    => sub {
         my ($schema, $monikers, $classes) = @_;
 
@@ -28,15 +35,35 @@ sub extra { +{
 
         ok((my $rs = eval {
             $schema->resultset("${vendor_titlecased}LoaderTest1Dot") }),
-            'got a resultset');
+            'got a resultset for table with dot in name');
 
         ok((my $from = eval { $rs->result_source->from }),
-            'got an $rsrc->from');
+            'got an $rsrc->from for table with dot in name');
 
-        is ref($from), 'SCALAR', '->table is a scalar ref';
+        is ref($from), 'SCALAR', '->table with dot in name is a scalar ref';
 
         is eval { $$from }, "[${vendor}_loader_test1.dot]",
-            '->table name is correct';
+            '->table with dot in name has correct name';
+
+# Test that column defaults are set correctly
+        ok(($rs = eval {
+            $schema->resultset("${vendor_titlecased}LoaderTest2") }),
+            'got a resultset for table with column with default value');
+
+        my $rsrc = $rs->result_source;
+
+        is eval { $rsrc->column_info('dat')->{default_value} }, 'foo',
+            'correct default_value for column with literal default';
+
+        ok((my $function_default =
+            eval { $rsrc->column_info('ts')->{default_value} }),
+            'got default_value for column with function default');
+
+        is ref($function_default), 'SCALAR',
+            'default_value for function default is a SCALAR ref';
+
+        is eval { $$function_default }, 'getdate()',
+            'default_value for function default is correct';
 
 # Test that identity columns do not have 'identity' in the data_type, and do
 # have is_auto_increment.
