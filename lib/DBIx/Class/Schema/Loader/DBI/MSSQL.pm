@@ -143,10 +143,11 @@ sub _extra_column_info {
         # strip parens
         $default =~ s/^\( (.*) \)\z/$1/x;
 
-        # Literal strings are in ''s, numbers are in ()s, everything else is a
-        # function.
+        # Literal strings are in ''s, numbers are in ()s (in some versions of
+        # MSSQL, in others they are unquoted) everything else is a function.
         $extra_info{default_value} =
-            $default =~ /^['(] (.*) [)']\z/x ? $1 : \$default;
+            $default =~ /^['(] (.*) [)']\z/x ? $1 :
+                $default =~ /^\d/ ? $default : \$default;
     }
 
     return \%extra_info;
