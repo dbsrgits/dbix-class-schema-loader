@@ -21,12 +21,14 @@ sub extra { +{
             CREATE TABLE ${vendor}_loader_test2 (
                 id INT IDENTITY NOT NULL PRIMARY KEY,
                 dat VARCHAR(100) DEFAULT 'foo',
+                num NUMERIC DEFAULT 10.89,
+                anint INT DEFAULT 6,
                 ts DATETIME DEFAULT getdate()
             )
         },
     ],
     drop   => [ "[${vendor}_loader_test1.dot]", "${vendor}_loader_test2"  ],
-    count  => 11,
+    count  => 13,
     run    => sub {
         my ($schema, $monikers, $classes) = @_;
 
@@ -53,7 +55,14 @@ sub extra { +{
         my $rsrc = $rs->result_source;
 
         is eval { $rsrc->column_info('dat')->{default_value} }, 'foo',
-            'correct default_value for column with literal default';
+            'correct default_value for column with literal string default';
+
+        is eval { $rsrc->column_info('anint')->{default_value} }, 6,
+            'correct default_value for column with literal integer default';
+
+        cmp_ok eval { $rsrc->column_info('num')->{default_value} },
+            '==', 10.89,
+            'correct default_value for column with literal numeric default';
 
         ok((my $function_default =
             eval { $rsrc->column_info('ts')->{default_value} }),

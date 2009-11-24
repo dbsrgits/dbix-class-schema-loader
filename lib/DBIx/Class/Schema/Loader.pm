@@ -416,6 +416,8 @@ TSUNODA Kazuya <drk@drk7.jp>
 
 Robert Bohne <rbo@openserv.org>
 
+ribasushi: Peter Rabbitson <rabbit+dbic@rabbit.us>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
