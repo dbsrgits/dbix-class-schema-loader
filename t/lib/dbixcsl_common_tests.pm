@@ -56,7 +56,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 3 + 135 + ($self->{extra}->{count} || 0);
+    plan tests => 139 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -110,7 +110,13 @@ sub setup_schema {
             __PACKAGE__->connection(\@connect_info);
         };
 
-        ok(!$@, "Loader initialization") or diag $@;
+       ok(!$@, "Loader initialization") or diag $@;
+
+       my $file_count;
+       find sub { return if -d; $file_count++ }, $DUMP_DIR;
+
+       is $file_count, 34, 'correct number of files generated';
+       exit if $file_count != 34;
 
        my $warn_count = 2;
        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
