@@ -27,6 +27,8 @@ requires 'Class::Unload'               => 0;
 
 install_script 'script/dbicdump';
 
+tests_recursive;
+
 # This is my manual hack for better feature control
 #  If you want to change the default answer for a feature,
 #  set the appropriate environment variable, like

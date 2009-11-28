@@ -33,7 +33,6 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 moniker_map
                                 inflect_singular
                                 inflect_plural
-                                naming
                                 debug
                                 dump_directory
                                 dump_overwrite
@@ -50,6 +49,10 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 classes
                                 monikers
                              /);
+
+__PACKAGE__->mk_accessors(qw/
+                                version_to_dump
+/);
 
 =head1 NAME
 
@@ -322,6 +325,8 @@ sub new {
 
     $self->{dump_directory} ||= $self->{temp_directory};
 
+    $self->version_to_dump($DBIx::Class::Schema::Loader::VERSION);
+
     $self->_check_back_compat;
 
     $self;
@@ -330,6 +335,17 @@ sub new {
 sub _check_back_compat {
     my ($self) = @_;
 
+# dynamic schemas will always be in 0.04006 mode
+    if ($self->{dynamic}) {
+        no strict 'refs';
+        my $class = ref $self || $self;
+        unshift @{"${class}::ISA"},
+            'DBIx::Class::Schema::Loader::Compat::v0_040';
+        Class::C3::reinitialize;
+        return;
+    }
+
+# otherwise check if we need backcompat mode for a static schema
     my $filename = $self->_get_dump_filename($self->schema_class);
     return unless -e $filename;
 
@@ -337,14 +353,17 @@ sub _check_back_compat {
         or croak "Cannot open '$filename' for reading: $!";
 
     while (<$fh>) {
-        if (/^# Created by DBIx::Class::Schema::Loader (v\d+)\.(\d+)/) {
-            my $ver = "${1}_${2}";
+        if (/^# Created by DBIx::Class::Schema::Loader v((\d+)\.(\d+))/) {
+            my $real_ver = $1;
+            my $ver      = "v${2}_${3}";
             while (1) {
                 my $compat_class = "DBIx::Class::Schema::Loader::Compat::${ver}";
                 if ($self->load_optional_class($compat_class)) {
                     no strict 'refs';
                     my $class = ref $self || $self;
                     unshift @{"${class}::ISA"}, $compat_class;
+                    Class::C3::reinitialize;
+                    $self->version_to_dump($real_ver);
                     last;
                 }
                 $ver =~ s/\d\z// or last;
@@ -663,7 +682,7 @@ sub _write_classfile {
     }
 
     $text .= $self->_sig_comment(
-      $DBIx::Class::Schema::Loader::VERSION, 
+      $self->version_to_dump,
       POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
     );
 
