@@ -1,5 +1,5 @@
 use strict;
-use lib qw(t/lib);
+use lib qw(t/backcompat/0.04006/lib);
 use dbixcsl_common_tests;
 
 eval { require DBD::SQLite };

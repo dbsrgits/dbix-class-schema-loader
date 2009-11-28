@@ -339,6 +339,7 @@ sub _check_back_compat {
     if ($self->{dynamic}) {
         no strict 'refs';
         my $class = ref $self || $self;
+        require DBIx::Class::Schema::Loader::Compat::v0_040;
         unshift @{"${class}::ISA"},
             'DBIx::Class::Schema::Loader::Compat::v0_040';
         Class::C3::reinitialize;
