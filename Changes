@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - added test for norewrite feature
         - fix default_value for MSSQL
 
 0.04999_10  2009-10-31 12:28:53
