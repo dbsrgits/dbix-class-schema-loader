@@ -98,7 +98,7 @@ sub _table_uniq_info {
     my $sth = $dbh->prepare(qq{SELECT CCU.CONSTRAINT_NAME, CCU.COLUMN_NAME FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE CCU
                                JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TC ON (CCU.CONSTRAINT_NAME = TC.CONSTRAINT_NAME)
                                JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU ON (CCU.CONSTRAINT_NAME = KCU.CONSTRAINT_NAME AND CCU.COLUMN_NAME = KCU.COLUMN_NAME)
-                               WHERE CCU.TABLE_NAME = '$table' AND CONSTRAINT_TYPE = 'UNIQUE' ORDER BY KCU.ORDINAL_POSITION});
+                               WHERE CCU.TABLE_NAME = @{[ $dbh->quote($table) ]} AND CONSTRAINT_TYPE = 'UNIQUE' ORDER BY KCU.ORDINAL_POSITION});
     $sth->execute;
     my $constraints;
     while (my $row = $sth->fetchrow_hashref) {
@@ -118,19 +118,40 @@ sub _extra_column_info {
     my ($table, $column) = @$info{qw/TABLE_NAME COLUMN_NAME/};
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{SELECT COLUMN_NAME 
-                               FROM INFORMATION_SCHEMA.COLUMNS
-                               WHERE COLUMNPROPERTY(object_id('$table', 'U'), '$column', 'IsIdentity') = 1 AND TABLE_NAME = '$table' AND COLUMN_NAME = '$column'
-                              });
+    my $sth = $dbh->prepare(qq{
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE COLUMNPROPERTY(object_id(@{[ $dbh->quote($table) ]}, 'U'), '$column', 'IsIdentity') = 1
+          AND TABLE_NAME = @{[ $dbh->quote($table) ]} AND COLUMN_NAME = @{[ $dbh->quote($column) ]}
+    });
     $sth->execute();
 
     if ($sth->fetchrow_array) {
         $extra_info{is_auto_increment} = 1;
     }
 
+# get default
+    $sth = $dbh->prepare(qq{
+        SELECT COLUMN_DEFAULT
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = @{[ $dbh->quote($table) ]} AND COLUMN_NAME = @{[ $dbh->quote($column) ]}
+    });
+    $sth->execute;
+    my ($default) = $sth->fetchrow_array;
+
+    if (defined $default) {
+        # strip parens
+        $default =~ s/^\( (.*) \)\z/$1/x;
+
+        # Literal strings are in ''s, numbers are in ()s (in some versions of
+        # MSSQL, in others they are unquoted) everything else is a function.
+        $extra_info{default_value} =
+            $default =~ /^['(] (.*) [)']\z/x ? $1 :
+                $default =~ /^\d/ ? $default : \$default;
+    }
+
     return \%extra_info;
 }
-
 
 =head1 SEE ALSO
 
@@ -139,11 +160,12 @@ L<DBIx::Class::Schema::Loader::DBI>
 
 =head1 AUTHOR
 
-Justin Hunter C<justin.d.hunter@gmail.com>
+See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
 
-=head1 CONTRIBUTORS
+=head1 LICENSE
 
-Rafael Kitover <rkitover@cpan.org>
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 

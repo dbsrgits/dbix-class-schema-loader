@@ -8,6 +8,8 @@ use DBIx::Class::Schema::Loader;
 use Class::Unload;
 use File::Path;
 use DBI;
+use Digest::MD5;
+use File::Find 'find';
 
 my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
@@ -54,7 +56,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 3 + 134 + ($self->{extra}->{count} || 0);
+    plan tests => 139 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -108,7 +110,13 @@ sub setup_schema {
             __PACKAGE__->connection(\@connect_info);
         };
 
-        ok(!$@, "Loader initialization") or diag $@;
+       ok(!$@, "Loader initialization") or diag $@;
+
+       my $file_count;
+       find sub { return if -d; $file_count++ }, $DUMP_DIR;
+
+       is $file_count, 34, 'correct number of files generated';
+       exit if $file_count != 34;
 
        my $warn_count = 2;
        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
@@ -616,11 +624,8 @@ sub test_schema {
         }
     }
 
-    # rescan test
+    # rescan and norewrite test
     SKIP: {
-        skip $self->{skip_rels}, 4 if $self->{skip_rels};
-        skip "Can't rescan dumped schema", 4 if $self->{dump};
-
         my @statements_rescan = (
             qq{
                 CREATE TABLE loader_test30 (
@@ -633,15 +638,47 @@ sub test_schema {
             q{ INSERT INTO loader_test30 (id,loader_test2) VALUES(321, 2) },
         );
 
+        # get md5
+        my $digest  = Digest::MD5->new;
+
+        my $find_cb = sub {
+            return if -d;
+            return if $_ eq 'LoaderTest30.pm';
+
+            open my $fh, '<', $_ or die "Could not open $_ for reading: $!";
+            binmode $fh;
+            $digest->addfile($fh);
+        };
+
+        find $find_cb, $DUMP_DIR;
+
+        my $before_digest = $digest->digest;
+
         my $dbh = $self->dbconnect(1);
         $dbh->do($_) for @statements_rescan;
         $dbh->disconnect;
 
-        my @new = $conn->rescan;
+        sleep 1;
+
+        my @new = do {
+            # kill the 'Dumping manual schema' warnings
+            local $SIG{__WARN__} = sub {};
+            $conn->rescan;
+        };
         is_deeply(\@new, [ qw/LoaderTest30/ ], "Rescan");
+
+        $digest = Digest::MD5->new;
+        find $find_cb, $DUMP_DIR;
+        my $after_digest = $digest->digest;
+
+        is $before_digest, $after_digest,
+            'dumped files are not rewritten when there is no modification';
 
         my $rsobj30   = $conn->resultset('LoaderTest30');
         isa_ok($rsobj30, 'DBIx::Class::ResultSet');
+
+        skip 'no rels', 2 if $self->{skip_rels};
+
         my $obj30 = $rsobj30->find(123);
         isa_ok( $obj30->loader_test2, $class2);
 

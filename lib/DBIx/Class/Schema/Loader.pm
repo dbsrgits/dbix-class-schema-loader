@@ -389,18 +389,37 @@ arrayref of schemas to load.
 In "normal" L<DBIx::Class::Schema> usage, manually-defined
 source classes and relationships have no problems crossing vendor schemas.
 
-=head1 AUTHOR
+=head1 ACKNOWLEDGEMENTS
 
-Brandon Black, C<blblack@gmail.com>
+Matt S Trout, all of the #dbix-class folks, and everyone who's ever sent
+in a bug report or suggestion.
 
 Based on L<DBIx::Class::Loader> by Sebastian Riedel
 
 Based upon the work of IKEBE Tomohiro
 
-=head1 THANK YOU
+=head1 AUTHOR
 
-Matt S Trout, all of the #dbix-class folks, and everyone who's ever sent
-in a bug report or suggestion.
+blblack: Brandon Black <blblack@gmail.com>
+
+=head1 CONTRIBUTORS
+
+ilmarii: Dagfinn Ilmari Mannsåker <ilmari@ilmari.org>
+
+arcanez: Justin Hunter <justin.d.hunter@gmail.com>
+
+ash: Ash Berlin <ash@cpan.org>
+
+Caelum: Rafael Kitover <rkitover@cpan.org>
+
+TSUNODA Kazuya <drk@drk7.jp>
+
+Robert Bohne <rbo@openserv.org>
+
+ribasushi: Peter Rabbitson <rabbit+dbic@rabbit.us>
+
+... and lots of other folks. If we forgot you, please write the current
+maintainer or RT.
 
 =head1 LICENSE
 

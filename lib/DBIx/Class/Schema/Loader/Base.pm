@@ -528,6 +528,9 @@ sub _load_tables {
 sub _reload_classes {
     my ($self, @tables) = @_;
 
+    # so that we don't repeat custom sections
+    @INC = grep $_ ne $self->dump_directory, @INC;
+
     $self->_dump_to_dir(map { $self->classes->{$_} } @tables);
 
     unshift @INC, $self->dump_directory;
@@ -1011,6 +1014,15 @@ names, as above in L</monikers>.
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>
+
+=head1 AUTHOR
+
+See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 
