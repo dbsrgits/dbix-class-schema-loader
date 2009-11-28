@@ -1,6 +1,9 @@
 use strict;
 use lib qw(t/backcompat/0.04006/lib);
 use dbixcsl_common_tests;
+use Test::More;
+plan skip_all => 'Backcompat tests disabled'
+    unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 
 eval { require DBD::SQLite };
 my $class = $@ ? 'SQLite2' : 'SQLite';

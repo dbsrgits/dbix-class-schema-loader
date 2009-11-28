@@ -1,8 +1,12 @@
 use strict;
 use Test::More;
-use lib qw(t/lib);
+use lib qw(t/backcompat/0.04006/lib);
 use File::Path;
 use make_dbictest_db;
+use Test::More;
+plan skip_all => 'Backcompat tests disabled'
+    unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
+
 
 my $dump_path = './t/_dump';
 

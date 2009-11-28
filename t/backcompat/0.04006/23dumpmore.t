@@ -1,9 +1,13 @@
 use strict;
 use Test::More;
-use lib qw(t/lib);
+use lib qw(t/backcompat/0.04006/lib);
 use File::Path;
 use make_dbictest_db;
 require DBIx::Class::Schema::Loader;
+use Test::More;
+plan skip_all => 'Backcompat tests disabled'
+    unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
+
 
 $^O eq 'MSWin32'
     ? plan(skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths")

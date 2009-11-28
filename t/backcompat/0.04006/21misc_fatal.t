@@ -1,7 +1,11 @@
 use strict;
 use Test::More;
-use lib qw(t/lib);
+use lib qw(t/backcompat/0.04006/lib);
 use make_dbictest_db;
+use Test::More;
+plan skip_all => 'Backcompat tests disabled'
+    unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
+
 
 {
     $INC{'DBIx/Class/Storage/xyzzy.pm'} = 1;
