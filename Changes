@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04999_11  2009-11-29 18:08:46
         - added patch to generate POD from postgres by Andrey Kostenko (GUGU)
         - added test for norewrite feature
         - fix default_value for MSSQL
