@@ -439,7 +439,11 @@ sub _load_external {
         or croak "Failed to close $real_inc_path: $!";
 
 # load the class too
-    do $real_inc_path;
+    {
+        # turn off redefined warnings
+        $SIG{__WARN__} = sub {};
+        do $real_inc_path;
+    }
     die $@ if $@;
 }
 

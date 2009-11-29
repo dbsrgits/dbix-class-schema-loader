@@ -118,7 +118,7 @@ sub setup_schema {
        is $file_count, 34, 'correct number of files generated';
        exit if $file_count != 34;
 
-       my $warn_count = 2;
+       my $warn_count = 0;
        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
 
         if($self->{skip_rels}) {
