@@ -8,7 +8,7 @@ require DBIx::Class::Schema::Loader;
 
 $^O eq 'MSWin32'
     ? plan(skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths")
-    : plan(tests => 145);
+    : plan(tests => 153);
 
 my $DUMP_PATH = './t/_dump';
 
@@ -142,11 +142,15 @@ do_dump_test(
         ],
         Foo => [
             qr/package DBICTest::DumpMore::1::Foo;/,
+            qr/=head1 NAME/,
+            qr/=head1 ACCESSORS/,
             qr/->set_primary_key/,
             qr/1;\n$/,
         ],
         Bar => [
             qr/package DBICTest::DumpMore::1::Bar;/,
+            qr/=head1 NAME/,
+            qr/=head1 ACCESSORS/,
             qr/->set_primary_key/,
             qr/1;\n$/,
         ],

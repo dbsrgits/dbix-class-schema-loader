@@ -38,6 +38,16 @@ DBIx::Class::Schema::Loader::DBI::Writing - Loader subclass writing guide for DB
       # concatenated if you wish.
   }
 
+  sub _table_comment {
+      my ( $self, $table ) = @_;
+      return 'Comment';
+  }
+
+  sub _column_comment {
+      my ( $self, $table, $column_number ) = @_;
+      return 'Col. comment';
+  }
+
   1;
 
 =head1 DETAILS
@@ -61,6 +71,9 @@ See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
+
+To import comments from database you need to implement C<_table_comment>,
+C<_column_comment>
 
 =cut
 

@@ -855,14 +855,58 @@ sub _dbic_stmt {
     my $self = shift;
     my $class = shift;
     my $method = shift;
-
+    if ( $method eq 'table' ) {
+        my ($table) = @_;
+        $self->_pod( $class, "=head1 NAME" );
+        my $table_descr = $class;
+        if ( $self->can('_table_comment') ) {
+            my $comment = $self->_table_comment($table);
+            $table_descr .= " - " . $comment if $comment;
+        }
+        $self->{_class2table}{ $class } = $table;
+        $self->_pod( $class, $table_descr );
+        $self->_pod_cut( $class );
+    } elsif ( $method eq 'add_columns' ) {
+        $self->_pod( $class, "=head1 ACCESSORS" );
+        my $i = 0;
+        foreach ( @_ ) {
+            $i++;
+            next unless $i % 2;
+            $self->_pod( $class, '=head2 ' . $_  );
+            my $comment;
+            $comment = $self->_column_comment( $self->{_class2table}{$class}, ($i - 1) / 2 + 1  ) if $self->can('_column_comment');
+            $self->_pod( $class, $comment ) if $comment;
+        }
+        $self->_pod_cut( $class );
+    } elsif ( $method =~ /^(belongs_to|has_many|might_have)$/ ) {
+        $self->_pod( $class, "=head1 RELATIONS" ) unless $self->{_relations_started} { $class } ;
+        my ( $accessor, $rel_class ) = @_;
+        $self->_pod( $class, "=head2 $accessor" );
+        $self->_pod( $class, 'Type: ' . $method );
+        $self->_pod( $class, "Related object: L<$rel_class>" );
+        $self->_pod_cut( $class );
+        $self->{_relations_started} { $class } = 1;
+    }
     my $args = dump(@_);
     $args = '(' . $args . ')' if @_ < 2;
     my $stmt = $method . $args . q{;};
 
     warn qq|$class\->$stmt\n| if $self->debug;
     $self->_raw_stmt($class, '__PACKAGE__->' . $stmt);
+    return;
 }
+
+# Stores a POD documentation
+sub _pod {
+    my ($self, $class, $stmt) = @_;
+    $self->_raw_stmt( $class, "\n" . $stmt  );
+}
+
+sub _pod_cut {
+    my ($self, $class ) = @_;
+    $self->_raw_stmt( $class, "\n=cut\n" );
+}
+
 
 # Store a raw source line for a class (for dumping purposes)
 sub _raw_stmt {

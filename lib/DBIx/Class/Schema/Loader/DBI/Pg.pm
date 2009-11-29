@@ -35,6 +35,7 @@ sub _setup {
     $self->{db_schema} ||= 'public';
 }
 
+
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
@@ -93,6 +94,32 @@ sub _table_uniq_info {
     }
 
     return \@uniqs;
+}
+
+sub _table_comment {
+    my ( $self, $table ) = @_;
+     my ($table_comment) = $self->schema->storage->dbh->selectrow_array(
+        q{SELECT obj_description(oid) 
+            FROM pg_class 
+            WHERE relname=? AND relnamespace=(
+                SELECT oid FROM pg_namespace WHERE nspname=?)
+        }, undef, $table, $self->db_schema
+        );   
+    return $table_comment
+}
+
+
+sub _column_comment {
+    my ( $self, $table, $column_number ) = @_;
+     my ($table_oid) = $self->schema->storage->dbh->selectrow_array(
+        q{SELECT oid
+            FROM pg_class 
+            WHERE relname=? AND relnamespace=(
+                SELECT oid FROM pg_namespace WHERE nspname=?)
+        }, undef, $table, $self->db_schema
+        );   
+    return $self->schema->storage->dbh->selectrow_array('SELECT col_description(?,?)', undef, $table_oid,
+    $column_number );
 }
 
 sub _extra_column_info {
