@@ -11,6 +11,12 @@ SL Backcompat Plan:
 * add a loud warning that says that we're running in backcompat mode, and refers
   to the ::Manual::UpgradingFrom0.04006 POD.
 
+*** backcompat tests
+
+These are still failing:
+* t/backcompat/0.04006/20invocations.t
+* t/backcompat/0.04006/23dumpmore.t
+
 *** naming accessor
 
 * class data for Loader
