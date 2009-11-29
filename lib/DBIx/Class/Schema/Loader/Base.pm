@@ -48,6 +48,7 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 _tables
                                 classes
                                 monikers
+                                dynamic
                              /);
 
 __PACKAGE__->mk_accessors(qw/
@@ -336,7 +337,7 @@ sub _check_back_compat {
     my ($self) = @_;
 
 # dynamic schemas will always be in 0.04006 mode
-    if ($self->{dynamic}) {
+    if ($self->dynamic) {
         no strict 'refs';
         my $class = ref $self || $self;
         require DBIx::Class::Schema::Loader::Compat::v0_040;
@@ -436,6 +437,10 @@ sub _load_external {
     );
     close($fh)
         or croak "Failed to close $real_inc_path: $!";
+
+# load the class too
+    do $real_inc_path;
+    die $@ if $@;
 }
 
 =head2 load
@@ -518,7 +523,7 @@ sub _load_tables {
         # The relationship loader needs a working schema
         $self->{quiet} = 1;
         local $self->{dump_directory} = $self->{temp_directory};
-        $self->_reload_classes(@tables);
+        $self->_reload_classes(\@tables);
         $self->_load_relationships($_) for @tables;
         $self->{quiet} = 0;
 
@@ -529,7 +534,9 @@ sub _load_tables {
     $self->_load_external($_)
         for map { $self->classes->{$_} } @tables;
 
-    $self->_reload_classes(@tables);
+    # Reload without unloading first to preserve any symbols from external
+    # packages.
+    $self->_reload_classes(\@tables, 0);
 
     # Drop temporary cache
     delete $self->{_cache};
@@ -538,7 +545,10 @@ sub _load_tables {
 }
 
 sub _reload_classes {
-    my ($self, @tables) = @_;
+    my ($self, $tables, $unload) = @_;
+
+    my @tables = @$tables;
+    $unload = 1 unless defined $unload;
 
     # so that we don't repeat custom sections
     @INC = grep $_ ne $self->dump_directory, @INC;
@@ -560,7 +570,7 @@ sub _reload_classes {
             local *Class::C3::reinitialize = sub {};
             use warnings;
 
-            Class::Unload->unload($class);
+            Class::Unload->unload($class) if $unload;
             my ($source, $resultset_class);
             if (
                 ($source = $have_source{$moniker})
@@ -568,10 +578,10 @@ sub _reload_classes {
                 && ($resultset_class ne 'DBIx::Class::ResultSet')
             ) {
                 my $has_file = Class::Inspector->loaded_filename($resultset_class);
-                Class::Unload->unload($resultset_class);
-                $self->ensure_class_loaded($resultset_class) if $has_file;
+                Class::Unload->unload($resultset_class) if $unload;
+                $self->_reload_class($resultset_class) if $has_file;
             }
-            $self->ensure_class_loaded($class);
+            $self->_reload_class($class);
         }
         push @to_register, [$moniker, $class];
     }
@@ -580,6 +590,16 @@ sub _reload_classes {
     for (@to_register) {
         $self->schema->register_class(@$_);
     }
+}
+
+# We use this instead of ensure_class_loaded when there are package symbols we
+# want to preserve.
+sub _reload_class {
+    my ($self, $class) = @_;
+
+    my $class_path = $self->_class_path($class);
+    delete $INC{ $class_path };
+    eval "require $class;";
 }
 
 sub _get_dump_filename {
