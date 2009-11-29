@@ -113,6 +113,13 @@ sub run_tests {
         $classes->{$table_name} = $schema_class . q{::} . $source_name;
     }
 
+# for debugging...
+#    {
+#        mkdir '/tmp/HLAGH';
+#        $conn->_loader->{dump_directory} = '/tmp/HLAGH';
+#        $conn->_loader->_dump_to_dir(values %$classes);
+#    }
+
     my $moniker1 = $monikers->{loader_test1};
     my $class1   = $classes->{loader_test1};
     my $rsobj1   = $conn->resultset($moniker1);

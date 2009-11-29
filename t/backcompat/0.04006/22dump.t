@@ -4,7 +4,7 @@ use lib qw(t/backcompat/0.04006/lib);
 use File::Path;
 use make_dbictest_db;
 use Test::More;
-plan skip_all => 'Backcompat tests disabled'
+plan skip_all => 'set SCHEMA_LOADER_TESTS_BACKCOMPAT to enable these tests'
     unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 
 

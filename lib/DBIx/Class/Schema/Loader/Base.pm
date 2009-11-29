@@ -343,6 +343,8 @@ sub _check_back_compat {
         unshift @{"${class}::ISA"},
             'DBIx::Class::Schema::Loader::Compat::v0_040';
         Class::C3::reinitialize;
+# just in case, though no one is likely to dump a dynamic schema
+        $self->version_to_dump('0.04006');
         return;
     }
 
@@ -388,14 +390,26 @@ sub _find_file_in_inc {
     return;
 }
 
-sub _load_external {
+sub _class_path {
     my ($self, $class) = @_;
 
     my $class_path = $class;
     $class_path =~ s{::}{/}g;
     $class_path .= '.pm';
 
-    my $real_inc_path = $self->_find_file_in_inc($class_path);
+    return $class_path;
+}
+
+sub _find_class_in_inc {
+    my ($self, $class) = @_;
+
+    return $self->_find_file_in_inc($self->_class_path($class));
+}
+
+sub _load_external {
+    my ($self, $class) = @_;
+
+    my $real_inc_path = $self->_find_class_in_inc($class);
 
     return if !$real_inc_path;
 
@@ -403,9 +417,6 @@ sub _load_external {
     warn qq/# Loaded external class definition for '$class'\n/
         if $self->debug;
 
-    croak 'Failed to locate actual external module file for '
-          . "'$class'"
-              if !$real_inc_path;
     open(my $fh, '<', $real_inc_path)
         or croak "Failed to open '$real_inc_path' for reading: $!";
     $self->_ext_stmt($class,
