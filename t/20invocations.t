@@ -3,6 +3,10 @@ use Test::More;
 use lib qw(t/lib);
 use make_dbictest_db;
 
+local $SIG{__WARN__} = sub {
+    warn $_[0] unless $_[0] =~ /really_erase_my_files/
+};
+
 # Takes a $schema as input, runs 4 basic tests
 sub test_schema {
     my ($testname, $schema) = @_;

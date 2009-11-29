@@ -123,9 +123,11 @@ for(my $i = 0; $i <= $#$_features - 1; $i += 2) {
 }
 
 # Rebuild README for maintainers
-if(-e 'MANIFEST.SKIP') {
+if ($Module::Install::AUTHOR) {
     system("pod2text lib/DBIx/Class/Schema/Loader.pm > README");
 }
+
+realclean_files 'README';
 
 resources 'IRC'         => 'irc://irc.perl.org/#dbix-class';
 resources 'license'     => 'http://dev.perl.org/licenses/';

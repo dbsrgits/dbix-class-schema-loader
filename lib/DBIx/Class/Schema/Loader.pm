@@ -10,7 +10,7 @@ use Scalar::Util qw/ weaken /;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.04999_10';
+our $VERSION = '0.04999_11';
 
 __PACKAGE__->mk_classaccessor('_loader_args' => {});
 __PACKAGE__->mk_classaccessors(qw/dump_to_dir _loader_invoked _loader loader_class/);
@@ -417,6 +417,8 @@ TSUNODA Kazuya <drk@drk7.jp>
 Robert Bohne <rbo@openserv.org>
 
 ribasushi: Peter Rabbitson <rabbit+dbic@rabbit.us>
+
+gugu: Andrey Kostenko <a.kostenko@rambler-co.ru>
 
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
