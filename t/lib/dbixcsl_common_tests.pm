@@ -73,6 +73,11 @@ sub run_tests {
     $self->drop_tables;
 }
 
+# defined in sub create
+my (@statements, @statements_reltests, @statements_advanced,
+    @statements_advanced_sqlite, @statements_inline_rels,
+    @statements_implicit_rels);
+
 sub setup_schema {
     my $self = shift;
     my @connect_info = @_;
@@ -115,8 +120,19 @@ sub setup_schema {
        my $file_count;
        find sub { return if -d; $file_count++ }, $DUMP_DIR;
 
-       is $file_count, 34, 'correct number of files generated';
-       exit if $file_count != 34;
+       my $expected_count = 34;
+
+       $expected_count += @{ $self->{extra}{drop} || [] };
+
+       $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
+           if $self->{no_inline_rels};
+
+       $expected_count -= grep /CREATE TABLE/, @statements_implicit_rels
+           if $self->{no_implicit_rels};
+
+       is $file_count, $expected_count, 'correct number of files generated';
+
+       exit if $file_count != $expected_count;
 
        my $warn_count = 0;
        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
@@ -655,7 +671,17 @@ sub test_schema {
         my $before_digest = $digest->digest;
 
         my $dbh = $self->dbconnect(1);
-        $dbh->do($_) for @statements_rescan;
+
+        {
+            # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
+            local $SIG{__WARN__} = sub {
+                my $msg = shift;
+                print STDERR $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
+            };
+
+            $dbh->do($_) for @statements_rescan;
+        }
+
         $dbh->disconnect;
 
         sleep 1;
@@ -726,7 +752,7 @@ sub create {
     $self->{_created} = 1;
 
     my $make_auto_inc = $self->{auto_inc_cb} || sub {};
-    my @statements = (
+    @statements = (
         qq{
             CREATE TABLE loader_test1s (
                 id $self->{auto_inc_pk},
@@ -769,7 +795,7 @@ sub create {
         },
     );
 
-    my @statements_reltests = (
+    @statements_reltests = (
         qq{
             CREATE TABLE loader_test3 (
                 id INTEGER NOT NULL PRIMARY KEY,
@@ -1028,7 +1054,7 @@ sub create {
         q{ INSERT INTO loader_test34 (id,rel1) VALUES (1,2) },
     );
 
-    my @statements_advanced = (
+    @statements_advanced = (
         qq{
             CREATE TABLE loader_test10 (
                 id10 $self->{auto_inc_pk},
@@ -1053,7 +1079,7 @@ sub create {
          q{ REFERENCES loader_test11 (id11) }),
     );
 
-    my @statements_advanced_sqlite = (
+    @statements_advanced_sqlite = (
         qq{
             CREATE TABLE loader_test10 (
                 id10 $self->{auto_inc_pk},
@@ -1076,7 +1102,7 @@ sub create {
          q{ loader_test11 INTEGER REFERENCES loader_test11 (id11) }),
     );
 
-    my @statements_inline_rels = (
+    @statements_inline_rels = (
         qq{
             CREATE TABLE loader_test12 (
                 id INTEGER NOT NULL PRIMARY KEY,
@@ -1100,7 +1126,7 @@ sub create {
     );
 
 
-    my @statements_implicit_rels = (
+    @statements_implicit_rels = (
         qq{
             CREATE TABLE loader_test14 (
                 id INTEGER NOT NULL PRIMARY KEY,
