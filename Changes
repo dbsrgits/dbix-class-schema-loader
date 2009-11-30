@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04999_12  2009-11-30 23:36:14
         - fix MySQL rel introspection with on_connect_call =>
           'set_strict_mode' (RT#52087)
         - now using base 'DBIx::Class::Core' for Results (RT#52141)
