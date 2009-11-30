@@ -134,7 +134,7 @@ sub setup_schema {
 
        exit if $file_count != $expected_count;
 
-       my $warn_count = 0;
+       my $warn_count = 2;
        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
 
         if($self->{skip_rels}) {

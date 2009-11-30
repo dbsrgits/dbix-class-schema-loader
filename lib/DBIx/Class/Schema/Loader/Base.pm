@@ -438,13 +438,12 @@ sub _load_external {
     close($fh)
         or croak "Failed to close $real_inc_path: $!";
 
-# load the class too
-    {
+    if ($self->dynamic) { # load the class too
         # turn off redefined warnings
-        $SIG{__WARN__} = sub {};
+        local $SIG{__WARN__} = sub {};
         do $real_inc_path;
+        die $@ if $@;
     }
-    die $@ if $@;
 }
 
 =head2 load
