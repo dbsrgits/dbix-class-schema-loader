@@ -53,6 +53,7 @@ __PACKAGE__->mk_ro_accessors(qw/
 
 __PACKAGE__->mk_accessors(qw/
                                 version_to_dump
+                                schema_version_to_dump
 /);
 
 =head1 NAME
@@ -327,6 +328,7 @@ sub new {
     $self->{dump_directory} ||= $self->{temp_directory};
 
     $self->version_to_dump($DBIx::Class::Schema::Loader::VERSION);
+    $self->schema_version_to_dump($DBIx::Class::Schema::Loader::VERSION);
 
     $self->_check_back_compat;
 
@@ -345,7 +347,7 @@ sub _check_back_compat {
             'DBIx::Class::Schema::Loader::Compat::v0_040';
         Class::C3::reinitialize;
 # just in case, though no one is likely to dump a dynamic schema
-        $self->version_to_dump('0.04006');
+        $self->schema_version_to_dump('0.04006');
         return;
     }
 
@@ -367,7 +369,7 @@ sub _check_back_compat {
                     my $class = ref $self || $self;
                     unshift @{"${class}::ISA"}, $compat_class;
                     Class::C3::reinitialize;
-                    $self->version_to_dump($real_ver);
+                    $self->schema_version_to_dump($real_ver);
                     last;
                 }
                 $ver =~ s/\d\z// or last;
@@ -663,7 +665,10 @@ sub _dump_to_dir {
         $schema_text .= qq|__PACKAGE__->load_classes;\n|;
     }
 
-    $self->_write_classfile($schema_class, $schema_text);
+    {
+        local $self->{version_to_dump} = $self->schema_version_to_dump;
+        $self->_write_classfile($schema_class, $schema_text);
+    }
 
     my $result_base_class = $self->result_base_class || 'DBIx::Class';
 
