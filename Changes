@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix MySQL rel introspection with on_connect_call =>
+          'set_strict_mode' (RT#52087)
+        - now using base 'DBIx::Class::Core' for Results (RT#52141)
+
 0.04999_11  2009-11-29 18:08:46
         - added patch to generate POD from postgres by Andrey Kostenko (GUGU)
         - added test for norewrite feature
