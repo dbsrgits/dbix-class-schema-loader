@@ -3,7 +3,7 @@ use inc::Module::Install 0.91;
 name           'DBIx-Class-Schema-Loader';
 all_from       'lib/DBIx/Class/Schema/Loader.pm';
 
-test_requires 'Test::More'    => '0.47';
+test_requires 'Test::More'    => '0.94';
 test_requires 'DBI'           => '1.56';
 test_requires 'DBD::SQLite'   => '1.12';
 test_requires 'File::Path'    => 0;
@@ -22,7 +22,7 @@ requires 'Class::C3'                   => '0.18';
 requires 'Class::C3::Componentised'    => '1.0005';
 requires 'Carp::Clan'                  => 0;
 requires 'Class::Inspector'            => 0;
-requires 'DBIx::Class'                 => '0.08109';
+requires 'DBIx::Class'                 => '0.08114';
 requires 'Class::Unload'               => 0;
 
 install_script 'script/dbicdump';

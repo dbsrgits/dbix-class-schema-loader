@@ -6,9 +6,9 @@ use IPC::Open3;
 use make_dbictest_db;
 require DBIx::Class::Schema::Loader;
 
-$^O eq 'MSWin32'
-    ? plan(skip_all => "ActiveState perl produces additional warnings, and this test uses unix paths")
-    : plan(tests => 153);
+$^O eq 'MSWin32' && plan(skip_all =>
+"ActiveState perl produces additional warnings, and this test uses unix paths"
+);
 
 my $DUMP_PATH = './t/_dump';
 
@@ -315,5 +315,7 @@ do_dump_test(
         ],
     },
 );
+
+done_testing;
 
 END { rmtree($DUMP_PATH, 1, 1); }
