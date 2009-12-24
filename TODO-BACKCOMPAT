@@ -1,0 +1,22 @@
+SL Backcompat Plan:
+
+*** 0.04006 mode
+
+* add a loud warning that says that we're running in backcompat mode, and refers
+  to the ::Manual::UpgradingFromV4 POD.
+* preserve custom content from un-singularized Results and delete them when in
+  upgrade mode
+
+*** backcompat tests
+
+Need a comprehensive backcompat.t
+
+*** Catalyst Helper
+
+* Add 'upgrade=1' option that upgrades from both old S::L and old helper,
+  whichever or both.
+* Warn when old helper output or 0.04000 S::L output is detected, that refers to
+  the upgrade option.
+
+Release dev S::L, announce to catalyst, dbic lists and #catalyst that testing of
+backcompat mode is needed, wait 2-3 weeks, then release 0.05000.

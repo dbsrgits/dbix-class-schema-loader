@@ -2,6 +2,7 @@ package DBIx::Class::Schema::Loader::RelBuilder;
 
 use strict;
 use warnings;
+use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
 
@@ -261,7 +262,7 @@ sub generate_code {
 
 =head1 AUTHOR
 
-See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+See L<DBIx::Class::Schema::Loader/AUTHOR> and L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
 
 =head1 LICENSE
 

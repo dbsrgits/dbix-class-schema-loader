@@ -48,7 +48,15 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 _tables
                                 classes
                                 monikers
+                                dynamic
+                                naming
+                                _upgrading_from
                              /);
+
+__PACKAGE__->mk_accessors(qw/
+                                version_to_dump
+                                schema_version_to_dump
+/);
 
 =head1 NAME
 
@@ -72,6 +80,69 @@ L<DBIx::Class::Schema::Loader/loader_options>.  Available constructor options ar
 
 Skip setting up relationships.  The default is to attempt the loading
 of relationships.
+
+=head2 naming
+
+Static schemas (ones dumped to disk) will, by default, use the new-style 0.05XXX
+relationship names and singularized Results, unless you're overwriting an
+existing dump made by a 0.04XXX version of L<DBIx::Class::Schema::Loader>, in
+which case the backward compatible RelBuilder will be activated, and
+singularization will be turned off.
+
+Specifying
+
+    naming => 'v5'
+
+will disable the backward-compatible RelBuilder and use
+the new-style relationship names along with singularized Results, even when
+overwriting a dump made with an earlier version.
+
+The option also takes a hashref:
+
+    naming => { relationships => 'v5', monikers => 'v4' }
+
+The keys are:
+
+=over 4
+
+=item relationships
+
+How to name relationship accessors.
+
+=item monikers
+
+How to name Result classes.
+
+=back
+
+The values can be:
+
+=over 4
+
+=item current
+
+Latest default style, whatever that happens to be.
+
+=item v5
+
+Version 0.05XXX style.
+
+=item v4
+
+Version 0.04XXX style.
+
+=back
+
+Dynamic schemas will always default to the 0.04XXX relationship names and won't
+singularize Results for backward compatibility, to activate the new RelBuilder
+and singularization put this in your C<Schema.pm> file:
+
+    __PACKAGE__->naming('current');
+
+Or if you prefer to use 0.05XXX features but insure that nothing breaks in the
+next major version upgrade:
+
+    __PACKAGE__->naming('v5');
 
 =head2 debug
 
@@ -101,10 +172,11 @@ a scalar moniker.  If the hash entry does not exist, or the function
 returns a false value, the code falls back to default behavior
 for that table name.
 
-The default behavior is: C<join '', map ucfirst, split /[\W_]+/, lc $table>,
-which is to say: lowercase everything, split up the table name into chunks
-anywhere a non-alpha-numeric character occurs, change the case of first letter
-of each chunk to upper case, and put the chunks back together.  Examples:
+The default behavior is to singularize the table name, and: C<join '', map
+ucfirst, split /[\W_]+/, lc $table>, which is to say: lowercase everything,
+split up the table name into chunks anywhere a non-alpha-numeric character
+occurs, change the case of first letter of each chunk to upper case, and put
+the chunks back together.  Examples:
 
     Table Name  | Moniker Name
     ---------------------------
@@ -273,11 +345,60 @@ sub new {
 
     $self->{dump_directory} ||= $self->{temp_directory};
 
-    $self->{relbuilder} = DBIx::Class::Schema::Loader::RelBuilder->new(
-        $self->schema, $self->inflect_plural, $self->inflect_singular
-    ) if !$self->{skip_relationships};
+    $self->version_to_dump($DBIx::Class::Schema::Loader::VERSION);
+    $self->schema_version_to_dump($DBIx::Class::Schema::Loader::VERSION);
+
+    if (not ref $self->naming && defined $self->naming) {
+        my $naming_ver = $self->naming;
+        $self->{naming} = {
+            relationships => $naming_ver,
+            monikers => $naming_ver,
+        };
+    }
+
+    $self->_check_back_compat;
 
     $self;
+}
+
+sub _check_back_compat {
+    my ($self) = @_;
+
+# dynamic schemas will always be in 0.04006 mode, unless overridden
+    if ($self->dynamic) {
+# just in case, though no one is likely to dump a dynamic schema
+        $self->schema_version_to_dump('0.04006');
+
+        $self->naming->{relationships} ||= 'v4';
+        $self->naming->{monikers}      ||= 'v4';
+
+        return;
+    }
+
+# otherwise check if we need backcompat mode for a static schema
+    my $filename = $self->_get_dump_filename($self->schema_class);
+    return unless -e $filename;
+
+    open(my $fh, '<', $filename)
+        or croak "Cannot open '$filename' for reading: $!";
+
+    while (<$fh>) {
+        if (/^# Created by DBIx::Class::Schema::Loader v((\d+)\.(\d+))/) {
+            my $real_ver = $1;
+
+            $self->schema_version_to_dump($real_ver);
+
+            # XXX when we go past .0 this will need fixing
+            my ($v) = $real_ver =~ /([1-9])/;
+            $v = "v$v";
+
+            $self->naming->{relationships} ||= $v;
+            $self->naming->{monikers}      ||= $v;
+
+            last;
+        }
+    }
+    close $fh;
 }
 
 sub _find_file_in_inc {
@@ -293,14 +414,26 @@ sub _find_file_in_inc {
     return;
 }
 
-sub _load_external {
+sub _class_path {
     my ($self, $class) = @_;
 
     my $class_path = $class;
     $class_path =~ s{::}{/}g;
     $class_path .= '.pm';
 
-    my $real_inc_path = $self->_find_file_in_inc($class_path);
+    return $class_path;
+}
+
+sub _find_class_in_inc {
+    my ($self, $class) = @_;
+
+    return $self->_find_file_in_inc($self->_class_path($class));
+}
+
+sub _load_external {
+    my ($self, $class) = @_;
+
+    my $real_inc_path = $self->_find_class_in_inc($class);
 
     return if !$real_inc_path;
 
@@ -308,9 +441,6 @@ sub _load_external {
     warn qq/# Loaded external class definition for '$class'\n/
         if $self->debug;
 
-    croak 'Failed to locate actual external module file for '
-          . "'$class'"
-              if !$real_inc_path;
     open(my $fh, '<', $real_inc_path)
         or croak "Failed to open '$real_inc_path' for reading: $!";
     $self->_ext_stmt($class,
@@ -330,6 +460,13 @@ sub _load_external {
     );
     close($fh)
         or croak "Failed to close $real_inc_path: $!";
+
+    if ($self->dynamic) { # load the class too
+        # turn off redefined warnings
+        local $SIG{__WARN__} = sub {};
+        do $real_inc_path;
+        die $@ if $@;
+    }
 }
 
 =head2 load
@@ -363,7 +500,7 @@ sub rescan {
     my ($self, $schema) = @_;
 
     $self->{schema} = $schema;
-    $self->{relbuilder}{schema} = $schema;
+    $self->_relbuilder->{schema} = $schema;
 
     my @created;
     my @current = $self->_tables_list;
@@ -376,6 +513,24 @@ sub rescan {
     my $loaded = $self->_load_tables(@created);
 
     return map { $self->monikers->{$_} } @$loaded;
+}
+
+sub _relbuilder {
+    my ($self) = @_;
+
+    return if $self->{skip_relationships};
+
+    if ($self->naming->{relationships} eq 'v4') {
+        require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
+        return $self->{relbuilder} ||=
+            DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040->new(
+                $self->schema, $self->inflect_plural, $self->inflect_singular
+            );
+    }
+
+    $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new(
+        $self->schema, $self->inflect_plural, $self->inflect_singular
+    );
 }
 
 sub _load_tables {
@@ -402,7 +557,7 @@ sub _load_tables {
         # The relationship loader needs a working schema
         $self->{quiet} = 1;
         local $self->{dump_directory} = $self->{temp_directory};
-        $self->_reload_classes(@tables);
+        $self->_reload_classes(\@tables);
         $self->_load_relationships($_) for @tables;
         $self->{quiet} = 0;
 
@@ -413,7 +568,9 @@ sub _load_tables {
     $self->_load_external($_)
         for map { $self->classes->{$_} } @tables;
 
-    $self->_reload_classes(@tables);
+    # Reload without unloading first to preserve any symbols from external
+    # packages.
+    $self->_reload_classes(\@tables, 0);
 
     # Drop temporary cache
     delete $self->{_cache};
@@ -422,7 +579,10 @@ sub _load_tables {
 }
 
 sub _reload_classes {
-    my ($self, @tables) = @_;
+    my ($self, $tables, $unload) = @_;
+
+    my @tables = @$tables;
+    $unload = 1 unless defined $unload;
 
     # so that we don't repeat custom sections
     @INC = grep $_ ne $self->dump_directory, @INC;
@@ -444,7 +604,7 @@ sub _reload_classes {
             local *Class::C3::reinitialize = sub {};
             use warnings;
 
-            Class::Unload->unload($class);
+            Class::Unload->unload($class) if $unload;
             my ($source, $resultset_class);
             if (
                 ($source = $have_source{$moniker})
@@ -452,10 +612,10 @@ sub _reload_classes {
                 && ($resultset_class ne 'DBIx::Class::ResultSet')
             ) {
                 my $has_file = Class::Inspector->loaded_filename($resultset_class);
-                Class::Unload->unload($resultset_class);
-                $self->ensure_class_loaded($resultset_class) if $has_file;
+                Class::Unload->unload($resultset_class) if $unload;
+                $self->_reload_class($resultset_class) if $has_file;
             }
-            $self->ensure_class_loaded($class);
+            $self->_reload_class($class);
         }
         push @to_register, [$moniker, $class];
     }
@@ -464,6 +624,16 @@ sub _reload_classes {
     for (@to_register) {
         $self->schema->register_class(@$_);
     }
+}
+
+# We use this instead of ensure_class_loaded when there are package symbols we
+# want to preserve.
+sub _reload_class {
+    my ($self, $class) = @_;
+
+    my $class_path = $self->_class_path($class);
+    delete $INC{ $class_path };
+    eval "require $class;";
 }
 
 sub _get_dump_filename {
@@ -524,7 +694,10 @@ sub _dump_to_dir {
         $schema_text .= qq|__PACKAGE__->load_classes;\n|;
     }
 
-    $self->_write_classfile($schema_class, $schema_text);
+    {
+        local $self->{version_to_dump} = $self->schema_version_to_dump;
+        $self->_write_classfile($schema_class, $schema_text);
+    }
 
     my $result_base_class = $self->result_base_class || 'DBIx::Class::Core';
 
@@ -581,7 +754,7 @@ sub _write_classfile {
     }
 
     $text .= $self->_sig_comment(
-      $DBIx::Class::Schema::Loader::VERSION, 
+      $self->version_to_dump,
       POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
     );
 
@@ -792,6 +965,10 @@ sub tables {
 sub _default_table2moniker {
     my ($self, $table) = @_;
 
+    if ($self->naming->{monikers} eq 'v4') {
+        return join '', map ucfirst, split /[\W_]+/, lc $table;
+    }
+
     return join '', map ucfirst, split /[\W_]+/,
         Lingua::EN::Inflect::Number::to_S(lc $table);
 }
@@ -824,7 +1001,7 @@ sub _load_relationships {
     my $tbl_uniq_info = $self->_table_uniq_info($table);
 
     my $local_moniker = $self->monikers->{$table};
-    my $rel_stmts = $self->{relbuilder}->generate_code($local_moniker, $tbl_fk_info, $tbl_uniq_info);
+    my $rel_stmts = $self->_relbuilder->generate_code($local_moniker, $tbl_fk_info, $tbl_uniq_info);
 
     foreach my $src_class (sort keys %$rel_stmts) {
         my $src_stmts = $rel_stmts->{$src_class};
@@ -959,7 +1136,7 @@ L<DBIx::Class::Schema::Loader>
 
 =head1 AUTHOR
 
-See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+See L<DBIx::Class::Schema::Loader/AUTHOR> and L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
 
 =head1 LICENSE
 
