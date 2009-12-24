@@ -14,13 +14,9 @@ SL Backcompat Plan:
 *** backcompat tests
 
 These are still failing:
-* t/backcompat/0.04006/20invocations.t
 * t/backcompat/0.04006/23dumpmore.t
 
-*** naming accessor
-
-* class data for Loader
-* passed to _loader->new
+Need a comprehensive backcompat.t
 
 *** Write ::Manual::UpgradingFrom0.04006 POD
 

@@ -343,8 +343,13 @@ sub _check_back_compat {
         no strict 'refs';
         my $class = ref $self || $self;
         require DBIx::Class::Schema::Loader::Compat::v0_040;
-        unshift @{"${class}::ISA"},
-            'DBIx::Class::Schema::Loader::Compat::v0_040';
+
+        @{"${class}::ISA"} = map {
+            $_ eq 'DBIx::Class::Schema::Loader::Base' ?
+                'DBIx::Class::Schema::Loader::Compat::v0_040' :
+                $_
+        } @{"${class}::ISA"};
+
         Class::C3::reinitialize;
 # just in case, though no one is likely to dump a dynamic schema
         $self->schema_version_to_dump('0.04006');
@@ -367,7 +372,12 @@ sub _check_back_compat {
                 if ($self->load_optional_class($compat_class)) {
                     no strict 'refs';
                     my $class = ref $self || $self;
-                    unshift @{"${class}::ISA"}, $compat_class;
+
+                    @{"${class}::ISA"} = map {
+                        $_ eq 'DBIx::Class::Schema::Loader::Base' ?
+                            $compat_class : $_
+                    } @{"${class}::ISA"};
+
                     Class::C3::reinitialize;
                     $self->schema_version_to_dump($real_ver);
                     last;

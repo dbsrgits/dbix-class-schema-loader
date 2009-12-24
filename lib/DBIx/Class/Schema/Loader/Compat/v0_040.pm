@@ -3,6 +3,9 @@ package DBIx::Class::Schema::Loader::Compat::v0_040;
 use strict;
 use warnings;
 use Class::C3;
+
+use base 'DBIx::Class::Schema::Loader::Base';
+
 use DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
 
 # Make a moniker from a table
