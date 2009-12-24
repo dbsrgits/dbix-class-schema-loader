@@ -26,7 +26,7 @@ relationship accessor itself.
 
 It will also more correctly infer the relationship type, e.g. some relationships
 that were previously detected as a C<has_many> will now be a C<might_have>
-(when the foreign key refers to a unique index.)
+(when it detects a unique constraint on the foreign key column.)
 
 =item *
 
@@ -55,14 +55,14 @@ To control this behavior see L<DBIx::Class::Schema::Loader::Base/naming>.
 =head2 Static Schemas
 
 When reading a C<Schema.pm> from a static schema generated with an C<0.04>
-version of Loader, backward compatibility mode willl be turned on, unless
-overridden with the naming accessor.
+version of Loader, backward compatibility mode will default to on, unless
+overridden with the C<naming> attribute.
 
 =head2 Dynamic Schemas
 
 Dynamic schemas will always by default use C<0.04006> mode.
 
-To upgrade a dynamic schema, set the naming accessor (which is proxied to the
+To upgrade a dynamic schema, set the naming attribute (which is proxied to the
 loader) in your C<Schema.pm>:
 
     __PACKAGE__->naming('current');

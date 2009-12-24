@@ -50,7 +50,7 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 monikers
                                 dynamic
                                 naming
-                                _upgrading
+                                _upgrading_from
                              /);
 
 __PACKAGE__->mk_accessors(qw/
