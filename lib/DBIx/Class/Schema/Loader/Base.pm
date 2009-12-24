@@ -50,6 +50,7 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 monikers
                                 dynamic
                                 naming
+                                _upgrading
                              /);
 
 __PACKAGE__->mk_accessors(qw/
@@ -171,10 +172,11 @@ a scalar moniker.  If the hash entry does not exist, or the function
 returns a false value, the code falls back to default behavior
 for that table name.
 
-The default behavior is: C<join '', map ucfirst, split /[\W_]+/, lc $table>,
-which is to say: lowercase everything, split up the table name into chunks
-anywhere a non-alpha-numeric character occurs, change the case of first letter
-of each chunk to upper case, and put the chunks back together.  Examples:
+The default behavior is to singularize the table name, and: C<join '', map
+ucfirst, split /[\W_]+/, lc $table>, which is to say: lowercase everything,
+split up the table name into chunks anywhere a non-alpha-numeric character
+occurs, change the case of first letter of each chunk to upper case, and put
+the chunks back together.  Examples:
 
     Table Name  | Moniker Name
     ---------------------------
@@ -347,7 +349,7 @@ sub new {
     $self->schema_version_to_dump($DBIx::Class::Schema::Loader::VERSION);
 
     if (not ref $self->naming && defined $self->naming) {
-        my $naming_ver = $self->naming;;
+        my $naming_ver = $self->naming;
         $self->{naming} = {
             relationships => $naming_ver,
             monikers => $naming_ver,
@@ -1134,7 +1136,7 @@ L<DBIx::Class::Schema::Loader>
 
 =head1 AUTHOR
 
-See L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+See L<DBIx::Class::Schema::Loader/AUTHOR> and L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
 
 =head1 LICENSE
 

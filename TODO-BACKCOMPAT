@@ -1,21 +1,15 @@
 SL Backcompat Plan:
 
-*** dynamic schemas
-
-* should default to 0.04006 mode
-* __PACKAGE__->naming('current') will turn on current mode
-
 *** 0.04006 mode
 
-* use the detector and compat relbuilder ilmari already wrote for static schemas
 * add a loud warning that says that we're running in backcompat mode, and refers
-  to the ::Manual::UpgradingFrom0.04006 POD.
+  to the ::Manual::UpgradingFromV4 POD.
+* preserve custom content from un-singularized Results and delete them when in
+  upgrade mode
 
 *** backcompat tests
 
 Need a comprehensive backcompat.t
-
-*** Write ::Manual::UpgradingFrom0.04006 POD
 
 *** Catalyst Helper
 

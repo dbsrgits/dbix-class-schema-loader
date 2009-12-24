@@ -451,7 +451,11 @@ gugu: Andrey Kostenko <a.kostenko@rambler-co.ru>
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
-=head1 LICENSE
+=head1 COPYRIGHT & LICENSE
+
+Copyright (c) 2006 - 2009 by the aforementioned
+L<DBIx::Class::Schema::Loader/AUTHOR> and
+L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
