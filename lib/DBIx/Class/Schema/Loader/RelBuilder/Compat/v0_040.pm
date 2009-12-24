@@ -30,5 +30,15 @@ sub _remote_relname {
     return $remote_relname;
 }
 
-
 1;
+
+=head1 NAME
+
+DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040 - RelBuilder for
+compatibility with DBIx::Class::Schema::Loader version 0.04006
+
+=head1 DESCRIPTION
+
+Loaded by L<DBIx::Class::Schema::Loader::Compat::v0_040>.
+
+=cut

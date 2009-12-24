@@ -24,3 +24,15 @@ sub _relbuilder {
 }
 
 1;
+
+=head1 NAME
+
+DBIx::Class::Schema::Loader::Compat::v0_040 - Compatibility for DBIx::Class::Schema::Loader
+version 0.04006
+
+=head1 DESCRIPTION
+
+Dumps from the old version are auto-detected, and the compat layer is turned
+on. See also L<DBIx::Class::Schema::Loader::Base/namingg>.
+
+=cut
