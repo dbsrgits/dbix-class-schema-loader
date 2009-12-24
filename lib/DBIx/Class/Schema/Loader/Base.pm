@@ -49,6 +49,7 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 classes
                                 monikers
                                 dynamic
+                                naming
                              /);
 
 __PACKAGE__->mk_accessors(qw/
@@ -97,7 +98,21 @@ overwriting a dump made with an earlier version.
 
 The option also takes a hashref:
 
-    naming => { relationships => 'v5', results => 'v4' }
+    naming => { relationships => 'v5', monikers => 'v4' }
+
+The keys are:
+
+=over 4
+
+=item relationships
+
+How to name relationship accessors.
+
+=item monikers
+
+How to name Result classes.
+
+=back
 
 The values can be:
 
@@ -331,6 +346,14 @@ sub new {
     $self->version_to_dump($DBIx::Class::Schema::Loader::VERSION);
     $self->schema_version_to_dump($DBIx::Class::Schema::Loader::VERSION);
 
+    if (not ref $self->naming && defined $self->naming) {
+        my $naming_ver = $self->naming;;
+        $self->{naming} = {
+            relationships => $naming_ver,
+            monikers => $naming_ver,
+        };
+    }
+
     $self->_check_back_compat;
 
     $self;
@@ -339,21 +362,14 @@ sub new {
 sub _check_back_compat {
     my ($self) = @_;
 
-# dynamic schemas will always be in 0.04006 mode
+# dynamic schemas will always be in 0.04006 mode, unless overridden
     if ($self->dynamic) {
-        no strict 'refs';
-        my $class = ref $self || $self;
-        require DBIx::Class::Schema::Loader::Compat::v0_040;
-
-        @{"${class}::ISA"} = map {
-            $_ eq 'DBIx::Class::Schema::Loader::Base' ?
-                'DBIx::Class::Schema::Loader::Compat::v0_040' :
-                $_
-        } @{"${class}::ISA"};
-
-        Class::C3::reinitialize;
 # just in case, though no one is likely to dump a dynamic schema
         $self->schema_version_to_dump('0.04006');
+
+        $self->naming->{relationships} ||= 'v4';
+        $self->naming->{monikers}      ||= 'v4';
+
         return;
     }
 
@@ -367,24 +383,16 @@ sub _check_back_compat {
     while (<$fh>) {
         if (/^# Created by DBIx::Class::Schema::Loader v((\d+)\.(\d+))/) {
             my $real_ver = $1;
-            my $ver      = "v${2}_${3}";
-            while (1) {
-                my $compat_class = "DBIx::Class::Schema::Loader::Compat::${ver}";
-                if ($self->load_optional_class($compat_class)) {
-                    no strict 'refs';
-                    my $class = ref $self || $self;
 
-                    @{"${class}::ISA"} = map {
-                        $_ eq 'DBIx::Class::Schema::Loader::Base' ?
-                            $compat_class : $_
-                    } @{"${class}::ISA"};
+            $self->schema_version_to_dump($real_ver);
 
-                    Class::C3::reinitialize;
-                    $self->schema_version_to_dump($real_ver);
-                    last;
-                }
-                $ver =~ s/\d\z// or last;
-            }
+            # XXX when we go past .0 this will need fixing
+            my ($v) = $real_ver =~ /([1-9])/;
+            $v = "v$v";
+
+            $self->naming->{relationships} ||= $v;
+            $self->naming->{monikers}      ||= $v;
+
             last;
         }
     }
@@ -509,6 +517,14 @@ sub _relbuilder {
     my ($self) = @_;
 
     return if $self->{skip_relationships};
+
+    if ($self->naming->{relationships} eq 'v4') {
+        require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
+        return $self->{relbuilder} ||=
+            DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040->new(
+                $self->schema, $self->inflect_plural, $self->inflect_singular
+            );
+    }
 
     $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new(
         $self->schema, $self->inflect_plural, $self->inflect_singular
@@ -946,6 +962,10 @@ sub tables {
 # Make a moniker from a table
 sub _default_table2moniker {
     my ($self, $table) = @_;
+
+    if ($self->naming->{monikers} eq 'v4') {
+        return join '', map ucfirst, split /[\W_]+/, lc $table;
+    }
 
     return join '', map ucfirst, split /[\W_]+/,
         Lingua::EN::Inflect::Number::to_S(lc $table);

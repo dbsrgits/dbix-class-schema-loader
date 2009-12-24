@@ -39,6 +39,6 @@ compatibility with DBIx::Class::Schema::Loader version 0.04006
 
 =head1 DESCRIPTION
 
-Loaded by L<DBIx::Class::Schema::Loader::Compat::v0_040>.
+See L<DBIx::Class::Schema::Loader::Base/naming>.
 
 =cut

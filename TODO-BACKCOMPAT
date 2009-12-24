@@ -13,9 +13,6 @@ SL Backcompat Plan:
 
 *** backcompat tests
 
-These are still failing:
-* t/backcompat/0.04006/23dumpmore.t
-
 Need a comprehensive backcompat.t
 
 *** Write ::Manual::UpgradingFrom0.04006 POD
