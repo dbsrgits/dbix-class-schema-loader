@@ -152,7 +152,7 @@ sub _invoke_loader {
     $args->{schema_class} = $class;
     weaken($args->{schema}) if ref $self;
     $args->{dump_directory} ||= $self->dump_to_dir;
-    $args->{naming} = $self->naming;
+    $args->{naming} = $self->naming if $self->naming;
 
     # XXX this only works for relative storage_type, like ::DBI ...
     my $impl = $self->loader_class

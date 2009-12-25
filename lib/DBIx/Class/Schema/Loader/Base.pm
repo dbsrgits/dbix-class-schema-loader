@@ -385,6 +385,9 @@ Dynamic schema detected, will run in 0.04006 mode.
 
 Set the 'naming' attribute or the SCHEMA_LOADER_BACKCOMPAT environment variable
 to disable this warning.
+
+See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
+details.
 EOF
         }
 
@@ -405,14 +408,29 @@ EOF
         if (/^# Created by DBIx::Class::Schema::Loader v((\d+)\.(\d+))/) {
             my $real_ver = $1;
 
-            $self->schema_version_to_dump($real_ver);
-
             # XXX when we go past .0 this will need fixing
             my ($v) = $real_ver =~ /([1-9])/;
             $v = "v$v";
 
+            last if $v eq CURRENT_V;
+
+            if (not %{ $self->naming }) {
+                warn <<"EOF" unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
+
+Version $real_ver static schema detected, turning on backcompat mode.
+
+Set the 'naming' attribute or the SCHEMA_LOADER_BACKCOMPAT environment variable
+to disable this warning.
+
+See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
+details.
+EOF
+            }
+
             $self->naming->{relationships} ||= $v;
             $self->naming->{monikers}      ||= $v;
+
+            $self->schema_version_to_dump($real_ver);
 
             last;
         }

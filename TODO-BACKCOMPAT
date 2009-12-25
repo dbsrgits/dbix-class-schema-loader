@@ -2,14 +2,8 @@ SL Backcompat Plan:
 
 *** 0.04006 mode
 
-* add a loud warning that says that we're running in backcompat mode, and refers
-  to the ::Manual::UpgradingFromV4 POD.
 * preserve custom content from un-singularized Results and delete them when in
   upgrade mode
-
-*** backcompat tests
-
-Need a comprehensive backcompat.t
 
 *** Catalyst Helper
 

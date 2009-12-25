@@ -20,9 +20,9 @@ C<is_auto_increment> that it didn't set before.
 
 RelBuilder
 
-The new RelBuilder will give you much nicer accessor names for relationships,
-so you will no longer have conflicts between a foreign key column and the
-relationship accessor itself.
+The new RelBuilder will give you nicer accessor names for relationships, so you
+will no longer have conflicts between a foreign key column and the relationship
+accessor itself (if the FK is named C<_id>.)
 
 It will also more correctly infer the relationship type, e.g. some relationships
 that were previously detected as a C<has_many> will now be a C<might_have>

@@ -1,25 +1,25 @@
 use strict;
 use warnings;
 use Test::More;
-use File::Path;
+use File::Path qw/rmtree make_path/;
 use Class::Unload;
 use lib qw(t/lib);
 use make_dbictest_db2;
 
 my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
+my $SCHEMA_CLASS = 'DBIXCSL_Test::Schema';
 
 sub run_loader {
     my %loader_opts = @_;
 
-    my $schema_class = 'DBIXCSL_Test::Schema';
-    Class::Unload->unload($schema_class);
+    Class::Unload->unload($SCHEMA_CLASS);
 
     my @connect_info = $make_dbictest_db2::dsn;
     my @loader_warnings;
     local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
     eval qq{
-        package $schema_class;
+        package $SCHEMA_CLASS;
         use base qw/DBIx::Class::Schema::Loader/;
 
         __PACKAGE__->loader_options(\%loader_opts);
@@ -28,12 +28,12 @@ sub run_loader {
 
     ok(!$@, "Loader initialization") or diag $@;
 
-    my $schema = $schema_class->clone;
+    my $schema = $SCHEMA_CLASS->clone;
     my (%monikers, %classes);
     foreach my $source_name ($schema->sources) {
         my $table_name = $schema->source($source_name)->from;
         $monikers{$table_name} = $source_name;
-        $classes{$table_name}  = "${schema_class}::${source_name}";
+        $classes{$table_name}  = "${SCHEMA_CLASS}::${source_name}";
     }
 
     return {
@@ -44,30 +44,173 @@ sub run_loader {
     };
 }
 
+sub run_v4_tests {
+    my $res = shift;
+    my $schema = $res->{schema};
+
+    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs/} ],
+        [qw/Foos Bar Bazs Quuxs/],
+        'correct monikers in 0.04006 mode';
+
+    ok my $bar = eval { $schema->resultset('Bar')->find(1) };
+
+    isa_ok eval { $bar->foo_id }, $res->{classes}{foos},
+        'correct rel name in 0.04006 mode';
+
+    ok my $baz  = eval { $schema->resultset('Bazs')->find(1) };
+
+    isa_ok eval { $baz->quux }, 'DBIx::Class::ResultSet',
+        'correct rel type and name for UNIQUE FK in 0.04006 mode';
+}
+
+sub run_v5_tests {
+    my $res = shift;
+    my $schema = $res->{schema};
+
+    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs/} ],
+        [qw/Foo Bar Baz Quux/],
+        'correct monikers in current mode';
+
+    ok my $bar = eval { $schema->resultset('Bar')->find(1) };
+
+    isa_ok eval { $bar->foo }, $res->{classes}{foos},
+        'correct rel name in current mode';
+
+    ok my $baz  = eval { $schema->resultset('Baz')->find(1) };
+
+    isa_ok eval { $baz->quux }, $res->{classes}{quuxs},
+        'correct rel type and name for UNIQUE FK in current mode';
+}
+
 # test dynamic schema in 0.04006 mode
 {
     my $res = run_loader();
+    my $warning = $res->{warnings}[0];
 
-    like $res->{warnings}[0], qr/dynamic schema/i,
+    like $warning, qr/dynamic schema/i,
         'dynamic schema in backcompat mode detected';
-    like $res->{warnings}[0], qr/run in 0\.04006 mode/,
+    like $warning, qr/run in 0\.04006 mode/i,
         'dynamic schema in 0.04006 mode warning';
+    like $warning, qr/DBIx::Class::Schema::Loader::Manual::UpgradingFromV4/,
+        'warning refers to upgrading doc';
+    
+    run_v4_tests($res);
+}
 
-    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazes quuxes/} ],
-        [qw/Foos Bar Bazes Quuxes/],
-        'correct monikers in 0.04006 mode';
+# setting naming accessor on dynamic schema should disable warning (even when
+# we're setting it to 'v4' .)
+{
+    my $res = run_loader(naming => 'v4');
 
-    ok my $bar = eval { $res->{schema}->resultset('Bar')->find(1) };
+    is_deeply $res->{warnings}, [], 'no warnings with naming attribute set';
+}
 
-    isa_ok eval { $bar->fooref }, $res->{classes}{foos},
-        'correct rel name';
+# test upgraded dynamic schema
+{
+    my $res = run_loader(naming => 'current');
 
-    ok my $baz  = eval { $res->{schema}->resultset('Bazes')->find(1) };
+# to dump a schema for debugging...
+#    {
+#        mkdir '/tmp/HLAGH';
+#        $schema->_loader->{dump_directory} = '/tmp/HLAGH';
+#        $schema->_loader->_dump_to_dir(values %{ $res->{classes} });
+#    }
 
-    isa_ok eval { $baz->quuxes }, 'DBIx::Class::ResultSet',
-        'correct rel type and name for UNIQUE FK';
+    is_deeply $res->{warnings}, [], 'no warnings with naming attribute set';
+
+    run_v5_tests($res);
+}
+
+
+# test running against v4 schema without upgrade
+{
+    # write out the 0.04006 Schema.pm we have in __DATA__
+    (my $schema_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s/::[^:]+\z//;
+    make_path $schema_dir;
+    my $schema_pm = "$schema_dir/Schema.pm";
+    open my $fh, '>', $schema_pm or die $!;
+    while (<DATA>) {
+        print $fh $_;
+    }
+    close $fh;
+
+    # now run the loader
+    my $res = run_loader(dump_directory => $DUMP_DIR);
+    my $warning = $res->{warnings}[0];
+
+    like $warning, qr/static schema/i,
+        'static schema in backcompat mode detected';
+    like $warning, qr/0.04006/,
+        'correct version detected';
+    like $warning, qr/DBIx::Class::Schema::Loader::Manual::UpgradingFromV4/,
+        'refers to upgrading doc';
+
+    run_v4_tests($res);
+
+    # add some custom content to a Result that will be replaced
+    my $schema   = $res->{schema};
+    my $quuxs_pm = $schema->_loader
+        ->_get_dump_filename($res->{classes}{quuxs});
+    {
+        local ($^I, @ARGV) = ('', $quuxs_pm);
+        while (<>) {
+            if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
+                print;
+                print "sub a_method { 'mtfnpy' }\n";
+            }
+            else {
+                print;
+            }
+        }
+    }
+
+    # now upgrade the schema
+    $res = run_loader(dump_directory => $DUMP_DIR, naming => 'current');
+    $schema = $res->{schema};
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+        'correct warnings on upgrading static schema (with "naming" set)';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+        'correct warnings on upgrading static schema (with "naming" set)';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on upgrading static schema (with "naming" set)';
+
+    run_v5_tests($res);
+
+    (my $result_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s{::}{/}g;
+    my $result_count =()= glob "$result_dir/*";
+
+    is $result_count, 4,
+        'un-singularized results were replaced during upgrade';
+
+    # check that custom content was preserved
+    is eval { $schema->resultset('Quux')->find(1)->a_method }, 'mtfnpy',
+        'custom content was carried over from un-singularized Result';
 }
 
 done_testing;
 
 END { rmtree $DUMP_DIR }
+
+# a Schema.pm made with 0.04006
+
+__DATA__
+package DBIXCSL_Test::Schema;
+
+use strict;
+use warnings;
+
+use base 'DBIx::Class::Schema';
+
+__PACKAGE__->load_classes;
+
+
+# Created by DBIx::Class::Schema::Loader v0.04006 @ 2009-12-25 01:49:25
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ibIJTbfM1ji4pyD/lgSEog
+
+
+# You can replace this text with custom content, and it will be preserved on regeneration
+1;
+
