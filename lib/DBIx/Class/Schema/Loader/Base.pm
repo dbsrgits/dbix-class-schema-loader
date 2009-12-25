@@ -291,6 +291,8 @@ can also be found via standard L<DBIx::Class::Schema> methods somehow.
 
 =cut
 
+use constant CURRENT_V => 'v5';
+
 # ensure that a peice of object data is a valid arrayref, creating
 # an empty one or encapsulating whatever's there.
 sub _ensure_arrayref {
@@ -348,13 +350,20 @@ sub new {
     $self->version_to_dump($DBIx::Class::Schema::Loader::VERSION);
     $self->schema_version_to_dump($DBIx::Class::Schema::Loader::VERSION);
 
-    if (not ref $self->naming && defined $self->naming) {
+    if ((not ref $self->naming) && defined $self->naming) {
         my $naming_ver = $self->naming;
         $self->{naming} = {
             relationships => $naming_ver,
             monikers => $naming_ver,
         };
     }
+
+    if ($self->naming) {
+        for (values %{ $self->naming }) {
+            $_ = CURRENT_V if $_ eq 'current';
+        }
+    }
+    $self->{naming} ||= {};
 
     $self->_check_back_compat;
 
@@ -368,6 +377,16 @@ sub _check_back_compat {
     if ($self->dynamic) {
 # just in case, though no one is likely to dump a dynamic schema
         $self->schema_version_to_dump('0.04006');
+
+        if (not %{ $self->naming }) {
+            warn <<EOF unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
+
+Dynamic schema detected, will run in 0.04006 mode.
+
+Set the 'naming' attribute or the SCHEMA_LOADER_BACKCOMPAT environment variable
+to disable this warning.
+EOF
+        }
 
         $self->naming->{relationships} ||= 'v4';
         $self->naming->{monikers}      ||= 'v4';
@@ -516,6 +535,7 @@ sub rescan {
 }
 
 sub _relbuilder {
+    no warnings 'uninitialized';
     my ($self) = @_;
 
     return if $self->{skip_relationships};
@@ -963,6 +983,7 @@ sub tables {
 
 # Make a moniker from a table
 sub _default_table2moniker {
+    no warnings 'uninitialized';
     my ($self, $table) = @_;
 
     if ($self->naming->{monikers} eq 'v4') {
