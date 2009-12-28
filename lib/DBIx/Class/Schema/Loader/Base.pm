@@ -47,15 +47,16 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 db_schema
                                 _tables
                                 classes
+                                _upgrading_classes
                                 monikers
                                 dynamic
                                 naming
-                                _upgrading_from
                              /);
 
 __PACKAGE__->mk_accessors(qw/
                                 version_to_dump
                                 schema_version_to_dump
+                                _upgrading_from
 /);
 
 =head1 NAME
@@ -331,6 +332,7 @@ sub new {
 
     $self->{monikers} = {};
     $self->{classes} = {};
+    $self->{_upgrading_classes} = {};
 
     $self->{schema_class} ||= ( ref $self->{schema} || $self->{schema} );
     $self->{schema} ||= $self->{schema_class};
@@ -390,6 +392,9 @@ See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
 details.
 EOF
         }
+        else {
+            $self->_upgrading_from('v4');
+        }
 
         $self->naming->{relationships} ||= 'v4';
         $self->naming->{monikers}      ||= 'v4';
@@ -425,6 +430,9 @@ to disable this warning.
 See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
 details.
 EOF
+            }
+            else {
+                $self->_upgrading_from($v);
             }
 
             $self->naming->{relationships} ||= $v;
@@ -671,6 +679,12 @@ sub _reload_class {
 
     my $class_path = $self->_class_path($class);
     delete $INC{ $class_path };
+
+# kill redefined warnings
+    local $SIG{__WARN__} = sub {
+        warn @_ unless $_[0] =~ /^Subroutine \S+ redefined/;
+    };
+
     eval "require $class;";
 }
 
@@ -775,6 +789,23 @@ sub _write_classfile {
     }    
 
     my ($custom_content, $old_md5, $old_ver, $old_ts) = $self->_get_custom_content($class, $filename);
+
+    if ($self->_upgrading_from) {
+        my $old_class = $self->_upgrading_classes->{$class};
+
+        if ($old_class && ($old_class ne $class)) {
+            my $old_filename = $self->_get_dump_filename($old_class);
+
+            my ($old_custom_content) = $self->_get_custom_content(
+                $old_class, $old_filename
+            );
+
+            $custom_content .= "\n" . $old_custom_content
+                if $old_custom_content;
+
+            unlink $old_filename;
+        }
+    }
 
     $text .= qq|$_\n|
         for @{$self->{_dump_storage}->{$class} || []};
@@ -902,6 +933,15 @@ sub _make_src_class {
         }
     }
     my $table_class = join(q{::}, @result_namespace, $table_moniker);
+
+    if (my $upgrading_v = $self->_upgrading_from) {
+        local $self->naming->{monikers} = $upgrading_v;
+
+        my $old_class = join(q{::}, @result_namespace,
+            $self->_table2moniker($table));
+
+        $self->_upgrading_classes->{$table_class} = $old_class;
+    }
 
     my $table_normalized = lc $table;
     $self->classes->{$table} = $table_class;

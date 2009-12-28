@@ -13,7 +13,14 @@ my $SCHEMA_CLASS = 'DBIXCSL_Test::Schema';
 sub run_loader {
     my %loader_opts = @_;
 
-    Class::Unload->unload($SCHEMA_CLASS);
+    eval {
+        foreach my $source_name ($SCHEMA_CLASS->clone->sources) {
+            Class::Unload->unload("${SCHEMA_CLASS}::${source_name}");
+        }
+
+        Class::Unload->unload($SCHEMA_CLASS);
+    };
+    undef $@;
 
     my @connect_info = $make_dbictest_db2::dsn;
     my @loader_warnings;
@@ -103,6 +110,8 @@ sub run_v5_tests {
     my $res = run_loader(naming => 'v4');
 
     is_deeply $res->{warnings}, [], 'no warnings with naming attribute set';
+
+    run_v4_tests($res);
 }
 
 # test upgraded dynamic schema
@@ -120,7 +129,6 @@ sub run_v5_tests {
 
     run_v5_tests($res);
 }
-
 
 # test running against v4 schema without upgrade
 {
@@ -175,7 +183,8 @@ sub run_v5_tests {
         'correct warnings on upgrading static schema (with "naming" set)';
 
     is scalar @{ $res->{warnings} }, 2,
-'correct number of warnings on upgrading static schema (with "naming" set)';
+'correct number of warnings on upgrading static schema (with "naming" set)'
+        or diag @{ $res->{warnings} };
 
     run_v5_tests($res);
 

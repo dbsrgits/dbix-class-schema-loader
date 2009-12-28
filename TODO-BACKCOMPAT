@@ -2,8 +2,11 @@ SL Backcompat Plan:
 
 *** 0.04006 mode
 
-* preserve custom content from un-singularized Results and delete them when in
-  upgrade mode
+* get custom content from un-singularized classes in _load_external, with an
+  appropriate comment that it's during upgrade only, for both static and
+  dynamic schemas
+
+* make use_namespaces the default, and upgrade to it properly
 
 *** Catalyst Helper
 
