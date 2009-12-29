@@ -2,9 +2,8 @@ SL Backcompat Plan:
 
 *** 0.04006 mode
 
-* get custom content from un-singularized classes in _load_external, with an
-  appropriate comment that it's during upgrade only, for both static and
-  dynamic schemas
+* test getting custom content from un-singularized classes in _load_external
+  for a static schema
 
 * make use_namespaces the default, and upgrade to it properly
 

@@ -478,39 +478,94 @@ sub _find_class_in_inc {
 sub _load_external {
     my ($self, $class) = @_;
 
+    # so that we don't load our own classes, under any circumstances
+    local *INC = [ grep $_ ne $self->dump_directory, @INC ];
+
     my $real_inc_path = $self->_find_class_in_inc($class);
 
-    return if !$real_inc_path;
+    my $old_class = $self->_upgrading_classes->{$class}
+        if $self->_upgrading_from;
 
-    # If we make it to here, we loaded an external definition
-    warn qq/# Loaded external class definition for '$class'\n/
-        if $self->debug;
+    my $old_real_inc_path = $self->_find_class_in_inc($old_class)
+        if $old_class && $old_class ne $class;
 
-    open(my $fh, '<', $real_inc_path)
-        or croak "Failed to open '$real_inc_path' for reading: $!";
-    $self->_ext_stmt($class,
-         qq|# These lines were loaded from '$real_inc_path' found in \@INC.\n|
-        .qq|# They are now part of the custom portion of this file\n|
-        .qq|# for you to hand-edit.  If you do not either delete\n|
-        .qq|# this section or remove that file from \@INC, this section\n|
-        .qq|# will be repeated redundantly when you re-create this\n|
-        .qq|# file again via Loader!\n|
-    );
-    while(<$fh>) {
-        chomp;
-        $self->_ext_stmt($class, $_);
+    return unless $real_inc_path || $old_real_inc_path;
+
+    if ($real_inc_path) {
+        # If we make it to here, we loaded an external definition
+        warn qq/# Loaded external class definition for '$class'\n/
+            if $self->debug;
+
+        open(my $fh, '<', $real_inc_path)
+            or croak "Failed to open '$real_inc_path' for reading: $!";
+        $self->_ext_stmt($class,
+          qq|# These lines were loaded from '$real_inc_path' found in \@INC.\n|
+         .qq|# They are now part of the custom portion of this file\n|
+         .qq|# for you to hand-edit.  If you do not either delete\n|
+         .qq|# this section or remove that file from \@INC, this section\n|
+         .qq|# will be repeated redundantly when you re-create this\n|
+         .qq|# file again via Loader!\n|
+        );
+        while(<$fh>) {
+            chomp;
+            $self->_ext_stmt($class, $_);
+        }
+        $self->_ext_stmt($class,
+            qq|# End of lines loaded from '$real_inc_path' |
+        );
+        close($fh)
+            or croak "Failed to close $real_inc_path: $!";
+
+        if ($self->dynamic) { # load the class too
+            # kill redefined warnings
+            local $SIG{__WARN__} = sub {
+                warn @_ unless $_[0] =~ /^Subroutine \S+ redefined/;
+            };
+            do $real_inc_path;
+            die $@ if $@;
+        }
     }
-    $self->_ext_stmt($class,
-        qq|# End of lines loaded from '$real_inc_path' |
-    );
-    close($fh)
-        or croak "Failed to close $real_inc_path: $!";
 
-    if ($self->dynamic) { # load the class too
-        # turn off redefined warnings
-        local $SIG{__WARN__} = sub {};
-        do $real_inc_path;
-        die $@ if $@;
+    if ($old_real_inc_path) {
+        open(my $fh, '<', $old_real_inc_path)
+            or croak "Failed to open '$old_real_inc_path' for reading: $!";
+        $self->_ext_stmt($class, <<"EOF");
+
+# These lines were loaded from '$old_real_inc_path', based on the Result class
+# name that would have been created by an 0.04006 version of the Loader. For a
+# static schema, this happens only once during upgrade.
+EOF
+        if ($self->dynamic) {
+            warn <<"EOF";
+
+Detected external content in '$old_real_inc_path', a class name that would have
+been used by an 0.04006 version of the Loader.
+
+* PLEASE RENAME THIS CLASS: from '$old_class' to '$class', as that is the
+new name of the Result.
+EOF
+            # kill redefined warnings
+            local $SIG{__WARN__} = sub {
+                warn @_ unless $_[0] =~ /^Subroutine \S+ redefined/;
+            };
+            my $code = do {
+                local ($/, @ARGV) = (undef, $old_real_inc_path); <>
+            };
+            $code =~ s/$old_class/$class/g;
+            eval $code;
+            die $@ if $@;
+        }
+
+        while(<$fh>) {
+            chomp;
+            $self->_ext_stmt($class, $_);
+        }
+        $self->_ext_stmt($class,
+            qq|# End of lines loaded from '$old_real_inc_path' |
+        );
+
+        close($fh)
+            or croak "Failed to close $old_real_inc_path: $!";
     }
 }
 
@@ -608,7 +663,7 @@ sub _load_tables {
         $self->{quiet} = 0;
 
         # Remove that temp dir from INC so it doesn't get reloaded
-        @INC = grep { $_ ne $self->{dump_directory} } @INC;
+        @INC = grep $_ ne $self->dump_directory, @INC;
     }
 
     $self->_load_external($_)
@@ -797,11 +852,15 @@ sub _write_classfile {
             my $old_filename = $self->_get_dump_filename($old_class);
 
             my ($old_custom_content) = $self->_get_custom_content(
-                $old_class, $old_filename
+                $old_class, $old_filename, 0 # do not add default comment
             );
 
-            $custom_content .= "\n" . $old_custom_content
-                if $old_custom_content;
+            $old_custom_content =~ s/\n\n# You can replace.*\n1;\n//;
+
+            if ($old_custom_content) {
+                $custom_content =
+                    "\n" . $old_custom_content . "\n" . $custom_content;
+            }
 
             unlink $old_filename;
         }
@@ -851,7 +910,9 @@ sub _default_custom_content {
 }
 
 sub _get_custom_content {
-    my ($self, $class, $filename) = @_;
+    my ($self, $class, $filename, $add_default) = @_;
+
+    $add_default = 1 unless defined $add_default;
 
     return ($self->_default_custom_content) if ! -f $filename;
 
@@ -887,7 +948,7 @@ sub _get_custom_content {
             if !$md5;
 
     # Default custom content:
-    $buffer ||= $self->_default_custom_content;
+    $buffer ||= $self->_default_custom_content if $add_default;
 
     return ($buffer, $md5, $ver, $ts);
 }
@@ -1194,6 +1255,13 @@ sub _quote_table_name {
 }
 
 sub _is_case_sensitive { 0 }
+
+# remove the dump dir from @INC on destruction
+sub DESTROY {
+    my $self = shift;
+
+    @INC = grep $_ ne $self->dump_directory, @INC;
+}
 
 =head2 monikers
 

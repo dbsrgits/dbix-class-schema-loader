@@ -3,6 +3,8 @@ use warnings;
 use Test::More;
 use File::Path qw/rmtree make_path/;
 use Class::Unload;
+use File::Temp qw/tempfile tempdir/;
+use IO::File;
 use lib qw(t/lib);
 use make_dbictest_db2;
 
@@ -59,7 +61,9 @@ sub run_v4_tests {
         [qw/Foos Bar Bazs Quuxs/],
         'correct monikers in 0.04006 mode';
 
-    ok my $bar = eval { $schema->resultset('Bar')->find(1) };
+    isa_ok ((my $bar = eval { $schema->resultset('Bar')->find(1) }),
+        $res->{classes}{bar},
+        'found a bar');
 
     isa_ok eval { $bar->foo_id }, $res->{classes}{foos},
         'correct rel name in 0.04006 mode';
@@ -130,6 +134,41 @@ sub run_v5_tests {
     run_v5_tests($res);
 }
 
+# test upgraded dynamic schema with external content loaded
+{
+    my $temp_dir = tempdir;
+    push @INC, $temp_dir;
+
+    my $external_result_dir = join '/', $temp_dir, split /::/, $SCHEMA_CLASS;
+    make_path $external_result_dir;
+
+    IO::File->new(">$external_result_dir/Quuxs.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Quuxs;
+sub a_method { 'hlagh' }
+1;
+EOF
+
+    my $res = run_loader(naming => 'current');
+    my $schema = $res->{schema};
+
+    is scalar @{ $res->{warnings} }, 1,
+'correct nummber of warnings for upgraded dynamic schema with external ' .
+'content for unsingularized Result.';
+
+    my $warning = $res->{warnings}[0];
+    like $warning, qr/Detected external content/i,
+        'detected external content warning';
+
+    is eval { $schema->resultset('Quux')->find(1)->a_method }, 'hlagh',
+'external custom content for unsingularized Result was loaded by upgraded ' .
+'dynamic Schema';
+
+    run_v5_tests($res);
+
+    rmtree $temp_dir;
+    pop @INC;
+}
+
 # test running against v4 schema without upgrade
 {
     # write out the 0.04006 Schema.pm we have in __DATA__
@@ -152,6 +191,9 @@ sub run_v5_tests {
         'correct version detected';
     like $warning, qr/DBIx::Class::Schema::Loader::Manual::UpgradingFromV4/,
         'refers to upgrading doc';
+
+    is scalar @{ $res->{warnings} }, 3,
+        'correct number of warnings for static schema in backcompat mode';
 
     run_v4_tests($res);
 
@@ -201,7 +243,9 @@ sub run_v5_tests {
 
 done_testing;
 
-END { rmtree $DUMP_DIR }
+END {
+    rmtree $DUMP_DIR unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
+}
 
 # a Schema.pm made with 0.04006
 
