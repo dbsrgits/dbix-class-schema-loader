@@ -12,87 +12,6 @@ my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
 my $SCHEMA_CLASS = 'DBIXCSL_Test::Schema';
 
-sub run_loader {
-    my %loader_opts = @_;
-
-    eval {
-        foreach my $source_name ($SCHEMA_CLASS->clone->sources) {
-            Class::Unload->unload("${SCHEMA_CLASS}::${source_name}");
-        }
-
-        Class::Unload->unload($SCHEMA_CLASS);
-    };
-    undef $@;
-
-    my @connect_info = $make_dbictest_db2::dsn;
-    my @loader_warnings;
-    local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
-    eval qq{
-        package $SCHEMA_CLASS;
-        use base qw/DBIx::Class::Schema::Loader/;
-
-        __PACKAGE__->loader_options(\%loader_opts);
-        __PACKAGE__->connection(\@connect_info);
-    };
-
-    ok(!$@, "Loader initialization") or diag $@;
-
-    my $schema = $SCHEMA_CLASS->clone;
-    my (%monikers, %classes);
-    foreach my $source_name ($schema->sources) {
-        my $table_name = $schema->source($source_name)->from;
-        $monikers{$table_name} = $source_name;
-        $classes{$table_name}  = "${SCHEMA_CLASS}::${source_name}";
-    }
-
-    return {
-        schema => $schema,
-        warnings => \@loader_warnings,
-        monikers => \%monikers,
-        classes => \%classes,
-    };
-}
-
-sub run_v4_tests {
-    my $res = shift;
-    my $schema = $res->{schema};
-
-    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs/} ],
-        [qw/Foos Bar Bazs Quuxs/],
-        'correct monikers in 0.04006 mode';
-
-    isa_ok ((my $bar = eval { $schema->resultset('Bar')->find(1) }),
-        $res->{classes}{bar},
-        'found a bar');
-
-    isa_ok eval { $bar->foo_id }, $res->{classes}{foos},
-        'correct rel name in 0.04006 mode';
-
-    ok my $baz  = eval { $schema->resultset('Bazs')->find(1) };
-
-    isa_ok eval { $baz->quux }, 'DBIx::Class::ResultSet',
-        'correct rel type and name for UNIQUE FK in 0.04006 mode';
-}
-
-sub run_v5_tests {
-    my $res = shift;
-    my $schema = $res->{schema};
-
-    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs/} ],
-        [qw/Foo Bar Baz Quux/],
-        'correct monikers in current mode';
-
-    ok my $bar = eval { $schema->resultset('Bar')->find(1) };
-
-    isa_ok eval { $bar->foo }, $res->{classes}{foos},
-        'correct rel name in current mode';
-
-    ok my $baz  = eval { $schema->resultset('Baz')->find(1) };
-
-    isa_ok eval { $baz->quux }, $res->{classes}{quuxs},
-        'correct rel type and name for UNIQUE FK in current mode';
-}
-
 # test dynamic schema in 0.04006 mode
 {
     my $res = run_loader();
@@ -245,6 +164,87 @@ done_testing;
 
 END {
     rmtree $DUMP_DIR unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
+}
+
+sub run_loader {
+    my %loader_opts = @_;
+
+    eval {
+        foreach my $source_name ($SCHEMA_CLASS->clone->sources) {
+            Class::Unload->unload("${SCHEMA_CLASS}::${source_name}");
+        }
+
+        Class::Unload->unload($SCHEMA_CLASS);
+    };
+    undef $@;
+
+    my @connect_info = $make_dbictest_db2::dsn;
+    my @loader_warnings;
+    local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
+    eval qq{
+        package $SCHEMA_CLASS;
+        use base qw/DBIx::Class::Schema::Loader/;
+
+        __PACKAGE__->loader_options(\%loader_opts);
+        __PACKAGE__->connection(\@connect_info);
+    };
+
+    ok(!$@, "Loader initialization") or diag $@;
+
+    my $schema = $SCHEMA_CLASS->clone;
+    my (%monikers, %classes);
+    foreach my $source_name ($schema->sources) {
+        my $table_name = $schema->source($source_name)->from;
+        $monikers{$table_name} = $source_name;
+        $classes{$table_name}  = "${SCHEMA_CLASS}::${source_name}";
+    }
+
+    return {
+        schema => $schema,
+        warnings => \@loader_warnings,
+        monikers => \%monikers,
+        classes => \%classes,
+    };
+}
+
+sub run_v4_tests {
+    my $res = shift;
+    my $schema = $res->{schema};
+
+    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs/} ],
+        [qw/Foos Bar Bazs Quuxs/],
+        'correct monikers in 0.04006 mode';
+
+    isa_ok ((my $bar = eval { $schema->resultset('Bar')->find(1) }),
+        $res->{classes}{bar},
+        'found a bar');
+
+    isa_ok eval { $bar->foo_id }, $res->{classes}{foos},
+        'correct rel name in 0.04006 mode';
+
+    ok my $baz  = eval { $schema->resultset('Bazs')->find(1) };
+
+    isa_ok eval { $baz->quux }, 'DBIx::Class::ResultSet',
+        'correct rel type and name for UNIQUE FK in 0.04006 mode';
+}
+
+sub run_v5_tests {
+    my $res = shift;
+    my $schema = $res->{schema};
+
+    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs/} ],
+        [qw/Foo Bar Baz Quux/],
+        'correct monikers in current mode';
+
+    ok my $bar = eval { $schema->resultset('Bar')->find(1) };
+
+    isa_ok eval { $bar->foo }, $res->{classes}{foos},
+        'correct rel name in current mode';
+
+    ok my $baz  = eval { $schema->resultset('Baz')->find(1) };
+
+    isa_ok eval { $baz->quux }, $res->{classes}{quuxs},
+        'correct rel type and name for UNIQUE FK in current mode';
 }
 
 # a Schema.pm made with 0.04006
