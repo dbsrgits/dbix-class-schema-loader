@@ -453,7 +453,7 @@ sub _find_file_in_inc {
         my $fullpath = File::Spec->catfile($prefix, $file);
         return $fullpath if -f $fullpath
             and Cwd::abs_path($fullpath) ne
-                Cwd::abs_path(File::Spec->catfile($self->dump_directory, $file)) || '';
+               (Cwd::abs_path(File::Spec->catfile($self->dump_directory, $file)) || '');
     }
 
     return;
