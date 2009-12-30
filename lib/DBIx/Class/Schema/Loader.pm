@@ -2,7 +2,7 @@ package DBIx::Class::Schema::Loader;
 
 use strict;
 use warnings;
-use base qw/DBIx::Class::Schema Class::Data::Accessor/;
+use base qw/DBIx::Class::Schema Class::Accessor::Grouped/;
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 use Scalar::Util qw/ weaken /;
@@ -12,10 +12,15 @@ use Scalar::Util qw/ weaken /;
 # brain damage and presumably various other packaging systems too
 our $VERSION = '0.04999_12';
 
-__PACKAGE__->mk_classaccessor('_loader_args' => {});
-__PACKAGE__->mk_classaccessors(qw/
-    dump_to_dir _loader_invoked _loader loader_class naming
+__PACKAGE__->mk_group_accessors('inherited', qw/
+                                _loader_args
+                                dump_to_dir
+                                _loader_invoked
+                                _loader
+                                loader_class
+                                naming
 /);
+__PACKAGE__->_loader_args({});
 
 =head1 NAME
 
@@ -134,7 +139,7 @@ already been made is useless.
 
 sub loader_options {
     my $self = shift;
-    
+
     my %args = (ref $_[0] eq 'HASH') ? %{$_[0]} : @_;
     $self->_loader_args(\%args);
 
@@ -447,6 +452,8 @@ Robert Bohne <rbo@openserv.org>
 ribasushi: Peter Rabbitson <rabbit+dbic@rabbit.us>
 
 gugu: Andrey Kostenko <a.kostenko@rambler-co.ru>
+
+jhannah: Jay Hannah <jay@jays.net>
 
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.

@@ -2,7 +2,7 @@ package DBIx::Class::Schema::Loader::Base;
 
 use strict;
 use warnings;
-use base qw/Class::Accessor::Fast Class::C3::Componentised/;
+use base qw/Class::Accessor::Grouped Class::C3::Componentised/;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use DBIx::Class::Schema::Loader::RelBuilder;
@@ -18,7 +18,7 @@ require DBIx::Class;
 
 our $VERSION = '0.04999_12';
 
-__PACKAGE__->mk_ro_accessors(qw/
+__PACKAGE__->mk_group_ro_accessors('inherited', qw/
                                 schema
                                 schema_class
 
@@ -51,9 +51,10 @@ __PACKAGE__->mk_ro_accessors(qw/
                                 monikers
                                 dynamic
                                 naming
-                             /);
+/);
 
-__PACKAGE__->mk_accessors(qw/
+
+__PACKAGE__->mk_group_accessors('inherited', qw/
                                 version_to_dump
                                 schema_version_to_dump
                                 _upgrading_from
