@@ -9,6 +9,11 @@ plan skip_all => 'set SCHEMA_LOADER_TESTS_BACKCOMPAT to enable these tests'
 
 my $dump_path = './t/_dump';
 
+local $SIG{__WARN__} = sub {
+    warn @_ unless $_[0] =~
+        /^Dumping manual schema|really_erase_my_files|^Schema dump complete/;
+};
+
 {
     package DBICTest::Schema::1;
     use base qw/ DBIx::Class::Schema::Loader /;

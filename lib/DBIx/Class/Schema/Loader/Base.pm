@@ -417,7 +417,7 @@ EOF
             my ($v) = $real_ver =~ /([1-9])/;
             $v = "v$v";
 
-            last if $v eq CURRENT_V;
+            last if $v eq CURRENT_V || $real_ver =~ /^0\.04999/;
 
             if (not %{ $self->naming }) {
                 warn <<"EOF" unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
