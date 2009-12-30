@@ -18,7 +18,7 @@ require DBIx::Class;
 
 our $VERSION = '0.04999_12';
 
-__PACKAGE__->mk_group_ro_accessors('inherited', qw/
+__PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
                                 schema_class
 
@@ -54,7 +54,7 @@ __PACKAGE__->mk_group_ro_accessors('inherited', qw/
 /);
 
 
-__PACKAGE__->mk_group_accessors('inherited', qw/
+__PACKAGE__->mk_group_accessors('simple', qw/
                                 version_to_dump
                                 schema_version_to_dump
                                 _upgrading_from

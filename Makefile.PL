@@ -17,7 +17,6 @@ requires 'Lingua::EN::Inflect::Number' => '1.1';
 requires 'Text::Balanced'              => 0;
 requires 'Digest::MD5'                 => '2.36';
 requires 'Class::Accessor::Fast'       => '0.30';
-requires 'Class::Data::Accessor'       => '0.03';
 requires 'Class::C3'                   => '0.18';
 requires 'Class::C3::Componentised'    => '1.0005';
 requires 'Carp::Clan'                  => 0;
