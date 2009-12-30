@@ -417,7 +417,7 @@ EOF
             my ($v) = $real_ver =~ /([1-9])/;
             $v = "v$v";
 
-            last if $v eq CURRENT_V;
+            last if $v eq CURRENT_V || $real_ver =~ /^0\.04999/;
 
             if (not %{ $self->naming }) {
                 warn <<"EOF" unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
@@ -518,8 +518,10 @@ sub _load_external {
 
         if ($self->dynamic) { # load the class too
             # kill redefined warnings
+            my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
             local $SIG{__WARN__} = sub {
-                warn @_ unless $_[0] =~ /^Subroutine \S+ redefined/;
+                $warn_handler->(@_)
+                    unless $_[0] =~ /^Subroutine \S+ redefined/;
             };
             do $real_inc_path;
             die $@ if $@;
@@ -545,8 +547,10 @@ been used by an 0.04006 version of the Loader.
 new name of the Result.
 EOF
             # kill redefined warnings
+            my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
             local $SIG{__WARN__} = sub {
-                warn @_ unless $_[0] =~ /^Subroutine \S+ redefined/;
+                $warn_handler->(@_)
+                    unless $_[0] =~ /^Subroutine \S+ redefined/;
             };
             my $code = do {
                 local ($/, @ARGV) = (undef, $old_real_inc_path); <>
@@ -736,10 +740,11 @@ sub _reload_class {
     delete $INC{ $class_path };
 
 # kill redefined warnings
+    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
     local $SIG{__WARN__} = sub {
-        warn @_ unless $_[0] =~ /^Subroutine \S+ redefined/;
+        $warn_handler->(@_)
+            unless $_[0] =~ /^Subroutine \S+ redefined/;
     };
-
     eval "require $class;";
 }
 

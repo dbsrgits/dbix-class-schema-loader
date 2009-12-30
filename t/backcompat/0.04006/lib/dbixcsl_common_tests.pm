@@ -88,6 +88,7 @@ sub run_tests {
 
         my $warn_count = 0;
         $warn_count++ if grep /ResultSetManager/, @loader_warnings;
+        $warn_count++ if grep /Dynamic schema detected/, @loader_warnings;
 
         if($self->{skip_rels}) {
             is(scalar(@loader_warnings), $warn_count)
@@ -500,9 +501,17 @@ sub run_tests {
             q{ INSERT INTO loader_test30 (id,loader_test2) VALUES(321, 2) },
         );
 
-        my $dbh = $self->dbconnect(1);
-        $dbh->do($_) for @statements_rescan;
-        $dbh->disconnect;
+        {
+            # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
+            local $SIG{__WARN__} = sub {
+                my $msg = shift;
+                warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
+            };
+
+            my $dbh = $self->dbconnect(1);
+            $dbh->do($_) for @statements_rescan;
+            $dbh->disconnect;
+        }
 
         my @new = $conn->rescan;
         is(scalar(@new), 1);
@@ -852,7 +861,7 @@ sub create {
     # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
     local $SIG{__WARN__} = sub {
         my $msg = shift;
-        print STDERR $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
+        warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
     };
 
     $dbh->do($_) for (@statements);

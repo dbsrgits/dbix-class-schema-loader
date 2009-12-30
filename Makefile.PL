@@ -6,7 +6,7 @@ all_from       'lib/DBIx/Class/Schema/Loader.pm';
 test_requires 'Test::More'    => '0.94';
 test_requires 'DBI'           => '1.56';
 test_requires 'DBD::SQLite'   => '1.12';
-test_requires 'File::Path'    => 0;
+test_requires 'File::Path'    => '2.07';
 test_requires 'IPC::Open3'    => 0;
 test_requires 'Test::Exception';
 

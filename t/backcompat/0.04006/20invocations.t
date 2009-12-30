@@ -6,6 +6,10 @@ use make_dbictest_db;
 plan skip_all => 'set SCHEMA_LOADER_TESTS_BACKCOMPAT to enable these tests'
     unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 
+local $SIG{__WARN__} = sub {
+    warn @_ unless $_[0] =~ /Dynamic schema|really_erase_my_files/;
+};
+
 # Takes a $schema as input, runs 4 basic tests
 sub test_schema {
     my ($testname, $schema) = @_;

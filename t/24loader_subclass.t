@@ -12,19 +12,21 @@ my %invocations = (
     loader_class => sub {
         package DBICTest::Schema::1;
         use base qw/ DBIx::Class::Schema::Loader /;
+        __PACKAGE__->naming('current');
         __PACKAGE__->loader_class(shift);
         __PACKAGE__->connect($make_dbictest_db::dsn);
     },
     connect_info => sub {
         package DBICTeset::Schema::2;
         use base qw/ DBIx::Class::Schema::Loader /;
+        __PACKAGE__->naming('current');
         __PACKAGE__->connect($make_dbictest_db::dsn, { loader_class => shift });
     },
     make_schema_at => sub {
         use DBIx::Class::Schema::Loader qw/ make_schema_at /;
         make_schema_at(
             'DBICTeset::Schema::3',
-            { },
+            { naming => 'current' },
             [ $make_dbictest_db::dsn, { loader_class => shift } ]
         );
     }
