@@ -30,6 +30,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 components
                                 resultset_components
                                 skip_relationships
+                                skip_load_external
                                 moniker_map
                                 inflect_singular
                                 inflect_plural
@@ -82,6 +83,11 @@ L<DBIx::Class::Schema::Loader/loader_options>.  Available constructor options ar
 
 Skip setting up relationships.  The default is to attempt the loading
 of relationships.
+
+=head2 skip_load_external
+
+Skip loading of other classes in @INC. The default is to merge all other classes
+with the same name found in @INC into the schema file we are creating.
 
 =head2 naming
 
@@ -478,6 +484,8 @@ sub _find_class_in_inc {
 
 sub _load_external {
     my ($self, $class) = @_;
+
+    return if $self->{skip_load_external};
 
     # so that we don't load our own classes, under any circumstances
     local *INC = [ grep $_ ne $self->dump_directory, @INC ];
