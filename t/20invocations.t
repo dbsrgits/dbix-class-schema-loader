@@ -135,6 +135,11 @@ while(@invocations >= 2) {
     test_schema($style, &$subref);
 }
 
-is($DBICTest::Schema::13::Foo::skip_me, "bad mojo", "skip_load_external_1 skip_me");
-is($DBICTest::Schema::14::Foo::skip_me, undef,      "skip_load_external_2 skip_me");
+{
+    no warnings 'once';
 
+    is($DBICTest::Schema::13::Foo::skip_me, "bad mojo",
+        "external content loaded");
+    is($DBICTest::Schema::14::Foo::skip_me, undef,
+        "external content not loaded with skip_load_external => 1");
+}
