@@ -44,6 +44,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 default_resultset_class
                                 schema_base_class
                                 result_base_class
+				overwrite_modifications
 
                                 db_schema
                                 _tables
@@ -290,6 +291,19 @@ croak and not touch the file.
 You should really be using version control on your schema classes (and all
 of the rest of your code for that matter).  Don't blame me if a bug in this
 code wipes something out when it shouldn't have, you've been warned.
+
+=head2 overwrite_modifications
+
+Default false.  If false, when updating existing files, Loader will
+refuse to modify any Loader-generated code that has been modified
+since its last run (as determined by the checksum Loader put in its
+comment lines).
+
+If true, Loader will discard any manual modifications that have been
+made to Loader-generated code.
+
+Again, you should be using version control on your schema classes.  Be
+careful with this option.
 
 =head1 METHODS
 
@@ -948,7 +962,7 @@ sub _get_custom_content {
 
             $buffer .= $line;
             croak "Checksum mismatch in '$filename'"
-                if Digest::MD5::md5_base64($buffer) ne $md5;
+                if !$self->overwrite_modifications && Digest::MD5::md5_base64($buffer) ne $md5;
 
             $buffer = '';
         }
