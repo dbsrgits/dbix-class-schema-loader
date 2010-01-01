@@ -1225,9 +1225,29 @@ sub _tables_list { croak "ABSTRACT METHOD" }
 
 # Execute a constructive DBIC class method, with debug/dump_to_dir hooks.
 sub _dbic_stmt {
-    my $self = shift;
-    my $class = shift;
+    my $self   = shift;
+    my $class  = shift;
     my $method = shift;
+
+    # generate the pod for this statement, storing it with $self->_pod
+    $self->_make_pod( $class, $method, @_ );
+
+    my $args = dump(@_);
+    $args = '(' . $args . ')' if @_ < 2;
+    my $stmt = $method . $args . q{;};
+
+    warn qq|$class\->$stmt\n| if $self->debug;
+    $self->_raw_stmt($class, '__PACKAGE__->' . $stmt);
+    return;
+}
+
+# generates the accompanying pod for a DBIC class method statement,
+# storing it with $self->_pod
+sub _make_pod {
+    my $self   = shift;
+    my $class  = shift;
+    my $method = shift;
+
     if ( $method eq 'table' ) {
         my ($table) = @_;
         $self->_pod( $class, "=head1 NAME" );
@@ -1273,13 +1293,6 @@ sub _dbic_stmt {
         $self->_pod_cut( $class );
         $self->{_relations_started} { $class } = 1;
     }
-    my $args = dump(@_);
-    $args = '(' . $args . ')' if @_ < 2;
-    my $stmt = $method . $args . q{;};
-
-    warn qq|$class\->$stmt\n| if $self->debug;
-    $self->_raw_stmt($class, '__PACKAGE__->' . $stmt);
-    return;
 }
 
 # Stores a POD documentation
