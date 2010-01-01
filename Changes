@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+	- added relationship_attrs option for setting attributes in
+          generated relationships
         - added overwrite_modifications option that ignores md5sums on
           generated code
         - better handling of db_schema for Oracle, based on (RT#35732)
