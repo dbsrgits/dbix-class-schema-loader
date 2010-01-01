@@ -961,7 +961,7 @@ sub _get_custom_content {
             ($ver, $ts) = $buffer =~ m/# Created by DBIx::Class::Schema::Loader v(.*?) @ (.*?)$/s;
 
             $buffer .= $line;
-            croak "Checksum mismatch in '$filename'"
+            croak "Checksum mismatch in '$filename', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n"
                 if !$self->overwrite_modifications && Digest::MD5::md5_base64($buffer) ne $md5;
 
             $buffer = '';
