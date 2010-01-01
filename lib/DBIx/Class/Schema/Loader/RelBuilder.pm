@@ -76,17 +76,23 @@ arguments, like so:
 =cut
 
 sub new {
-    my ( $class, $schema, $inflect_pl, $inflect_singular ) = @_;
+
+    my ( $class, $schema, $inflect_pl, $inflect_singular, $rel_attrs ) = @_;
 
     my $self = {
         schema => $schema,
         inflect_plural => $inflect_pl,
         inflect_singular => $inflect_singular,
+        relationship_attrs => $rel_attrs,
     };
 
-    bless $self => $class;
+    # validate the relationship_attrs arg
+    if( defined $self->{relationship_attrs} ) {
+	ref($self->{relationship_attrs}) eq 'HASH'
+	    or croak "relationship_attrs must be a hashref";
+    }
 
-    $self;
+    return bless $self => $class;
 }
 
 
@@ -122,6 +128,23 @@ sub _inflect_singular {
     return Lingua::EN::Inflect::Number::to_S($relname);
 }
 
+# accessor for options to be passed to each generated relationship
+# type.  take single argument, the relationship type name, and returns
+# either a hashref (if some options are set), or nothing
+sub _relationship_attrs {
+    my ( $self, $reltype ) = @_;
+    my $r = $self->{relationship_attrs};
+    return unless $r && ( $r->{all} || $r->{$reltype} );
+
+    my %composite = %{ $r->{all} || {} };
+    if( my $specific = $r->{$reltype} ) {
+	while( my ($k,$v) = each %$specific ) {
+	    $composite{$k} = $v;
+	}
+    }
+    return \%composite;
+}
+
 sub _array_eq {
     my ($a, $b) = @_;
 
@@ -152,11 +175,17 @@ sub _uniq_fk_rel {
 sub _remote_attrs {
 	my ($self, $local_moniker, $local_cols) = @_;
 
-	# If the referring column is nullable, make 'belongs_to' an outer join:
+	# get our base set of attrs from _relationship_attrs, if present
+	my $attrs = $self->_relationship_attrs('belongs_to') || {};
+
+	# If the referring column is nullable, make 'belongs_to' an
+	# outer join, unless explicitly set by relationship_attrs
 	my $nullable = grep { $self->{schema}->source($local_moniker)->column_info($_)->{is_nullable} }
 		@$local_cols;
+	$attrs->{join_type} = 'LEFT'
+	    if $nullable && !defined $attrs->{join_type};
 
-	return $nullable ? { join_type => 'LEFT' } : ();
+	return $attrs;
 }
 
 sub _remote_relname {
@@ -252,6 +281,7 @@ sub generate_code {
               args => [ $local_relname,
                         $local_class,
                         \%rev_cond,
+			$self->_relationship_attrs($remote_method),
               ],
             }
         );

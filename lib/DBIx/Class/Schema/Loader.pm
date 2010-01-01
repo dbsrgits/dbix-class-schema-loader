@@ -455,6 +455,8 @@ gugu: Andrey Kostenko <a.kostenko@rambler-co.ru>
 
 jhannah: Jay Hannah <jay@jays.net>
 
+rbuels: Robert Buels <rmb32@cornell.edu>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
