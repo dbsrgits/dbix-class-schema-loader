@@ -1241,14 +1241,27 @@ sub _dbic_stmt {
         $self->_pod_cut( $class );
     } elsif ( $method eq 'add_columns' ) {
         $self->_pod( $class, "=head1 ACCESSORS" );
-        my $i = 0;
-        foreach ( @_ ) {
-            $i++;
-            next unless $i % 2;
-            $self->_pod( $class, '=head2 ' . $_  );
-            my $comment;
-            $comment = $self->_column_comment( $self->{_class2table}{$class}, ($i - 1) / 2 + 1  ) if $self->can('_column_comment');
-            $self->_pod( $class, $comment ) if $comment;
+        my $col_counter = 0;
+	my @cols = @_;
+        while( my ($name,$attrs) = splice @cols,0,2 ) {
+	    $col_counter++;
+            $self->_pod( $class, '=head2 ' . $name  );
+	    $self->_pod( $class,
+			 join "\n", map {
+			     my $s = $attrs->{$_};
+			     $s = !defined $s      ? 'undef'          :
+				  length($s) == 0  ? '(empty string)' :
+                                                     $s;
+
+			     "  $_: $s"
+			 } sort keys %$attrs,
+		       );
+
+	    if( $self->can('_column_comment')
+		and my $comment = $self->_column_comment( $self->{_class2table}{$class}, $col_counter)
+	      ) {
+		$self->_pod( $class, $comment );
+	    }
         }
         $self->_pod_cut( $class );
     } elsif ( $method =~ /^(belongs_to|has_many|might_have)$/ ) {

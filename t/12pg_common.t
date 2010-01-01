@@ -44,8 +44,8 @@ my $tester = dbixcsl_common_tests->new(
             like $code, qr/^=head1 NAME\n\n^$class - The Table\n\n^=cut\n/m,
                 'table comment';
 
-            like $code, qr/^=head2 value\n\nThe Column\n\n/m,
-                'column comment';
+            like $code, qr/^=head2 value\n\n(.+:.+\n)+\nThe Column\n\n/m,
+                'column comment and attrs';
         },
     },
 );
