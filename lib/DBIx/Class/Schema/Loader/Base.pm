@@ -46,6 +46,8 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 result_base_class
 				overwrite_modifications
 
+                                relationship_attrs
+
                                 db_schema
                                 _tables
                                 classes
@@ -152,6 +154,26 @@ Or if you prefer to use 0.05XXX features but insure that nothing breaks in the
 next major version upgrade:
 
     __PACKAGE__->naming('v5');
+
+=head2 relationship_attrs
+
+Hashref of attributes to pass to each generated relationship, listed
+by type.  Also supports relationship type 'all', containing options to
+pass to all generated relationships.  Attributes set for more specific
+relationship types override those set in 'all'.
+
+For example:
+
+  relationship_attrs => {
+    all      => { cascade_delete => 0 },
+    has_many => { cascade_delete => 1 },
+  },
+
+will set the C<cascade_delete> option to 0 for all generated relationships,
+except for C<has_many>, which will have cascade_delete as 1.
+
+NOTE: this option is not supported if v4 backward-compatible naming is
+set either globally (naming => 'v4') or just for relationships.
 
 =head2 debug
 
@@ -656,8 +678,11 @@ sub _relbuilder {
             );
     }
 
-    $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new(
-        $self->schema, $self->inflect_plural, $self->inflect_singular
+    $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new (
+	 $self->schema,
+	 $self->inflect_plural,
+	 $self->inflect_singular,
+	 $self->relationship_attrs,
     );
 }
 
