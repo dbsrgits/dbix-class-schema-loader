@@ -46,6 +46,10 @@ sub dump_schema {
     DBICTest::Schema::Overwrite_modifications->_loader_invoked(0)
 	  if @DBICTest::Schema::Overwrite_modifications::ISA;
 
+    local $SIG{__WARN__} = sub {
+        warn @_
+            unless $_[0] =~ /^Dumping manual schema|^Schema dump completed/;
+    };
     DBIx::Class::Schema::Loader::make_schema_at( 'DBICTest::Schema::Overwrite_modifications',
 						 { dump_directory => $tempdir,
 						   @_,
