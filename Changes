@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - 'naming' attribute and backward compatibility with 0.04006
 	- added relationship_attrs option for setting attributes in
           generated relationships
         - added overwrite_modifications option that ignores md5sums on

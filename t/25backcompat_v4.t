@@ -88,17 +88,47 @@ EOF
     pop @INC;
 }
 
+# test upgraded static schema with external content loaded
+{
+    my $temp_dir = tempdir;
+    push @INC, $temp_dir;
+
+    my $external_result_dir = join '/', $temp_dir, split /::/, $SCHEMA_CLASS;
+    make_path $external_result_dir;
+
+    IO::File->new(">$external_result_dir/Quuxs.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Quuxs;
+sub a_method { 'dongs' }
+1;
+EOF
+
+    write_v4_schema_pm();
+
+    my $res = run_loader(dump_directory => $DUMP_DIR, naming => 'current');
+    my $schema = $res->{schema};
+
+    run_v5_tests($res);
+
+    is eval { $schema->resultset('Quux')->find(1)->a_method }, 'dongs',
+'external custom content for unsingularized Result was loaded by upgraded ' .
+'static Schema';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/package ${SCHEMA_CLASS}::Quux;/,
+'package line translated correctly from external custom content in static dump';
+
+    like $code, qr/sub a_method { 'dongs' }/,
+'external custom content loaded into static dump correctly';
+
+    rmtree $temp_dir;
+    pop @INC;
+}
+
 # test running against v4 schema without upgrade
 {
-    # write out the 0.04006 Schema.pm we have in __DATA__
-    (my $schema_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s/::[^:]+\z//;
-    make_path $schema_dir;
-    my $schema_pm = "$schema_dir/Schema.pm";
-    open my $fh, '>', $schema_pm or die $!;
-    while (<DATA>) {
-        print $fh $_;
-    }
-    close $fh;
+    write_v4_schema_pm();
 
     # now run the loader
     my $res = run_loader(dump_directory => $DUMP_DIR);
@@ -207,6 +237,32 @@ sub run_loader {
     };
 }
 
+sub write_v4_schema_pm {
+    (my $schema_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s/::[^:]+\z//;
+    rmtree $schema_dir;
+    make_path $schema_dir;
+    my $schema_pm = "$schema_dir/Schema.pm";
+    open my $fh, '>', $schema_pm or die $!;
+    print $fh <<'EOF';
+package DBIXCSL_Test::Schema;
+
+use strict;
+use warnings;
+
+use base 'DBIx::Class::Schema';
+
+__PACKAGE__->load_classes;
+
+
+# Created by DBIx::Class::Schema::Loader v0.04006 @ 2009-12-25 01:49:25
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ibIJTbfM1ji4pyD/lgSEog
+
+
+# You can replace this text with custom content, and it will be preserved on regeneration
+1;
+EOF
+}
+
 sub run_v4_tests {
     my $res = shift;
     my $schema = $res->{schema};
@@ -246,24 +302,3 @@ sub run_v5_tests {
     isa_ok eval { $baz->quux }, $res->{classes}{quuxs},
         'correct rel type and name for UNIQUE FK in current mode';
 }
-
-# a Schema.pm made with 0.04006
-
-__DATA__
-package DBIXCSL_Test::Schema;
-
-use strict;
-use warnings;
-
-use base 'DBIx::Class::Schema';
-
-__PACKAGE__->load_classes;
-
-
-# Created by DBIx::Class::Schema::Loader v0.04006 @ 2009-12-25 01:49:25
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ibIJTbfM1ji4pyD/lgSEog
-
-
-# You can replace this text with custom content, and it will be preserved on regeneration
-1;
-

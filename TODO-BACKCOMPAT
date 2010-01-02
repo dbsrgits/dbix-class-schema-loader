@@ -1,10 +1,5 @@
 SL Backcompat Plan:
 
-*** 0.04006 mode
-
-* test getting custom content from un-singularized classes in _load_external
-  for a static schema
-
 * make use_namespaces the default, and upgrade to it properly
 
 *** Catalyst Helper

@@ -578,9 +578,10 @@ sub _load_external {
             or croak "Failed to open '$old_real_inc_path' for reading: $!";
         $self->_ext_stmt($class, <<"EOF");
 
-# These lines were loaded from '$old_real_inc_path', based on the Result class
-# name that would have been created by an 0.04006 version of the Loader. For a
-# static schema, this happens only once during upgrade.
+# These lines were loaded from '$old_real_inc_path',
+# based on the Result class name that would have been created by an 0.04006
+# version of the Loader. For a static schema, this happens only once during
+# upgrade.
 EOF
         if ($self->dynamic) {
             warn <<"EOF";
@@ -607,6 +608,7 @@ EOF
 
         while(<$fh>) {
             chomp;
+            s/$old_class/$class/g;
             $self->_ext_stmt($class, $_);
         }
         $self->_ext_stmt($class,
