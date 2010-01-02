@@ -122,6 +122,44 @@ sub _column_comment {
     $column_number );
 }
 
+# Make sure data_type's that don't need it don't have a 'size' column_info, and
+# set the correct precision for datetime types.
+sub _columns_info_for {
+    my $self = shift;
+    my ($table) = @_;
+
+    my $result = $self->next::method(@_);
+
+    foreach my $col (keys %$result) {
+        my $data_type = $result->{$col}{data_type};
+
+        # these types are fixed size
+        if ($data_type =~
+/^(?:bigint|int8|bigserial|serial8|bit|boolean|bool|box|bytea|cidr|circle|date|double precision|float8|inet|integer|int|int4|line|lseg|macaddr|money|path|point|polygon|real|float4|smallint|int2|serial|serial4|text)\z/i) {
+            delete $result->{$col}{size};
+        }
+
+        # for datetime types, check if it has a precision or not
+        if ($data_type =~ /^(?:interval|time|timestamp)\b/) {
+            my ($precision) = $self->schema->storage->dbh
+                ->selectrow_array(<<EOF, {}, $table, $col);
+SELECT datetime_precision
+FROM information_schema.columns
+WHERE table_name = ? and column_name = ?
+EOF
+
+            if ((not $precision) || $precision !~ /^\d/) {
+                delete $result->{$col}{size};
+            }
+            else {
+                $result->{$col}{size} = $precision;
+            }
+        }
+    }
+
+    return $result;
+}
+
 sub _extra_column_info {
     my ($self, $info) = @_;
     my %extra_info;
