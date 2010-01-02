@@ -38,7 +38,6 @@ my $tester = dbixcsl_common_tests->new(
                     a_bigserial BIGSERIAL,
                     a_serial8 SERIAL8,
                     a_bit BIT,
-                    a_bit_varying_with_precision BIT VARYING(8),
                     a_boolean BOOLEAN,
                     a_bool BOOL,
                     a_box BOX,
@@ -79,12 +78,20 @@ my $tester = dbixcsl_common_tests->new(
                     a_timestamp_without_time_zone TIMESTAMP WITHOUT TIME ZONE,
                     a_timestamp_without_time_zone_with_precision TIMESTAMP(2) WITHOUT TIME ZONE,
                     a_timestamp_with_time_zone TIMESTAMP WITH TIME ZONE,
-                    a_timestamp_with_time_zone_with_precision TIMESTAMP(2) WITH TIME ZONE
+                    a_timestamp_with_time_zone_with_precision TIMESTAMP(2) WITH TIME ZONE,
+                    a_bit_varying_with_precision BIT VARYING(2),
+                    a_varbit_with_precision VARBIT(2),
+                    a_character_varying_with_precision CHARACTER VARYING(2),
+                    a_varchar_with_precision VARCHAR(2),
+                    a_character_with_precision CHARACTER(2),
+                    a_char_with_precision CHAR(2)
                 )
             },
+# XXX figure out what to do with DECIMAL(precision, scale) aka
+# NUMERIC(precision, scale)
         ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 49,
+        count => 54,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -103,7 +110,7 @@ my $tester = dbixcsl_common_tests->new(
                 'column comment and attrs';
 
             my $rsrc = $schema->resultset('PgLoaderTest2')->result_source;
-            my @type_columns = grep !/^id\z/, $rsrc->columns;
+            my @type_columns = grep $_ ne 'id', $rsrc->columns;
             my @without_precision = grep !/_with_precision\z/, @type_columns;
             my @with_precision    = grep  /_with_precision\z/, @type_columns;
             my %with_precision;
@@ -124,9 +131,10 @@ my $tester = dbixcsl_common_tests->new(
             for my $col (@with_precision) {
                 my ($data_type) = $col =~ /^an?_(.*)_with_precision\z/;
                 ($data_type = uc $data_type) =~ s/_/ /g;
+                my $size = $rsrc->column_info($col)->{size};
 
-                ok($rsrc->column_info($col)->{size},
-                    "$data_type with precision has a 'size' column_info");
+                is $size, 2,
+                  "$data_type with precision has a correct 'size' column_info";
             }
         },
     },

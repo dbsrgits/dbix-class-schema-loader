@@ -123,7 +123,7 @@ sub _column_comment {
 }
 
 # Make sure data_type's that don't need it don't have a 'size' column_info, and
-# set the correct precision for datetime types.
+# set the correct precision for datetime and varbit types.
 sub _columns_info_for {
     my $self = shift;
     my ($table) = @_;
@@ -138,9 +138,8 @@ sub _columns_info_for {
 /^(?:bigint|int8|bigserial|serial8|bit|boolean|bool|box|bytea|cidr|circle|date|double precision|float8|inet|integer|int|int4|line|lseg|macaddr|money|path|point|polygon|real|float4|smallint|int2|serial|serial4|text)\z/i) {
             delete $result->{$col}{size};
         }
-
-        # for datetime types, check if it has a precision or not
-        if ($data_type =~ /^(?:interval|time|timestamp)\b/) {
+# for datetime types, check if it has a precision or not
+        elsif ($data_type =~ /^(?:interval|time|timestamp)\b/) {
             my ($precision) = $self->schema->storage->dbh
                 ->selectrow_array(<<EOF, {}, $table, $col);
 SELECT datetime_precision
@@ -154,6 +153,16 @@ EOF
             else {
                 $result->{$col}{size} = $precision;
             }
+        }
+        elsif ($data_type =~ /^(?:bit varying|varbit)\z/i) {
+            my ($precision) = $self->schema->storage->dbh
+                ->selectrow_array(<<EOF, {}, $table, $col);
+SELECT character_maximum_length
+FROM information_schema.columns
+WHERE table_name = ? and column_name = ?
+EOF
+
+            $result->{$col}{size} = $precision;
         }
     }
 

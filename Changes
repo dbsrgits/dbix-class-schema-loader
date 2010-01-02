@@ -1,7 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-        - exclude 'size' column_info for postgres when unnecessary, correct
-          datetime_precision in 'size' for time|timestamp|interval types
+        - exclude 'size' column_info for postgres when unnecessary, and
+          use the correct precision for varying types (except NUMERIC)
         - 'naming' attribute and backward compatibility with 0.04006
           (in progress)
 	- added relationship_attrs option for setting attributes in
