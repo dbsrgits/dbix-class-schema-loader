@@ -601,14 +601,14 @@ EOF
             my $code = do {
                 local ($/, @ARGV) = (undef, $old_real_inc_path); <>
             };
-            $code =~ s/$old_class/$class/g;
+            $code =~ s/\b$old_class\b/$class/g;
             eval $code;
             die $@ if $@;
         }
 
         while(<$fh>) {
             chomp;
-            s/$old_class/$class/g;
+            s/\b$old_class\b/$class/g;
             $self->_ext_stmt($class, $_);
         }
         $self->_ext_stmt($class,
