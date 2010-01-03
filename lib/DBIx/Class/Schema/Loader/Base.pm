@@ -913,25 +913,21 @@ sub _write_classfile {
 
     my ($custom_content, $old_md5, $old_ver, $old_ts) = $self->_get_custom_content($class, $filename);
 
-    if ($self->_upgrading_from) {
-        my $old_class = $self->_upgrading_classes->{$class};
+    if (my $old_class = $self->_upgrading_classes->{$class}) {
+        my $old_filename = $self->_get_dump_filename($old_class);
 
-        if ($old_class && ($old_class ne $class)) {
-            my $old_filename = $self->_get_dump_filename($old_class);
+        my ($old_custom_content) = $self->_get_custom_content(
+            $old_class, $old_filename, 0 # do not add default comment
+        );
 
-            my ($old_custom_content) = $self->_get_custom_content(
-                $old_class, $old_filename, 0 # do not add default comment
-            );
+        $old_custom_content =~ s/\n\n# You can replace.*\n1;\n//;
 
-            $old_custom_content =~ s/\n\n# You can replace.*\n1;\n//;
-
-            if ($old_custom_content) {
-                $custom_content =
-                    "\n" . $old_custom_content . "\n" . $custom_content;
-            }
-
-            unlink $old_filename;
+        if ($old_custom_content) {
+            $custom_content =
+                "\n" . $old_custom_content . "\n" . $custom_content;
         }
+
+        unlink $old_filename;
     }
 
     $custom_content = $self->_rewrite_old_classnames($custom_content);
