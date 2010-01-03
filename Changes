@@ -1,13 +1,15 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04999_13  2010-01-03 12:32:25
         - exclude 'size' column_info for postgres when unnecessary, and
           use the correct precision for varying types (except NUMERIC)
         - 'naming' attribute and backward compatibility with 0.04006
-          (in progress)
 	- added relationship_attrs option for setting attributes in
           generated relationships
         - added overwrite_modifications option that ignores md5sums on
           generated code
+        - remove Class::Data::Accessor and Class::Accessor::Fast and switch
+          everything to Class::Accessor::Grouped
         - better handling of db_schema for Oracle, based on (RT#35732)
 
 0.04999_12  2009-11-30 23:36:14
