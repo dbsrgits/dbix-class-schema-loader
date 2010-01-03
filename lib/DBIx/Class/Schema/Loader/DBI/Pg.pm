@@ -164,6 +164,14 @@ EOF
 
             $result->{$col}{size} = $precision;
         }
+        elsif ($data_type =~ /^(?:numeric|decimal)\z/i) {
+            my $size = $result->{$col}{size};
+            $size =~ s/\s*//g;
+
+            my ($scale, $precision) = split /,/, $size;
+
+            $result->{$col}{size} = [ $precision, $scale ];
+        }
     }
 
     return $result;

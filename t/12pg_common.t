@@ -29,7 +29,7 @@ my $tester = dbixcsl_common_tests->new(
                 COMMENT ON COLUMN pg_loader_test1.value IS 'The Column'
             },
             # Test to make sure data_types that don't need a size => don't
-            # have one.
+            # have one and check varying types have the correct size.
             q{
                 CREATE TABLE pg_loader_test2 (
                     id SERIAL NOT NULL PRIMARY KEY,
@@ -84,14 +84,16 @@ my $tester = dbixcsl_common_tests->new(
                     a_character_varying_with_precision CHARACTER VARYING(2),
                     a_varchar_with_precision VARCHAR(2),
                     a_character_with_precision CHARACTER(2),
-                    a_char_with_precision CHAR(2)
+                    a_char_with_precision CHAR(2),
+                    the_numeric NUMERIC(6, 3),
+                    the_decimal DECIMAL(6, 3)
                 )
             },
 # XXX figure out what to do with DECIMAL(precision, scale) aka
 # NUMERIC(precision, scale)
         ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 54,
+        count => 56,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -110,7 +112,7 @@ my $tester = dbixcsl_common_tests->new(
                 'column comment and attrs';
 
             my $rsrc = $schema->resultset('PgLoaderTest2')->result_source;
-            my @type_columns = grep $_ ne 'id', $rsrc->columns;
+            my @type_columns = grep /^a/, $rsrc->columns;
             my @without_precision = grep !/_with_precision\z/, @type_columns;
             my @with_precision    = grep  /_with_precision\z/, @type_columns;
             my %with_precision;
@@ -136,6 +138,12 @@ my $tester = dbixcsl_common_tests->new(
                 is $size, 2,
                   "$data_type with precision has a correct 'size' column_info";
             }
+
+            is_deeply $rsrc->column_info('the_numeric')->{size}, [6,3],
+                'size for NUMERIC(precision, scale) is correct';
+
+            is_deeply $rsrc->column_info('the_decimal')->{size}, [6,3],
+                'size for DECIMAL(precision, scale) is correct';
         },
     },
 );

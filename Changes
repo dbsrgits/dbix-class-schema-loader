@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix NUMERIC/DECIMAL size column_info for postgres
+
 0.04999_13  2010-01-03 12:32:25
         - exclude 'size' column_info for postgres when unnecessary, and
           use the correct precision for varying types (except NUMERIC)
