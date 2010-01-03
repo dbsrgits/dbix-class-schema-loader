@@ -460,7 +460,7 @@ EOF
             my ($v) = $real_ver =~ /([1-9])/;
             $v = "v$v";
 
-            last if $v eq CURRENT_V || $real_ver =~ /^0\.04999/;
+            last if $v eq CURRENT_V || $real_ver =~ /^0\.\d\d999/;
 
             if (not %{ $self->naming }) {
                 warn <<"EOF" unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
@@ -518,6 +518,21 @@ sub _find_class_in_inc {
     return $self->_find_file_in_inc($self->_class_path($class));
 }
 
+sub _rewrite_old_classnames {
+    my ($self, $code) = @_;
+
+    return $code unless $self->_upgrading_from;
+
+    my %old_classes = reverse %{ $self->_upgrading_classes };
+
+    my $re = join '|', keys %old_classes;
+    $re = qr/\b($re)\b/;
+
+    $code =~ s/$re/$old_classes{$1}/eg;
+
+    return $code;
+}
+
 sub _load_external {
     my ($self, $class) = @_;
 
@@ -543,23 +558,10 @@ sub _load_external {
 
         open(my $fh, '<', $real_inc_path)
             or croak "Failed to open '$real_inc_path' for reading: $!";
-        $self->_ext_stmt($class,
-          qq|# These lines were loaded from '$real_inc_path' found in \@INC.\n|
-         .qq|# They are now part of the custom portion of this file\n|
-         .qq|# for you to hand-edit.  If you do not either delete\n|
-         .qq|# this section or remove that file from \@INC, this section\n|
-         .qq|# will be repeated redundantly when you re-create this\n|
-         .qq|# file again via Loader!\n|
-        );
-        while(<$fh>) {
-            chomp;
-            $self->_ext_stmt($class, $_);
-        }
-        $self->_ext_stmt($class,
-            qq|# End of lines loaded from '$real_inc_path' |
-        );
+        my $code = do { local $/; <$fh> };
         close($fh)
             or croak "Failed to close $real_inc_path: $!";
+        $code = $self->_rewrite_old_classnames($code);
 
         if ($self->dynamic) { # load the class too
             # kill redefined warnings
@@ -568,9 +570,23 @@ sub _load_external {
                 $warn_handler->(@_)
                     unless $_[0] =~ /^Subroutine \S+ redefined/;
             };
-            do $real_inc_path;
+            eval $code;
             die $@ if $@;
         }
+
+        $self->_ext_stmt($class,
+          qq|# These lines were loaded from '$real_inc_path' found in \@INC.\n|
+         .qq|# They are now part of the custom portion of this file\n|
+         .qq|# for you to hand-edit.  If you do not either delete\n|
+         .qq|# this section or remove that file from \@INC, this section\n|
+         .qq|# will be repeated redundantly when you re-create this\n|
+         .qq|# file again via Loader!\n|
+        );
+        chomp $code;
+        $self->_ext_stmt($class, $code);
+        $self->_ext_stmt($class,
+            qq|# End of lines loaded from '$real_inc_path' |
+        );
     }
 
     if ($old_real_inc_path) {
@@ -583,6 +599,12 @@ sub _load_external {
 # version of the Loader. For a static schema, this happens only once during
 # upgrade.
 EOF
+
+        my $code = do {
+            local ($/, @ARGV) = (undef, $old_real_inc_path); <>
+        };
+        $code = $self->_rewrite_old_classnames($code);
+
         if ($self->dynamic) {
             warn <<"EOF";
 
@@ -598,25 +620,15 @@ EOF
                 $warn_handler->(@_)
                     unless $_[0] =~ /^Subroutine \S+ redefined/;
             };
-            my $code = do {
-                local ($/, @ARGV) = (undef, $old_real_inc_path); <>
-            };
-            $code =~ s/\b$old_class\b/$class/g;
             eval $code;
             die $@ if $@;
         }
 
-        while(<$fh>) {
-            chomp;
-            s/\b$old_class\b/$class/g;
-            $self->_ext_stmt($class, $_);
-        }
+        chomp $code;
+        $self->_ext_stmt($class, $code);
         $self->_ext_stmt($class,
             qq|# End of lines loaded from '$old_real_inc_path' |
         );
-
-        close($fh)
-            or croak "Failed to close $old_real_inc_path: $!";
     }
 }
 
@@ -920,6 +932,8 @@ sub _write_classfile {
             unlink $old_filename;
         }
     }
+
+    $custom_content = $self->_rewrite_old_classnames($custom_content);
 
     $text .= qq|$_\n|
         for @{$self->{_dump_storage}->{$class} || []};

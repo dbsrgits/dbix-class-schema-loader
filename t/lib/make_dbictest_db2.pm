@@ -20,7 +20,7 @@ $dbh->do($_) for (
       )|,
     q|CREATE TABLE bar (
         barid INTEGER PRIMARY KEY,
-        foo_id INTEGER REFERENCES foos (fooid)
+        foo_id INTEGER NOT NULL REFERENCES foos (fooid)
       )|,
     q|CREATE TABLE bazs (
         bazid INTEGER PRIMARY KEY,

@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Exception;
 use File::Path qw/rmtree make_path/;
 use Class::Unload;
 use File::Temp qw/tempfile tempdir/;
@@ -61,9 +62,24 @@ my $SCHEMA_CLASS = 'DBIXCSL_Test::Schema';
     my $external_result_dir = join '/', $temp_dir, split /::/, $SCHEMA_CLASS;
     make_path $external_result_dir;
 
+    # make external content for Result that will be singularized
     IO::File->new(">$external_result_dir/Quuxs.pm")->print(<<"EOF");
 package ${SCHEMA_CLASS}::Quuxs;
 sub a_method { 'hlagh' }
+
+__PACKAGE__->has_one('bazrel', 'DBIXCSL_Test::Schema::Bazs',
+    { 'foreign.baz_num' => 'self.baz_id' });
+
+1;
+EOF
+
+    # make external content for Result that will NOT be singularized
+    IO::File->new(">$external_result_dir/Bar.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Bar;
+
+__PACKAGE__->has_one('foorel', 'DBIXCSL_Test::Schema::Foos',
+    { 'foreign.fooid' => 'self.foo_id' });
+
 1;
 EOF
 
@@ -78,9 +94,18 @@ EOF
     like $warning, qr/Detected external content/i,
         'detected external content warning';
 
-    is eval { $schema->resultset('Quux')->find(1)->a_method }, 'hlagh',
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'hlagh' }
 'external custom content for unsingularized Result was loaded by upgraded ' .
 'dynamic Schema';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel,
+        $res->{classes}{bazs} }
+        'unsingularized class names in external content are translated';
+
+    lives_and { isa_ok $schema->resultset('Bar')->find(1)->foorel,
+        $res->{classes}{foos} }
+'unsingularized class names in external content from unchanged Result class ' .
+'names are translated';
 
     run_v5_tests($res);
 
@@ -96,9 +121,24 @@ EOF
     my $external_result_dir = join '/', $temp_dir, split /::/, $SCHEMA_CLASS;
     make_path $external_result_dir;
 
+    # make external content for Result that will be singularized
     IO::File->new(">$external_result_dir/Quuxs.pm")->print(<<"EOF");
 package ${SCHEMA_CLASS}::Quuxs;
 sub a_method { 'dongs' }
+
+__PACKAGE__->has_one('bazrel2', 'DBIXCSL_Test::Schema::Bazs',
+    { 'foreign.baz_num' => 'self.baz_id' });
+
+1;
+EOF
+
+    # make external content for Result that will NOT be singularized
+    IO::File->new(">$external_result_dir/Bar.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Bar;
+
+__PACKAGE__->has_one('foorel2', 'DBIXCSL_Test::Schema::Foos',
+    { 'foreign.fooid' => 'self.foo_id' });
+
 1;
 EOF
 
@@ -109,9 +149,18 @@ EOF
 
     run_v5_tests($res);
 
-    is eval { $schema->resultset('Quux')->find(1)->a_method }, 'dongs',
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'dongs' }
 'external custom content for unsingularized Result was loaded by upgraded ' .
 'static Schema';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel2,
+        $res->{classes}{bazs} }
+        'unsingularized class names in external content are translated';
+
+    lives_and { isa_ok $schema->resultset('Bar')->find(1)->foorel2,
+        $res->{classes}{foos} }
+'unsingularized class names in external content from unchanged Result class ' .
+'names are translated in static schema';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
     my $code = do { local ($/, @ARGV) = (undef, $file); <> };
@@ -126,7 +175,7 @@ EOF
     pop @INC;
 }
 
-# test running against v4 schema without upgrade
+# test running against v4 schema without upgrade, twice, then upgrade
 {
     write_v4_schema_pm();
 
@@ -155,13 +204,23 @@ EOF
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
-                print "sub a_method { 'mtfnpy' }\n";
+                print <<EOF;
+sub a_method { 'mtfnpy' }
+
+__PACKAGE__->has_one('bazrel3', 'DBIXCSL_Test::Schema::Bazs',
+    { 'foreign.baz_num' => 'self.baz_id' });
+EOF
             }
             else {
                 print;
             }
         }
     }
+
+    # Rerun the loader in backcompat mode to make sure it's still in backcompat
+    # mode.
+    $res = run_loader(dump_directory => $DUMP_DIR);
+    run_v4_tests($res);
 
     # now upgrade the schema
     $res = run_loader(dump_directory => $DUMP_DIR, naming => 'current');
@@ -186,8 +245,69 @@ EOF
         'un-singularized results were replaced during upgrade';
 
     # check that custom content was preserved
-    is eval { $schema->resultset('Quux')->find(1)->a_method }, 'mtfnpy',
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
         'custom content was carried over from un-singularized Result';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel3,
+        $res->{classes}{bazs} }
+        'unsingularized class names in custom content are translated';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'mtfnpy' }/,
+'custom content from unsingularized Result loaded into static dump correctly';
+}
+
+# Test upgrading an already singular result with custom content that refers to
+# old class names.
+{
+    write_v4_schema_pm();
+    my $res = run_loader(dump_directory => $DUMP_DIR);
+    my $schema   = $res->{schema};
+    run_v4_tests($res);
+
+    # add some custom content to a Result that will be replaced
+    my $bar_pm = $schema->_loader
+        ->_get_dump_filename($res->{classes}{bar});
+    {
+        local ($^I, @ARGV) = ('', $bar_pm);
+        while (<>) {
+            if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
+                print;
+                print <<EOF;
+sub a_method { 'lalala' }
+
+__PACKAGE__->has_one('foorel3', 'DBIXCSL_Test::Schema::Foos',
+    { 'foreign.fooid' => 'self.foo_id' });
+EOF
+            }
+            else {
+                print;
+            }
+        }
+    }
+
+    # now upgrade the schema
+    $res = run_loader(dump_directory => $DUMP_DIR, naming => 'current');
+    $schema = $res->{schema};
+    run_v5_tests($res);
+
+    # check that custom content was preserved
+    lives_and { is $schema->resultset('Bar')->find(1)->a_method, 'lalala' }
+        'custom content was preserved from Result pre-upgrade';
+
+    lives_and { isa_ok $schema->resultset('Bar')->find(1)->foorel3,
+        $res->{classes}{foos} }
+'unsingularized class names in custom content from Result with unchanged ' .
+'name are translated';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{bar});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'lalala' }/,
+'custom content from Result with unchanged name loaded into static dump ' .
+'correctly';
 }
 
 done_testing;

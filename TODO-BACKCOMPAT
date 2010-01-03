@@ -1,8 +1,5 @@
 SL Backcompat Plan:
 
-* rewrite un-singularized class names (in e.g. custom relationships) in both
-  preserved custom content and external content from un-singularized classes
-
 * make use_namespaces the default, and upgrade to it properly
 
 *** Catalyst Helper
