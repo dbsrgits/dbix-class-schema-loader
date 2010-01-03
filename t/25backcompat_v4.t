@@ -6,6 +6,7 @@ use File::Path qw/rmtree make_path/;
 use Class::Unload;
 use File::Temp qw/tempfile tempdir/;
 use IO::File;
+use DBIx::Class::Schema::Loader ();
 use lib qw(t/lib);
 use make_dbictest_db2;
 
@@ -178,8 +179,6 @@ EOF
 # test running against v4 schema without upgrade, twice, then upgrade
 {
     write_v4_schema_pm();
-
-    # now run the loader
     my $res = run_loader(dump_directory => $DUMP_DIR);
     my $warning = $res->{warnings}[0];
 
@@ -257,6 +256,23 @@ EOF
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from unsingularized Result loaded into static dump correctly';
+}
+
+# test upgrading a v4 schema, the check that the version string is correct
+{
+    write_v4_schema_pm();
+    run_loader(dump_directory => $DUMP_DIR);
+    my $res = run_loader(dump_directory => $DUMP_DIR, naming => 'current');
+    my $schema = $res->{schema};
+
+    my $file = $schema->_loader->_get_dump_filename($SCHEMA_CLASS);
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    my ($dumped_ver) =
+        $code =~ /^# Created by DBIx::Class::Schema::Loader v(\S+)/m;
+
+    is $dumped_ver, $DBIx::Class::Schema::Loader::VERSION,
+        'correct version dumped after upgrade of v4 static schema';
 }
 
 # Test upgrading an already singular result with custom content that refers to

@@ -476,6 +476,7 @@ EOF
             }
             else {
                 $self->_upgrading_from($v);
+                last;
             }
 
             $self->naming->{relationships} ||= $v;
@@ -528,7 +529,7 @@ sub _rewrite_old_classnames {
     my $re = join '|', keys %old_classes;
     $re = qr/\b($re)\b/;
 
-    $code =~ s/$re/$old_classes{$1}/eg;
+    $code =~ s/$re/$old_classes{$1} || $1/eg;
 
     return $code;
 }
@@ -870,7 +871,7 @@ sub _dump_to_dir {
 
     {
         local $self->{version_to_dump} = $self->schema_version_to_dump;
-        $self->_write_classfile($schema_class, $schema_text);
+        $self->_write_classfile($schema_class, $schema_text, 1);
     }
 
     my $result_base_class = $self->result_base_class || 'DBIx::Class::Core';
@@ -899,7 +900,7 @@ sub _sig_comment {
 }
 
 sub _write_classfile {
-    my ($self, $class, $text) = @_;
+    my ($self, $class, $text, $is_schema) = @_;
 
     my $filename = $self->_get_dump_filename($class);
     $self->_ensure_dump_subdirs($class);
@@ -946,7 +947,7 @@ sub _write_classfile {
       
 
       if (Digest::MD5::md5_base64($compare_to) eq $old_md5) {
-        return;
+        return unless $self->_upgrading_from && $is_schema;
       }
     }
 
@@ -1070,7 +1071,8 @@ sub _make_src_class {
         my $old_class = join(q{::}, @result_namespace,
             $self->_table2moniker($table));
 
-        $self->_upgrading_classes->{$table_class} = $old_class;
+        $self->_upgrading_classes->{$table_class} = $old_class
+            unless $table_class eq $old_class;
     }
 
     my $table_normalized = lc $table;
