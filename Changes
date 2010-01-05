@@ -10,8 +10,9 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           generated relationships
         - added overwrite_modifications option that ignores md5sums on
           generated code
+        - added skip_load_external (jhannah)
         - remove Class::Data::Accessor and Class::Accessor::Fast and switch
-          everything to Class::Accessor::Grouped
+          everything to Class::Accessor::Grouped (jhannah)
         - better handling of db_schema for Oracle, based on (RT#35732)
 
 0.04999_12  2009-11-30 23:36:14
