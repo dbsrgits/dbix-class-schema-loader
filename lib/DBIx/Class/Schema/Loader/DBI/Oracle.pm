@@ -46,15 +46,10 @@ sub _setup {
     }
 }
 
-
-sub _table_columns {
+sub _table_as_sql {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-
-    my $sth = $dbh->prepare($self->schema->storage->sql_maker->select($table, undef, \'1 = 0'));
-    $sth->execute;
-    return \@{$sth->{NAME_lc}};
+    return $self->_quote_table_name($table);
 }
 
 sub _tables_list { 
@@ -75,7 +70,7 @@ sub _tables_list {
         push @tables, $1
           if $table =~ /\A(\w+)\z/;
     }
-    return @tables;
+    return $self->_filter_tables(@tables);
 }
 
 sub _table_uniq_info {

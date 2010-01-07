@@ -89,6 +89,7 @@ sub run_tests {
         my $warn_count = 0;
         $warn_count++ if grep /ResultSetManager/, @loader_warnings;
         $warn_count++ if grep /Dynamic schema detected/, @loader_warnings;
+        $warn_count++ for grep /^Bad table or view/, @loader_warnings;
 
         if($self->{skip_rels}) {
             is(scalar(@loader_warnings), $warn_count)

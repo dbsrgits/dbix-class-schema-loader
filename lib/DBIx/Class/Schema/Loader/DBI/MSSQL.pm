@@ -38,36 +38,6 @@ sub _setup {
     $self->_set_quote_char_and_name_sep;
 }
 
-# drop bad tables when constructing list
-sub _tables_list {
-    my $self = shift;
-
-    my @tables = $self->next::method(@_);
-    my @filtered_tables;
-
-    for my $table (@tables) {
-        my $full_quoted_table;
-        if($self->{db_schema}) {
-            $full_quoted_table = $self->{db_schema} . $self->{_namesep} .
-                $self->_quote_table_name($table);
-        } else {
-            $full_quoted_table = $self->_quote_table_name($table);
-        }
-        my $dbh = $self->schema->storage->dbh;
-        my $sth = $dbh->prepare($self->schema->storage->sql_maker
-                ->select(\$full_quoted_table, undef, \'1 = 0'));
-        eval { $sth->execute };
-        if (not $@) {
-            push @filtered_tables, $table;
-        }
-        else {
-            warn "Bad table or view '$table', ignoring.\n";
-        }
-    }
-
-    return @filtered_tables;
-}
-
 # remove 'IDENTITY' from column data_type
 sub _columns_info_for {
     my $self   = shift;

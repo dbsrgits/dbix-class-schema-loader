@@ -137,6 +137,8 @@ sub setup_schema {
        my $warn_count = 2;
        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
 
+       $warn_count++ for grep /^Bad table or view/, @loader_warnings;
+
         if($self->{skip_rels}) {
             SKIP: {
                 is(scalar(@loader_warnings), $warn_count, "No loader warnings")

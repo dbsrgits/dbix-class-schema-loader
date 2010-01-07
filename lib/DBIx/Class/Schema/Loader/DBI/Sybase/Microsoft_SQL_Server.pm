@@ -30,7 +30,7 @@ sub _tables_list {
     my $dbh = $self->schema->storage->dbh;
     my @tables = $dbh->tables(undef, $self->db_schema, $table, $type);
 
-    return @tables;
+    return $self->_filter_tables(@tables);
 }
 
 =head1 SEE ALSO

@@ -99,7 +99,27 @@ sub _tables_list {
     }
     s/$qt//g for @tables;
 
-    return @tables;
+    return $self->_filter_tables(@tables);
+}
+
+# ignore bad tables and views
+sub _filter_tables {
+    my ($self, @tables) = @_;
+
+    my @filtered_tables;
+
+    for my $table (@tables) {
+        my $sth = $self->_sth_for($table, undef, \'1 = 0');
+        eval { $sth->execute };
+        if (not $@) {
+            push @filtered_tables, $table;
+        }
+        else {
+            warn "Bad table or view '$table', ignoring: $@\n";
+        }
+    }
+
+    return @filtered_tables;
 }
 
 =head2 load
@@ -116,11 +136,8 @@ sub load {
     $self->next::method(@_);
 }
 
-# Returns an arrayref of column names
-sub _table_columns {
+sub _table_as_sql {
     my ($self, $table) = @_;
-
-    my $dbh = $self->schema->storage->dbh;
 
     if($self->{db_schema}) {
         $table = $self->{db_schema} . $self->{_namesep} .
@@ -129,7 +146,25 @@ sub _table_columns {
         $table = $self->_quote_table_name($table);
     }
 
-    my $sth = $dbh->prepare($self->schema->storage->sql_maker->select(\$table, undef, \'1 = 0'));
+    return $table;
+}
+
+sub _sth_for {
+    my ($self, $table, $fields, $where) = @_;
+
+    my $dbh = $self->schema->storage->dbh;
+
+    my $sth = $dbh->prepare($self->schema->storage->sql_maker
+        ->select(\$self->_table_as_sql($table), $fields, $where));
+
+    return $sth;
+}
+
+# Returns an arrayref of column names
+sub _table_columns {
+    my ($self, $table) = @_;
+
+    my $sth = $self->_sth_for($table, undef, \'1 = 0');
     $sth->execute;
     my $retval = \@{$sth->{NAME_lc}};
     $sth->finish;
@@ -252,11 +287,8 @@ sub _columns_info_for {
       return \%result if !$@ && scalar keys %result;
     }
 
-    if($self->db_schema) {
-        $table = $self->db_schema . $self->{_namesep} . $table;
-    }
     my %result;
-    my $sth = $dbh->prepare($self->schema->storage->sql_maker->select($table, undef, \'1 = 0'));
+    my $sth = $self->_sth_for($table, undef, \'1 = 0');
     $sth->execute;
     my @columns = @{$sth->{NAME_lc}};
     for my $i ( 0 .. $#columns ){

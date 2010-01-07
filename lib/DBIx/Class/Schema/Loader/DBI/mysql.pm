@@ -77,7 +77,7 @@ sub _mysql_table_get_keys {
     if(!exists($self->{_cache}->{_mysql_keys}->{$table})) {
         my %keydata;
         my $dbh = $self->schema->storage->dbh;
-        my $sth = $dbh->prepare("SHOW INDEX FROM `$table`");
+        my $sth = $dbh->prepare('SHOW INDEX FROM '.$self->_table_as_sql($table));
         $sth->execute;
         while(my $row = $sth->fetchrow_hashref) {
             next if $row->{Non_unique};
