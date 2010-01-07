@@ -581,7 +581,8 @@ sub _load_external {
          .qq|# for you to hand-edit.  If you do not either delete\n|
          .qq|# this section or remove that file from \@INC, this section\n|
          .qq|# will be repeated redundantly when you re-create this\n|
-         .qq|# file again via Loader!\n|
+         .qq|# file again via Loader!  See skip_load_external to disable\n|
+         .qq|# this feature.\n|
         );
         chomp $code;
         $self->_ext_stmt($class, $code);
@@ -598,7 +599,7 @@ sub _load_external {
 # These lines were loaded from '$old_real_inc_path',
 # based on the Result class name that would have been created by an 0.04006
 # version of the Loader. For a static schema, this happens only once during
-# upgrade.
+# upgrade. See skip_load_external to disable this feature.
 EOF
 
         my $code = do {
