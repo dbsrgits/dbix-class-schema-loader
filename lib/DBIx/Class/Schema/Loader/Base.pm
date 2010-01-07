@@ -213,7 +213,7 @@ the chunks back together.  Examples:
     ---------------------------
     luser       | Luser
     luser_group | LuserGroup
-    luser-opts  | LuserOpts
+    luser-opts  | LuserOpt
 
 =head2 inflect_plural
 
