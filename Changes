@@ -1,7 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - fix NUMERIC/DECIMAL size column_info for postgres
-        - now mentions skip_load_external feature in comments 
+        - now mentions skip_load_external feature in comments (jhannah)
+        - moniker_map POD correction (jhannah)
 
 0.04999_13  2010-01-03 12:32:25
         - exclude 'size' column_info for postgres when unnecessary, and
