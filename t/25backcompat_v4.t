@@ -425,8 +425,7 @@ sub run_loader {
     foreach my $source_name ($schema->sources) {
         my $table_name = $schema->source($source_name)->from;
         $monikers{$table_name} = $source_name;
-        $classes{$table_name}  = "${SCHEMA_CLASS}::" . (
-            $loader_opts{use_namespaces} ? 'Result::' : '') . $source_name;
+        $classes{$table_name}  = $schema->source($source_name)->result_class;
     }
 
     return {

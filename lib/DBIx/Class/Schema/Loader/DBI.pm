@@ -118,6 +118,14 @@ sub _filter_tables {
         }
         else {
             warn "Bad table or view '$table', ignoring: $@\n";
+            local $@;
+            eval {
+                my $schema = $self->schema;
+                # in older DBIC it's a private method
+                my $unregister = $schema->can('unregister_source')
+                    || $schema->can('_unregister_source');
+                $schema->$unregister($self->_table2moniker($table));
+            };
         }
     }
 

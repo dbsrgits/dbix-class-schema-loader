@@ -1,6 +1,7 @@
 package dbixcsl_mssql_extra_tests;
 
 use Test::More;
+use Test::Exception;
 
 my $vendor = 'mssql';
 
@@ -8,6 +9,9 @@ sub vendor {
     shift;
     $vendor = shift;
 }
+
+# for cleanup in END
+my $saved_dbh;
 
 sub extra { +{
     create => [
@@ -26,9 +30,22 @@ sub extra { +{
                 ts DATETIME DEFAULT getdate()
             )
         },
+        qq{
+            CREATE TABLE ${vendor}_loader_test3 (
+                id INT IDENTITY NOT NULL PRIMARY KEY
+            )
+        },
+        qq{
+            CREATE VIEW ${vendor}_loader_test4 AS
+            SELECT * FROM ${vendor}_loader_test3
+        },
     ],
-    drop   => [ "[${vendor}_loader_test1.dot]", "${vendor}_loader_test2"  ],
-    count  => 13,
+    drop   => [
+        "[${vendor}_loader_test1.dot]",
+        "${vendor}_loader_test2",
+        "${vendor}_loader_test3"
+    ],
+    count  => 15,
     run    => sub {
         my ($schema, $monikers, $classes) = @_;
 
@@ -84,7 +101,35 @@ sub extra { +{
 
         is $identity_col_info->{is_auto_increment}, 1,
             q{'INT IDENTITY' column has is_auto_increment => 1};
+
+# Test that a bad view (where underlying table is gone) is ignored.
+        $saved_dbh = $schema->storage->dbh;
+        $saved_dbh->do("DROP TABLE ${vendor}_loader_test3");
+
+        my @warnings;
+        {
+            local $SIG{__WARN__} = sub { push @warnings, $_[0] };
+            $schema->rescan;
+        }
+        ok ((grep /^Bad table or view '${vendor}_loader_test4'/, @warnings),
+            'bad view ignored');
+
+        throws_ok {
+            $schema->resultset("${vendor_titlecased}LoaderTest4")
+        } qr/Can't find source/,
+            'no source registered for bad view';
     },
 }}
+
+# Clean up the bad view, table will be cleaned up in drops
+END {
+    local $@;
+    eval {
+        $saved_dbh->do($_) for (
+"CREATE TABLE ${vendor}_loader_test3 (id INT IDENTITY NOT NULL PRIMARY KEY)",
+"DROP VIEW ${vendor}_loader_test4"
+        );
+    };
+}
 
 1;
