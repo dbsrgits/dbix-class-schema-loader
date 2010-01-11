@@ -437,6 +437,8 @@ Dynamic schema detected, will run in 0.04006 mode.
 Set the 'naming' attribute or the SCHEMA_LOADER_BACKCOMPAT environment variable
 to disable this warning.
 
+Also consider setting 'use_namespaces => 1' if/when upgrading.
+
 See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
 details.
 EOF
@@ -448,7 +450,12 @@ EOF
         $self->naming->{relationships} ||= 'v4';
         $self->naming->{monikers}      ||= 'v4';
 
-        $self->use_namespaces(0) unless defined $self->use_namespaces;
+        if ($self->use_namespaces) {
+            $self->_upgrading_from_load_classes(1);
+        }
+        else {
+            $self->use_namespaces(0);
+        }
 
         return;
     }
@@ -465,15 +472,30 @@ EOF
     while (<$fh>) {
         if (/^__PACKAGE__->load_classes;/) {
             $load_classes = 1;
-        } elsif (/^# Created by DBIx::Class::Schema::Loader v((\d+)\.(\d+))/) {
-            my $real_ver = $1;
+        } elsif (my ($real_ver) =
+                /^# Created by DBIx::Class::Schema::Loader v(\d+\.\d+)/) {
+
+            if ($load_classes && (not defined $self->use_namespaces)) {
+                warn <<"EOF"  unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
+
+'load_classes;' static schema detected, turning off use_namespaces.
+
+Set the 'use_namespaces' attribute or the SCHEMA_LOADER_BACKCOMPAT environment
+variable to disable this warning.
+
+See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
+details.
+EOF
+                $self->use_namespaces(0);
+            }
+            elsif ($load_classes && $self->use_namespaces) {
+                $self->use_namespaces(1);
+                $self->_upgrading_from_load_classes(1);
+            }
 
             # XXX when we go past .0 this will need fixing
             my ($v) = $real_ver =~ /([1-9])/;
             $v = "v$v";
-
-            $self->_upgrading_from_load_classes($load_classes)
-                unless defined $self->use_namespaces;
 
             last if $v eq CURRENT_V || $real_ver =~ /^0\.\d\d999/;
 
@@ -1079,8 +1101,14 @@ sub _make_src_class {
     }
     my $table_class = join(q{::}, @result_namespace, $table_moniker);
 
-    if (my $upgrading_v = $self->_upgrading_from) {
-        local $self->naming->{monikers} = $upgrading_v;
+    if ((my $upgrading_v = $self->_upgrading_from)
+            || $self->_upgrading_from_load_classes) {
+        local $self->naming->{monikers} = $upgrading_v
+            if $upgrading_v;
+
+        my @result_namespace = @result_namespace;
+        @result_namespace = ($schema_class)
+            if $self->_upgrading_from_load_classes;
 
         my $old_class = join(q{::}, @result_namespace,
             $self->_table2moniker($table));

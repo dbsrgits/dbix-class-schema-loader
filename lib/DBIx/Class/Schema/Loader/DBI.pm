@@ -109,8 +109,10 @@ sub _filter_tables {
     my @filtered_tables;
 
     for my $table (@tables) {
-        my $sth = $self->_sth_for($table, undef, \'1 = 0');
-        eval { $sth->execute };
+        eval {
+            my $sth = $self->_sth_for($table, undef, \'1 = 0');
+            $sth->execute;
+        };
         if (not $@) {
             push @filtered_tables, $table;
         }

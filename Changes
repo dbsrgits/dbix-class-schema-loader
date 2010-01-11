@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - filter out un-selectable tables/views
         - fix NUMERIC/DECIMAL size column_info for postgres
         - now mentions skip_load_external feature in comments (jhannah)
         - moniker_map POD correction (jhannah)

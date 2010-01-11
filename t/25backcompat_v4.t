@@ -114,6 +114,66 @@ EOF
     pop @INC;
 }
 
+# test upgraded dynamic schema with use_namespaces with external content loaded
+{
+    my $temp_dir = tempdir;
+    push @INC, $temp_dir;
+
+    my $external_result_dir = join '/', $temp_dir, split /::/, $SCHEMA_CLASS;
+    make_path $external_result_dir;
+
+    # make external content for Result that will be singularized
+    IO::File->new(">$external_result_dir/Quuxs.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Quuxs;
+sub a_method { 'hlagh' }
+
+__PACKAGE__->has_one('bazrel', 'DBIXCSL_Test::Schema::Bazs',
+    { 'foreign.baz_num' => 'self.baz_id' });
+
+1;
+EOF
+
+    # make external content for Result that will NOT be singularized
+    IO::File->new(">$external_result_dir/Bar.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Bar;
+
+__PACKAGE__->has_one('foorel', 'DBIXCSL_Test::Schema::Foos',
+    { 'foreign.fooid' => 'self.foo_id' });
+
+1;
+EOF
+
+    my $res = run_loader(naming => 'current', use_namespaces => 1);
+    my $schema = $res->{schema};
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct nummber of warnings for upgraded dynamic schema with external ' .
+'content for unsingularized Result with use_namespaces.';
+
+    my $warning = $res->{warnings}[0];
+    like $warning, qr/Detected external content/i,
+        'detected external content warning';
+
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'hlagh' }
+'external custom content for unsingularized Result was loaded by upgraded ' .
+'dynamic Schema';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel,
+        $res->{classes}{bazs} }
+        'unsingularized class names in external content are translated';
+
+    lives_and { isa_ok $schema->resultset('Bar')->find(1)->foorel,
+        $res->{classes}{foos} }
+'unsingularized class names in external content from unchanged Result class ' .
+'names are translated';
+
+    run_v5_tests($res);
+
+    rmtree $temp_dir;
+    pop @INC;
+}
+
+
 # test upgraded static schema with external content loaded
 {
     my $temp_dir = tempdir;
@@ -365,7 +425,8 @@ sub run_loader {
     foreach my $source_name ($schema->sources) {
         my $table_name = $schema->source($source_name)->from;
         $monikers{$table_name} = $source_name;
-        $classes{$table_name}  = "${SCHEMA_CLASS}::${source_name}";
+        $classes{$table_name}  = "${SCHEMA_CLASS}::" . (
+            $loader_opts{use_namespaces} ? 'Result::' : '') . $source_name;
     }
 
     return {
