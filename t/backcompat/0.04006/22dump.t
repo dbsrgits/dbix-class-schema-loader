@@ -69,4 +69,4 @@ eval { DBICTest::Schema::2->connect($make_dbictest_db::dsn) };
 ok(!$@, 'no death with dump_directory set (overwrite2)')
     or diag "Dump failed: $@";
 
-END { rmtree($dump_path, 1, 1); }
+END { rmtree($dump_path, 1, 1) if $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT}; }

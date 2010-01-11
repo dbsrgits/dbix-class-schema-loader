@@ -19,6 +19,7 @@ __PACKAGE__->mk_group_accessors('inherited', qw/
                                 _loader
                                 loader_class
                                 naming
+                                use_namespaces
 /);
 __PACKAGE__->_loader_args({});
 
@@ -158,6 +159,7 @@ sub _invoke_loader {
     weaken($args->{schema}) if ref $self;
     $args->{dump_directory} ||= $self->dump_to_dir;
     $args->{naming} = $self->naming if $self->naming;
+    $args->{use_namespaces} = $self->use_namespaces if $self->use_namespaces;
 
     # XXX this only works for relative storage_type, like ::DBI ...
     my $impl = $self->loader_class
@@ -310,6 +312,10 @@ sub import {
             no strict 'refs';
             *{"${cpkg}::naming"} = sub { $self->naming(@_) };
         }
+        elsif($opt eq 'use_namespaces') {
+            no strict 'refs';
+            *{"${cpkg}::use_namespaces"} = sub { $self->use_namespaces(@_) };
+        }
     }
 }
 
@@ -403,6 +409,25 @@ To upgrade a dynamic schema, use:
 Can be imported into your dump script and called as a function as well:
 
     naming('v4');
+
+=head2 use_namespaces
+
+=over 4
+
+=item Arguments: 1|0
+
+=back
+
+Controls the use_namespaces options for backward compatibility, see
+L<DBIx::Class::Schema::Loader::Base/use_namespaces> for details.
+
+To upgrade a dynamic schema, use:
+
+    __PACKAGE__->use_namespaces(1);
+
+Can be imported into your dump script and called as a function as well:
+
+    use_namespaces(1);
 
 =head1 KNOWN ISSUES
 

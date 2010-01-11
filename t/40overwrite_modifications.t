@@ -11,7 +11,8 @@ use File::Temp qw/ tempdir tempfile /;
 use DBIx::Class::Schema::Loader;
 
 my $tempdir = tempdir( CLEANUP => 1 );
-my $foopm = File::Spec->catfile( $tempdir, qw| DBICTest Schema Overwrite_modifications Foo.pm |);
+my $foopm = File::Spec->catfile( $tempdir,
+    qw| DBICTest Schema Overwrite_modifications Result Foo.pm |);
 dump_schema();
 
 # check that we dumped

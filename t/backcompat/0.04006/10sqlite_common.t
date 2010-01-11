@@ -21,5 +21,5 @@ my $class = $@ ? 'SQLite2' : 'SQLite';
 }
 
 END {
-    unlink './t/sqlite_test';
+    unlink './t/sqlite_test' if $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 }

@@ -38,7 +38,6 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 dump_directory
                                 dump_overwrite
                                 really_erase_my_files
-                                use_namespaces
                                 result_namespace
                                 resultset_namespace
                                 default_resultset_class
@@ -62,6 +61,8 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 version_to_dump
                                 schema_version_to_dump
                                 _upgrading_from
+                                _upgrading_from_load_classes
+                                use_namespaces
 /);
 
 =head1 NAME
@@ -263,6 +264,9 @@ C<components> list if this option is set.
 
 =head2 use_namespaces
 
+This is now the default, to go back to L<DBIx::Class::Schema/load_classes> pass
+a C<0>.
+
 Generate result class names suitable for
 L<DBIx::Class::Schema/load_namespaces> and call that instead of
 L<DBIx::Class::Schema/load_classes>. When using this option you can also
@@ -412,6 +416,8 @@ sub new {
 
     $self->_check_back_compat;
 
+    $self->use_namespaces(1) unless defined $self->use_namespaces;
+
     $self;
 }
 
@@ -442,6 +448,8 @@ EOF
         $self->naming->{relationships} ||= 'v4';
         $self->naming->{monikers}      ||= 'v4';
 
+        $self->use_namespaces(0) unless defined $self->use_namespaces;
+
         return;
     }
 
@@ -452,13 +460,20 @@ EOF
     open(my $fh, '<', $filename)
         or croak "Cannot open '$filename' for reading: $!";
 
+    my $load_classes = 0;
+
     while (<$fh>) {
-        if (/^# Created by DBIx::Class::Schema::Loader v((\d+)\.(\d+))/) {
+        if (/^__PACKAGE__->load_classes;/) {
+            $load_classes = 1;
+        } elsif (/^# Created by DBIx::Class::Schema::Loader v((\d+)\.(\d+))/) {
             my $real_ver = $1;
 
             # XXX when we go past .0 this will need fixing
             my ($v) = $real_ver =~ /([1-9])/;
             $v = "v$v";
+
+            $self->_upgrading_from_load_classes($load_classes)
+                unless defined $self->use_namespaces;
 
             last if $v eq CURRENT_V || $real_ver =~ /^0\.\d\d999/;
 
@@ -483,6 +498,8 @@ EOF
             $self->naming->{monikers}      ||= $v;
 
             $self->schema_version_to_dump($real_ver);
+
+            $self->use_namespaces(0) unless defined $self->use_namespaces;
 
             last;
         }

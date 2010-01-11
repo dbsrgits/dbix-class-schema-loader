@@ -38,34 +38,45 @@ becomes C<UserRole> instead.
 
 =item *
 
+use_namespaces
+
+Now defaults to on. See L<DBIx::Class::Schema::Loader::Base/use_namespaces> and
+L<DBIx::Class::Schema/"load_namespaces">.
+
+=item *
+
 Support for more databases
 
-We now support Microsoft SQL Server and Sybase, and there are also improvements
-to the other backends.
+We now support Microsoft SQL Server and Sybase, and there are also many
+improvements to the other backends.
 
 =back
 
 =head1 Backward Compatibility
 
 In backward compatibility mode, the Loader will use the old relationship names
-and types, and will not singularize monikers for tables.
+and types, will not singularize monikers for tables, and C<use_namespaces> will
+be off.
 
-To control this behavior see L<DBIx::Class::Schema::Loader::Base/naming>.
+To control this behavior see L<DBIx::Class::Schema::Loader::Base/naming> and
+L<DBIx::Class::Schema::Loader::Base/use_namespaces>.
 
 =head2 Static Schemas
 
 When reading a C<Schema.pm> from a static schema generated with an C<0.04>
 version of Loader, backward compatibility mode will default to on, unless
-overridden with the C<naming> attribute.
+overridden with the C<naming> and/or C<use_namespaces> attributes.
 
 =head2 Dynamic Schemas
 
-Dynamic schemas will always by default use C<0.04006> mode.
+Dynamic schemas will always by default use C<0.04006> mode and have
+C<use_namespaces> off.
 
-To upgrade a dynamic schema, set the naming attribute (which is proxied to the
-loader) in your C<Schema.pm>:
+To upgrade a dynamic schema, set the C<naming> and C<use_namespaces> attributes
+(which is proxied to the loader) in your C<Schema.pm>:
 
     __PACKAGE__->naming('current');
+    __PACKAGE__->use_namespaces(1);
 
 =head1 AUTHOR
 

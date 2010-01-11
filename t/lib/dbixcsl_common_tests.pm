@@ -99,6 +99,7 @@ sub setup_schema {
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
         debug                   => $debug,
+        use_namespaces          => 0,
         dump_directory          => $DUMP_DIR,
     );
 

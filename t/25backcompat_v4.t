@@ -335,6 +335,9 @@ END {
 sub run_loader {
     my %loader_opts = @_;
 
+    $loader_opts{use_namespaces} = 0
+        unless exists $loader_opts{use_namespaces};
+
     eval {
         foreach my $source_name ($SCHEMA_CLASS->clone->sources) {
             Class::Unload->unload("${SCHEMA_CLASS}::${source_name}");

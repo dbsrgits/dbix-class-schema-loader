@@ -20,6 +20,9 @@ sub do_dump_test {
 
     no strict 'refs';
     @{$schema_class . '::ISA'} = ('DBIx::Class::Schema::Loader');
+
+    $tdata{options}{use_namespaces} ||= 0;
+
     $schema_class->loader_options(dump_directory => $DUMP_PATH, %{$tdata{options}});
 
     my @warns;
@@ -270,4 +273,4 @@ do_dump_test(
 
 done_testing;
 
-END { rmtree($DUMP_PATH, 1, 1); }
+END { rmtree($DUMP_PATH, 1, 1) if $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT}; }

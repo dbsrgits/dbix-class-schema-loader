@@ -63,6 +63,7 @@ sub do_dump_test {
     my %tdata = @_;
     
     $tdata{options}{dump_directory} = $DUMP_PATH;
+    $tdata{options}{use_namespaces} ||= 0;
 
     for my $dumper (\&dump_directly, \&dump_dbicdump) {
         test_dumps(\%tdata, $dumper->(%tdata));
