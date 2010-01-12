@@ -478,7 +478,7 @@ EOF
             if ($load_classes && (not defined $self->use_namespaces)) {
                 warn <<"EOF"  unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
 
-'load_classes;' static schema detected, turning off use_namespaces.
+'load_classes;' static schema detected, turning off 'use_namespaces'.
 
 Set the 'use_namespaces' attribute or the SCHEMA_LOADER_BACKCOMPAT environment
 variable to disable this warning.
@@ -489,7 +489,6 @@ EOF
                 $self->use_namespaces(0);
             }
             elsif ($load_classes && $self->use_namespaces) {
-                $self->use_namespaces(1);
                 $self->_upgrading_from_load_classes(1);
             }
 
@@ -520,8 +519,6 @@ EOF
             $self->naming->{monikers}      ||= $v;
 
             $self->schema_version_to_dump($real_ver);
-
-            $self->use_namespaces(0) unless defined $self->use_namespaces;
 
             last;
         }

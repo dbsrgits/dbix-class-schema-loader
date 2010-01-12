@@ -240,7 +240,7 @@ EOF
 {
     write_v4_schema_pm();
     my $res = run_loader(dump_directory => $DUMP_DIR);
-    my $warning = $res->{warnings}[0];
+    my $warning = $res->{warnings}[1];
 
     like $warning, qr/static schema/i,
         'static schema in backcompat mode detected';
@@ -249,7 +249,7 @@ EOF
     like $warning, qr/DBIx::Class::Schema::Loader::Manual::UpgradingFromV4/,
         'refers to upgrading doc';
 
-    is scalar @{ $res->{warnings} }, 3,
+    is scalar @{ $res->{warnings} }, 4,
         'correct number of warnings for static schema in backcompat mode';
 
     run_v4_tests($res);
@@ -282,7 +282,11 @@ EOF
     run_v4_tests($res);
 
     # now upgrade the schema
-    $res = run_loader(dump_directory => $DUMP_DIR, naming => 'current');
+    $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        naming => 'current',
+        use_namespaces => 1
+    );
     $schema = $res->{schema};
 
     like $res->{warnings}[0], qr/Dumping manual schema/i,
@@ -292,6 +296,93 @@ EOF
         'correct warnings on upgrading static schema (with "naming" set)';
 
     is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on upgrading static schema (with "naming" set)'
+        or diag @{ $res->{warnings} };
+
+    run_v5_tests($res);
+
+    (my $result_dir = "$DUMP_DIR/$SCHEMA_CLASS/Result") =~ s{::}{/}g;
+    my $result_count =()= glob "$result_dir/*";
+
+    is $result_count, 4,
+        'un-singularized results were replaced during upgrade';
+
+    # check that custom content was preserved
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
+        'custom content was carried over from un-singularized Result';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel3,
+        $res->{classes}{bazs} }
+        'unsingularized class names in custom content are translated';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'mtfnpy' }/,
+'custom content from unsingularized Result loaded into static dump correctly';
+}
+
+# test running against v4 schema without upgrade, then upgrade with
+# use_namespaces not explicitly set
+{
+    write_v4_schema_pm();
+    my $res = run_loader(dump_directory => $DUMP_DIR);
+    my $warning = $res->{warnings}[1];
+
+    like $warning, qr/static schema/i,
+        'static schema in backcompat mode detected';
+    like $warning, qr/0.04006/,
+        'correct version detected';
+    like $warning, qr/DBIx::Class::Schema::Loader::Manual::UpgradingFromV4/,
+        'refers to upgrading doc';
+
+    is scalar @{ $res->{warnings} }, 4,
+        'correct number of warnings for static schema in backcompat mode';
+
+    run_v4_tests($res);
+
+    # add some custom content to a Result that will be replaced
+    my $schema   = $res->{schema};
+    my $quuxs_pm = $schema->_loader
+        ->_get_dump_filename($res->{classes}{quuxs});
+    {
+        local ($^I, @ARGV) = ('', $quuxs_pm);
+        while (<>) {
+            if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
+                print;
+                print <<EOF;
+sub a_method { 'mtfnpy' }
+
+__PACKAGE__->has_one('bazrel3', 'DBIXCSL_Test::Schema::Bazs',
+    { 'foreign.baz_num' => 'self.baz_id' });
+EOF
+            }
+            else {
+                print;
+            }
+        }
+    }
+
+    # now upgrade the schema
+    $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        naming => 'current'
+    );
+    $schema = $res->{schema};
+
+    like $res->{warnings}[0], qr/load_classes/i,
+'correct warnings on upgrading static schema (with "naming" set and ' .
+'use_namespaces not set)';
+
+    like $res->{warnings}[1], qr/Dumping manual schema/i,
+'correct warnings on upgrading static schema (with "naming" set and ' .
+'use_namespaces not set)';
+
+    like $res->{warnings}[2], qr/dump completed/i,
+'correct warnings on upgrading static schema (with "naming" set and ' .
+'use_namespaces not set)';
+
+    is scalar @{ $res->{warnings} }, 3,
 'correct number of warnings on upgrading static schema (with "naming" set)'
         or diag @{ $res->{warnings} };
 
@@ -394,9 +485,6 @@ END {
 
 sub run_loader {
     my %loader_opts = @_;
-
-    $loader_opts{use_namespaces} = 0
-        unless exists $loader_opts{use_namespaces};
 
     eval {
         foreach my $source_name ($SCHEMA_CLASS->clone->sources) {

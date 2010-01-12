@@ -123,7 +123,8 @@ sub setup_schema {
 
        my $expected_count = 34;
 
-       $expected_count += @{ $self->{extra}{create} || [] };
+       $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
+           @{ $self->{extra}{create} || [] };
 
        $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
            if $self->{no_inline_rels};
