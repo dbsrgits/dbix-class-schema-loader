@@ -127,7 +127,7 @@ EOF
 package ${SCHEMA_CLASS}::Quuxs;
 sub a_method { 'hlagh' }
 
-__PACKAGE__->has_one('bazrel', 'DBIXCSL_Test::Schema::Bazs',
+__PACKAGE__->has_one('bazrel4', 'DBIXCSL_Test::Schema::Bazs',
     { 'foreign.baz_num' => 'self.baz_id' });
 
 1;
@@ -137,7 +137,7 @@ EOF
     IO::File->new(">$external_result_dir/Bar.pm")->print(<<"EOF");
 package ${SCHEMA_CLASS}::Bar;
 
-__PACKAGE__->has_one('foorel', 'DBIXCSL_Test::Schema::Foos',
+__PACKAGE__->has_one('foorel4', 'DBIXCSL_Test::Schema::Foos',
     { 'foreign.fooid' => 'self.foo_id' });
 
 1;
@@ -158,11 +158,11 @@ EOF
 'external custom content for unsingularized Result was loaded by upgraded ' .
 'dynamic Schema';
 
-    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel,
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel4,
         $res->{classes}{bazs} }
         'unsingularized class names in external content are translated';
 
-    lives_and { isa_ok $schema->resultset('Bar')->find(1)->foorel,
+    lives_and { isa_ok $schema->resultset('Bar')->find(1)->foorel4,
         $res->{classes}{foos} }
 'unsingularized class names in external content from unchanged Result class ' .
 'names are translated';
@@ -353,7 +353,7 @@ EOF
                 print <<EOF;
 sub a_method { 'mtfnpy' }
 
-__PACKAGE__->has_one('bazrel3', 'DBIXCSL_Test::Schema::Bazs',
+__PACKAGE__->has_one('bazrel5', 'DBIXCSL_Test::Schema::Bazs',
     { 'foreign.baz_num' => 'self.baz_id' });
 EOF
             }
@@ -398,7 +398,94 @@ EOF
     lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
         'custom content was carried over from un-singularized Result';
 
-    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel3,
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel5,
+        $res->{classes}{bazs} }
+        'unsingularized class names in custom content are translated';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'mtfnpy' }/,
+'custom content from unsingularized Result loaded into static dump correctly';
+}
+
+# test running against v4 schema with load_namespaces, upgrade to v5 but
+# downgrade to load_classes
+{
+    write_v4_schema_pm(use_namespaces => 1);
+    my $res = run_loader(dump_directory => $DUMP_DIR);
+    my $warning = $res->{warnings}[0];
+
+    like $warning, qr/static schema/i,
+        'static schema in backcompat mode detected';
+    like $warning, qr/0.04006/,
+        'correct version detected';
+    like $warning, qr/DBIx::Class::Schema::Loader::Manual::UpgradingFromV4/,
+        'refers to upgrading doc';
+
+    is scalar @{ $res->{warnings} }, 3,
+        'correct number of warnings for static schema in backcompat mode';
+
+    run_v4_tests($res);
+
+    # add some custom content to a Result that will be replaced
+    my $schema   = $res->{schema};
+    my $quuxs_pm = $schema->_loader
+        ->_get_dump_filename($res->{classes}{quuxs});
+    {
+        local ($^I, @ARGV) = ('', $quuxs_pm);
+        while (<>) {
+            if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
+                print;
+                print <<EOF;
+sub a_method { 'mtfnpy' }
+
+__PACKAGE__->has_one('bazrel6', 'DBIXCSL_Test::Schema::Result::Bazs',
+    { 'foreign.baz_num' => 'self.baz_id' });
+EOF
+            }
+            else {
+                print;
+            }
+        }
+    }
+
+    # now upgrade the schema to v5 but downgrade to load_classes
+    $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        naming => 'current',
+        use_namespaces => 0,
+    );
+    $schema = $res->{schema};
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on upgrading static schema (with "naming" set and ' .
+'use_namespaces => 0)';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on upgrading static schema (with "naming" set and ' .
+'use_namespaces => 0)';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on upgrading static schema (with "naming" set)'
+        or diag @{ $res->{warnings} };
+
+    run_v5_tests($res);
+
+    (my $result_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s{::}{/}g;
+    my $result_count =()= glob "$result_dir/*";
+
+    is $result_count, 4,
+'un-singularized results were replaced during upgrade and Result dir removed';
+
+    ok ((not -d "$result_dir/Result"),
+        'Result dir was removed for load_classes downgrade');
+
+    # check that custom content was preserved
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
+        'custom content was carried over from un-singularized Result';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel6,
         $res->{classes}{bazs} }
         'unsingularized class names in custom content are translated';
 
@@ -525,12 +612,15 @@ sub run_loader {
 }
 
 sub write_v4_schema_pm {
+    my %opts = @_;
+
     (my $schema_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s/::[^:]+\z//;
     rmtree $schema_dir;
     make_path $schema_dir;
     my $schema_pm = "$schema_dir/Schema.pm";
     open my $fh, '>', $schema_pm or die $!;
-    print $fh <<'EOF';
+    if (not $opts{use_namespaces}) {
+        print $fh <<'EOF';
 package DBIXCSL_Test::Schema;
 
 use strict;
@@ -548,6 +638,28 @@ __PACKAGE__->load_classes;
 # You can replace this text with custom content, and it will be preserved on regeneration
 1;
 EOF
+    }
+    else {
+        print $fh <<'EOF';
+package DBIXCSL_Test::Schema;
+
+use strict;
+use warnings;
+
+use base 'DBIx::Class::Schema';
+
+__PACKAGE__->load_namespaces;
+
+
+# Created by DBIx::Class::Schema::Loader v0.04006 @ 2010-01-12 16:04:12
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:d3wRVsHBNisyhxeaWJZcZQ
+
+
+# You can replace this text with custom content, and it will be preserved on
+# regeneration
+1;
+EOF
+    }
 }
 
 sub run_v4_tests {

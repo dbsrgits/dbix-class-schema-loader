@@ -62,6 +62,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 schema_version_to_dump
                                 _upgrading_from
                                 _upgrading_from_load_classes
+                                _downgrading_to_load_classes
                                 use_namespaces
 /);
 
@@ -468,10 +469,12 @@ EOF
         or croak "Cannot open '$filename' for reading: $!";
 
     my $load_classes = 0;
+    my $result_namespace;
 
     while (<$fh>) {
         if (/^__PACKAGE__->load_classes;/) {
             $load_classes = 1;
+        } elsif (($result_namespace) = /result_namespace => '([^']+)'/) {
         } elsif (my ($real_ver) =
                 /^# Created by DBIx::Class::Schema::Loader v(\d+\.\d+)/) {
 
@@ -490,6 +493,11 @@ EOF
             }
             elsif ($load_classes && $self->use_namespaces) {
                 $self->_upgrading_from_load_classes(1);
+            }
+            elsif ((not $load_classes) && (not $self->use_namespaces)) {
+                $self->_downgrading_to_load_classes(
+                    $result_namespace || 'Result'
+                );
             }
 
             # XXX when we go past .0 this will need fixing
@@ -555,10 +563,18 @@ sub _find_class_in_inc {
     return $self->_find_file_in_inc($self->_class_path($class));
 }
 
+sub _rewriting {
+    my $self = shift;
+
+    return $self->_upgrading_from
+        || $self->_upgrading_from_load_classes
+        || $self->_downgrading_to_load_classes;
+}
+
 sub _rewrite_old_classnames {
     my ($self, $code) = @_;
 
-    return $code unless $self->_upgrading_from;
+    return $code unless $self->_rewriting;
 
     my %old_classes = reverse %{ $self->_upgrading_classes };
 
@@ -581,7 +597,7 @@ sub _load_external {
     my $real_inc_path = $self->_find_class_in_inc($class);
 
     my $old_class = $self->_upgrading_classes->{$class}
-        if $self->_upgrading_from;
+        if $self->_rewriting;
 
     my $old_real_inc_path = $self->_find_class_in_inc($old_class)
         if $old_class && $old_class ne $class;
@@ -924,6 +940,26 @@ sub _dump_to_dir {
         $self->_write_classfile($src_class, $src_text);
     }
 
+    # remove Result dir if downgrading from use_namespaces, and there are no
+    # files left.
+    if (my $result_ns = $self->_downgrading_to_load_classes) {
+        my $result_class;
+
+        if ($result_ns =~ /^\+(.*)/) {
+            $result_class = $1;
+        }
+        else {
+            $result_class = "${schema_class}::${result_ns}";
+        }
+
+        (my $result_dir = $result_class) =~ s{::}{/}g;
+        $result_dir = $self->dump_directory . '/' . $result_dir;
+
+        unless (my @files = glob "$result_dir/*") {
+            rmdir $result_dir;
+        }
+    }
+
     warn "Schema dump completed.\n" unless $self->{dynamic} or $self->{quiet};
 
 }
@@ -1099,13 +1135,24 @@ sub _make_src_class {
     my $table_class = join(q{::}, @result_namespace, $table_moniker);
 
     if ((my $upgrading_v = $self->_upgrading_from)
-            || $self->_upgrading_from_load_classes) {
+            || $self->_rewriting) {
         local $self->naming->{monikers} = $upgrading_v
             if $upgrading_v;
 
         my @result_namespace = @result_namespace;
-        @result_namespace = ($schema_class)
-            if $self->_upgrading_from_load_classes;
+        if ($self->_upgrading_from_load_classes) {
+            @result_namespace = ($schema_class);
+        }
+        elsif (my $ns = $self->_downgrading_to_load_classes) {
+            if ($ns =~ /^\+(.*)/) {
+                # Fully qualified namespace
+                @result_namespace = ($1)
+            }
+            else {
+                # Relative namespace
+                @result_namespace = ($schema_class, $ns);
+            }
+        }
 
         my $old_class = join(q{::}, @result_namespace,
             $self->_table2moniker($table));
