@@ -33,25 +33,14 @@ my $SCHEMA_CLASS = 'DBIXCSL_Test::Schema';
 # we're setting it to 'v4' .)
 {
     my $res = run_loader(naming => 'v4');
-
     is_deeply $res->{warnings}, [], 'no warnings with naming attribute set';
-
     run_v4_tests($res);
 }
 
 # test upgraded dynamic schema
 {
     my $res = run_loader(naming => 'current');
-
-# to dump a schema for debugging...
-#    {
-#        mkdir '/tmp/HLAGH';
-#        $schema->_loader->{dump_directory} = '/tmp/HLAGH';
-#        $schema->_loader->_dump_to_dir(values %{ $res->{classes} });
-#    }
-
     is_deeply $res->{warnings}, [], 'no warnings with naming attribute set';
-
     run_v5_tests($res);
 }
 
@@ -450,6 +439,9 @@ EOF
         }
     }
 
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Result::Quuxs',
+        'use_namespaces in backcompat mode';
+
     # now upgrade the schema to v5 but downgrade to load_classes
     $res = run_loader(
         dump_directory => $DUMP_DIR,
@@ -481,6 +473,9 @@ EOF
     ok ((not -d "$result_dir/Result"),
         'Result dir was removed for load_classes downgrade');
 
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Quux',
+        'load_classes in upgraded mode';
+
     # check that custom content was preserved
     lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
         'custom content was carried over from un-singularized Result';
@@ -494,6 +489,440 @@ EOF
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from unsingularized Result loaded into static dump correctly';
+}
+
+# test a regular schema with use_namespaces => 0 upgraded to
+# use_namespaces => 1
+{
+    rmtree $DUMP_DIR;
+    mkdir $DUMP_DIR;
+
+    my $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        use_namespaces => 0,
+    );
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on dumping static schema with use_namespaces => 0';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on dumping static schema with use_namespaces => 0';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on dumping static schema with use_namespaces => 0'
+        or diag @{ $res->{warnings} };
+
+    run_v5_tests($res);
+
+    # add some custom content to a Result that will be replaced
+    my $schema   = $res->{schema};
+    my $quuxs_pm = $schema->_loader
+        ->_get_dump_filename($res->{classes}{quuxs});
+    {
+        local ($^I, @ARGV) = ('', $quuxs_pm);
+        while (<>) {
+            if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
+                print;
+                print <<EOF;
+sub a_method { 'mtfnpy' }
+
+__PACKAGE__->has_one('bazrel7', 'DBIXCSL_Test::Schema::Baz',
+    { 'foreign.baz_num' => 'self.baz_id' });
+EOF
+            }
+            else {
+                print;
+            }
+        }
+    }
+
+    # test that with no use_namespaces option, there is a warning and
+    # load_classes is preserved
+    $res = run_loader(dump_directory => $DUMP_DIR);
+
+    like $res->{warnings}[0], qr/load_classes/i,
+'correct warnings on re-dumping static schema with load_classes';
+
+    like $res->{warnings}[1], qr/Dumping manual schema/i,
+'correct warnings on re-dumping static schema with load_classes';
+
+    like $res->{warnings}[2], qr/dump completed/i,
+'correct warnings on re-dumping static schema with load_classes';
+
+    is scalar @{ $res->{warnings} }, 3,
+'correct number of warnings on re-dumping static schema with load_classes'
+        or diag @{ $res->{warnings} };
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Quux',
+        'load_classes preserved on re-dump';
+
+    run_v5_tests($res);
+
+    # now upgrade the schema to use_namespaces
+    $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        use_namespaces => 1,
+    );
+    $schema = $res->{schema};
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on upgrading to use_namespaces';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on upgrading to use_namespaces';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on upgrading to use_namespaces'
+        or diag @{ $res->{warnings} };
+
+    run_v5_tests($res);
+
+    (my $schema_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s{::}{/}g;
+    my @schema_files = glob "$schema_dir/*";
+
+    is 1, (scalar @schema_files),
+        "schema dir $schema_dir contains only 1 entry";
+
+    like $schema_files[0], qr{/Result\z},
+        "schema dir contains only a Result/ directory";
+
+    # check that custom content was preserved
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
+        'custom content was carried over during use_namespaces upgrade';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel7,
+        $res->{classes}{bazs} }
+        'un-namespaced class names in custom content are translated';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'mtfnpy' }/,
+'custom content from un-namespaced Result loaded into static dump correctly';
+}
+
+# test a regular schema with default use_namespaces => 1, redump, and downgrade
+# to load_classes
+{
+    rmtree $DUMP_DIR;
+    mkdir $DUMP_DIR;
+
+    my $res = run_loader(dump_directory => $DUMP_DIR);
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on dumping static schema';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on dumping static schema';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on dumping static schema'
+        or diag @{ $res->{warnings} };
+
+    run_v5_tests($res);
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Result::Quux',
+        'defaults to use_namespaces on regular dump';
+
+    # add some custom content to a Result that will be replaced
+    my $schema   = $res->{schema};
+    my $quuxs_pm = $schema->_loader
+        ->_get_dump_filename($res->{classes}{quuxs});
+    {
+        local ($^I, @ARGV) = ('', $quuxs_pm);
+        while (<>) {
+            if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
+                print;
+                print <<EOF;
+sub a_method { 'mtfnpy' }
+
+__PACKAGE__->has_one('bazrel8', 'DBIXCSL_Test::Schema::Result::Baz',
+    { 'foreign.baz_num' => 'self.baz_id' });
+EOF
+            }
+            else {
+                print;
+            }
+        }
+    }
+
+    # test that with no use_namespaces option, use_namespaces is preserved
+    $res = run_loader(dump_directory => $DUMP_DIR);
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on re-dumping static schema';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on re-dumping static schema';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on re-dumping static schema'
+        or diag @{ $res->{warnings} };
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Result::Quux',
+        'use_namespaces preserved on re-dump';
+
+    run_v5_tests($res);
+
+    # now downgrade the schema to load_classes
+    $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        use_namespaces => 0,
+    );
+    $schema = $res->{schema};
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on downgrading to load_classes';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on downgrading to load_classes';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on downgrading to load_classes'
+        or diag @{ $res->{warnings} };
+
+    run_v5_tests($res);
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Quux',
+        'load_classes downgrade correct';
+
+    (my $result_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s{::}{/}g;
+    my $result_count =()= glob "$result_dir/*";
+
+    is $result_count, 4,
+'correct number of Results after upgrade and Result dir removed';
+
+    ok ((not -d "$result_dir/Result"),
+        'Result dir was removed for load_classes downgrade');
+
+    # check that custom content was preserved
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
+        'custom content was carried over during load_classes downgrade';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel8,
+        $res->{classes}{bazs} }
+'namespaced class names in custom content are translated during load_classes '.
+'downgrade';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'mtfnpy' }/,
+'custom content from namespaced Result loaded into static dump correctly '.
+'during load_classes downgrade';
+}
+
+# test a regular schema with use_namespaces => 1 and a custom result_namespace
+# downgraded to load_classes
+{
+    rmtree $DUMP_DIR;
+    mkdir $DUMP_DIR;
+
+    my $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        result_namespace => 'MyResult',
+    );
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on dumping static schema';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on dumping static schema';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on dumping static schema'
+        or diag @{ $res->{warnings} };
+
+    run_v5_tests($res);
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::MyResult::Quux',
+        'defaults to use_namespaces and uses custom result_namespace';
+
+    # add some custom content to a Result that will be replaced
+    my $schema   = $res->{schema};
+    my $quuxs_pm = $schema->_loader
+        ->_get_dump_filename($res->{classes}{quuxs});
+    {
+        local ($^I, @ARGV) = ('', $quuxs_pm);
+        while (<>) {
+            if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
+                print;
+                print <<EOF;
+sub a_method { 'mtfnpy' }
+
+__PACKAGE__->has_one('bazrel9', 'DBIXCSL_Test::Schema::MyResult::Baz',
+    { 'foreign.baz_num' => 'self.baz_id' });
+EOF
+            }
+            else {
+                print;
+            }
+        }
+    }
+
+    # test that with no use_namespaces option, use_namespaces is preserved, and
+    # the custom result_namespace is preserved
+    $res = run_loader(dump_directory => $DUMP_DIR);
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on re-dumping static schema';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on re-dumping static schema';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on re-dumping static schema'
+        or diag @{ $res->{warnings} };
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::MyResult::Quux',
+        'use_namespaces and custom result_namespace preserved on re-dump';
+
+    run_v5_tests($res);
+
+    # now downgrade the schema to load_classes
+    $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        use_namespaces => 0,
+    );
+    $schema = $res->{schema};
+
+    like $res->{warnings}[0], qr/Dumping manual schema/i,
+'correct warnings on downgrading to load_classes';
+
+    like $res->{warnings}[1], qr/dump completed/i,
+'correct warnings on downgrading to load_classes';
+
+    is scalar @{ $res->{warnings} }, 2,
+'correct number of warnings on downgrading to load_classes'
+        or diag @{ $res->{warnings} };
+
+    run_v5_tests($res);
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Quux',
+        'load_classes downgrade correct';
+
+    (my $result_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s{::}{/}g;
+    my $result_count =()= glob "$result_dir/*";
+
+    is $result_count, 4,
+'correct number of Results after upgrade and Result dir removed';
+
+    ok ((not -d "$result_dir/MyResult"),
+        'Result dir was removed for load_classes downgrade');
+
+    # check that custom content was preserved
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
+        'custom content was carried over during load_classes downgrade';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel9,
+        $res->{classes}{bazs} }
+'namespaced class names in custom content are translated during load_classes '.
+'downgrade';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'mtfnpy' }/,
+'custom content from namespaced Result loaded into static dump correctly '.
+'during load_classes downgrade';
+}
+
+# rewrite from one result_namespace to another
+{
+    rmtree $DUMP_DIR;
+    mkdir $DUMP_DIR;
+
+    my $res = run_loader(dump_directory => $DUMP_DIR);
+
+    # add some custom content to a Result that will be replaced
+    my $schema   = $res->{schema};
+    my $quuxs_pm = $schema->_loader
+        ->_get_dump_filename($res->{classes}{quuxs});
+    {
+        local ($^I, @ARGV) = ('', $quuxs_pm);
+        while (<>) {
+            if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
+                print;
+                print <<EOF;
+sub a_method { 'mtfnpy' }
+
+__PACKAGE__->has_one('bazrel10', 'DBIXCSL_Test::Schema::Result::Baz',
+    { 'foreign.baz_num' => 'self.baz_id' });
+EOF
+            }
+            else {
+                print;
+            }
+        }
+    }
+
+    # Rewrite implicit 'Result' to 'MyResult'
+    $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        result_namespace => 'MyResult',
+    );
+    $schema = $res->{schema};
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::MyResult::Quux',
+        'using new result_namespace';
+
+    (my $result_dir = "$DUMP_DIR/$SCHEMA_CLASS/MyResult") =~ s{::}{/}g;
+    my $result_count =()= glob "$result_dir/*";
+
+    is $result_count, 4,
+'correct number of Results after rewritten result_namespace';
+
+    ok ((not -d "$result_dir/Result"),
+        'original Result dir was removed when rewriting result_namespace');
+
+    # check that custom content was preserved
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
+        'custom content was carried over when rewriting result_namespace';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel10,
+        $res->{classes}{bazs} }
+'class names in custom content are translated when rewriting result_namespace';
+
+    my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'mtfnpy' }/,
+'custom content from namespaced Result loaded into static dump correctly '.
+'when rewriting result_namespace';
+
+    # Now rewrite 'MyResult' to 'Mtfnpy'
+    $res = run_loader(
+        dump_directory => $DUMP_DIR,
+        result_namespace => 'Mtfnpy',
+    );
+    $schema = $res->{schema};
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Mtfnpy::Quux',
+        'using new result_namespace';
+
+    ($result_dir = "$DUMP_DIR/$SCHEMA_CLASS/Mtfnpy") =~ s{::}{/}g;
+    $result_count =()= glob "$result_dir/*";
+
+    is $result_count, 4,
+'correct number of Results after rewritten result_namespace';
+
+    ok ((not -d "$result_dir/MyResult"),
+        'original Result dir was removed when rewriting result_namespace');
+
+    # check that custom content was preserved
+    lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
+        'custom content was carried over when rewriting result_namespace';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel10,
+        $res->{classes}{bazs} }
+'class names in custom content are translated when rewriting result_namespace';
+
+    $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
+    $code = do { local ($/, @ARGV) = (undef, $file); <> };
+
+    like $code, qr/sub a_method { 'mtfnpy' }/,
+'custom content from namespaced Result loaded into static dump correctly '.
+'when rewriting result_namespace';
 }
 
 # test upgrading a v4 schema, the check that the version string is correct

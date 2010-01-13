@@ -38,7 +38,6 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 dump_directory
                                 dump_overwrite
                                 really_erase_my_files
-                                result_namespace
                                 resultset_namespace
                                 default_resultset_class
                                 schema_base_class
@@ -63,7 +62,9 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 _upgrading_from
                                 _upgrading_from_load_classes
                                 _downgrading_to_load_classes
+                                _rewriting_result_namespace
                                 use_namespaces
+                                result_namespace
 /);
 
 =head1 NAME
@@ -468,13 +469,14 @@ EOF
     open(my $fh, '<', $filename)
         or croak "Cannot open '$filename' for reading: $!";
 
-    my $load_classes = 0;
-    my $result_namespace;
+    my $load_classes     = 0;
+    my $result_namespace = '';
 
     while (<$fh>) {
         if (/^__PACKAGE__->load_classes;/) {
             $load_classes = 1;
-        } elsif (($result_namespace) = /result_namespace => '([^']+)'/) {
+        } elsif (/result_namespace => '([^']+)'/) {
+            $result_namespace = $1;
         } elsif (my ($real_ver) =
                 /^# Created by DBIx::Class::Schema::Loader v(\d+\.\d+)/) {
 
@@ -494,10 +496,22 @@ EOF
             elsif ($load_classes && $self->use_namespaces) {
                 $self->_upgrading_from_load_classes(1);
             }
-            elsif ((not $load_classes) && (not $self->use_namespaces)) {
+            elsif ((not $load_classes) && defined $self->use_namespaces
+                                       && (not $self->use_namespaces)) {
                 $self->_downgrading_to_load_classes(
                     $result_namespace || 'Result'
                 );
+            }
+            elsif ((not defined $self->use_namespaces)
+                   || $self->use_namespaces) {
+                if (not $self->result_namespace) {
+                    $self->result_namespace($result_namespace || 'Result');
+                }
+                elsif ($result_namespace ne $self->result_namespace) {
+                    $self->_rewriting_result_namespace(
+                        $result_namespace || 'Result'
+                    );
+                }
             }
 
             # XXX when we go past .0 this will need fixing
@@ -568,7 +582,9 @@ sub _rewriting {
 
     return $self->_upgrading_from
         || $self->_upgrading_from_load_classes
-        || $self->_downgrading_to_load_classes;
+        || $self->_downgrading_to_load_classes
+        || $self->_rewriting_result_namespace
+    ;
 }
 
 sub _rewrite_old_classnames {
@@ -943,16 +959,12 @@ sub _dump_to_dir {
     # remove Result dir if downgrading from use_namespaces, and there are no
     # files left.
     if (my $result_ns = $self->_downgrading_to_load_classes) {
-        my $result_class;
+        my $result_namespace = $self->_result_namespace(
+            $schema_class,
+            $result_ns,
+        );
 
-        if ($result_ns =~ /^\+(.*)/) {
-            $result_class = $1;
-        }
-        else {
-            $result_class = "${schema_class}::${result_ns}";
-        }
-
-        (my $result_dir = $result_class) =~ s{::}{/}g;
+        (my $result_dir = $result_namespace) =~ s{::}{/}g;
         $result_dir = $self->dump_directory . '/' . $result_dir;
 
         unless (my @files = glob "$result_dir/*") {
@@ -1112,6 +1124,22 @@ sub _inject {
     $self->_raw_stmt($target, "use base qw/ $blist /;") if @_;
 }
 
+sub _result_namespace {
+    my ($self, $schema_class, $ns) = @_;
+    my @result_namespace;
+
+    if ($ns =~ /^\+(.*)/) {
+        # Fully qualified namespace
+        @result_namespace = ($1)
+    }
+    else {
+        # Relative namespace
+        @result_namespace = ($schema_class, $ns);
+    }
+
+    return wantarray ? @result_namespace : join '::', @result_namespace;
+}
+
 # Create class with applicable bases, setup monikers, etc
 sub _make_src_class {
     my ($self, $table) = @_;
@@ -1123,14 +1151,10 @@ sub _make_src_class {
     my @result_namespace = ($schema_class);
     if ($self->use_namespaces) {
         my $result_namespace = $self->result_namespace || 'Result';
-        if ($result_namespace =~ /^\+(.*)/) {
-            # Fully qualified namespace
-            @result_namespace =  ($1)
-        }
-        else {
-            # Relative namespace
-            push @result_namespace, $result_namespace;
-        }
+        @result_namespace = $self->_result_namespace(
+            $schema_class,
+            $result_namespace,
+        );
     }
     my $table_class = join(q{::}, @result_namespace, $table_moniker);
 
@@ -1144,14 +1168,16 @@ sub _make_src_class {
             @result_namespace = ($schema_class);
         }
         elsif (my $ns = $self->_downgrading_to_load_classes) {
-            if ($ns =~ /^\+(.*)/) {
-                # Fully qualified namespace
-                @result_namespace = ($1)
-            }
-            else {
-                # Relative namespace
-                @result_namespace = ($schema_class, $ns);
-            }
+            @result_namespace = $self->_result_namespace(
+                $schema_class,
+                $ns,
+            );
+        }
+        elsif ($ns = $self->_rewriting_result_namespace) {
+            @result_namespace = $self->_result_namespace(
+                $schema_class,
+                $ns,
+            );
         }
 
         my $old_class = join(q{::}, @result_namespace,
