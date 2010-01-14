@@ -399,9 +399,39 @@ EOF
 }
 
 # test running against v4 schema with load_namespaces, upgrade to v5 but
-# downgrade to load_classes
+# downgrade to load_classes, with external content
 {
+    my $temp_dir = tempdir;
+    push @INC, $temp_dir;
+
+    my $external_result_dir = join '/', $temp_dir, split /::/,
+        "${SCHEMA_CLASS}::Result";
+
+    make_path $external_result_dir;
+
+    # make external content for Result that will be singularized
+    IO::File->new(">$external_result_dir/Quuxs.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Result::Quuxs;
+sub b_method { 'dongs' }
+
+__PACKAGE__->has_one('bazrel11', 'DBIXCSL_Test::Schema::Result::Bazs',
+    { 'foreign.baz_num' => 'self.baz_id' });
+
+1;
+EOF
+
+    # make external content for Result that will NOT be singularized
+    IO::File->new(">$external_result_dir/Bar.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Result::Bar;
+
+__PACKAGE__->has_one('foorel5', 'DBIXCSL_Test::Schema::Result::Foos',
+    { 'foreign.fooid' => 'self.foo_id' });
+
+1;
+EOF
+
     write_v4_schema_pm(use_namespaces => 1);
+
     my $res = run_loader(dump_directory => $DUMP_DIR);
     my $warning = $res->{warnings}[0];
 
@@ -416,6 +446,9 @@ EOF
         'correct number of warnings for static schema in backcompat mode';
 
     run_v4_tests($res);
+
+    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Result::Quuxs',
+        'use_namespaces in backcompat mode';
 
     # add some custom content to a Result that will be replaced
     my $schema   = $res->{schema};
@@ -438,9 +471,6 @@ EOF
             }
         }
     }
-
-    is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Result::Quuxs',
-        'use_namespaces in backcompat mode';
 
     # now upgrade the schema to v5 but downgrade to load_classes
     $res = run_loader(
@@ -476,19 +506,37 @@ EOF
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Quux',
         'load_classes in upgraded mode';
 
-    # check that custom content was preserved
+    # check that custom and external content was preserved
     lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
         'custom content was carried over from un-singularized Result';
+
+    lives_and { is $schema->resultset('Quux')->find(1)->b_method, 'dongs' }
+        'external content was carried over from un-singularized Result';
 
     lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel6,
         $res->{classes}{bazs} }
         'unsingularized class names in custom content are translated';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel11,
+        $res->{classes}{bazs} }
+        'unsingularized class names in external content are translated';
+
+    lives_and { isa_ok $schema->resultset('Bar')->find(1)->foorel5,
+        $res->{classes}{foos} }
+'unsingularized class names in external content from unchanged Result class ' .
+'names are translated in static schema';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
     my $code = do { local ($/, @ARGV) = (undef, $file); <> };
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from unsingularized Result loaded into static dump correctly';
+
+    like $code, qr/sub b_method { 'dongs' }/,
+'external content from unsingularized Result loaded into static dump correctly';
+
+    rmtree $temp_dir;
+    pop @INC;
 }
 
 # test a regular schema with use_namespaces => 0 upgraded to
@@ -827,10 +875,38 @@ EOF
 'during load_classes downgrade';
 }
 
-# rewrite from one result_namespace to another
+# rewrite from one result_namespace to another, with external content
 {
     rmtree $DUMP_DIR;
     mkdir $DUMP_DIR;
+    my $temp_dir = tempdir;
+    push @INC, $temp_dir;
+
+    my $external_result_dir = join '/', $temp_dir, split /::/,
+        "${SCHEMA_CLASS}::Result";
+
+    make_path $external_result_dir;
+
+    # make external content for Result that will be singularized
+    IO::File->new(">$external_result_dir/Quux.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Result::Quux;
+sub c_method { 'dongs' }
+
+__PACKAGE__->has_one('bazrel12', 'DBIXCSL_Test::Schema::Result::Baz',
+    { 'foreign.baz_num' => 'self.baz_id' });
+
+1;
+EOF
+
+    # make external content for Result that will NOT be singularized
+    IO::File->new(">$external_result_dir/Bar.pm")->print(<<"EOF");
+package ${SCHEMA_CLASS}::Result::Bar;
+
+__PACKAGE__->has_one('foorel6', 'DBIXCSL_Test::Schema::Result::Foo',
+    { 'foreign.fooid' => 'self.foo_id' });
+
+1;
+EOF
 
     my $res = run_loader(dump_directory => $DUMP_DIR);
 
@@ -911,13 +987,26 @@ EOF
     ok ((not -d "$schema_dir/MyResult"),
         'original Result dir was removed when rewriting result_namespace');
 
-    # check that custom content was preserved
+    # check that custom and external content was preserved
     lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'mtfnpy' }
+        'custom content was carried over when rewriting result_namespace';
+
+    lives_and { is $schema->resultset('Quux')->find(1)->c_method, 'dongs' }
         'custom content was carried over when rewriting result_namespace';
 
     lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel10,
         $res->{classes}{bazs} }
 'class names in custom content are translated when rewriting result_namespace';
+
+    lives_and { isa_ok $schema->resultset('Quux')->find(1)->bazrel12,
+        $res->{classes}{bazs} }
+'class names in external content are translated when rewriting '.
+'result_namespace';
+
+    lives_and { isa_ok $schema->resultset('Bar')->find(1)->foorel6,
+        $res->{classes}{foos} }
+'class names in external content are translated when rewriting '.
+'result_namespace';
 
     $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
     $code = do { local ($/, @ARGV) = (undef, $file); <> };
@@ -925,6 +1014,12 @@ EOF
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from namespaced Result loaded into static dump correctly '.
 'when rewriting result_namespace';
+
+    like $code, qr/sub c_method { 'dongs' }/,
+'external content from unsingularized Result loaded into static dump correctly';
+
+    rmtree $temp_dir;
+    pop @INC;
 }
 
 # test upgrading a v4 schema, the check that the version string is correct
