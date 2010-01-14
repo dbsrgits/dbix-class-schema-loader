@@ -958,7 +958,8 @@ sub _dump_to_dir {
 
     # remove Result dir if downgrading from use_namespaces, and there are no
     # files left.
-    if (my $result_ns = $self->_downgrading_to_load_classes) {
+    if (my $result_ns = $self->_downgrading_to_load_classes
+                        || $self->_rewriting_result_namespace) {
         my $result_namespace = $self->_result_namespace(
             $schema_class,
             $result_ns,

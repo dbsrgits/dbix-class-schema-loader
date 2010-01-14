@@ -866,13 +866,14 @@ EOF
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::MyResult::Quux',
         'using new result_namespace';
 
+    (my $schema_dir = "$DUMP_DIR/$SCHEMA_CLASS")          =~ s{::}{/}g;
     (my $result_dir = "$DUMP_DIR/$SCHEMA_CLASS/MyResult") =~ s{::}{/}g;
     my $result_count =()= glob "$result_dir/*";
 
     is $result_count, 4,
 'correct number of Results after rewritten result_namespace';
 
-    ok ((not -d "$result_dir/Result"),
+    ok ((not -d "$schema_dir/Result"),
         'original Result dir was removed when rewriting result_namespace');
 
     # check that custom content was preserved
@@ -900,13 +901,14 @@ EOF
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Mtfnpy::Quux',
         'using new result_namespace';
 
+    ($schema_dir = "$DUMP_DIR/$SCHEMA_CLASS")        =~ s{::}{/}g;
     ($result_dir = "$DUMP_DIR/$SCHEMA_CLASS/Mtfnpy") =~ s{::}{/}g;
     $result_count =()= glob "$result_dir/*";
 
     is $result_count, 4,
 'correct number of Results after rewritten result_namespace';
 
-    ok ((not -d "$result_dir/MyResult"),
+    ok ((not -d "$schema_dir/MyResult"),
         'original Result dir was removed when rewriting result_namespace');
 
     # check that custom content was preserved
