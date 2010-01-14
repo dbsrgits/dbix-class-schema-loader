@@ -59,7 +59,12 @@ sub _table_columns {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my $columns = $dbh->selectcol_arrayref(qq{SELECT name FROM syscolumns WHERE id = (SELECT id FROM sysobjects WHERE name = @{[ $dbh->quote($table) ]} AND type = 'U')});
+    my $columns = $dbh->selectcol_arrayref(qq{
+SELECT c.name
+FROM syscolumns c JOIN sysobjects o
+ON c.id = o.id
+WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
+});
 
     return $columns;
 }
