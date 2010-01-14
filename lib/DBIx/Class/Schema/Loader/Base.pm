@@ -16,7 +16,7 @@ use File::Temp qw//;
 use Class::Unload;
 require DBIx::Class;
 
-our $VERSION = '0.04999_13';
+our $VERSION = '0.04999_14';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema

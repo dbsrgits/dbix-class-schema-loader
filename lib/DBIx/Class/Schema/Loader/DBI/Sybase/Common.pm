@@ -5,7 +5,7 @@ use warnings;
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-our $VERSION = '0.04999_13';
+our $VERSION = '0.04999_14';
 
 =head1 NAME
 

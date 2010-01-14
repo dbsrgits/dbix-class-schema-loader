@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.04999_14  2010-01-14 06:47:07
         - use_namespaces now default, with upgrade/downgrade support
         - filter out un-selectable tables/views
         - fix NUMERIC/DECIMAL size column_info for postgres
