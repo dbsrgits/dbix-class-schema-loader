@@ -887,7 +887,6 @@ EOF
 
     make_path $external_result_dir;
 
-    # make external content for Result that will be singularized
     IO::File->new(">$external_result_dir/Quux.pm")->print(<<"EOF");
 package ${SCHEMA_CLASS}::Result::Quux;
 sub c_method { 'dongs' }
@@ -898,7 +897,6 @@ __PACKAGE__->has_one('bazrel12', 'DBIXCSL_Test::Schema::Result::Baz',
 1;
 EOF
 
-    # make external content for Result that will NOT be singularized
     IO::File->new(">$external_result_dir/Bar.pm")->print(<<"EOF");
 package ${SCHEMA_CLASS}::Result::Bar;
 
