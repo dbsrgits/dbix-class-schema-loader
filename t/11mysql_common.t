@@ -32,8 +32,7 @@ my $tester = dbixcsl_common_tests->new(
             qq{
                 CREATE TABLE mysql_loader_test2 (
                   id INTEGER UNSIGNED NOT NULL PRIMARY KEY,
-                  somedate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  somestr VARCHAR(100) NOT NULL DEFAULT 'foo'
+                  somets TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
             },
         ],
@@ -54,7 +53,7 @@ my $tester = dbixcsl_common_tests->new(
                       'MySQL ENUM values');
 
             $rs = $schema->resultset($monikers->{mysql_loader_test2});
-            $column_info = $rs->result_source->column_info('somedate');
+            $column_info = $rs->result_source->column_info('somets');
             my $default  = $column_info->{default_value};
             ok ((ref($default) eq 'SCALAR'),
                 'CURRENT_TIMESTAMP default_value is a scalar ref');
