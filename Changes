@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - added 'generate_pod' option, defaults to on
+
 0.04999_14  2010-01-14 06:47:07
         - use_namespaces now default, with upgrade/downgrade support
         - filter out un-selectable tables/views

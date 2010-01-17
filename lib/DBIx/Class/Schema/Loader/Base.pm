@@ -65,6 +65,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 _rewriting_result_namespace
                                 use_namespaces
                                 result_namespace
+                                generate_pod
 /);
 
 =head1 NAME
@@ -157,6 +158,13 @@ Or if you prefer to use 0.05XXX features but insure that nothing breaks in the
 next major version upgrade:
 
     __PACKAGE__->naming('v5');
+
+=head2 generate_pod
+
+By default POD will be generated for columns and relationships, using database
+metadata for the text if available and supported (Postgres only so far.)
+
+Set this to C<0> to turn off all POD generation.
 
 =head2 relationship_attrs
 
@@ -419,6 +427,7 @@ sub new {
     $self->_check_back_compat;
 
     $self->use_namespaces(1) unless defined $self->use_namespaces;
+    $self->generate_pod(1)   unless defined $self->generate_pod;
 
     $self;
 }
@@ -1379,6 +1388,8 @@ sub _make_pod {
     my $class  = shift;
     my $method = shift;
 
+    return unless $self->generate_pod;
+
     if ( $method eq 'table' ) {
         my ($table) = @_;
         $self->_pod( $class, "=head1 NAME" );
@@ -1436,7 +1447,6 @@ sub _pod_cut {
     my ($self, $class ) = @_;
     $self->_raw_stmt( $class, "\n=cut\n" );
 }
-
 
 # Store a raw source line for a class (for dumping purposes)
 sub _raw_stmt {

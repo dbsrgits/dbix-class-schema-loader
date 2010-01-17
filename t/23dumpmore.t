@@ -222,6 +222,21 @@ do_dump_test(
 
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
+    options => { use_namespaces => 1, generate_pod => 0 },
+    error => '',
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    neg_regexes => {
+        'Result/Foo' => [
+            qr/^=/m,
+        ],
+    },
+);
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
     options => { use_namespaces => 1 },
     error => '',
     warnings => [
