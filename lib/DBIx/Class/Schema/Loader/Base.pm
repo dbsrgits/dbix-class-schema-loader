@@ -162,7 +162,10 @@ next major version upgrade:
 =head2 generate_pod
 
 By default POD will be generated for columns and relationships, using database
-metadata for the text if available and supported (Postgres only so far.)
+metadata for the text if available and supported.
+
+Reading database metadata (e.g. C<COMMENT ON TABLE some_table ...>) is only
+supported for Postgres right now.
 
 Set this to C<0> to turn off all POD generation.
 
