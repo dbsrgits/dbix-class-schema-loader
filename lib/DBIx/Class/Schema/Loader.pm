@@ -482,6 +482,8 @@ jhannah: Jay Hannah <jay@jays.net>
 
 rbuels: Robert Buels <rmb32@cornell.edu>
 
+timbunce: Tim Bunce <Tim.Bunce@ig.co.uk>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
