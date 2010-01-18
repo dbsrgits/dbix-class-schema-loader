@@ -484,6 +484,8 @@ rbuels: Robert Buels <rmb32@cornell.edu>
 
 timbunce: Tim Bunce <timb@cpan.org>
 
+mst: Matt S. Trout <mst@shadowcatsystems.co.uk>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
