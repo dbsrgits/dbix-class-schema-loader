@@ -474,7 +474,7 @@ TSUNODA Kazuya <drk@drk7.jp>
 
 Robert Bohne <rbo@openserv.org>
 
-ribasushi: Peter Rabbitson <rabbit+dbic@rabbit.us>
+ribasushi: Peter Rabbitson <ribasushi@cpan.org>
 
 gugu: Andrey Kostenko <a.kostenko@rambler-co.ru>
 
