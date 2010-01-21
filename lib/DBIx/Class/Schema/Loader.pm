@@ -486,6 +486,8 @@ timbunce: Tim Bunce <timb@cpan.org>
 
 mst: Matt S. Trout <mst@shadowcatsystems.co.uk>
 
+kane: Jos Boumans <kane@cpan.org>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
