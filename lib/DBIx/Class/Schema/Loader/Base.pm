@@ -179,9 +179,22 @@ force a C<DESCRIPTION> section to be generated with the comment instead, or
 choose the length threshold at which the comment is forced into the
 description.
 
-  pod_comment_mode => 'name' # default behaviour
-  pod_comment_mode => 'description' # force creation of DESCRIPTION section
-  pod_comment_mode => 'auto' # use description if length > pod_comment_spillover_length
+=over 4
+
+=item name
+
+Use C<NAME> section only.
+
+=item description
+
+Force C<DESCRIPTION> always.
+
+=item auto
+
+Use C<DESCRIPTION> if length > L</pod_comment_spillover_length>, this is the
+default.
+
+=back
 
 =head2 pod_comment_spillover_length
 
