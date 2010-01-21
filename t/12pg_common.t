@@ -28,10 +28,19 @@ my $tester = dbixcsl_common_tests->new(
             q{
                 COMMENT ON COLUMN pg_loader_test1.value IS 'The Column'
             },
+            q{
+                CREATE TABLE pg_loader_test2 (
+                    id SERIAL NOT NULL PRIMARY KEY,
+                    value VARCHAR(100)
+                )
+            },
+            q{
+                COMMENT ON TABLE pg_loader_test2 IS 'very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long comment'
+            },
             # Test to make sure data_types that don't need a size => don't
             # have one and check varying types have the correct size.
             q{
-                CREATE TABLE pg_loader_test2 (
+                CREATE TABLE pg_loader_test3 (
                     id SERIAL NOT NULL PRIMARY KEY,
                     a_bigint BIGINT,
                     an_int8 INT8,
@@ -92,8 +101,8 @@ my $tester = dbixcsl_common_tests->new(
 # XXX figure out what to do with DECIMAL(precision, scale) aka
 # NUMERIC(precision, scale)
         ],
-        drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 56,
+        drop  => [ qw/ pg_loader_test1 pg_loader_test2 pg_loader_test3 / ],
+        count => 57,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -111,7 +120,18 @@ my $tester = dbixcsl_common_tests->new(
             like $code, qr/^=head2 value\n\n(.+:.+\n)+\nThe Column\n\n/m,
                 'column comment and attrs';
 
-            my $rsrc = $schema->resultset('PgLoaderTest2')->result_source;
+            $class    = $classes->{pg_loader_test2};
+            $filename = $schema->_loader->_get_dump_filename($class);
+
+            $code = do {
+                local ($/, @ARGV) = (undef, $filename);
+                <>;
+            };
+
+            like $code, qr/^=head1 NAME\n\n^$class\n\n=head1 DESCRIPTION\n\n^very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long comment\n\n^=cut\n/m,
+                'long table comment is in DESCRIPTION';
+
+            my $rsrc = $schema->resultset('PgLoaderTest3')->result_source;
             my @type_columns = grep /^a/, $rsrc->columns;
             my @without_precision = grep !/_with_precision\z/, @type_columns;
             my @with_precision    = grep  /_with_precision\z/, @type_columns;
@@ -127,7 +147,8 @@ my $tester = dbixcsl_common_tests->new(
                 ok((not exists $rsrc->column_info($col)->{size}),
                     "$data_type " .
                     (exists $with_precision{$col} ? 'without precision ' : '') .
-                    "has no 'size' column_info");
+                    "has no 'size' column_info")
+                or diag "size is ".$rsrc->column_info($col)->{size}."\n";
             }
 
             for my $col (@with_precision) {
