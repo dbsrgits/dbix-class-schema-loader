@@ -139,7 +139,7 @@ sub _columns_info_for {
             delete $result->{$col}{size};
         }
 # for datetime types, check if it has a precision or not
-        elsif ($data_type =~ /^(?:interval|time|timestamp)\b/) {
+        elsif ($data_type =~ /^(?:interval|time|timestamp)\b/i) {
             my ($precision) = $self->schema->storage->dbh
                 ->selectrow_array(<<EOF, {}, $table, $col);
 SELECT datetime_precision

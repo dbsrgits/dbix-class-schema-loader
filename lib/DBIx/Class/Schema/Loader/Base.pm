@@ -66,6 +66,8 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 use_namespaces
                                 result_namespace
                                 generate_pod
+                                pod_comment_mode
+                                pod_comment_spillover_length
 /);
 
 =head1 NAME
@@ -168,6 +170,25 @@ Reading database metadata (e.g. C<COMMENT ON TABLE some_table ...>) is only
 supported for Postgres right now.
 
 Set this to C<0> to turn off all POD generation.
+
+=head2 pod_comment_mode
+
+Controls where table comments appear in the generated POD. By default table
+comments are appended to the C<NAME> section of the documentation. You can
+force a C<DESCRIPTION> section to be generated with the comment instead, or
+choose the length threshold at which the comment is forced into the
+description.
+
+  pod_comment_mode => 'name' # default behaviour
+  pod_comment_mode => 'description' # force creation of DESCRIPTION section
+  pod_comment_mode => 'auto' # use description if length > pod_comment_spillover_length
+
+=head2 pod_comment_spillover_length
+
+When pod_comment_mode is set to C<auto>, this is the length of the comment at
+which it will be forced into a separate description section.
+
+The default is C<60>
 
 =head2 relationship_attrs
 
@@ -431,6 +452,8 @@ sub new {
 
     $self->use_namespaces(1) unless defined $self->use_namespaces;
     $self->generate_pod(1)   unless defined $self->generate_pod;
+    $self->pod_comment_mode('auto')         unless defined $self->pod_comment_mode;
+    $self->pod_comment_spillover_length(60) unless defined $self->pod_comment_spillover_length;
 
     $self;
 }
@@ -1373,7 +1396,7 @@ sub _dbic_stmt {
     my $method = shift;
 
     # generate the pod for this statement, storing it with $self->_pod
-    $self->_make_pod( $class, $method, @_ );
+    $self->_make_pod( $class, $method, @_ ) if $self->generate_pod;
 
     my $args = dump(@_);
     $args = '(' . $args . ')' if @_ < 2;
@@ -1391,18 +1414,25 @@ sub _make_pod {
     my $class  = shift;
     my $method = shift;
 
-    return unless $self->generate_pod;
-
     if ( $method eq 'table' ) {
         my ($table) = @_;
+        my $pcm = $self->pod_comment_mode;
+        my ($comment, $comment_overflows, $comment_in_name, $comment_in_desc);
+        if ( $self->can('_table_comment') ) {
+            $comment = $self->_table_comment($table);
+            $comment_overflows = ($comment and length $comment > $self->pod_comment_spillover_length);
+            $comment_in_name   = ($pcm eq 'name' or ($pcm eq 'auto' and !$comment_overflows));
+            $comment_in_desc   = ($pcm eq 'description' or ($pcm eq 'auto' and $comment_overflows));
+        }
         $self->_pod( $class, "=head1 NAME" );
         my $table_descr = $class;
-        if ( $self->can('_table_comment') ) {
-            my $comment = $self->_table_comment($table);
-            $table_descr .= " - " . $comment if $comment;
-        }
+        $table_descr .= " - " . $comment if $comment and $comment_in_name;
         $self->{_class2table}{ $class } = $table;
         $self->_pod( $class, $table_descr );
+        if ($comment and $comment_in_desc) {
+            $self->_pod( $class, "=head1 DESCRIPTION" );
+            $self->_pod( $class, $comment );
+        }
         $self->_pod_cut( $class );
     } elsif ( $method eq 'add_columns' ) {
         $self->_pod( $class, "=head1 ACCESSORS" );
