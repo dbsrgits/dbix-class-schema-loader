@@ -147,8 +147,26 @@ FROM information_schema.columns
 WHERE table_name = ? and column_name = ?
 EOF
 
-            if ((not $precision) || $precision !~ /^\d/
-                || ($data_type !~ /^time\b/i && $precision == 6)) { # only interval/timestamp default to precision == 6
+            if ($data_type =~ /^time\b/i) {
+                if ((not $precision) || $precision !~ /^\d/) {
+                    delete $result->{$col}{size};
+                }
+                else {
+                    my ($integer_datetimes) = $self->schema->storage->dbh
+                        ->selectrow_array('show integer_datetimes');
+
+                    my $max_precision =
+                        $integer_datetimes =~ /^on\z/i ? 6 : 10;
+
+                    if ($precision == $max_precision) {
+                        delete $result->{$col}{size};
+                    }
+                    else {
+                        $result->{$col}{size} = $precision;
+                    }
+                }
+            }
+            elsif ((not $precision) || $precision !~ /^\d/ || $precision == 6) {
                 delete $result->{$col}{size};
             }
             else {
