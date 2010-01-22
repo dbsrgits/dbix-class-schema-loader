@@ -173,11 +173,11 @@ Set this to C<0> to turn off all POD generation.
 
 =head2 pod_comment_mode
 
-Controls where table comments appear in the generated POD. By default table
-comments are appended to the C<NAME> section of the documentation. You can
-force a C<DESCRIPTION> section to be generated with the comment instead, or
-choose the length threshold at which the comment is forced into the
-description.
+Controls where table comments appear in the generated POD. Smaller table
+comments are appended to the C<NAME> section of the documentation, and larger
+ones are inserted into C<DESCRIPTION> instead. You can force a C<DESCRIPTION>
+section to be generated with the comment always, only use C<NAME>, or choose
+the length threshold at which the comment is forced into the description.
 
 =over 4
 
