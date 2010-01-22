@@ -147,7 +147,7 @@ FROM information_schema.columns
 WHERE table_name = ? and column_name = ?
 EOF
 
-            if ((not $precision) || $precision !~ /^\d/) {
+            if ((not $precision) || $precision !~ /^\d/ || $precision == 6) {
                 delete $result->{$col}{size};
             }
             else {
