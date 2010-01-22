@@ -6,6 +6,7 @@ use File::Path qw/rmtree make_path/;
 use Class::Unload;
 use File::Temp qw/tempfile tempdir/;
 use IO::File;
+use File::Slurp 'slurp';
 use DBIx::Class::Schema::Loader ();
 use lib qw(t/lib);
 use make_dbictest_db2;
@@ -46,7 +47,7 @@ my $SCHEMA_CLASS = 'DBIXCSL_Test::Schema';
 
 # test upgraded dynamic schema with external content loaded
 {
-    my $temp_dir = tempdir;
+    my $temp_dir = tempdir(CLEANUP => 1);
     push @INC, $temp_dir;
 
     my $external_result_dir = join '/', $temp_dir, split /::/, $SCHEMA_CLASS;
@@ -99,13 +100,12 @@ EOF
 
     run_v5_tests($res);
 
-    rmtree $temp_dir;
     pop @INC;
 }
 
 # test upgraded dynamic schema with use_namespaces with external content loaded
 {
-    my $temp_dir = tempdir;
+    my $temp_dir = tempdir(CLEANUP => 1);
     push @INC, $temp_dir;
 
     my $external_result_dir = join '/', $temp_dir, split /::/, $SCHEMA_CLASS;
@@ -158,14 +158,13 @@ EOF
 
     run_v5_tests($res);
 
-    rmtree $temp_dir;
     pop @INC;
 }
 
 
 # test upgraded static schema with external content loaded
 {
-    my $temp_dir = tempdir;
+    my $temp_dir = tempdir(CLEANUP => 1);
     push @INC, $temp_dir;
 
     my $external_result_dir = join '/', $temp_dir, split /::/, $SCHEMA_CLASS;
@@ -213,7 +212,7 @@ EOF
 'names are translated in static schema';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/package ${SCHEMA_CLASS}::Quux;/,
 'package line translated correctly from external custom content in static dump';
@@ -221,7 +220,6 @@ EOF
     like $code, qr/sub a_method { 'dongs' }/,
 'external custom content loaded into static dump correctly';
 
-    rmtree $temp_dir;
     pop @INC;
 }
 
@@ -248,7 +246,7 @@ EOF
     my $quuxs_pm = $schema->_loader
         ->_get_dump_filename($res->{classes}{quuxs});
     {
-        local ($^I, @ARGV) = ('', $quuxs_pm);
+        local ($^I, @ARGV) = ('.bak', $quuxs_pm);
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
@@ -263,6 +261,8 @@ EOF
                 print;
             }
         }
+        close ARGV;
+        unlink "${quuxs_pm}.bak" or die $^E;
     }
 
     # Rerun the loader in backcompat mode to make sure it's still in backcompat
@@ -305,7 +305,7 @@ EOF
         'unsingularized class names in custom content are translated';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from unsingularized Result loaded into static dump correctly';
@@ -335,7 +335,7 @@ EOF
     my $quuxs_pm = $schema->_loader
         ->_get_dump_filename($res->{classes}{quuxs});
     {
-        local ($^I, @ARGV) = ('', $quuxs_pm);
+        local ($^I, @ARGV) = ('.bak', $quuxs_pm);
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
@@ -350,6 +350,8 @@ EOF
                 print;
             }
         }
+        close ARGV;
+        unlink "${quuxs_pm}.bak" or die $^E;
     }
 
     # now upgrade the schema
@@ -392,7 +394,7 @@ EOF
         'unsingularized class names in custom content are translated';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from unsingularized Result loaded into static dump correctly';
@@ -401,7 +403,7 @@ EOF
 # test running against v4 schema with load_namespaces, upgrade to v5 but
 # downgrade to load_classes, with external content
 {
-    my $temp_dir = tempdir;
+    my $temp_dir = tempdir(CLEANUP => 1);
     push @INC, $temp_dir;
 
     my $external_result_dir = join '/', $temp_dir, split /::/,
@@ -455,7 +457,7 @@ EOF
     my $quuxs_pm = $schema->_loader
         ->_get_dump_filename($res->{classes}{quuxs});
     {
-        local ($^I, @ARGV) = ('', $quuxs_pm);
+        local ($^I, @ARGV) = ('.bak', $quuxs_pm);
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
@@ -470,6 +472,8 @@ EOF
                 print;
             }
         }
+        close ARGV;
+        unlink "${quuxs_pm}.bak" or die $^E;
     }
 
     # now upgrade the schema to v5 but downgrade to load_classes
@@ -527,7 +531,7 @@ EOF
 'names are translated in static schema';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from unsingularized Result loaded into static dump correctly';
@@ -535,7 +539,6 @@ EOF
     like $code, qr/sub b_method { 'dongs' }/,
 'external content from unsingularized Result loaded into static dump correctly';
 
-    rmtree $temp_dir;
     pop @INC;
 }
 
@@ -567,7 +570,7 @@ EOF
     my $quuxs_pm = $schema->_loader
         ->_get_dump_filename($res->{classes}{quuxs});
     {
-        local ($^I, @ARGV) = ('', $quuxs_pm);
+        local ($^I, @ARGV) = ('.bak', $quuxs_pm);
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
@@ -582,6 +585,8 @@ EOF
                 print;
             }
         }
+        close ARGV;
+        unlink "${quuxs_pm}.bak" or die $^E;
     }
 
     # test that with no use_namespaces option, there is a warning and
@@ -643,7 +648,7 @@ EOF
         'un-namespaced class names in custom content are translated';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from un-namespaced Result loaded into static dump correctly';
@@ -677,7 +682,7 @@ EOF
     my $quuxs_pm = $schema->_loader
         ->_get_dump_filename($res->{classes}{quuxs});
     {
-        local ($^I, @ARGV) = ('', $quuxs_pm);
+        local ($^I, @ARGV) = ('.bak', $quuxs_pm);
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
@@ -692,6 +697,8 @@ EOF
                 print;
             }
         }
+        close ARGV;
+        unlink "${quuxs_pm}.bak" or die $^E;
     }
 
     # test that with no use_namespaces option, use_namespaces is preserved
@@ -753,7 +760,7 @@ EOF
 'downgrade';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from namespaced Result loaded into static dump correctly '.
@@ -791,7 +798,7 @@ EOF
     my $quuxs_pm = $schema->_loader
         ->_get_dump_filename($res->{classes}{quuxs});
     {
-        local ($^I, @ARGV) = ('', $quuxs_pm);
+        local ($^I, @ARGV) = ('.bak', $quuxs_pm);
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
@@ -806,6 +813,8 @@ EOF
                 print;
             }
         }
+        close ARGV;
+        unlink "${quuxs_pm}.bak" or die $^E;
     }
 
     # test that with no use_namespaces option, use_namespaces is preserved, and
@@ -868,7 +877,7 @@ EOF
 'downgrade';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from namespaced Result loaded into static dump correctly '.
@@ -879,7 +888,7 @@ EOF
 {
     rmtree $DUMP_DIR;
     mkdir $DUMP_DIR;
-    my $temp_dir = tempdir;
+    my $temp_dir = tempdir(CLEANUP => 1);
     push @INC, $temp_dir;
 
     my $external_result_dir = join '/', $temp_dir, split /::/,
@@ -913,7 +922,7 @@ EOF
     my $quuxs_pm = $schema->_loader
         ->_get_dump_filename($res->{classes}{quuxs});
     {
-        local ($^I, @ARGV) = ('', $quuxs_pm);
+        local ($^I, @ARGV) = ('.bak', $quuxs_pm);
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
@@ -928,6 +937,8 @@ EOF
                 print;
             }
         }
+        close ARGV;
+        unlink "${quuxs_pm}.bak" or die $^E;
     }
 
     # Rewrite implicit 'Result' to 'MyResult'
@@ -959,7 +970,7 @@ EOF
 'class names in custom content are translated when rewriting result_namespace';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from namespaced Result loaded into static dump correctly '.
@@ -1007,7 +1018,7 @@ EOF
 'result_namespace';
 
     $file = $schema->_loader->_get_dump_filename($res->{classes}{quuxs});
-    $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    $code = slurp $file;
 
     like $code, qr/sub a_method { 'mtfnpy' }/,
 'custom content from namespaced Result loaded into static dump correctly '.
@@ -1016,7 +1027,6 @@ EOF
     like $code, qr/sub c_method { 'dongs' }/,
 'external content from unsingularized Result loaded into static dump correctly';
 
-    rmtree $temp_dir;
     pop @INC;
 }
 
@@ -1028,7 +1038,7 @@ EOF
     my $schema = $res->{schema};
 
     my $file = $schema->_loader->_get_dump_filename($SCHEMA_CLASS);
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     my ($dumped_ver) =
         $code =~ /^# Created by DBIx::Class::Schema::Loader v(\S+)/m;
@@ -1049,7 +1059,7 @@ EOF
     my $bar_pm = $schema->_loader
         ->_get_dump_filename($res->{classes}{bar});
     {
-        local ($^I, @ARGV) = ('', $bar_pm);
+        local ($^I, @ARGV) = ('.bak', $bar_pm);
         while (<>) {
             if (/DO NOT MODIFY THIS OR ANYTHING ABOVE/) {
                 print;
@@ -1064,6 +1074,8 @@ EOF
                 print;
             }
         }
+        close ARGV;
+        unlink "${bar_pm}.bak" or die $^E;
     }
 
     # now upgrade the schema
@@ -1081,7 +1093,7 @@ EOF
 'name are translated';
 
     my $file = $schema->_loader->_get_dump_filename($res->{classes}{bar});
-    my $code = do { local ($/, @ARGV) = (undef, $file); <> };
+    my $code = slurp $file;
 
     like $code, qr/sub a_method { 'lalala' }/,
 'custom content from Result with unchanged name loaded into static dump ' .

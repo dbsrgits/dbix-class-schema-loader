@@ -6,10 +6,6 @@ use IPC::Open3;
 use make_dbictest_db;
 require DBIx::Class::Schema::Loader;
 
-$^O eq 'MSWin32' && plan(skip_all =>
-"ActiveState perl produces additional warnings, and this test uses unix paths"
-);
-
 my $DUMP_PATH = './t/_dump';
 
 sub dump_directly {
@@ -48,7 +44,9 @@ sub dump_dbicdump {
     push @cmd, $tdata{classname}, $make_dbictest_db::dsn;
 
     # make sure our current @INC gets used by dbicdump
-    local $ENV{PERL5LIB} = join ":", @INC, $ENV{PERL5LIB};
+    foreach my $inc ($ENV{PERL5LIB}, reverse @INC) {
+        splice @cmd, 1, 0, '-I', $inc;
+    }
 
     my ($in, $out, $err);
     my $pid = open3($in, $out, $err, @cmd);

@@ -602,8 +602,9 @@ sub _find_file_in_inc {
     foreach my $prefix (@INC) {
         my $fullpath = File::Spec->catfile($prefix, $file);
         return $fullpath if -f $fullpath
-            and Cwd::abs_path($fullpath) ne
-               (Cwd::abs_path(File::Spec->catfile($self->dump_directory, $file)) || '');
+            # abs_path throws on Windows for nonexistant files
+            and eval { Cwd::abs_path($fullpath) } ne
+               (eval { Cwd::abs_path(File::Spec->catfile($self->dump_directory, $file)) } || '');
     }
 
     return;

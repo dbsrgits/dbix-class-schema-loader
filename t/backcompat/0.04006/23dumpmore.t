@@ -8,9 +8,6 @@ require DBIx::Class::Schema::Loader;
 plan skip_all => 'set SCHEMA_LOADER_TESTS_BACKCOMPAT to enable these tests'
     unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 
-$^O eq 'MSWin32' && plan skip_all =>
-"Win32 perl produces additional warnings, and this test uses unix paths";
-
 my $DUMP_PATH = './t/_dump';
 
 sub do_dump_test {
