@@ -147,7 +147,8 @@ FROM information_schema.columns
 WHERE table_name = ? and column_name = ?
 EOF
 
-            if ((not $precision) || $precision !~ /^\d/ || $precision == 6) {
+            if ((not $precision) || $precision !~ /^\d/
+                || ($data_type !~ /^time\b/i && $precision == 6)) { # only interval/timestamp default to precision == 6
                 delete $result->{$col}{size};
             }
             else {
