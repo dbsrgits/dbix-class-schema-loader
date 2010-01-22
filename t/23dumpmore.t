@@ -44,9 +44,8 @@ sub dump_dbicdump {
     push @cmd, $tdata{classname}, $make_dbictest_db::dsn;
 
     # make sure our current @INC gets used by dbicdump
-    foreach my $inc ($ENV{PERL5LIB}, reverse @INC) {
-        splice @cmd, 1, 0, '-I', $inc;
-    }
+    use Config;
+    local $ENV{PERL5LIB} = join $Config{path_sep}, @INC, $ENV{PERL5LIB};
 
     my ($in, $out, $err);
     my $pid = open3($in, $out, $err, @cmd);
