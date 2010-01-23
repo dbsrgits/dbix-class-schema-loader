@@ -125,6 +125,8 @@ sub append_to_class {
 
 rmtree($DUMP_PATH, 1, 1);
 
+# test out the POD
+
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { },
@@ -139,18 +141,26 @@ do_dump_test(
             qr/->load_classes/,
         ],
         Foo => [
-            qr/package DBICTest::DumpMore::1::Foo;/,
-            qr/=head1 NAME/,
-            qr/=head1 ACCESSORS/,
-            qr/->set_primary_key/,
-            qr/1;\n$/,
+qr/package DBICTest::DumpMore::1::Foo;/,
+qr/=head1 NAME\n\nDBICTest::DumpMore::1::Foo\n\n=cut\n\n/,
+qr/=head1 ACCESSORS\n\n/,
+qr/=head2 fooid\n\n  data_type: INTEGER\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
+qr/=head2 footext\n\n  data_type: TEXT\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
+qr/->set_primary_key/,
+qr/=head1 RELATIONS\n\n/,
+qr/=head2 bars\n\nType: has_many\n\nRelated object: L<DBICTest::DumpMore::1::Bar>\n\n=cut\n\n/,
+qr/1;\n$/,
         ],
         Bar => [
-            qr/package DBICTest::DumpMore::1::Bar;/,
-            qr/=head1 NAME/,
-            qr/=head1 ACCESSORS/,
-            qr/->set_primary_key/,
-            qr/1;\n$/,
+qr/package DBICTest::DumpMore::1::Bar;/,
+qr/=head1 NAME\n\nDBICTest::DumpMore::1::Bar\n\n=cut\n\n/,
+qr/=head1 ACCESSORS\n\n/,
+qr/=head2 barid\n\n  data_type: INTEGER\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
+qr/=head2 fooref\n\n  data_type: INTEGER\n  default_value: undef\n  is_foreign_key: 1\n  is_nullable: 1\n  size: undef\n\n/,
+qr/->set_primary_key/,
+qr/=head1 RELATIONS\n\n/,
+qr/=head2 fooref\n\nType: belongs_to\n\nRelated object: L<DBICTest::DumpMore::1::Foo>\n\n=cut\n\n/,
+qr/1;\n$/,
         ],
     },
 );
@@ -331,4 +341,4 @@ do_dump_test(
 
 done_testing;
 
-END { rmtree($DUMP_PATH, 1, 1); }
+END { rmtree($DUMP_PATH, 1, 1) unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} }
