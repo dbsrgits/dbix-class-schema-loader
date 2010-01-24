@@ -125,6 +125,40 @@ sub append_to_class {
 
 rmtree($DUMP_PATH, 1, 1);
 
+# test loading external content
+do_dump_test(
+    classname => 'DBICTest::Schema::13',
+    options => { },
+    error => '',
+    warnings => [
+        qr/Dumping manual schema for DBICTest::Schema::13 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        Foo => [
+qr/package DBICTest::Schema::13::Foo;\nour \$skip_me = "bad mojo";\n1;/
+        ],
+    },
+);
+
+# test skipping external content
+do_dump_test(
+    classname => 'DBICTest::Schema::14',
+    options => { skip_load_external => 1 },
+    error => '',
+    warnings => [
+        qr/Dumping manual schema for DBICTest::Schema::14 to directory /,
+        qr/Schema dump completed/,
+    ],
+    neg_regexes => {
+        Foo => [
+qr/package DBICTest::Schema::14::Foo;\nour \$skip_me = "bad mojo";\n1;/
+        ],
+    },
+);
+
+rmtree($DUMP_PATH, 1, 1);
+
 # test out the POD
 
 do_dump_test(
