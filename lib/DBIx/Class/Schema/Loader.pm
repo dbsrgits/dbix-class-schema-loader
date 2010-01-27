@@ -490,6 +490,8 @@ kane: Jos Boumans <kane@cpan.org>
 
 waawaamilk: Nigel McNie <nigel@mcnie.name>
 
+acmoore: Andrew Moore <amoore@cpan.org>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
