@@ -2,10 +2,7 @@ package DBIx::Class::Schema::Loader::DBI::Sybase;
 
 use strict;
 use warnings;
-use base qw/
-    DBIx::Class::Schema::Loader::DBI
-    DBIx::Class::Schema::Loader::DBI::Sybase::Common
-/;
+use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 

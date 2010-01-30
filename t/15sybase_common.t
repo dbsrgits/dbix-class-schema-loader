@@ -18,23 +18,61 @@ my $tester = dbixcsl_common_tests->new(
             q{
                 CREATE TABLE sybase_loader_test1 (
                     id INTEGER IDENTITY NOT NULL PRIMARY KEY,
-                    ts timestamp
+                    ts timestamp,
+                    charfield VARCHAR(10) DEFAULT 'foo',
+                    computed_dt AS getdate()
                 )
             },
         ],
         drop  => [ qw/ sybase_loader_test1 / ],
-        count => 1,
+        count => 7,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
             my $rs = $schema->resultset($monikers->{sybase_loader_test1});
+            my $rsrc = $rs->result_source;
+
+            is $rsrc->column_info('id')->{data_type},
+                'numeric',
+                'INTEGER IDENTITY data_type is correct';
+
+            is $rsrc->column_info('id')->{is_auto_increment},
+                1,
+                'INTEGER IDENTITY is_auto_increment => 1';
 
             {
                 local $TODO = 'timestamp introspection broken';
 
-                is $rs->result_source->column_info('ts')->{data_type},
+                is $rsrc->column_info('ts')->{data_type},
                    'timestamp',
                    'timestamps have the correct data_type';
+            }
+
+            is $rsrc->column_info('charfield')->{data_type},
+                'varchar',
+                'VARCHAR has correct data_type';
+
+            {
+                local $TODO = 'constant DEFAULT introspection';
+
+                is $rsrc->column_info('charfield')->{default},
+                    'foo',
+                    'constant DEFAULT is correct';
+            }
+
+            is $rsrc->column_info('charfield')->{size},
+                10,
+                'VARCHAR(10) has correct size';
+
+            {
+                local $TODO = 'data_type for computed columns';
+
+                ok ((exists $rsrc->column_info('computed_dt')->{data_type}
+                  && (not defined $rsrc->column_info('computed_dt')->{data_type})),
+                    'data_type for computed column exists and is undef')
+#               or diag "Data type is: ",
+#                   $rsrc->column_info('computed_dt')->{data_type}
+                ;
             }
         },
     },
