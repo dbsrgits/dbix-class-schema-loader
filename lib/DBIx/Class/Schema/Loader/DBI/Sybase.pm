@@ -229,6 +229,31 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
+# set data_type to 'undef' for computed columns
+sub _columns_info_for {
+    my $self    = shift;
+    my ($table) = @_;
+    my $result  = $self->next::method(@_);
+
+    my $dbh = $self->schema->storage->dbh;
+    my $sth = $dbh->prepare(qq{
+SELECT c.name name, c.computedcol computedcol
+FROM syscolumns c
+JOIN sysobjects o ON c.id = o.id
+WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
+});
+    $sth->execute;
+    local $dbh->{FetchHashKeyName} = 'NAME_lc';
+    my $computed_info = $sth->fetchall_hashref('name');
+
+    for my $col (keys %$result) {
+        $result->{$col}{data_type} = undef
+            if $computed_info->{$col}{computedcol};
+    }
+
+    return $result;
+}
+
 sub _extra_column_info {
     my ($self, $info) = @_;
     my %extra_info;

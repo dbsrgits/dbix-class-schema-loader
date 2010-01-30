@@ -64,16 +64,12 @@ my $tester = dbixcsl_common_tests->new(
                 10,
                 'VARCHAR(10) has correct size';
 
-            {
-                local $TODO = 'data_type for computed columns';
-
-                ok ((exists $rsrc->column_info('computed_dt')->{data_type}
-                  && (not defined $rsrc->column_info('computed_dt')->{data_type})),
-                    'data_type for computed column exists and is undef')
-#               or diag "Data type is: ",
-#                   $rsrc->column_info('computed_dt')->{data_type}
-                ;
-            }
+            ok ((exists $rsrc->column_info('computed_dt')->{data_type}
+              && (not defined $rsrc->column_info('computed_dt')->{data_type})),
+                'data_type for computed column exists and is undef')
+            or diag "Data type is: ",
+                $rsrc->column_info('computed_dt')->{data_type}
+            ;
         },
     },
 );
