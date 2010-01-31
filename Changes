@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - better data_type, default_value and size for Sybase
         - added 'generate_pod' option, defaults to on
         - added 'pod_comment_mode' and 'pod_comment_spillover_length' to
           control table comment generation (waawaamilk)
