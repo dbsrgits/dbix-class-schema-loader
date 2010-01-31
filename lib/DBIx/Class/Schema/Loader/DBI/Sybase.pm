@@ -229,7 +229,7 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
-# set data_type to 'undef' for computed columns
+# get the correct data types and defaults
 sub _columns_info_for {
     my $self    = shift;
     my ($table) = @_;
@@ -237,18 +237,31 @@ sub _columns_info_for {
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare(qq{
-SELECT c.name name, c.computedcol computedcol
+SELECT c.name name, t.name type, cm.text deflt
 FROM syscolumns c
 JOIN sysobjects o ON c.id = o.id
+LEFT JOIN systypes t ON c.type = t.type AND c.usertype = t.usertype
+LEFT JOIN syscomments cm
+    ON cm.id = CASE WHEN c.cdefault = 0 THEN c.computedcol ELSE c.cdefault END
 WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
 });
     $sth->execute;
     local $dbh->{FetchHashKeyName} = 'NAME_lc';
-    my $computed_info = $sth->fetchall_hashref('name');
+    my $info = $sth->fetchall_hashref('name');
 
-    for my $col (keys %$result) {
-        $result->{$col}{data_type} = undef
-            if $computed_info->{$col}{computedcol};
+    while (my ($col, $res) = each %$result) {
+        $res->{data_type} = $info->{$col}{type};
+
+        if (my $default = $info->{$col}{deflt}) {
+            if ($default =~ /^AS \s+ (\S+)/ix) {
+                my $function = $1;
+                $res->{default_value} = \$function;
+            }
+            elsif ($default =~ /^DEFAULT \s+ (\S+)/ix) {
+                my ($constant_default) = $1 =~ /^['"\[\]]?(.*?)['"\[\]]\z/;
+                $res->{default_value} = $constant_default;
+            }
+        }
     }
 
     return $result;

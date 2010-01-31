@@ -34,32 +34,25 @@ my $tester = dbixcsl_common_tests->new(
             my $rsrc = $rs->result_source;
 
             is $rsrc->column_info('id')->{data_type},
-                'numeric',
+                'int',
                 'INTEGER IDENTITY data_type is correct';
 
             is $rsrc->column_info('id')->{is_auto_increment},
                 1,
                 'INTEGER IDENTITY is_auto_increment => 1';
 
-            {
-                local $TODO = 'timestamp introspection broken';
-
-                is $rsrc->column_info('ts')->{data_type},
-                   'timestamp',
-                   'timestamps have the correct data_type';
-            }
+            is $rsrc->column_info('ts')->{data_type},
+               'timestamp',
+               'timestamps have the correct data_type';
 
             is $rsrc->column_info('charfield')->{data_type},
                 'varchar',
                 'VARCHAR has correct data_type';
 
-            {
-                local $TODO = 'constant DEFAULT introspection';
 
-                is $rsrc->column_info('charfield')->{default_value},
-                    'foo',
-                    'constant DEFAULT is correct';
-            }
+            is $rsrc->column_info('charfield')->{default_value},
+                'foo',
+                'constant DEFAULT is correct';
 
             is $rsrc->column_info('charfield')->{size},
                 10,
@@ -72,21 +65,17 @@ my $tester = dbixcsl_common_tests->new(
                 $rsrc->column_info('computed_dt')->{data_type}
             ;
 
-            {
-                local $TODO = 'default_value for computed columns';
+            my $computed_dt_default =
+                $rsrc->column_info('computed_dt')->{default_value};
 
-                my $computed_dt_default =
-                    $rsrc->column_info('computed_dt')->{default_value};
+            ok ((ref $computed_dt_default eq 'SCALAR'),
+                'default_value for computed column is a scalar ref')
+            or diag "default_value is: ", $computed_dt_default
+            ;
 
-                ok ((ref $computed_dt_default eq 'SCALAR'),
-                    'default_value for computed column is a scalar ref')
-#                or diag "default_value is: ", $computed_dt_default
-                ;
-
-                eval { is $$computed_dt_default,
-                    'getdate()',
-                    'default_value for computed column is correct' };
-            }
+            eval { is $$computed_dt_default,
+                'getdate()',
+                'default_value for computed column is correct' };
         },
     },
 );
