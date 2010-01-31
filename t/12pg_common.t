@@ -98,8 +98,6 @@ my $tester = dbixcsl_common_tests->new(
                     the_decimal DECIMAL(6, 3)
                 )
             },
-# XXX figure out what to do with DECIMAL(precision, scale) aka
-# NUMERIC(precision, scale)
         ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 pg_loader_test3 / ],
         count => 57,
@@ -131,7 +129,8 @@ my $tester = dbixcsl_common_tests->new(
             like $code, qr/^=head1 NAME\n\n^$class\n\n=head1 DESCRIPTION\n\n^very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long comment\n\n^=cut\n/m,
                 'long table comment is in DESCRIPTION';
 
-            my $rsrc = $schema->resultset('PgLoaderTest3')->result_source;
+            my $rsrc = $schema->resultset($monikers->{pg_loader_test3})
+                ->result_source;
             my @type_columns = grep /^a/, $rsrc->columns;
             my @without_precision = grep !/_with_precision\z/, @type_columns;
             my @with_precision    = grep  /_with_precision\z/, @type_columns;

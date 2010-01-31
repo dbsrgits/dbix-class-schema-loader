@@ -229,7 +229,7 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
-# get the correct data types and defaults
+# get the correct data types, defaults and size
 sub _columns_info_for {
     my $self    = shift;
     my ($table) = @_;
@@ -237,7 +237,8 @@ sub _columns_info_for {
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare(qq{
-SELECT c.name name, t.name type, cm.text deflt
+SELECT c.name name, t.name type, cm.text deflt, c.prec prec, c.scale scale,
+        c.length len
 FROM syscolumns c
 JOIN sysobjects o ON c.id = o.id
 LEFT JOIN systypes t ON c.type = t.type AND c.usertype = t.usertype
@@ -260,6 +261,19 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
             elsif ($default =~ /^DEFAULT \s+ (\S+)/ix) {
                 my ($constant_default) = $1 =~ /^['"\[\]]?(.*?)['"\[\]]\z/;
                 $res->{default_value} = $constant_default;
+            }
+        }
+
+# XXX we need to handle "binary precision" for FLOAT(X) but I don't know what it means
+        if (my $data_type = $res->{data_type}) {
+            if ($data_type =~ /^(?:text|unitext|image|bigint|int|integer|smallint|tinyint|real|double|double precision|float|date|time|datetime|smalldatetime|money|smallmoney|timestamp|bit)\z/i) {
+                delete $res->{size};
+            }
+            elsif ($data_type =~ /^(?:numeric|decimal)\z/i) {
+                $res->{size} = [ $info->{$col}{prec}, $info->{$col}{scale} ];
+            }
+            elsif ($data_type =~ /^(?:unichar|univarchar)\z/i) {
+                $res->{size} /= 2;
             }
         }
     }
