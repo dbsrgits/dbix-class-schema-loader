@@ -27,6 +27,7 @@ my $tester = dbixcsl_common_tests->new(
             },
 # Test data types, see http://ispirer.com/wiki/sqlways/sybase/data-types
 # XXX handle FLOAT(P) at some point
+# ( http://msdn.microsoft.com/en-us/library/aa258876(SQL.80).aspx )
             q{
                 CREATE TABLE sybase_loader_test2 (
                     id INTEGER IDENTITY NOT NULL PRIMARY KEY,

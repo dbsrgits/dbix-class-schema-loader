@@ -6,7 +6,7 @@ use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-our $VERSION = '0.04999_14';
+our $VERSION = '0.05000';
 
 =head1 NAME
 
@@ -264,7 +264,8 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
             }
         }
 
-# XXX we need to handle "binary precision" for FLOAT(X) but I don't know what it means
+# XXX we need to handle "binary precision" for FLOAT(X)
+# (see: http://msdn.microsoft.com/en-us/library/aa258876(SQL.80).aspx )
         if (my $data_type = $res->{data_type}) {
             if ($data_type =~ /^(?:text|unitext|image|bigint|int|integer|smallint|tinyint|real|double|double precision|float|date|time|datetime|smalldatetime|money|smallmoney|timestamp|bit)\z/i) {
                 delete $res->{size};
