@@ -136,7 +136,7 @@ realclean_files 'README';
 
 resources 'IRC'         => 'irc://irc.perl.org/#dbix-class';
 resources 'license'     => 'http://dev.perl.org/licenses/';
-resources 'repository'  => 'http://dev.catalyst.perl.org/repos/bast/branches/DBIx-Class-Schema-Loader/current/';
+resources 'repository'  => 'git://git.shadowcat.co.uk/dbsrgits/DBIx-Class-Schema-Loader.git';
 resources 'MailingList' => 'http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/dbix-class';
 
 auto_provides;
