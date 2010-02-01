@@ -462,7 +462,7 @@ blblack: Brandon Black <blblack@gmail.com>
 
 =head1 CONTRIBUTORS
 
-ilmarii: Dagfinn Ilmari Mannsåker <ilmari@ilmari.org>
+ilmari: Dagfinn Ilmari Mannsåker <ilmari@ilmari.org>
 
 arcanez: Justin Hunter <justin.d.hunter@gmail.com>
 
