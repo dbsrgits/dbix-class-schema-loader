@@ -56,7 +56,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 139 + ($self->{extra}->{count} || 0);
+    plan tests => 140 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -573,6 +573,7 @@ sub test_schema {
 
         ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
         ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
+        is($class11->column_info('message')->{default_value},'foo', 'Default value check');
 
         my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
