@@ -127,10 +127,13 @@ sub setup_schema {
            @{ $self->{extra}{create} || [] };
 
        $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
-           if $self->{no_inline_rels};
+           if $self->{skip_rels} || $self->{no_inline_rels};
 
        $expected_count -= grep /CREATE TABLE/, @statements_implicit_rels
-           if $self->{no_implicit_rels};
+           if $self->{skip_rels} || $self->{no_implicit_rels};
+
+       $expected_count -= grep /CREATE TABLE/, ($self->{vendor} =~ /sqlite/ ? @statements_advanced_sqlite : @statements_advanced), @statements_reltests
+           if $self->{skip_rels};
 
        is $file_count, $expected_count, 'correct number of files generated';
 
@@ -1282,9 +1285,8 @@ sub drop_tables {
         unless($self->{no_implicit_rels}) {
             $dbh->do("DROP TABLE $_") for (@tables_implicit_rels);
         }
-        $dbh->do("DROP TABLE $_") for (@tables_rescan);
     }
-    $dbh->do("DROP TABLE $_") for (@tables);
+    $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
     $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
     $dbh->disconnect;
 }
