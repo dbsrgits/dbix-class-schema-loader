@@ -285,6 +285,7 @@ sub test_schema {
     }
     
     ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_incrment detection' );
+    is($class2->column_info('dat2')->{default_value}, 'foo', 'Correct default value');
 
     my $obj    = $rsobj1->find(1);
     is( $obj->id,  1, "Find got the right row" );
@@ -576,7 +577,6 @@ sub test_schema {
 
         ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
         ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
-        is($class11->column_info('message')->{default_value},'foo', 'Default value check');
 
         my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
@@ -781,7 +781,7 @@ sub create {
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL,
-                dat2 VARCHAR(32) NOT NULL,
+                dat2 VARCHAR(32) NOT NULL DEFAULT 'foo',
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
