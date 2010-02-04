@@ -2,7 +2,10 @@ package DBIx::Class::Schema::Loader::DBI::Oracle;
 
 use strict;
 use warnings;
-use base 'DBIx::Class::Schema::Loader::DBI';
+use base qw/
+    DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
+    DBIx::Class::Schema::Loader::DBI
+/;
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
