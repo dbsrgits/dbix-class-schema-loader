@@ -473,7 +473,7 @@ Caelum: Rafael Kitover <rkitover@cpan.org>
 
 TSUNODA Kazuya <drk@drk7.jp>
 
-Robert Bohne <rbo@openserv.org>
+rbo: Robert Bohne <rbo@cpan.org>
 
 ribasushi: Peter Rabbitson <ribasushi@cpan.org>
 
