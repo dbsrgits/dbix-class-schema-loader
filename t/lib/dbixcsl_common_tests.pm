@@ -38,6 +38,10 @@ sub new {
     # Optional extra tables and tests
     $self->{extra} ||= {};
 
+    # Not all DBS do SQL-standard CURRENT_TIMESTAMP
+    $self->{default_function} ||= "CURRENT_TIMESTAMP";
+    $self->{default_function_def} ||= "TIMESTAMP DEFAULT $self->{default_function}";
+
     return bless $self => $class;
 }
 
@@ -56,7 +60,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 140 + ($self->{extra}->{count} || 0);
+    plan tests => 145 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -121,7 +125,7 @@ sub setup_schema {
        my $file_count;
        find sub { return if -d; $file_count++ }, $DUMP_DIR;
 
-       my $expected_count = 34;
+       my $expected_count = 35;
 
        $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
            @{ $self->{extra}{create} || [] };
@@ -198,10 +202,15 @@ sub test_schema {
     my $class24   = $classes->{LoAdEr_test24};
     my $rsobj24   = $conn->resultset($moniker2);
 
+    my $moniker35 = $monikers->{loader_test35};
+    my $class35   = $classes->{loader_test35};
+    my $rsobj35   = $conn->resultset($moniker35);
+
     isa_ok( $rsobj1, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj2, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj23, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj24, "DBIx::Class::ResultSet" );
+    isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
     is_deeply( \@columns_lt2, [ qw/id dat dat2/ ], "Column Ordering" );
@@ -285,7 +294,6 @@ sub test_schema {
     }
     
     ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_incrment detection' );
-    is($class2->column_info('dat2')->{default_value}, 'foo', 'Correct default value');
 
     my $obj    = $rsobj1->find(1);
     is( $obj->id,  1, "Find got the right row" );
@@ -305,6 +313,29 @@ sub test_schema {
 
     my ($obj2) = $rsobj2->search({ dat => 'bbb' })->first;
     is( $obj2->id, 2 );
+
+    is(
+        $class35->column_info('a_varchar')->{default_value}, 'foo',
+        'constant character default',
+    );
+
+    is(
+        $class35->column_info('an_int')->{default_value}, 42,
+        'constant integer default',
+    );
+
+    is(
+        $class35->column_info('a_double')->{default_value}, 10.555,
+        'constant numeric default',
+    );
+
+    my $function_default = $class35->column_info('a_function')->{default_value};
+
+    isa_ok( $function_default, 'SCALAR', 'default_value for function default' );
+    is_deeply(
+        $function_default, \$self->{default_function},
+        'default_value for function default is correct'
+    );
 
     SKIP: {
         skip $self->{skip_rels}, 96 if $self->{skip_rels};
@@ -781,7 +812,7 @@ sub create {
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL,
-                dat2 VARCHAR(32) DEFAULT 'foo' NOT NULL,
+                dat2 VARCHAR(32) NOT NULL,
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
@@ -803,6 +834,16 @@ sub create {
             CREATE TABLE LoAdEr_test24 (
                 iD INTEGER NOT NULL PRIMARY KEY,
                 DaT VARCHAR(32) NOT NULL UNIQUE
+            ) $self->{innodb}
+        },
+
+        qq{
+            CREATE TABLE loader_test35 (
+                id INTEGER PRIMARY KEY,
+                a_varchar VARCHAR(100) DEFAULT 'foo',
+                an_int INTEGER DEFAULT 42,
+                a_double DOUBLE PRECISION DEFAULT 10.555,
+                a_function $self->{default_function_def}
             ) $self->{innodb}
         },
     );
@@ -1201,6 +1242,7 @@ sub drop_tables {
         loader_test2
         LOADER_TEST23
         LoAdEr_test24
+        loader_test35
     /;
     
     my @tables_auto_inc = (
