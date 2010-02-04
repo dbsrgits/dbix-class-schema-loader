@@ -781,7 +781,7 @@ sub create {
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL,
-                dat2 VARCHAR(32) NOT NULL DEFAULT 'foo',
+                dat2 VARCHAR(32) DEFAULT 'foo' NOT NULL,
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
