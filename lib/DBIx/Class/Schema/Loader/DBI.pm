@@ -90,9 +90,11 @@ sub _tables_list {
     my $dbh = $self->schema->storage->dbh;
     my @tables = $dbh->tables(undef, $self->db_schema, $table, $type);
 
-    my $qt = qr/\Q$self->{_quoter}\E/;
+    my $qt = qr/[\Q$self->{_quoter}\E"'`\[\]]/;
 
-    if ($self->{_quoter} && $tables[0] =~ /$qt/) {
+    my $all_tables_quoted = (grep /$qt/, @tables) == @tables;
+
+    if ($self->{_quoter} && $all_tables_quoted) {
         s/.* $qt (?= .* $qt)//xg for @tables;
     } else {
         s/^.*\Q$self->{_namesep}\E// for @tables;
