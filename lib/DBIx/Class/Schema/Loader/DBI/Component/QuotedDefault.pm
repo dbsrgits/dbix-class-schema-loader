@@ -8,8 +8,8 @@ our $VERSION = '0.05000';
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault -- Loader Component
-to parse quoted default constants and functions
+DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault -- Loader::DBI
+Component to parse quoted default constants and functions
 
 =head1 DESCRIPTION
 
