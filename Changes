@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - correct default_value for all backends with common tests
+        - fix bug with quoted Pg tables from $dbh->tables (RT#54338)
+        - add inflate_datetime => 0 to 'timestamp' types for Sybase
+
 0.05000  2010-02-01 09:24:24
         - better data_type, default_value and size for Sybase
         - added 'generate_pod' option, defaults to on

@@ -30,7 +30,8 @@ sub _columns_info_for {
             $def =~ s/^\s+//;
             $def =~ s/\s+\z//;
 
-            if ($def =~ /^["'](.*?)['"]\z/) {
+# remove Pg typecasts (e.g. 'foo'::character varying) too
+            if ($def =~ /^["'](.*?)['"](?:::[\w\s]+)?\z/) {
                 $info->{default_value} = $1;
             }
             else {

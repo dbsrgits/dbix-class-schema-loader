@@ -839,7 +839,7 @@ sub create {
 
         qq{
             CREATE TABLE loader_test35 (
-                id INTEGER PRIMARY KEY,
+                id INTEGER NOT NULL PRIMARY KEY,
                 a_varchar VARCHAR(100) DEFAULT 'foo',
                 an_int INTEGER DEFAULT 42,
                 a_double DOUBLE PRECISION DEFAULT 10.555,
