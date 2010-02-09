@@ -143,43 +143,43 @@ sub loader_options {
     my $self = shift;
 
     my %args = (ref $_[0] eq 'HASH') ? %{$_[0]} : @_;
-	$self->_validate_loader_options(\%args);
+    $self->_validate_loader_options(\%args);
     $self->_loader_args(\%args);
 
     $self;
 }
 
 sub _validate_loader_options {
-	my $self = shift;
-	my $args = shift;
-	
-	my @class_keys = qw(
-		schema_base_class result_base_class additional_base_classes
-		left_base_classes additional_classes components resultset_components
-	);
-	foreach my $k ( grep { exists $args->{$_} } @class_keys ) {
-		my @classes = ref( $args->{$k} ) eq 'ARRAY' ? @{ $args->{$k} } : $args->{$k};
-		foreach my $c (@classes) {
+    my $self = shift;
+    my $args = shift;
+    
+    my @class_keys = qw(
+        schema_base_class result_base_class additional_base_classes
+        left_base_classes additional_classes components resultset_components
+    );
+    foreach my $k ( grep { exists $args->{$_} } @class_keys ) {
+        my @classes = ref( $args->{$k} ) eq 'ARRAY' ? @{ $args->{$k} } : $args->{$k};
+        foreach my $c (@classes) {
 
-			# components default to being under the DBIx::Class namespace unless they
-			# are preceeded with a '+'
-			if ( $k =~ m/components$/ && $c !~ s/^\+// ) {
-				$c = 'DBIx::Class::' . $c;
-			}
+            # components default to being under the DBIx::Class namespace unless they
+            # are preceeded with a '+'
+            if ( $k =~ m/components$/ && $c !~ s/^\+// ) {
+                $c = 'DBIx::Class::' . $c;
+            }
 
-			# 1 == installed, 0 == not installed, undef == invalid classname
-			my $installed = Class::Inspector->installed($c);
-			if ( defined($installed) ) {
-				if ( $installed == 0 ) {
-					croak qq/$c, as specified in the loader option "$k", is not installed/;
-				}
-			} else {
-				croak qq/$c, as specified in the loader option "$k", is an invalid class name/;
-			}
-		}
-	}
+            # 1 == installed, 0 == not installed, undef == invalid classname
+            my $installed = Class::Inspector->installed($c);
+            if ( defined($installed) ) {
+                if ( $installed == 0 ) {
+                    croak qq/$c, as specified in the loader option "$k", is not installed/;
+                }
+            } else {
+                croak qq/$c, as specified in the loader option "$k", is an invalid class name/;
+            }
+        }
+    }
 
-	return;
+    return;
 }
 
 sub _invoke_loader {
