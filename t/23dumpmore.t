@@ -372,6 +372,18 @@ do_dump_test(
         ],
     },
 );
+eval {
+	do_dump_test(
+		classname => 'DBICTest::DumpMore::1',
+		options   => {
+			use_namespaces    => 1,
+			result_base_class => 'My::MissingResultBaseClass',
+		},
+	);
+};
+ok($@, "exception thrown on bad result_base_class");
+like($@, qr/My::MissingResultBaseClass.*is not installed/, "user-friend error message on missing result_base_class" );
+
 
 done_testing;
 
