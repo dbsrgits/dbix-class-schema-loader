@@ -14,6 +14,7 @@ use Digest::MD5 qw//;
 use Lingua::EN::Inflect::Number qw//;
 use File::Temp qw//;
 use Class::Unload;
+use Class::Inspector ();
 require DBIx::Class;
 
 our $VERSION = '0.05001';
@@ -386,7 +387,12 @@ can also be found via standard L<DBIx::Class::Schema> methods somehow.
 
 =cut
 
-use constant CURRENT_V => 'v5';
+use constant CURRENT_V  => 'v5';
+
+use constant CLASS_ARGS => qw(
+    schema_base_class result_base_class additional_base_classes
+    left_base_classes additional_classes components resultset_components
+);
 
 # ensure that a peice of object data is a valid arrayref, creating
 # an empty one or encapsulating whatever's there.
@@ -420,6 +426,8 @@ sub new {
                                components
                                resultset_components
                               /);
+
+    $self->_validate_class_args;
 
     push(@{$self->{components}}, 'ResultSetManager')
         if @{$self->{resultset_components}};
@@ -594,6 +602,34 @@ EOF
         }
     }
     close $fh;
+}
+
+sub _validate_class_args {
+    my $self = shift;
+    my $args = shift;
+    
+    foreach my $k (CLASS_ARGS) {
+        next unless $self->$k;
+
+        my @classes = ref $self->$k eq 'ARRAY' ? @{ $self->$k } : $self->$k;
+        foreach my $c (@classes) {
+            # components default to being under the DBIx::Class namespace unless they
+            # are preceeded with a '+'
+            if ( $k =~ m/components$/ && $c !~ s/^\+// ) {
+                $c = 'DBIx::Class::' . $c;
+            }
+
+            # 1 == installed, 0 == not installed, undef == invalid classname
+            my $installed = Class::Inspector->installed($c);
+            if ( defined($installed) ) {
+                if ( $installed == 0 ) {
+                    croak qq/$c, as specified in the loader option "$k", is not installed/;
+                }
+            } else {
+                croak qq/$c, as specified in the loader option "$k", is an invalid class name/;
+            }
+        }
+    }
 }
 
 sub _find_file_in_inc {
