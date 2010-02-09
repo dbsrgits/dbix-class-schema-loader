@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - validate class/component loader_options to make sure classes
+          are available before generating the schema
+
 0.05001  2010-02-05 14:29:27
         - correct default_value for all backends with common tests
         - fix bug with quoted Pg tables from $dbh->tables (RT#54338)
