@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix picking up quoted tables for SQLite, patch from schwern
         - validate class/component loader_options to make sure classes
           are available before generating the schema
 
