@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Class::C3;
 
-our $VERSION = '0.05001';
+our $VERSION = '0.05002';
 
 =head1 NAME
 

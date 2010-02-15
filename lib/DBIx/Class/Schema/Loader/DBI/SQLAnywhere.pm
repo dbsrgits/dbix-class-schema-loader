@@ -11,7 +11,7 @@ use base qw/
 use Carp::Clan qw/^DBIx::Class/;
 use List::MoreUtils 'uniq';
 
-our $VERSION = '0.05001';
+our $VERSION = '0.05002';
 
 =head1 NAME
 
