@@ -108,6 +108,7 @@ sub setup_schema {
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
+    $loader_opts{custom_column_info} = $self->{custom_column_info} if $self->{custom_column_info};
 
     {
        my @loader_warnings;
