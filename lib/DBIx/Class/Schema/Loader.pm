@@ -10,7 +10,7 @@ use Scalar::Util qw/ weaken /;
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
 # brain damage and presumably various other packaging systems too
-our $VERSION = '0.05000';
+our $VERSION = '0.05002';
 
 __PACKAGE__->mk_group_accessors('inherited', qw/
                                 _loader_args
@@ -492,6 +492,10 @@ kane: Jos Boumans <kane@cpan.org>
 waawaamilk: Nigel McNie <nigel@mcnie.name>
 
 acmoore: Andrew Moore <amoore@cpan.org>
+
+bphillips: Brian Phillips <bphillips@cpan.org>
+
+schwern: Michael G. Schwern <mschwern@cpan.org>
 
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.

@@ -10,7 +10,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Text::Balanced qw( extract_bracketed );
 use Class::C3;
 
-our $VERSION = '0.05000';
+our $VERSION = '0.05002';
 
 =head1 NAME
 
@@ -66,7 +66,7 @@ sub _sqlite_parse_table {
     $sth->finish;
 
     # Cut "CREATE TABLE ( )" blabla...
-    $sql =~ /^[\w\s']+\((.*)\)$/si;
+    $sql =~ /^[\w\s"]+\((.*)\)$/si;
     my $cols = $1;
 
     # strip single-line comments

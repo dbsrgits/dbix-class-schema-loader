@@ -4,12 +4,12 @@ use strict;
 use warnings;
 use Class::C3;
 
-our $VERSION = '0.05000';
+our $VERSION = '0.05002';
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault -- Loader Component
-to parse quoted default constants and functions
+DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault -- Loader::DBI
+Component to parse quoted default constants and functions
 
 =head1 DESCRIPTION
 
@@ -30,7 +30,8 @@ sub _columns_info_for {
             $def =~ s/^\s+//;
             $def =~ s/\s+\z//;
 
-            if ($def =~ /^["'](.*?)['"]\z/) {
+# remove Pg typecasts (e.g. 'foo'::character varying) too
+            if ($def =~ /^["'](.*?)['"](?:::[\w\s]+)?\z/) {
                 $info->{default_value} = $1;
             }
             else {

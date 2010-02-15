@@ -6,7 +6,7 @@ use base 'DBIx::Class::Schema::Loader::DBI';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-our $VERSION = '0.05000';
+our $VERSION = '0.05002';
 
 =head1 NAME
 
@@ -69,7 +69,7 @@ sub _columns_info_for {
     my $self   = shift;
     my $result = $self->next::method(@_);
 
-    for my $col (keys %$result) {
+    foreach my $col (keys %$result) {
         $result->{$col}->{data_type} =~ s/\s* identity \s*//ix;
     }
 

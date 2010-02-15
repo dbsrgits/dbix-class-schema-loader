@@ -24,6 +24,7 @@
 \.tmp$
 \.old$
 \.bak$
+\.swp$
 \#$
 \b\.#
 
@@ -32,6 +33,7 @@
 
 # Don't ship the test junk
 ^t/_dump
+^t/_common_dump
 ^t/dbictest.db
 ^t/dbictest.db-journal
 ^t/sqlite.test

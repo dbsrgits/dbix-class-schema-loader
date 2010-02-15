@@ -2,11 +2,14 @@ package DBIx::Class::Schema::Loader::DBI::DB2;
 
 use strict;
 use warnings;
-use base 'DBIx::Class::Schema::Loader::DBI';
+use base qw/
+    DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
+    DBIx::Class::Schema::Loader::DBI
+/;
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-our $VERSION = '0.05000';
+our $VERSION = '0.05002';
 
 =head1 NAME
 

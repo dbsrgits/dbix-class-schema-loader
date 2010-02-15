@@ -12,6 +12,8 @@ my $password = $ENV{DBICTEST_SYBASE_PASS} || '';
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'sybase',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
+    default_function     => 'getdate()',
+    default_function_def => 'AS getdate()',
     dsn         => $dsn,
     user        => $user,
     password    => $password,
@@ -21,7 +23,6 @@ my $tester = dbixcsl_common_tests->new(
                 CREATE TABLE sybase_loader_test1 (
                     id INTEGER IDENTITY NOT NULL PRIMARY KEY,
                     ts timestamp,
-                    charfield VARCHAR(10) DEFAULT 'foo',
                     computed_dt AS getdate()
                 )
             },
@@ -64,7 +65,7 @@ my $tester = dbixcsl_common_tests->new(
             },
         ],
         drop  => [ qw/ sybase_loader_test1 sybase_loader_test2 / ],
-        count => 38,
+        count => 36,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -83,17 +84,9 @@ my $tester = dbixcsl_common_tests->new(
                'timestamp',
                'timestamps have the correct data_type';
 
-            is $rsrc->column_info('charfield')->{data_type},
-                'varchar',
-                'VARCHAR has correct data_type';
-
-            is $rsrc->column_info('charfield')->{default_value},
-                'foo',
-                'constant DEFAULT is correct';
-
-            is $rsrc->column_info('charfield')->{size},
-                10,
-                'VARCHAR(10) has correct size';
+            is $rsrc->column_info('ts')->{inflate_datetime},
+                0,
+                'timestamps have inflate_datetime => 0';
 
             ok ((exists $rsrc->column_info('computed_dt')->{data_type}
               && (not defined $rsrc->column_info('computed_dt')->{data_type})),

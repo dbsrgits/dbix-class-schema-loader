@@ -26,7 +26,7 @@ sub dump_directly {
     $schema_class->storage->disconnect if !$err && $schema_class->storage;
     undef *{$schema_class};
 
-    is($err, $tdata{error});
+    check_error($err, $tdata{error});
 
     return @warns;
 }
@@ -45,15 +45,38 @@ sub dump_dbicdump {
 
     # make sure our current @INC gets used by dbicdump
     use Config;
-    local $ENV{PERL5LIB} = join $Config{path_sep}, @INC, $ENV{PERL5LIB};
+    local $ENV{PERL5LIB} = join $Config{path_sep}, @INC, ($ENV{PERL5LIB} || '');
 
     my ($in, $out, $err);
     my $pid = open3($in, $out, $err, @cmd);
 
-    my @warns = <$out>;
+    my @out = <$out>;
     waitpid($pid, 0);
 
+    my ($error, @warns);
+
+    if ($? >> 8 != 0) {
+        $error = $out[0];
+        check_error($error, $tdata{error});
+    }
+    else {
+        @warns = @out;
+    }
+
     return @warns;
+}
+
+sub check_error {
+    my ($got, $expected) = @_;
+
+    return unless $got && $expected;
+
+    if (ref $expected eq 'Regexp') {
+        like $got, $expected, 'error matches expected pattern';
+        return;
+    }
+
+    is $got, $expected, 'error matches';
 }
 
 sub do_dump_test {
@@ -75,6 +98,7 @@ sub test_dumps {
     my $schema_class = $tdata{classname};
     my $check_warns = $tdata{warnings};
     is(@warns, @$check_warns, "$schema_class warning count");
+
     for(my $i = 0; $i <= $#$check_warns; $i++) {
         like($warns[$i], $check_warns->[$i], "$schema_class warning $i");
     }
@@ -371,6 +395,15 @@ do_dump_test(
             qr/1;\n$/,
         ],
     },
+);
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options   => {
+        use_namespaces    => 1,
+        result_base_class => 'My::MissingResultBaseClass',
+    },
+    error => qr/My::MissingResultBaseClass.*is not installed/,
 );
 
 done_testing;

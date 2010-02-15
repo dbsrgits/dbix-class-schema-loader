@@ -1,5 +1,16 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.05002  2010-02-15 10:17:47
+        - support for SQLAnywhere via DBD::SQLAnywhere and ODBC
+        - fix picking up quoted tables for SQLite (RT#54538) patch from schwern
+        - validate class/component loader_options to make sure classes
+          are available before generating the schema, patch from bphillips
+
+0.05001  2010-02-05 14:29:27
+        - correct default_value for all backends with common tests
+        - fix bug with quoted Pg tables from $dbh->tables (RT#54338)
+        - add inflate_datetime => 0 to 'timestamp' types for Sybase
+
 0.05000  2010-02-01 09:24:24
         - better data_type, default_value and size for Sybase
         - added 'generate_pod' option, defaults to on

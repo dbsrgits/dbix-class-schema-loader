@@ -11,6 +11,7 @@ my $password = $ENV{DBICTEST_PG_PASS} || '';
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'Pg',
     auto_inc_pk => 'SERIAL NOT NULL PRIMARY KEY',
+    default_function => 'now()',
     dsn         => $dsn,
     user        => $user,
     password    => $password,

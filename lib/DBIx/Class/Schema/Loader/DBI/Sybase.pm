@@ -6,7 +6,7 @@ use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-our $VERSION = '0.05000';
+our $VERSION = '0.05002';
 
 =head1 NAME
 
@@ -251,7 +251,11 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
     my $info = $sth->fetchall_hashref('name');
 
     while (my ($col, $res) = each %$result) {
-        $res->{data_type} = $info->{$col}{type};
+        my $data_type = $res->{data_type} = $info->{$col}{type};
+
+        if ($data_type && $data_type =~ /^timestamp\z/i) {
+            $res->{inflate_datetime} = 0;
+        }
 
         if (my $default = $info->{$col}{deflt}) {
             if ($default =~ /^AS \s+ (\S+)/ix) {
@@ -259,7 +263,7 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
                 $res->{default_value} = \$function;
             }
             elsif ($default =~ /^DEFAULT \s+ (\S+)/ix) {
-                my ($constant_default) = $1 =~ /^['"\[\]]?(.*?)['"\[\]]\z/;
+                my ($constant_default) = $1 =~ /^['"\[\]]?(.*?)['"\[\]]?\z/;
                 $res->{default_value} = $constant_default;
             }
         }
