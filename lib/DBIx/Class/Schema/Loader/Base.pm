@@ -386,7 +386,7 @@ Must be a coderef, returing a hashref with the custom column informations.
 
 Example:
 
-    sub _custom_column_info {
+    custom_column_info => sub {
         my $info = shift;
 
         if ( $info->{TYPE_NAME} eq 'DATE' ){
