@@ -69,7 +69,7 @@ sub _columns_info_for {
     my $self   = shift;
     my $result = $self->next::method(@_);
 
-    for my $col (keys %$result) {
+    foreach my $col (keys %$result) {
         $result->{$col}->{data_type} =~ s/\s* identity \s*//ix;
     }
 

@@ -27,6 +27,8 @@ requires 'Class::Inspector'            => 0;
 requires 'DBIx::Class'                 => '0.08114';
 requires 'Class::Unload'               => 0;
 requires 'File::Slurp'                 => '9999.13';
+requires 'List::MoreUtils'             => 0;
+requires 'namespace::autoclean'        => 0;
 
 install_script 'script/dbicdump';
 
@@ -94,7 +96,7 @@ my $_features = [
         ],
     },
     MSSQL => {
-        label => 'Microsoft SQL Server Support via DBD::Sybase (experimental)',
+        label => 'Microsoft SQL Server Support via DBD::Sybase',
         def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
         deps  => [
             'DBI'         => '1.56',
@@ -102,7 +104,7 @@ my $_features = [
         ],
     },
     MSSQL_ODBC => {
-        label => 'Microsoft SQL Server Support via DBD::ODBC (experimental)',
+        label => 'Microsoft SQL Server Support via DBD::ODBC',
         def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
         deps  => [
             'DBI'       => '1.56',

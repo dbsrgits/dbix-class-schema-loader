@@ -1120,7 +1120,7 @@ sub create {
         qq{
             CREATE TABLE loader_test11 (
                 id11 $self->{auto_inc_pk},
-                message VARCHAR(8) DEFAULT 'foo',
+                a_message VARCHAR(8) DEFAULT 'foo',
                 loader_test10 INTEGER $self->{null},
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb}
@@ -1144,7 +1144,7 @@ sub create {
         qq{
             CREATE TABLE loader_test11 (
                 id11 $self->{auto_inc_pk},
-                message VARCHAR(8) DEFAULT 'foo',
+                a_message VARCHAR(8) DEFAULT 'foo',
                 loader_test10 INTEGER $self->{null},
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb}
