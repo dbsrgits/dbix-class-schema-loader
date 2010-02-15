@@ -32,6 +32,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 skip_relationships
                                 skip_load_external
                                 moniker_map
+                                custom_column_info
                                 inflect_singular
                                 inflect_plural
                                 debug
@@ -1522,6 +1523,16 @@ sub _quote_table_name {
 }
 
 sub _is_case_sensitive { 0 }
+
+sub _custom_column_info {
+    my ( $self, $info ) = @_;
+
+    if( ref $self->custom_column_info eq 'HASH' ) {
+        
+    } elsif( ref $self->custom_column_info eq 'CODE' ) {
+        return $self->custom_column_info->($info);
+    }
+}
 
 # remove the dump dir from @INC on destruction
 sub DESTROY {

@@ -289,8 +289,8 @@ sub _columns_info_for {
                 $col_name =~ s/^\"(.*)\"$/$1/;
 
                 my $extra_info = $self->_extra_column_info($info) || {};
-
-                $result{$col_name} = { %column_info, %$extra_info };
+                my $custom_info = $self->_custom_column_info($info) || {};
+                $result{$col_name} = { %column_info, %$extra_info, %$custom_info };
             }
             $sth->finish;
         };
