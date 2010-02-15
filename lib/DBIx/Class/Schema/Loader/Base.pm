@@ -380,6 +380,23 @@ made to Loader-generated code.
 Again, you should be using version control on your schema classes.  Be
 careful with this option.
 
+=head2 custom_column_info
+
+Must be a coderef, returing a hashref with the custom column informations.
+
+Example:
+
+    sub _custom_column_info {
+        my $info = shift;
+
+        if ( $info->{TYPE_NAME} eq 'DATE' ){
+            return { timezone => "Europe/Berlin" };
+        }
+        return;
+    }
+
+Add to all columns with type DATE the attribute timezone => "Europe/Berlin". 
+
 =head1 METHODS
 
 None of these methods are intended for direct invocation by regular
@@ -1563,11 +1580,10 @@ sub _is_case_sensitive { 0 }
 sub _custom_column_info {
     my ( $self, $info ) = @_;
 
-    if( ref $self->custom_column_info eq 'HASH' ) {
-        
-    } elsif( ref $self->custom_column_info eq 'CODE' ) {
+    if( ref $self->custom_column_info eq 'CODE' ) {
         return $self->custom_column_info->($info);
     }
+    return {};
 }
 
 # remove the dump dir from @INC on destruction
