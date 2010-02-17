@@ -1621,10 +1621,6 @@ sub _custom_column_info {
 
 sub _datetime_column_info {
     my ( $self, $info, $column_info) = @_;
-    # warn "_datetime_column_info XXXXXXXXX";
-    # use Data::Dumper;
-    # warn Dumper $info;
-    # warn Dumper $column_info;
     my $return = {};
     my $type = lc ( $info->{TYPE_NAME} );
 
