@@ -57,10 +57,21 @@ sub _monikerize {
     return undef;
 }
 
+sub _custom_column_info {
+    my $info = shift;
+
+    if ( lc( $info->{TABLE_NAME} ) eq 'loader_test11' 
+        and lc( $info->{COLUMN_NAME} ) eq 'loader_test10' 
+    ){
+        return { is_numeric => 1 }
+    }
+    return;
+}
+
 sub run_tests {
     my $self = shift;
 
-    plan tests => 145 + ($self->{extra}->{count} || 0);
+    plan tests => 146 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -102,13 +113,13 @@ sub setup_schema {
         inflect_plural          => { loader_test4 => 'loader_test4zes' },
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
+        custom_column_info      => \&_custom_column_info,
         debug                   => $debug,
         use_namespaces          => 0,
         dump_directory          => $DUMP_DIR,
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
-    $loader_opts{custom_column_info} = $self->{custom_column_info} if $self->{custom_column_info};
 
     {
        my @loader_warnings;
@@ -604,11 +615,13 @@ sub test_schema {
         my $class11   = $classes->{loader_test11};
         my $rsobj11   = $conn->resultset($moniker11);
 
-        isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
+        isa_ok( $rsobj10, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
 
         ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
         ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
+        # Added by custom_column_info
+        ok($class11->column_info('loader_test10')->{is_numeric}, 'is_numeric detected');
 
         my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 

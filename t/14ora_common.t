@@ -8,18 +8,8 @@ my $dsn      = $ENV{DBICTEST_ORA_DSN} || '';
 my $user     = $ENV{DBICTEST_ORA_USER} || '';
 my $password = $ENV{DBICTEST_ORA_PASS} || '';
 
-sub _custom_column_info {
-    my $info = shift;
-
-    if ( $info->{TYPE_NAME} eq 'DATE' ){
-        return { timezone => "Europe/Berlin" };
-    }
-    return;
-}
-
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'Oracle',
-    custom_column_info => \&_custom_column_info,
     auto_inc_pk => 'INTEGER NOT NULL PRIMARY KEY',
     auto_inc_cb => sub {
         my ($table, $col) = @_;
@@ -42,33 +32,6 @@ my $tester = dbixcsl_common_tests->new(
     dsn         => $dsn,
     user        => $user,
     password    => $password,
-    extra => {
-        create => [qq{
-            CREATE TABLE oracle_loader_test1 (
-                id number(5) NOT NULL,
-                name varchar2(100) NOT NULL,
-                create_date date NOT NULL,
-                modification_date date,
-                PRIMARY KEY (id)
-            )
-        },],
-        drop  => [qw/ oracle_loader_test1 /],
-        count => 2,
-        run   => sub {
-            my ( $schema, $monikers, $classes ) = @_;
-            my $rs = $schema->resultset( $monikers->{oracle_loader_test1} );
-
-            is $rs->result_source->column_info('create_date')->{timezone},
-                'Europe/Berlin',
-                'create_date hast timezone';
-
-            is $rs->result_source->column_info('modification_date')->{timezone},
-                'Europe/Berlin',
-                'modification_date hast timezone';
-
-        },
-      }
-
 );
 
 if( !$dsn || !$user ) {
