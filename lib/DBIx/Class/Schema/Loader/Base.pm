@@ -388,7 +388,28 @@ Example:
 
     custom_column_info => sub {
         my $info = shift;
-
+        # Example from $info hashref:
+        # $info = {
+        #           'DECIMAL_DIGITS' => undef,
+        #           'COLUMN_DEF' => undef,
+        #           'TABLE_CAT' => undef,
+        #           'NUM_PREC_RADIX' => undef,
+        #           'TABLE_SCHEM' => 'TESTS',
+        #           'BUFFER_LENGTH' => '8',
+        #           'CHAR_OCTET_LENGTH' => undef,
+        #           'IS_NULLABLE' => 'NO',
+        #           'REMARKS' => undef,
+        #           'COLUMN_SIZE' => '8',
+        #           'ORDINAL_POSITION' => '1',
+        #           'COLUMN_NAME' => 'LOADER_TEST9',
+        #           'TYPE_NAME' => 'VARCHAR2',
+        #           'NULLABLE' => '0',
+        #           'DATA_TYPE' => '12',
+        #           'TABLE_NAME' => 'LOADER_TEST9',
+        #           'SQL_DATA_TYPE' => '12',
+        #           'SQL_DATETIME_SUB' => undef
+        #         };
+        
         if ( $info->{TYPE_NAME} eq 'DATE' ){
             return { timezone => "Europe/Berlin" };
         }
