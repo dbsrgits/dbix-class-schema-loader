@@ -65,13 +65,22 @@ sub _custom_column_info {
     ){
         return { is_numeric => 1 }
     }
+    # Set inflate_datetime or  inflate_date to check 
+    #   datetime_timezone and datetime_locale
+    if ( lc( $info->{TABLE_NAME} ) eq 'loader_test36' ){
+        return { inflate_datetime => 1 } if 
+            ( lc( $info->{COLUMN_NAME} ) eq 'b_char_as_data' );
+        return { inflate_date => 1 } if 
+            ( lc( $info->{COLUMN_NAME} ) eq 'c_char_as_data' );
+    }
+
     return;
 }
 
 sub run_tests {
     my $self = shift;
 
-    plan tests => 149 + ($self->{extra}->{count} || 0);
+    plan tests => 155 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -633,6 +642,14 @@ sub test_schema {
         is($class36->column_info('a_date')->{locale},'de_DE','locale is correct');
         is($class36->column_info('a_date')->{timezone},'Europe/Berlin','locale is correct');
 
+        ok($class36->column_info('b_char_as_data')->{inflate_datetime},'inflate_datetime detected');
+        is($class36->column_info('b_char_as_data')->{locale},'de_DE','locale is correct');
+        is($class36->column_info('b_char_as_data')->{timezone},'Europe/Berlin','locale is correct');
+
+        ok($class36->column_info('c_char_as_data')->{inflate_date},'inflate_date detected');
+        is($class36->column_info('c_char_as_data')->{locale},'de_DE','locale is correct');
+        is($class36->column_info('c_char_as_data')->{timezone},'Europe/Berlin','locale is correct');
+
         my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
         $obj10->update();
@@ -874,7 +891,9 @@ sub create {
         qq{
             CREATE TABLE loader_test36 (
                 id INTEGER NOT NULL PRIMARY KEY,
-                a_date DATE
+                a_date DATE,
+                b_char_as_data VARCHAR(100),
+                c_char_as_data VARCHAR(100)
             ) $self->{innodb}
         },
     );
