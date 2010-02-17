@@ -292,7 +292,9 @@ sub _columns_info_for {
 
                 my $extra_info = $self->_extra_column_info($info) || {};
                 my $custom_info = $self->_custom_column_info($info) || {};
-                $result{$col_name} = { %column_info, %$extra_info, %$custom_info };
+                my $datetime_info = $self->_datetime_column_info($info,
+                    { %column_info, %$extra_info, %$custom_info }) || {};
+                $result{$col_name} = { %column_info, %$extra_info, %$custom_info, %$datetime_info };
             }
             $sth->finish;
         };

@@ -55,6 +55,8 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 monikers
                                 dynamic
                                 naming
+                                datetime_timezone
+                                datetime_locale
 /);
 
 
@@ -417,6 +419,16 @@ Example:
     }
 
 Add to all columns with type DATE the attribute timezone => "Europe/Berlin". 
+
+=head2 datetime_timezone
+
+Set timezone attribute for L<DBIx::Class::InflateColumn::DateTime> 
+to all columns with the type DATE.
+
+=head2 datetime_locale
+
+Set local attribute for L<DBIx::Class::InflateColumn::DateTime> 
+to all columns with the type DATE.
 
 =head1 METHODS
 
@@ -1605,6 +1617,28 @@ sub _custom_column_info {
         return $self->custom_column_info->($info);
     }
     return {};
+}
+
+sub _datetime_column_info {
+    my ( $self, $info, $column_info) = @_;
+    # warn "_datetime_column_info XXXXXXXXX";
+    # use Data::Dumper;
+    # warn Dumper $info;
+    # warn Dumper $column_info;
+    my $return = {};
+    my $type = lc ( $info->{TYPE_NAME} );
+
+    if (
+        ( defined $column_info->{inflate_datetime} and $column_info->{inflate_datetime} )
+        or ( defined $column_info->{inflate_date} and $column_info->{inflate_date} )
+        or ( $type eq 'date')
+        or ( $type eq 'datetime')
+        or ( $type eq 'timestamp')
+    ){
+        $return->{timezone} = $self->datetime_timezone if $self->datetime_timezone;
+        $return->{locale}   = $self->datetime_locale if $self->datetime_locale;
+    }
+    return $return;
 }
 
 # remove the dump dir from @INC on destruction

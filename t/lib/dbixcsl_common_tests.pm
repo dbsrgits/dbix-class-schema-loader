@@ -71,7 +71,7 @@ sub _custom_column_info {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 146 + ($self->{extra}->{count} || 0);
+    plan tests => 149 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -117,6 +117,8 @@ sub setup_schema {
         debug                   => $debug,
         use_namespaces          => 0,
         dump_directory          => $DUMP_DIR,
+        datetime_timezone       => 'Europe/Berlin',
+        datetime_locale         => 'de_DE'
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
@@ -137,7 +139,7 @@ sub setup_schema {
        my $file_count;
        find sub { return if -d; $file_count++ }, $DUMP_DIR;
 
-       my $expected_count = 35;
+       my $expected_count = 36;
 
        $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
            @{ $self->{extra}{create} || [] };
@@ -444,6 +446,10 @@ sub test_schema {
         my $class34   = $classes->{loader_test34};
         my $rsobj34   = $conn->resultset($moniker34);
 
+        my $moniker36 = $monikers->{loader_test36};
+        my $class36   = $classes->{loader_test36};
+        my $rsobj36   = $conn->resultset($moniker36);
+        
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -467,6 +473,7 @@ sub test_schema {
         isa_ok( $rsobj32, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj33, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj34, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj36, "DBIx::Class::ResultSet" );
 
         # basic rel test
         my $obj4 = $rsobj4->find(123);
@@ -622,6 +629,9 @@ sub test_schema {
         ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
         # Added by custom_column_info
         ok($class11->column_info('loader_test10')->{is_numeric}, 'is_numeric detected');
+
+        is($class36->column_info('a_date')->{locale},'de_DE','locale is correct');
+        is($class36->column_info('a_date')->{timezone},'Europe/Berlin','locale is correct');
 
         my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
@@ -858,6 +868,13 @@ sub create {
                 an_int INTEGER DEFAULT 42,
                 a_double DOUBLE PRECISION DEFAULT 10.555,
                 a_function $self->{default_function_def}
+            ) $self->{innodb}
+        },
+
+        qq{
+            CREATE TABLE loader_test36 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                a_date DATE
             ) $self->{innodb}
         },
     );
@@ -1257,6 +1274,7 @@ sub drop_tables {
         LOADER_TEST23
         LoAdEr_test24
         loader_test35
+        loader_test36
     /;
     
     my @tables_auto_inc = (
