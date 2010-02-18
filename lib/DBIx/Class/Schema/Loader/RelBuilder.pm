@@ -247,9 +247,9 @@ sub generate_code {
         # col names to distinguish
         if($counters{$remote_moniker} > 1) {
             my $colnames = q{_} . join(q{_}, @$local_cols);
-            $local_relname = $self->_inflect_plural(
-                lc($local_table) . $colnames
-            );
+            $local_relname = lc($local_table) . $colnames;
+            $local_relname =~ s/_id$//; #< strip off any trailing _id
+            $local_relname = $self->_inflect_plural( $local_relname );
             $remote_relname .= $colnames if keys %cond > 1;
         } else {
             $local_relname = $self->_inflect_plural(lc $local_table);
