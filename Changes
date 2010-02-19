@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix missing trailing _id stripping for some relationship
+          names (rbuels)
+
 0.05002  2010-02-15 10:17:47
         - support for SQLAnywhere via DBD::SQLAnywhere and ODBC
         - fix picking up quoted tables for SQLite (RT#54538) patch from schwern
