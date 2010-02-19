@@ -20,10 +20,32 @@ my $tester = dbixcsl_common_tests->new(
                     "id" NOT NULL PRIMARY KEY,
                     "value" VARCHAR(100)
                 )
-            }
+            },
+            q{
+                CREATE TABLE extra_loader_test2 (
+                    event_id INTEGER PRIMARY KEY
+                )
+            },
+            q{
+                CREATE TABLE extra_loader_test3 (
+                    person_id INTEGER PRIMARY KEY
+                )
+            },
+            # Wordy, newline-heavy SQL to stress the regexes
+            q{
+                CREATE TABLE extra_loader_test4 (
+                    event_id INTEGER NOT NULL
+                        CONSTRAINT fk_event_id
+                        REFERENCES extra_loader_test2(event_id),
+                    person_id INTEGER NOT NULL
+                        CONSTRAINT fk_person_id
+                        REFERENCES extra_loader_test3 (person_id),
+                    PRIMARY KEY (event_id, person_id)
+                )
+            },
         ],
-        drop  => [ 'extra_loader_test1' ],
-        count => 2,
+        drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3 extra_loader_test4 / ],
+        count => 5,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -32,6 +54,17 @@ my $tester = dbixcsl_common_tests->new(
 
             is_deeply [ $rs->result_source->columns ], [ qw/id value/ ],
                 'retrieved quoted column names from quoted table';
+
+            ok ((my $source = $schema->source($monikers->{extra_loader_test4})),
+                'verbose table');
+
+            is_deeply [ $source->primary_columns ], [ qw/event_id person_id/ ],
+                'composite primary key';
+
+            warn "@{[ $source->relationships ]}\n";
+            is ($source->relationships, 2,
+                '2 foreign key constraints found');
+
         },
     },
 );

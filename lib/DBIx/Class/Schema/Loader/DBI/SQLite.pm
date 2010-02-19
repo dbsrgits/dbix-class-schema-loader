@@ -119,7 +119,7 @@ sub _sqlite_parse_table {
             $auto_inc{lc $1} = 1;
         }
 
-        next if $col !~ /^(.*\S)\s+REFERENCES\s+(\w+) (?: \s* \( (.*) \) )? /ix;
+        next if $col !~ /^(.*\S)\s+REFERENCES\s+(\w+) (?: \s* \( (.*) \) )? /six;
 
         my ($cols, $f_table, $f_cols) = ($1, $2, $3);
 
@@ -128,7 +128,7 @@ sub _sqlite_parse_table {
             $cols =~ s/\s*\)$//;
         }
         else {               # Inline
-            $cols =~ s/\s+.*$//;
+            $cols =~ s/\s+.*$//s;
         }
 
         my @cols = map { s/\s*//g; lc $_ } split(/\s*,\s*/,$cols);
