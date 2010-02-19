@@ -293,12 +293,6 @@ sub _columns_info_for {
                 my $extra_info = $self->_extra_column_info($info) || {};
                 $column_info = { %$column_info, %$extra_info };
 
-                my $custom_info = $self->_custom_column_info( $table, $col_name, $column_info ) || {};
-                $column_info = { %$column_info, %$custom_info };
-
-                my $datetime_info = $self->_datetime_column_info( $table, $col_name, $column_info )  || {};
-                $column_info = { %$column_info, %$datetime_info };
-
                 $result{$col_name} = $column_info;
             }
             $sth->finish;
@@ -323,12 +317,6 @@ sub _columns_info_for {
 
         my $extra_info = $self->_extra_column_info($table, $columns[$i], $sth, $i) || {};
         $column_info = { %$column_info, %$extra_info };
-
-        my $custom_info = $self->_custom_column_info( $table, $columns[$i], $column_info ) || {};
-        $column_info = { %$column_info, %$custom_info };
-
-        my $datetime_info = $self->_datetime_column_info( $table, $columns[$i], $column_info )  || {};
-        $column_info = { %$column_info, %$datetime_info };
 
         $result{$columns[$i]} = $column_info;
     }

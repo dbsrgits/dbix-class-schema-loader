@@ -384,57 +384,41 @@ careful with this option.
 
 =head2 custom_column_info
 
-Must be a coderef, returing a hashref with the custom column informations.
+Hook for adding extra attributes to the
+L<column_info|DBIx::Class::ResultSource/column_info> for a column.
 
-Example:
+Must be a coderef that returns a hashref with the extra attributes.
 
-    custom_column_info => sub {
-        my $info = shift;
-        # Example from $info hashref:
-        # $info = {
-        #           'DECIMAL_DIGITS' => undef,
-        #           'COLUMN_DEF' => undef,
-        #           'TABLE_CAT' => undef,
-        #           'NUM_PREC_RADIX' => undef,
-        #           'TABLE_SCHEM' => 'TESTS',
-        #           'BUFFER_LENGTH' => '8',
-        #           'CHAR_OCTET_LENGTH' => undef,
-        #           'IS_NULLABLE' => 'NO',
-        #           'REMARKS' => undef,
-        #           'COLUMN_SIZE' => '8',
-        #           'ORDINAL_POSITION' => '1',
-        #           'COLUMN_NAME' => 'LOADER_TEST9',
-        #           'TYPE_NAME' => 'VARCHAR2',
-        #           'NULLABLE' => '0',
-        #           'DATA_TYPE' => '12',
-        #           'TABLE_NAME' => 'LOADER_TEST9',
-        #           'SQL_DATA_TYPE' => '12',
-        #           'SQL_DATETIME_SUB' => undef
-        #         };
-        
-        if ( $info->{TYPE_NAME} eq 'DATE' ){
-            return { timezone => "Europe/Berlin" };
-        }
-        return;
-    }
+Receives the table name, column name and column_info.
 
-Add to all columns with type DATE the attribute timezone => "Europe/Berlin". 
+For example:
+
+  custom_column_info => sub {
+      my ($table_name, $column_name, $column_info) = @_;
+
+      if ($column_name eq 'dog' && $column_info->{default_value} eq 'snoopy') {
+          return { is_snoopy => 1 };
+      }
+  },
+
+This attribute can also be used to set C<inflate_datetime> on a non-datetime
+column so it also receives the L</datetime_timezone> and/or L</datetime_locale>.
 
 =head2 datetime_timezone
 
-Set timezone attribute for L<DBIx::Class::InflateColumn::DateTime> 
-to all columns with the type DATE.
+Sets the timezone attribute for L<DBIx::Class::InflateColumn::DateTime> for all
+columns with the DATE/DATETIME/TIMESTAMP data_types.
 
 =head2 datetime_locale
 
-Set local attribute for L<DBIx::Class::InflateColumn::DateTime> 
-to all columns with the type DATE.
+Sets the locale attribute for L<DBIx::Class::InflateColumn::DateTime> for all
+columns with the DATE/DATETIME/TIMESTAMP data_types.
 
 =head1 METHODS
 
 None of these methods are intended for direct invocation by regular
-users of L<DBIx::Class::Schema::Loader>.  Anything you can find here
-can also be found via standard L<DBIx::Class::Schema> methods somehow.
+users of L<DBIx::Class::Schema::Loader>. Some are proxied via
+L<DBIx::Class::Schema::Loader>.
 
 =cut
 
@@ -519,6 +503,10 @@ sub new {
         }
     }
     $self->{naming} ||= {};
+
+    if ($self->custom_column_info && ref $self->custom_column_info ne 'CODE') {
+        croak 'custom_column_info must be a CODE ref';
+    }
 
     $self->_check_back_compat;
 
@@ -1363,7 +1351,7 @@ sub _setup_src_meta {
 
     my $cols = $self->_table_columns($table);
     my $col_info;
-    eval { $col_info = $self->_columns_info_for($table) };
+    eval { $col_info = $self->__columns_info_for($table) };
     if($@) {
         $self->_dbic_stmt($table_class,'add_columns',@$cols);
     }
@@ -1405,6 +1393,21 @@ sub _setup_src_meta {
         $self->_dbic_stmt($table_class,'add_unique_constraint', $name, $cols);
     }
 
+}
+
+sub __columns_info_for {
+    my ($self, $table) = @_;
+
+    my $result = $self->_columns_info_for($table);
+
+    while (my ($col, $info) = each %$result) {
+        $info = { %$info, %{ $self->_custom_column_info  ($table, $col, $info) } };
+        $info = { %$info, %{ $self->_datetime_column_info($table, $col, $info) } };
+
+        $result->{$col} = $info;
+    }
+
+    return $result;
 }
 
 =head2 tables
@@ -1615,27 +1618,22 @@ sub _is_case_sensitive { 0 }
 sub _custom_column_info {
     my ( $self, $table_name, $column_name, $column_info ) = @_;
 
-    if( ref $self->custom_column_info eq 'CODE' ) {
-        return $self->custom_column_info->( $table_name, $column_name, $column_info );
+    if (my $code = $self->custom_column_info) {
+        return $code->($table_name, $column_name, $column_info) || {};
     }
     return {};
 }
 
 sub _datetime_column_info {
     my ( $self, $table_name, $column_name, $column_info ) = @_;
-    my $return = {};
-    my $type = lc ( $column_info->{data_type} );
-    if (
-        ( defined $column_info->{inflate_datetime} and $column_info->{inflate_datetime} )
-        or ( defined $column_info->{inflate_date} and $column_info->{inflate_date} )
-        or ( $type eq 'date')
-        or ( $type eq 'datetime')
-        or ( $type eq 'timestamp')
-    ){
-        $return->{timezone} = $self->datetime_timezone if $self->datetime_timezone;
-        $return->{locale}   = $self->datetime_locale if $self->datetime_locale;
+    my $result = {};
+    my $type = $column_info->{data_type} || '';
+    if ((grep $_, @{ $column_info }{map "inflate_$_", qw/date datetime timestamp/})
+            or ($type =~ /date|timestamp/i)) {
+        $result->{timezone} = $self->datetime_timezone if $self->datetime_timezone;
+        $result->{locale}   = $self->datetime_locale   if $self->datetime_locale;
     }
-    return $return;
+    return $result;
 }
 
 # remove the dump dir from @INC on destruction

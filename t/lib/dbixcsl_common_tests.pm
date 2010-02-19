@@ -59,6 +59,7 @@ sub _monikerize {
 
 sub _custom_column_info {
     my ( $table_name, $column_name, $column_info ) = @_;
+
     $table_name = lc ( $table_name );
     $column_name = lc ( $column_name );
 
@@ -640,19 +641,20 @@ sub test_schema {
 
         ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
         ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
+
         # Added by custom_column_info
-        ok($class11->column_info('loader_test10')->{is_numeric}, 'is_numeric detected');
+        ok($class11->column_info('loader_test10')->{is_numeric}, 'custom_column_info');
 
-        is($class36->column_info('a_date')->{locale},'de_DE','locale is correct');
-        is($class36->column_info('a_date')->{timezone},'Europe/Berlin','locale is correct');
+        is($class36->column_info('a_date')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('a_date')->{timezone},'Europe/Berlin','datetime_timezone');
 
-        ok($class36->column_info('b_char_as_data')->{inflate_datetime},'inflate_datetime detected');
-        is($class36->column_info('b_char_as_data')->{locale},'de_DE','locale is correct');
-        is($class36->column_info('b_char_as_data')->{timezone},'Europe/Berlin','locale is correct');
+        ok($class36->column_info('b_char_as_data')->{inflate_datetime},'custom_column_info');
+        is($class36->column_info('b_char_as_data')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('b_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
 
-        ok($class36->column_info('c_char_as_data')->{inflate_date},'inflate_date detected');
-        is($class36->column_info('c_char_as_data')->{locale},'de_DE','locale is correct');
-        is($class36->column_info('c_char_as_data')->{timezone},'Europe/Berlin','locale is correct');
+        ok($class36->column_info('c_char_as_data')->{inflate_date},'custom_column_info');
+        is($class36->column_info('c_char_as_data')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('c_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
 
         my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
