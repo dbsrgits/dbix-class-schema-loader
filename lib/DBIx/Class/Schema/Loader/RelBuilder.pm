@@ -249,14 +249,14 @@ sub generate_code {
             my $colnames = q{_} . join(q{_}, @$local_cols);
             my $old_relname = #< TODO: remove me after 0.05003 release
                 $local_relname = lc($local_table) . $colnames;
-            $local_relname =~ s/_id$//; #< strip off any trailing _id
+            my $stripped_id = $local_relname =~ s/_id$//; #< strip off any trailing _id
             $local_relname = $self->_inflect_plural( $local_relname );
             $remote_relname .= $colnames if keys %cond > 1;
 
             # TODO: remove me after 0.05003 release
             $old_relname = $self->_inflect_plural( $old_relname );
-            warn __PACKAGE__." $VERSION: warning, stripping trailing _id from ${remote_class} relation '$old_relname', renaming to '$local_relname'.  This behavior is new as of 0.05003.\n";
-
+            warn __PACKAGE__." $VERSION: warning, stripping trailing _id from ${remote_class} relation '$old_relname', renaming to '$local_relname'.  This behavior is new as of 0.05003.\n"
+                if $stripped_id;
         } else {
             $local_relname = $self->_inflect_plural(lc $local_table);
         }
