@@ -61,7 +61,6 @@ my $tester = dbixcsl_common_tests->new(
             is_deeply [ $source->primary_columns ], [ qw/event_id person_id/ ],
                 'composite primary key';
 
-            warn "@{[ $source->relationships ]}\n";
             is ($source->relationships, 2,
                 '2 foreign key constraints found');
 
