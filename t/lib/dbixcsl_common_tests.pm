@@ -173,6 +173,8 @@ sub setup_schema {
 
        $warn_count++ for grep /^Bad table or view/, @loader_warnings;
 
+       $warn_count++ for grep /stripping trailing _id/, @loader_warnings;
+
        my $vendor = $self->{vendor};
        $warn_count++ for grep /${vendor}_\S+ has no primary key/,
            @loader_warnings;
