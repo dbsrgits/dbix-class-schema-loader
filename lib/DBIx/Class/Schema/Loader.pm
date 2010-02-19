@@ -497,6 +497,8 @@ bphillips: Brian Phillips <bphillips@cpan.org>
 
 schwern: Michael G. Schwern <mschwern@cpan.org>
 
+hobbs: Andrew Rodland <arodland@cpan.org>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
