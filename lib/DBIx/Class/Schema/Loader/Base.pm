@@ -1494,9 +1494,11 @@ sub _make_pod {
 	    $self->_pod( $class,
 			 join "\n", map {
 			     my $s = $attrs->{$_};
-			     $s = !defined $s      ? 'undef'          :
-				  length($s) == 0  ? '(empty string)' :
-                                                     $s;
+			     $s = !defined $s         ? 'undef'          :
+                                  length($s) == 0     ? '(empty string)' :
+                                  ref($s) eq 'SCALAR' ? $$s              :
+                                                        $s
+                                  ;
 
 			     "  $_: $s"
 			 } sort keys %$attrs,
