@@ -58,20 +58,22 @@ sub _monikerize {
 }
 
 sub _custom_column_info {
-    my $info = shift;
+    my ( $table_name, $column_name, $column_info ) = @_;
+    $table_name = lc ( $table_name );
+    $column_name = lc ( $column_name );
 
-    if ( lc( $info->{TABLE_NAME} ) eq 'loader_test11' 
-        and lc( $info->{COLUMN_NAME} ) eq 'loader_test10' 
+    if ( $table_name eq 'loader_test11' 
+        and $column_name eq 'loader_test10' 
     ){
         return { is_numeric => 1 }
     }
     # Set inflate_datetime or  inflate_date to check 
     #   datetime_timezone and datetime_locale
-    if ( lc( $info->{TABLE_NAME} ) eq 'loader_test36' ){
+    if ( $table_name eq 'loader_test36' ){
         return { inflate_datetime => 1 } if 
-            ( lc( $info->{COLUMN_NAME} ) eq 'b_char_as_data' );
+            ( $column_name eq 'b_char_as_data' );
         return { inflate_date => 1 } if 
-            ( lc( $info->{COLUMN_NAME} ) eq 'c_char_as_data' );
+            ( $column_name eq 'c_char_as_data' );
     }
 
     return;

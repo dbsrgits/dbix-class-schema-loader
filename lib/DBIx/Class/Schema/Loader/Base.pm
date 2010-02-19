@@ -1611,19 +1611,18 @@ sub _quote_table_name {
 sub _is_case_sensitive { 0 }
 
 sub _custom_column_info {
-    my ( $self, $info ) = @_;
+    my ( $self, $table_name, $column_name, $column_info ) = @_;
 
     if( ref $self->custom_column_info eq 'CODE' ) {
-        return $self->custom_column_info->($info);
+        return $self->custom_column_info->( $table_name, $column_name, $column_info );
     }
     return {};
 }
 
 sub _datetime_column_info {
-    my ( $self, $info, $column_info) = @_;
+    my ( $self, $table_name, $column_name, $column_info ) = @_;
     my $return = {};
-    my $type = lc ( $info->{TYPE_NAME} );
-
+    my $type = lc ( $column_info->{data_type} );
     if (
         ( defined $column_info->{inflate_datetime} and $column_info->{inflate_datetime} )
         or ( defined $column_info->{inflate_date} and $column_info->{inflate_date} )
