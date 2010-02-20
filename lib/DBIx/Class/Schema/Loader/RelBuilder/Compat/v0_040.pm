@@ -30,6 +30,15 @@ sub _remote_relname {
     return $remote_relname;
 }
 
+sub _multi_rel_local_relname {
+    my ($self, $local_table, $local_cols) = @_;
+
+    my $colnames = q{_} . join(q{_}, @$local_cols);
+    my $local_relname = $self->_inflect_plural( lc($local_table) . $colnames );
+
+    return $local_relname;
+}
+
 1;
 
 =head1 NAME
