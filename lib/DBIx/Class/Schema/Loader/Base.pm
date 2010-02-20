@@ -17,7 +17,7 @@ use Class::Unload;
 use Class::Inspector ();
 require DBIx::Class;
 
-our $VERSION = '0.05002';
+our $VERSION = '0.05003';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema

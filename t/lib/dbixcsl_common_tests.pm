@@ -685,7 +685,7 @@ sub test_schema {
         }
 
         SKIP: {
-            skip 'This vendor cannot do inline relationship definitions', 8
+            skip 'This vendor cannot do inline relationship definitions', 9
                 if $self->{no_inline_rels};
 
             my $moniker12 = $monikers->{loader_test12};
