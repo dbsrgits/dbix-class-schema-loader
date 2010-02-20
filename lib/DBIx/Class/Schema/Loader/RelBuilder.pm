@@ -248,8 +248,12 @@ sub generate_code {
         if($counters{$remote_moniker} > 1) {
             my $colnames = q{_} . join(q{_}, @$local_cols);
             $remote_relname .= $colnames if keys %cond > 1;
-            $local_relname   = $self->_multi_rel_local_relname(
-                $remote_class, $local_table, $local_cols
+
+            my $is_singular =
+              ($self->_uniq_fk_rel($local_moniker, 'dummy', $local_cols, $uniqs))[0] ne 'has_many';
+
+            $local_relname = $self->_multi_rel_local_relname(
+                $remote_class, $local_table, $local_cols, $is_singular
             );
         } else {
             $local_relname = $self->_inflect_plural(lc $local_table);
@@ -291,16 +295,19 @@ sub generate_code {
 }
 
 sub _multi_rel_local_relname {
-    my ($self, $remote_class, $local_table, $local_cols) = @_;
+    my ($self, $remote_class, $local_table, $local_cols, $is_singular) = @_;
+
+    my $inflect = $is_singular ? '_inflect_singular' : '_inflect_plural';
+    $inflect    = $self->can($inflect);
 
     my $colnames = q{_} . join(q{_}, @$local_cols);
     my $old_relname = #< TODO: remove me after 0.05003 release
     my $local_relname = lc($local_table) . $colnames;
     my $stripped_id = $local_relname =~ s/_id$//; #< strip off any trailing _id
-    $local_relname = $self->_inflect_plural( $local_relname );
+    $local_relname = $self->$inflect( $local_relname );
 
     # TODO: remove me after 0.05003 release
-    $old_relname = $self->_inflect_plural( $old_relname );
+    $old_relname = $self->$inflect( $old_relname );
     warn __PACKAGE__." $VERSION: warning, stripping trailing _id from ${remote_class} relation '$old_relname', renaming to '$local_relname'.  This behavior is new as of 0.05003.\n"
         if $stripped_id;
 
