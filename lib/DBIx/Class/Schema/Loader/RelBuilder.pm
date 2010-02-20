@@ -275,7 +275,7 @@ sub _relnames_and_methods {
         $remote_relname .= $colnames if keys %$cond > 1;
 
         my $old_relname =       #< TODO: remove me after 0.05003 release
-            my $local_relname = lc($local_table) . $colnames;
+        $local_relname = lc($local_table) . $colnames;
         my $stripped_id = $local_relname =~ s/_id$//; #< strip off any trailing _id
         $local_relname = $self->_inflect_plural( $local_relname );
 
