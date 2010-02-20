@@ -6,38 +6,36 @@ use Class::C3;
 
 use base 'DBIx::Class::Schema::Loader::RelBuilder';
 
-sub _uniq_fk_rel {
-    my ($self, $local_moniker, $local_relname, $local_cols, $uniqs) = @_;
+sub _relnames_and_methods {
+    my ( $self, $local_moniker, $rel, $cond, $uniqs, $counters ) = @_;
 
-    return ('has_many', $local_relname);
+    my $remote_moniker = $rel->{remote_source};
+    my $remote_table   = $self->{schema}->source( $remote_moniker )->from;
+
+    my $local_table = $self->{schema}->source($local_moniker)->from;
+    my $local_cols  = $rel->{local_columns};
+
+    # for single-column case, set the remote relname to just the column name
+    my $remote_relname =
+        scalar keys %{$cond} == 1
+            ? $self->_inflect_singular( values %$cond  )
+            : $self->_inflect_singular( lc $remote_table );
+
+    # If more than one rel between this pair of tables, use the local
+    # col names to distinguish
+    my $local_relname;
+    if ($counters->{$remote_moniker} > 1) {
+        my $colnames = '_' . join( '_', @$local_cols );
+        $remote_relname .= $colnames if keys %$cond > 1;
+        $local_relname = $self->_inflect_plural( lc($local_table) . $colnames );
+    } else {
+        $local_relname = $self->_inflect_plural(lc $local_table);
+    }
+
+    return ( $local_relname, $remote_relname, 'has_many' );
 }
 
 sub _remote_attrs { }
-
-sub _remote_relname {
-    my ($self, $remote_table, $cond) = @_;
-
-    my $remote_relname;
-    # for single-column case, set the remote relname to the column
-    # name, to make filter accessors work
-    if(scalar keys %{$cond} == 1) {
-        $remote_relname = $self->_inflect_singular(values %{$cond});
-    }
-    else {
-        $remote_relname = $self->_inflect_singular(lc $remote_table);
-    }
-
-    return $remote_relname;
-}
-
-sub _multi_rel_local_relname {
-    my ($self, $remote_class, $local_table, $local_cols) = @_;
-
-    my $colnames = q{_} . join(q{_}, @$local_cols);
-    my $local_relname = $self->_inflect_plural( lc($local_table) . $colnames );
-
-    return $local_relname;
-}
 
 1;
 
