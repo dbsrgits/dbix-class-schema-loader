@@ -33,6 +33,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 skip_relationships
                                 skip_load_external
                                 moniker_map
+                                custom_column_info
                                 inflect_singular
                                 inflect_plural
                                 debug
@@ -54,6 +55,8 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 monikers
                                 dynamic
                                 naming
+                                datetime_timezone
+                                datetime_locale
 /);
 
 
@@ -379,11 +382,43 @@ made to Loader-generated code.
 Again, you should be using version control on your schema classes.  Be
 careful with this option.
 
+=head2 custom_column_info
+
+Hook for adding extra attributes to the
+L<column_info|DBIx::Class::ResultSource/column_info> for a column.
+
+Must be a coderef that returns a hashref with the extra attributes.
+
+Receives the table name, column name and column_info.
+
+For example:
+
+  custom_column_info => sub {
+      my ($table_name, $column_name, $column_info) = @_;
+
+      if ($column_name eq 'dog' && $column_info->{default_value} eq 'snoopy') {
+          return { is_snoopy => 1 };
+      }
+  },
+
+This attribute can also be used to set C<inflate_datetime> on a non-datetime
+column so it also receives the L</datetime_timezone> and/or L</datetime_locale>.
+
+=head2 datetime_timezone
+
+Sets the timezone attribute for L<DBIx::Class::InflateColumn::DateTime> for all
+columns with the DATE/DATETIME/TIMESTAMP data_types.
+
+=head2 datetime_locale
+
+Sets the locale attribute for L<DBIx::Class::InflateColumn::DateTime> for all
+columns with the DATE/DATETIME/TIMESTAMP data_types.
+
 =head1 METHODS
 
 None of these methods are intended for direct invocation by regular
-users of L<DBIx::Class::Schema::Loader>.  Anything you can find here
-can also be found via standard L<DBIx::Class::Schema> methods somehow.
+users of L<DBIx::Class::Schema::Loader>. Some are proxied via
+L<DBIx::Class::Schema::Loader>.
 
 =cut
 
@@ -468,6 +503,10 @@ sub new {
         }
     }
     $self->{naming} ||= {};
+
+    if ($self->custom_column_info && ref $self->custom_column_info ne 'CODE') {
+        croak 'custom_column_info must be a CODE ref';
+    }
 
     $self->_check_back_compat;
 
@@ -1312,7 +1351,7 @@ sub _setup_src_meta {
 
     my $cols = $self->_table_columns($table);
     my $col_info;
-    eval { $col_info = $self->_columns_info_for($table) };
+    eval { $col_info = $self->__columns_info_for($table) };
     if($@) {
         $self->_dbic_stmt($table_class,'add_columns',@$cols);
     }
@@ -1354,6 +1393,21 @@ sub _setup_src_meta {
         $self->_dbic_stmt($table_class,'add_unique_constraint', $name, $cols);
     }
 
+}
+
+sub __columns_info_for {
+    my ($self, $table) = @_;
+
+    my $result = $self->_columns_info_for($table);
+
+    while (my ($col, $info) = each %$result) {
+        $info = { %$info, %{ $self->_custom_column_info  ($table, $col, $info) } };
+        $info = { %$info, %{ $self->_datetime_column_info($table, $col, $info) } };
+
+        $result->{$col} = $info;
+    }
+
+    return $result;
 }
 
 =head2 tables
@@ -1560,6 +1614,27 @@ sub _quote_table_name {
 }
 
 sub _is_case_sensitive { 0 }
+
+sub _custom_column_info {
+    my ( $self, $table_name, $column_name, $column_info ) = @_;
+
+    if (my $code = $self->custom_column_info) {
+        return $code->($table_name, $column_name, $column_info) || {};
+    }
+    return {};
+}
+
+sub _datetime_column_info {
+    my ( $self, $table_name, $column_name, $column_info ) = @_;
+    my $result = {};
+    my $type = $column_info->{data_type} || '';
+    if ((grep $_, @{ $column_info }{map "inflate_$_", qw/date datetime timestamp/})
+            or ($type =~ /date|timestamp/i)) {
+        $result->{timezone} = $self->datetime_timezone if $self->datetime_timezone;
+        $result->{locale}   = $self->datetime_locale   if $self->datetime_locale;
+    }
+    return $result;
+}
 
 # remove the dump dir from @INC on destruction
 sub DESTROY {

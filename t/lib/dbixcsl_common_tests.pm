@@ -57,10 +57,33 @@ sub _monikerize {
     return undef;
 }
 
+sub _custom_column_info {
+    my ( $table_name, $column_name, $column_info ) = @_;
+
+    $table_name = lc ( $table_name );
+    $column_name = lc ( $column_name );
+
+    if ( $table_name eq 'loader_test11' 
+        and $column_name eq 'loader_test10' 
+    ){
+        return { is_numeric => 1 }
+    }
+    # Set inflate_datetime or  inflate_date to check 
+    #   datetime_timezone and datetime_locale
+    if ( $table_name eq 'loader_test36' ){
+        return { inflate_datetime => 1 } if 
+            ( $column_name eq 'b_char_as_data' );
+        return { inflate_date => 1 } if 
+            ( $column_name eq 'c_char_as_data' );
+    }
+
+    return;
+}
+
 sub run_tests {
     my $self = shift;
 
-    plan tests => 145 + ($self->{extra}->{count} || 0);
+    plan tests => 155 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -102,9 +125,12 @@ sub setup_schema {
         inflect_plural          => { loader_test4 => 'loader_test4zes' },
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
+        custom_column_info      => \&_custom_column_info,
         debug                   => $debug,
         use_namespaces          => 0,
         dump_directory          => $DUMP_DIR,
+        datetime_timezone       => 'Europe/Berlin',
+        datetime_locale         => 'de_DE'
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
@@ -125,7 +151,7 @@ sub setup_schema {
        my $file_count;
        find sub { return if -d; $file_count++ }, $DUMP_DIR;
 
-       my $expected_count = 35;
+       my $expected_count = 36;
 
        $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
            @{ $self->{extra}{create} || [] };
@@ -434,6 +460,10 @@ sub test_schema {
         my $class34   = $classes->{loader_test34};
         my $rsobj34   = $conn->resultset($moniker34);
 
+        my $moniker36 = $monikers->{loader_test36};
+        my $class36   = $classes->{loader_test36};
+        my $rsobj36   = $conn->resultset($moniker36);
+        
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -457,6 +487,7 @@ sub test_schema {
         isa_ok( $rsobj32, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj33, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj34, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj36, "DBIx::Class::ResultSet" );
 
         # basic rel test
         my $obj4 = $rsobj4->find(123);
@@ -605,11 +636,25 @@ sub test_schema {
         my $class11   = $classes->{loader_test11};
         my $rsobj11   = $conn->resultset($moniker11);
 
-        isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
+        isa_ok( $rsobj10, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
 
         ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
         ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
+
+        # Added by custom_column_info
+        ok($class11->column_info('loader_test10')->{is_numeric}, 'custom_column_info');
+
+        is($class36->column_info('a_date')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('a_date')->{timezone},'Europe/Berlin','datetime_timezone');
+
+        ok($class36->column_info('b_char_as_data')->{inflate_datetime},'custom_column_info');
+        is($class36->column_info('b_char_as_data')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('b_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
+
+        ok($class36->column_info('c_char_as_data')->{inflate_date},'custom_column_info');
+        is($class36->column_info('c_char_as_data')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('c_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
 
         my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
@@ -846,6 +891,15 @@ sub create {
                 an_int INTEGER DEFAULT 42,
                 a_double DOUBLE PRECISION DEFAULT 10.555,
                 a_function $self->{default_function_def}
+            ) $self->{innodb}
+        },
+
+        qq{
+            CREATE TABLE loader_test36 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                a_date DATE,
+                b_char_as_data VARCHAR(100),
+                c_char_as_data VARCHAR(100)
             ) $self->{innodb}
         },
     );
@@ -1245,6 +1299,7 @@ sub drop_tables {
         LOADER_TEST23
         LoAdEr_test24
         loader_test35
+        loader_test36
     /;
     
     my @tables_auto_inc = (
