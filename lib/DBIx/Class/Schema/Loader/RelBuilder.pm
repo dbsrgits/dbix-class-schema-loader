@@ -249,7 +249,7 @@ sub generate_code {
             my $colnames = q{_} . join(q{_}, @$local_cols);
             $remote_relname .= $colnames if keys %cond > 1;
             $local_relname   = $self->_multi_rel_local_relname(
-                $local_table, $local_cols
+                $remote_class, $local_table, $local_cols
             );
         } else {
             $local_relname = $self->_inflect_plural(lc $local_table);
@@ -291,7 +291,7 @@ sub generate_code {
 }
 
 sub _multi_rel_local_relname {
-    my ($self, $local_table, $local_cols) = @_;
+    my ($self, $remote_class, $local_table, $local_cols) = @_;
 
     my $colnames = q{_} . join(q{_}, @$local_cols);
     my $old_relname = #< TODO: remove me after 0.05003 release
@@ -301,7 +301,7 @@ sub _multi_rel_local_relname {
 
     # TODO: remove me after 0.05003 release
     $old_relname = $self->_inflect_plural( $old_relname );
-    warn __PACKAGE__." $VERSION: warning, stripping trailing _id from ${local_table} relation '$old_relname', renaming to '$local_relname'.  This behavior is new as of 0.05003.\n"
+    warn __PACKAGE__." $VERSION: warning, stripping trailing _id from ${remote_class} relation '$old_relname', renaming to '$local_relname'.  This behavior is new as of 0.05003.\n"
         if $stripped_id;
 
     return $local_relname;

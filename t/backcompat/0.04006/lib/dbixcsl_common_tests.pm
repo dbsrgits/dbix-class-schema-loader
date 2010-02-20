@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 88;
+    plan tests => 89;
 
     $self->create();
 
@@ -462,6 +462,9 @@ sub run_tests {
             isa_ok( $obj13->id, $class12 );
             isa_ok( $obj13->loader_test12, $class12);
             isa_ok( $obj13->dat, $class12);
+
+            my $obj12 = $rsobj12->find(1);
+            isa_ok( $obj12->loader_test13_ids, "DBIx::Class::ResultSet" );
         }
 
         SKIP: {

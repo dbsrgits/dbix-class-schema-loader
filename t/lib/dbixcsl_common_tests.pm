@@ -83,7 +83,7 @@ sub _custom_column_info {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 155 + ($self->{extra}->{count} || 0);
+    plan tests => 156 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -707,6 +707,9 @@ sub test_schema {
             isa_ok( $obj13->id, $class12 );
             isa_ok( $obj13->loader_test12, $class12);
             isa_ok( $obj13->dat, $class12);
+
+            my $obj12 = $rsobj12->find(1);
+            isa_ok( $obj12->loader_test13, $class13 );
         }
 
         SKIP: {
