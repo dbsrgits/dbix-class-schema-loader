@@ -270,19 +270,16 @@ sub _relnames_and_methods {
     # If more than one rel between this pair of tables, use the local
     # col names to distinguish
     my $local_relname;
+    my $old_multirel_name; #< TODO: remove me
     if ( $counters->{$remote_moniker} > 1) {
         my $colnames = q{_} . join(q{_}, @$local_cols);
         $remote_relname .= $colnames if keys %$cond > 1;
 
-        my $old_relname =       #< TODO: remove me after 0.05003 release
         $local_relname = lc($local_table) . $colnames;
-        my $stripped_id = $local_relname =~ s/_id$//; #< strip off any trailing _id
+        $local_relname =~ s/_id$//
+            #< TODO: remove me
+            and $old_multirel_name = $self->_inflect_plural( lc($local_table) . $colnames );
         $local_relname = $self->_inflect_plural( $local_relname );
-
-        # TODO: remove me after 0.05003 release
-        $old_relname = $self->_inflect_plural( $old_relname );
-        warn __PACKAGE__." $VERSION: warning, stripping trailing _id from ${remote_class} relation '$old_relname', renaming to '$local_relname'.  This behavior is new as of 0.05003.\n"
-            if $stripped_id;
 
     } else {
         $local_relname = $self->_inflect_plural(lc $local_table);
@@ -297,6 +294,10 @@ sub _relnames_and_methods {
         $remote_method = 'might_have';
         $local_relname = $self->_inflect_singular($local_relname);
     }
+
+    # TODO: remove me after 0.05003 release
+    $old_multirel_name
+        and warn __PACKAGE__." $VERSION: warning, stripping trailing _id from ${remote_class} relation '$old_multirel_name', renaming to '$local_relname'.  This behavior is new as of 0.05003.\n";
 
     return ( $local_relname, $remote_relname, $remote_method );
 }
