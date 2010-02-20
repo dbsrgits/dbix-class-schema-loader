@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - support for custom_column_info, datetime_timezone and datetime_locale
+          (rbo)
         - improve parsing of SQLite tables when a column definition
           spans multiple lines (hobbs)
         - fix missing trailing _id stripping for some relationship
