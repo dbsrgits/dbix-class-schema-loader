@@ -293,6 +293,8 @@ sub _relnames_and_methods {
             grep { _array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method = 'might_have';
         $local_relname = $self->_inflect_singular($local_relname);
+        #< TODO: remove me
+        $old_multirel_name = $self->_inflect_singular($old_multirel_name);
     }
 
     # TODO: remove me after 0.05003 release
