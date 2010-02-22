@@ -6,7 +6,7 @@ use Class::C3;
 
 use base 'DBIx::Class::Schema::Loader::RelBuilder';
 
-sub _relnames_and_methods {
+sub _relnames_and_method {
     my ( $self, $local_moniker, $rel, $cond, $uniqs, $counters ) = @_;
 
     my $remote_moniker = $rel->{remote_source};

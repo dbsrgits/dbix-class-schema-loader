@@ -100,6 +100,8 @@ sub new {
 sub _inflect_plural {
     my ($self, $relname) = @_;
 
+    return '' if !defined $relname || $relname eq '';
+
     if( ref $self->{inflect_plural} eq 'HASH' ) {
         return $self->{inflect_plural}->{$relname}
             if exists $self->{inflect_plural}->{$relname};
@@ -115,6 +117,8 @@ sub _inflect_plural {
 # Singularize a relationship name
 sub _inflect_singular {
     my ($self, $relname) = @_;
+
+    return '' if !defined $relname || $relname eq '';
 
     if( ref $self->{inflect_singular} eq 'HASH' ) {
         return $self->{inflect_singular}->{$relname}
@@ -224,7 +228,7 @@ sub generate_code {
         }
 
         my ( $local_relname, $remote_relname, $remote_method ) =
-            $self->_relnames_and_methods( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
+            $self->_relnames_and_method( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
 
         push(@{$all_code->{$local_class}},
             { method => 'belongs_to',
@@ -256,7 +260,7 @@ sub generate_code {
     return $all_code;
 }
 
-sub _relnames_and_methods {
+sub _relnames_and_method {
     my ( $self, $local_moniker, $rel, $cond, $uniqs, $counters ) = @_;
 
     my $remote_moniker = $rel->{remote_source};
