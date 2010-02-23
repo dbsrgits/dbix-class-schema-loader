@@ -18,7 +18,7 @@ my $tester = dbixcsl_common_tests->new(
             q{
                 CREATE TABLE "extra_loader_test1" (
                     "id" NOT NULL PRIMARY KEY,
-                    "value" VARCHAR(100)
+                    "value" VARCHAR(100) NOT NULL
                 )
             },
             q{
@@ -45,17 +45,22 @@ my $tester = dbixcsl_common_tests->new(
             },
         ],
         drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3 extra_loader_test4 / ],
-        count => 5,
+        count => 7,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
             ok ((my $rs = $schema->resultset($monikers->{extra_loader_test1})),
                 'resultset for quoted table');
 
-            is_deeply [ $rs->result_source->columns ], [ qw/id value/ ],
+            ok ((my $source = $rs->result_source), 'source');
+
+            is_deeply [ $source->columns ], [ qw/id value/ ],
                 'retrieved quoted column names from quoted table';
 
-            ok ((my $source = $schema->source($monikers->{extra_loader_test4})),
+            is $source->column_info('value')->{is_nullable}, 0,
+                'is_nullable detection';
+
+            ok (($source = $schema->source($monikers->{extra_loader_test4})),
                 'verbose table');
 
             is_deeply [ $source->primary_columns ], [ qw/event_id person_id/ ],

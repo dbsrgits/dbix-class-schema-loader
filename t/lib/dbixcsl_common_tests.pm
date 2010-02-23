@@ -83,7 +83,7 @@ sub _custom_column_info {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 156 + ($self->{extra}->{count} || 0);
+    plan tests => 157 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -592,40 +592,33 @@ sub test_schema {
         is($obj27->loader_test29, undef, "Undef for missing one-to-one row");
 
         # test outer join for nullable referring columns:
-        SKIP: {
-          skip "unreliable column info from db driver",11 unless 
-            ($class32->column_info('rel2')->{is_nullable});
+        is $class32->column_info('rel2')->{is_nullable}, 1,
+          'is_nullable detection';
 
-          ok($class32->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
-          ok($class32->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
-          
-          my $obj32 = $rsobj32->find(1,{prefetch=>[qw/rel1 rel2/]});
-          my $obj34 = $rsobj34->find(
-            1,{prefetch=>[qw/loader_test33_id_rel1 loader_test33_id_rel2/]}
-          );
-          my $skip_outerjoin;
-          isa_ok($obj32,$class32) or $skip_outerjoin = 1;
-          isa_ok($obj34,$class34) or $skip_outerjoin = 1;
+        ok($class32->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
+        ok($class32->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
+        
+        my $obj32 = $rsobj32->find(1,{prefetch=>[qw/rel1 rel2/]});
+        my $obj34 = $rsobj34->find(
+          1,{prefetch=>[qw/loader_test33_id_rel1 loader_test33_id_rel2/]}
+        );
+        isa_ok($obj32,$class32);
+        isa_ok($obj34,$class34);
 
-          ok($class34->column_info('id')->{is_foreign_key}, 'Foreign key detected');
-          ok($class34->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
-          ok($class34->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
+        ok($class34->column_info('id')->{is_foreign_key}, 'Foreign key detected');
+        ok($class34->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
+        ok($class34->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
 
-          SKIP: {
-            skip "Pre-requisite test failed", 4 if $skip_outerjoin;
-            my $rs_rel31_one = $obj32->rel1;
-            my $rs_rel31_two = $obj32->rel2;
-            isa_ok($rs_rel31_one, $class31);
-            is($rs_rel31_two, undef);
+        my $rs_rel31_one = $obj32->rel1;
+        my $rs_rel31_two = $obj32->rel2;
+        isa_ok($rs_rel31_one, $class31);
+        is($rs_rel31_two, undef);
 
-            my $rs_rel33_one = $obj34->loader_test33_id_rel1;
-            my $rs_rel33_two = $obj34->loader_test33_id_rel2;
+        my $rs_rel33_one = $obj34->loader_test33_id_rel1;
+        my $rs_rel33_two = $obj34->loader_test33_id_rel2;
 
-            isa_ok($rs_rel33_one,$class33);
-            is($rs_rel33_two, undef);
-
-          }
-        }
+        isa_ok($rs_rel33_one,$class33);
+        is($rs_rel33_two, undef);
 
         # from Chisel's tests...
         my $moniker10 = $monikers->{loader_test10};
