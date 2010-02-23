@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - generate POD for refs correctly from column_info
         - fix tables list for SQL Anywhere
 
 0.05003  2010-02-20 05:19:51

@@ -16,16 +16,17 @@ my $dbh = DBI->connect($dsn);
 $dbh->do($_) for (
     q|CREATE TABLE foo (
         fooid INTEGER PRIMARY KEY,
-        footext TEXT
+        footext TEXT DEFAULT 'footext',
+        foodt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )|,
     q|CREATE TABLE bar (
         barid INTEGER PRIMARY KEY,
         fooref INTEGER REFERENCES foo(fooid)
       )|,
-    q|INSERT INTO foo VALUES (1,'Foo text for number 1')|,
-    q|INSERT INTO foo VALUES (2,'Foo record associated with the Bar with barid 3')|,
-    q|INSERT INTO foo VALUES (3,'Foo text for number 3')|,
-    q|INSERT INTO foo VALUES (4,'Foo text for number 4')|,
+    q|INSERT INTO foo (fooid, footext) VALUES (1,'Foo text for number 1')|,
+    q|INSERT INTO foo (fooid, footext) VALUES (2,'Foo record associated with the Bar with barid 3')|,
+    q|INSERT INTO foo (fooid, footext) VALUES (3,'Foo text for number 3')|,
+    q|INSERT INTO foo (fooid, footext) VALUES (4,'Foo text for number 4')|,
     q|INSERT INTO bar VALUES (1,4)|,
     q|INSERT INTO bar VALUES (2,3)|,
     q|INSERT INTO bar VALUES (3,2)|,

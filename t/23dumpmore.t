@@ -4,6 +4,7 @@ use lib qw(t/lib);
 use File::Path;
 use IPC::Open3;
 use make_dbictest_db;
+use Data::Dumper::Concise;
 require DBIx::Class::Schema::Loader;
 
 my $DUMP_PATH = './t/_dump';
@@ -38,6 +39,7 @@ sub dump_dbicdump {
     my @cmd = ($^X, qw(./script/dbicdump));
 
     while (my ($opt, $val) = each(%{ $tdata{options} })) {
+        $val = Dumper($val) if ref $val;
         push @cmd, '-o', "$opt=$val";
     }
 
@@ -187,7 +189,12 @@ rmtree($DUMP_PATH, 1, 1);
 
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
-    options => { },
+    options => {
+        custom_column_info => sub {
+            my ($table, $col, $info) = @_;
+            return +{ extra => { is_footext => 1 } } if $col eq 'footext';
+        }
+    },
     error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
@@ -202,8 +209,8 @@ do_dump_test(
 qr/package DBICTest::DumpMore::1::Foo;/,
 qr/=head1 NAME\n\nDBICTest::DumpMore::1::Foo\n\n=cut\n\n/,
 qr/=head1 ACCESSORS\n\n/,
-qr/=head2 fooid\n\n  data_type: INTEGER\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
-qr/=head2 footext\n\n  data_type: TEXT\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
+qr/=head2 fooid\n\n  data_type: 'INTEGER'\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
+qr/=head2 footext\n\n  data_type: 'TEXT'\n  default_value: 'footext'\n  extra: {is_footext => 1}\n  is_nullable: 1\n  size: undef\n\n/,
 qr/->set_primary_key/,
 qr/=head1 RELATIONS\n\n/,
 qr/=head2 bars\n\nType: has_many\n\nRelated object: L<DBICTest::DumpMore::1::Bar>\n\n=cut\n\n/,
@@ -213,8 +220,8 @@ qr/1;\n$/,
 qr/package DBICTest::DumpMore::1::Bar;/,
 qr/=head1 NAME\n\nDBICTest::DumpMore::1::Bar\n\n=cut\n\n/,
 qr/=head1 ACCESSORS\n\n/,
-qr/=head2 barid\n\n  data_type: INTEGER\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
-qr/=head2 fooref\n\n  data_type: INTEGER\n  default_value: undef\n  is_foreign_key: 1\n  is_nullable: 1\n  size: undef\n\n/,
+qr/=head2 barid\n\n  data_type: 'INTEGER'\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
+qr/=head2 fooref\n\n  data_type: 'INTEGER'\n  default_value: undef\n  is_foreign_key: 1\n  is_nullable: 1\n  size: undef\n\n/,
 qr/->set_primary_key/,
 qr/=head1 RELATIONS\n\n/,
 qr/=head2 fooref\n\nType: belongs_to\n\nRelated object: L<DBICTest::DumpMore::1::Foo>\n\n=cut\n\n/,

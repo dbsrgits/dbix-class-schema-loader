@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::Base;
 use strict;
 use warnings;
 use base qw/Class::Accessor::Grouped Class::C3::Componentised/;
+use namespace::autoclean;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use DBIx::Class::Schema::Loader::RelBuilder;
@@ -15,6 +16,8 @@ use Lingua::EN::Inflect::Number qw//;
 use File::Temp qw//;
 use Class::Unload;
 use Class::Inspector ();
+use Data::Dumper::Concise;
+use Scalar::Util 'looks_like_number';
 require DBIx::Class;
 
 our $VERSION = '0.05003';
@@ -1550,8 +1553,15 @@ sub _make_pod {
 			     my $s = $attrs->{$_};
 			     $s = !defined $s         ? 'undef'          :
                                   length($s) == 0     ? '(empty string)' :
-                                  ref($s) eq 'SCALAR' ? $$s              :
-                                                        $s
+                                  ref($s) eq 'SCALAR' ? $$s :
+                                  ref($s)             ? do {
+                                                        my $dd = Dumper;
+                                                        $dd->Indent(0);
+                                                        $dd->Values([$s]);
+                                                        $dd->Dump;
+                                                      } :
+                                  looks_like_number($s) ? $s :
+                                                        qq{'$s'}
                                   ;
 
 			     "  $_: $s"
