@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix tables list for SQL Anywhere
+
 0.05003  2010-02-20 05:19:51
         - support for custom_column_info, datetime_timezone and datetime_locale
           (rbo)
