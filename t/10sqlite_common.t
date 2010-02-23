@@ -45,7 +45,7 @@ my $tester = dbixcsl_common_tests->new(
             },
         ],
         drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3 extra_loader_test4 / ],
-        count => 7,
+        count => 8,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -57,8 +57,11 @@ my $tester = dbixcsl_common_tests->new(
             is_deeply [ $source->columns ], [ qw/id value/ ],
                 'retrieved quoted column names from quoted table';
 
+            ok ((exists $source->column_info('value')->{is_nullable}),
+                'is_nullable exists');
+
             is $source->column_info('value')->{is_nullable}, 0,
-                'is_nullable detection';
+                'is_nullable is set correctly';
 
             ok (($source = $schema->source($monikers->{extra_loader_test4})),
                 'verbose table');
