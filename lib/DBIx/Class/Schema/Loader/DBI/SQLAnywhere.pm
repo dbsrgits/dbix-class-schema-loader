@@ -24,6 +24,29 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
+sub _setup {
+    my $self = shift;
+
+    $self->{db_schema} ||=
+        ($self->schema->storage->dbh->selectrow_array('select user'))[0];
+}
+
+sub _tables_list {
+    my $self = shift;
+
+    my $dbh = $self->schema->storage->dbh;
+    my $sth = $dbh->prepare(<<'EOF');
+select t.table_name from systab t
+join sysuser u on u.user_id = t.creator
+where u.user_name = ?
+EOF
+    $sth->execute($self->db_schema);
+
+    my @tables = map @$_, @{ $sth->fetchall_arrayref };
+
+    return $self->_filter_tables(@tables);
+}
+
 # check for IDENTITY columns
 sub _columns_info_for {
     my $self   = shift;
