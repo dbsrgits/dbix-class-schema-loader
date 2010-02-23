@@ -18,7 +18,7 @@ my $tester = dbixcsl_common_tests->new(
             q{
                 CREATE TABLE "extra_loader_test1" (
                     "id" NOT NULL PRIMARY KEY,
-                    "value" VARCHAR(100) NOT NULL
+                    "value" TEXT UNIQUE NOT NULL
                 )
             },
             q{
