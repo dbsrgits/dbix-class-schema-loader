@@ -63,8 +63,8 @@ sub _custom_column_info {
     $table_name = lc ( $table_name );
     $column_name = lc ( $column_name );
 
-    if ( $table_name eq 'loader_test11' 
-        and $column_name eq 'loader_test10' 
+    if ( $table_name eq 'loader_test35' 
+        and $column_name eq 'an_int' 
     ){
         return { is_numeric => 1 }
     }
@@ -366,7 +366,7 @@ sub test_schema {
     );
 
     SKIP: {
-        skip $self->{skip_rels}, 96 if $self->{skip_rels};
+        skip $self->{skip_rels}, 99 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -635,20 +635,6 @@ sub test_schema {
         ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
         ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
 
-        # Added by custom_column_info
-        ok($class11->column_info('loader_test10')->{is_numeric}, 'custom_column_info');
-
-        is($class36->column_info('a_date')->{locale},'de_DE','datetime_locale');
-        is($class36->column_info('a_date')->{timezone},'Europe/Berlin','datetime_timezone');
-
-        ok($class36->column_info('b_char_as_data')->{inflate_datetime},'custom_column_info');
-        is($class36->column_info('b_char_as_data')->{locale},'de_DE','datetime_locale');
-        is($class36->column_info('b_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
-
-        ok($class36->column_info('c_char_as_data')->{inflate_date},'custom_column_info');
-        is($class36->column_info('c_char_as_data')->{locale},'de_DE','datetime_locale');
-        is($class36->column_info('c_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
-
         my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
         $obj10->update();
@@ -724,6 +710,25 @@ sub test_schema {
             my $obj15 = $rsobj15->find(1);
             isa_ok( $obj15->loader_test14, $class14 );
         }
+    }
+
+    # test custom_column_info and datetime_timezone/datetime_locale
+    {
+        my $class35 = $classes->{loader_test35};
+        my $class36 = $classes->{loader_test36};
+
+        ok($class35->column_info('an_int')->{is_numeric}, 'custom_column_info');
+
+        is($class36->column_info('a_date')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('a_date')->{timezone},'Europe/Berlin','datetime_timezone');
+
+        ok($class36->column_info('b_char_as_data')->{inflate_datetime},'custom_column_info');
+        is($class36->column_info('b_char_as_data')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('b_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
+
+        ok($class36->column_info('c_char_as_data')->{inflate_date},'custom_column_info');
+        is($class36->column_info('c_char_as_data')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('c_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
     }
 
     # rescan and norewrite test

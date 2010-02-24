@@ -425,9 +425,9 @@ L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-use constant CURRENT_V  => 'v5';
+my $CURRENT_V = 'v5';
 
-use constant CLASS_ARGS => qw(
+my @CLASS_ARGS = qw(
     schema_base_class result_base_class additional_base_classes
     left_base_classes additional_classes components resultset_components
 );
@@ -502,7 +502,7 @@ sub new {
 
     if ($self->naming) {
         for (values %{ $self->naming }) {
-            $_ = CURRENT_V if $_ eq 'current';
+            $_ = $CURRENT_V if $_ eq 'current';
         }
     }
     $self->{naming} ||= {};
@@ -616,7 +616,7 @@ EOF
             my ($v) = $real_ver =~ /([1-9])/;
             $v = "v$v";
 
-            last if $v eq CURRENT_V || $real_ver =~ /^0\.\d\d999/;
+            last if $v eq $CURRENT_V || $real_ver =~ /^0\.\d\d999/;
 
             if (not %{ $self->naming }) {
                 warn <<"EOF" unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
@@ -650,7 +650,7 @@ sub _validate_class_args {
     my $self = shift;
     my $args = shift;
     
-    foreach my $k (CLASS_ARGS) {
+    foreach my $k (@CLASS_ARGS) {
         next unless $self->$k;
 
         my @classes = ref $self->$k eq 'ARRAY' ? @{ $self->$k } : $self->$k;
