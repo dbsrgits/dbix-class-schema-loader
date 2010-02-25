@@ -145,7 +145,7 @@ sub _tables_list {
         push @tables, $row->{tbl_name};
     }
     $sth->finish;
-    return @tables;
+    return $self->_filter_tables(@tables);
 }
 
 =head1 SEE ALSO
