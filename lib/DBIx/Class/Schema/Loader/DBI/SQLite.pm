@@ -55,17 +55,16 @@ sub _extra_column_info {
     my %extra_info;
 
     my $dbh = $self->schema->storage->dbh;
-    my $get_seq;
-    eval {
-      $get_seq = $self->{_cache}->{sqlite_sequence}
+    my $has_autoinc = eval {
+      my $get_seq = $self->{_cache}->{sqlite_sequence}
         ||= $dbh->prepare(q{SELECT count(*) FROM sqlite_sequence WHERE name = ?});
       $get_seq->execute($table);
+      my ($ret) = $get_seq->fetchrow_array;
+      $get_seq->finish;
+      $ret;
     };
-    return {} if $@;
-    my ($has_autoinc) = $get_seq->fetchrow_array;
-    $get_seq->finish;
 
-    if ($has_autoinc) {
+    if (!$@ && $has_autoinc) {
         my $sth = $dbh->prepare(
             "pragma table_info(" . $dbh->quote_identifier($table) . ")"
         );
