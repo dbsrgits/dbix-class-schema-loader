@@ -81,7 +81,7 @@ my $_features = [
         ],
     },
     ORACLE => {
-        label => 'Oracle Support (experimental)',
+        label => 'Oracle Support',
         def   => $ENV{DBIC_FEATURE_ORACLE} || 0,
         deps  => [
             'DBI'         => '1.56',
@@ -89,7 +89,7 @@ my $_features = [
         ],
     },
     SYBASE => {
-        label => 'Sybase Support (experimental)',
+        label => 'Sybase Support',
         def   => $ENV{DBIC_FEATURE_SYBASE} || 0,
         deps  => [
             'DBI'         => '1.56',
