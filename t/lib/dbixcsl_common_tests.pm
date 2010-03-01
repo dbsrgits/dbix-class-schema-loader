@@ -38,6 +38,8 @@ sub new {
     # Optional extra tables and tests
     $self->{extra} ||= {};
 
+    $self->{date_datatype} ||= 'DATE';
+
     # Not all DBS do SQL-standard CURRENT_TIMESTAMP
     $self->{default_function} ||= "CURRENT_TIMESTAMP";
     $self->{default_function_def} ||= "TIMESTAMP DEFAULT $self->{default_function}";
@@ -191,7 +193,7 @@ sub setup_schema {
 	    $warn_count++;
             is(scalar(@loader_warnings), $warn_count, "Expected loader warning")
                 or diag @loader_warnings;
-            is(grep(/loader_test9 has no primary key/, @loader_warnings), 1,
+            is(grep(/loader_test9 has no primary key/i, @loader_warnings), 1,
                  "Missing PK warning");
         }
     }
@@ -208,8 +210,13 @@ sub test_schema {
     my $classes = {};
     foreach my $source_name ($schema_class->sources) {
         my $table_name = $schema_class->source($source_name)->from;
+
         $monikers->{$table_name} = $source_name;
         $classes->{$table_name} = $schema_class . q{::} . $source_name;
+
+        # some DBs (Firebird) uppercase everything
+        $monikers->{lc $table_name} = $source_name;
+        $classes->{lc $table_name} = $schema_class . q{::} . $source_name;
     }
 
     my $moniker1 = $monikers->{loader_test1s};
@@ -222,12 +229,12 @@ sub test_schema {
     my $rsobj2   = $conn->resultset($moniker2);
     check_no_duplicate_unique_constraints($class2);
 
-    my $moniker23 = $monikers->{LOADER_TEST23};
-    my $class23   = $classes->{LOADER_TEST23};
+    my $moniker23 = $monikers->{LOADER_TEST23} || $monikers->{loader_test23};
+    my $class23   = $classes->{LOADER_TEST23}  || $classes->{loader_test23};
     my $rsobj23   = $conn->resultset($moniker1);
 
-    my $moniker24 = $monikers->{LoAdEr_test24};
-    my $class24   = $classes->{LoAdEr_test24};
+    my $moniker24 = $monikers->{LoAdEr_test24} || $monikers->{loader_test24};
+    my $class24   = $classes->{LoAdEr_test24}  || $classes->{loader_test24};
     my $rsobj24   = $conn->resultset($moniker2);
 
     my $moniker35 = $monikers->{loader_test35};
@@ -774,6 +781,7 @@ sub test_schema {
         }
 
         $dbh->disconnect;
+        $conn->storage->disconnect; # needed for Firebird
 
         sleep 1;
 
@@ -804,6 +812,8 @@ sub test_schema {
     }
 
     $self->{extra}->{run}->($conn, $monikers, $classes) if $self->{extra}->{run};
+
+    $conn->storage->disconnect;
 }
 
 sub check_no_duplicate_unique_constraints {
@@ -898,7 +908,7 @@ sub create {
         qq{
             CREATE TABLE loader_test36 (
                 id INTEGER NOT NULL PRIMARY KEY,
-                a_date DATE,
+                a_date $self->{date_datatype},
                 b_char_as_data VARCHAR(100),
                 c_char_as_data VARCHAR(100)
             ) $self->{innodb}
