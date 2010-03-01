@@ -919,7 +919,7 @@ sub run_v5_tests {
 
     sub DESTROY {
         pop @INC;
-        File::Path::rmtree ${$_[0]} unless $^O =~ /win32|cygwin/i;
+        File::Path::rmtree ${$_[0]};
     }
 }
 
