@@ -18,6 +18,7 @@ use Class::Unload;
 use Class::Inspector ();
 use Data::Dumper::Concise;
 use Scalar::Util 'looks_like_number';
+use File::Slurp 'slurp';
 require DBIx::Class;
 
 our $VERSION = '0.05003';
@@ -797,9 +798,7 @@ sub _load_external {
 # upgrade. See skip_load_external to disable this feature.
 EOF
 
-        my $code = do {
-            local ($/, @ARGV) = (undef, $old_real_inc_path); <>
-        };
+        my $code = slurp $old_real_inc_path;
         $code = $self->_rewrite_old_classnames($code);
 
         if ($self->dynamic) {
