@@ -117,20 +117,20 @@ sub _table_uniq_info {
 
 sub _extra_column_info {
     no warnings 'uninitialized';
-    my ($self, $info) = @_;
+    my ($self, $table, $col, $info, $dbi_info) = @_;
     my %extra_info;
 
-    if ($info->{mysql_is_auto_increment}) {
+    if ($dbi_info->{mysql_is_auto_increment}) {
         $extra_info{is_auto_increment} = 1
     }
-    if ($info->{mysql_type_name} =~ /\bunsigned\b/i) {
+    if ($dbi_info->{mysql_type_name} =~ /\bunsigned\b/i) {
         $extra_info{extra}{unsigned} = 1;
     }
-    if ($info->{mysql_values}) {
-        $extra_info{extra}{list} = $info->{mysql_values};
+    if ($dbi_info->{mysql_values}) {
+        $extra_info{extra}{list} = $dbi_info->{mysql_values};
     }
-    if (   $info->{COLUMN_DEF}      =~ /^CURRENT_TIMESTAMP\z/i
-        && $info->{mysql_type_name} =~ /^TIMESTAMP\z/i) {
+    if (   $dbi_info->{COLUMN_DEF}      =~ /^CURRENT_TIMESTAMP\z/i
+        && $dbi_info->{mysql_type_name} =~ /^TIMESTAMP\z/i) {
 
         $extra_info{default_value} = \'CURRENT_TIMESTAMP';
     }

@@ -97,10 +97,8 @@ sub _table_uniq_info {
 }
 
 sub _extra_column_info {
-    my ($self, $info) = @_;
+    my ($self, $table, $column, $info, $dbi_info) = @_;
     my %extra_info;
-
-    my ($table, $column) = @$info{qw/TABLE_NAME COLUMN_NAME/};
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare(qq{

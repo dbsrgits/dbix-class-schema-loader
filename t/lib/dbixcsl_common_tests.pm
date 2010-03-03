@@ -99,7 +99,6 @@ sub run_tests {
     # First, with in-memory classes
     my $schema_class = $self->setup_schema(@connect_info);
     $self->test_schema($schema_class);
-    $self->drop_tables;
 }
 
 # defined in sub create

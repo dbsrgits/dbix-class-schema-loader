@@ -200,10 +200,10 @@ EOF
 }
 
 sub _extra_column_info {
-    my ($self, $info) = @_;
+    my ($self, $table, $column, $info, $dbi_info) = @_;
     my %extra_info;
 
-    if ($info->{COLUMN_DEF} && $info->{COLUMN_DEF} =~ /\bnextval\(/i) {
+    if ($dbi_info->{COLUMN_DEF} && $dbi_info->{COLUMN_DEF} =~ /\bnextval\(/i) {
         $extra_info{is_auto_increment} = 1;
     }
 

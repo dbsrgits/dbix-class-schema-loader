@@ -2,7 +2,6 @@ package DBIx::Class::Schema::Loader::DBI::InterBase;
 
 use strict;
 use warnings;
-use namespace::autoclean;
 use Class::C3;
 use base qw/DBIx::Class::Schema::Loader::DBI/;
 use Carp::Clan qw/^DBIx::Class/;
@@ -101,6 +100,36 @@ EOF
 
     my @uniqs = map { [ $_ => $constraints->{$_} ] } keys %$constraints;
     return \@uniqs;
+}
+
+sub _extra_column_info {
+    my ($self, $table, $column, $info, $dbi_info) = @_;
+    my %extra_info;
+
+    my $dbh = $self->schema->storage->dbh;
+
+    local $dbh->{LongReadLen} = 100000;
+    local $dbh->{LongTruncOk} = 1;
+
+    my $sth = $dbh->prepare(<<'EOF');
+SELECT t.rdb$trigger_source
+FROM rdb$triggers t
+WHERE t.rdb$relation_name = ?
+EOF
+
+    $sth->execute($table);
+
+    while (my ($trigger) = $sth->fetchrow_array) {
+        my ($trig_col, $generator) = $trigger =~
+/new\s*.\s*(\w+) \s* = \s* gen_id\s* \( \s* (\w+)/ix;
+
+        if ($trig_col eq $column) {
+            $extra_info{is_auto_increment} = 1;
+            $extra_info{sequence}          = $generator;
+        }
+    }
+
+    return \%extra_info;
 }
 
 =head1 SEE ALSO

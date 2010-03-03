@@ -1352,34 +1352,28 @@ sub _setup_src_meta {
     $self->_dbic_stmt($table_class,'table',$table_name);
 
     my $cols = $self->_table_columns($table);
-    my $col_info;
-    eval { $col_info = $self->__columns_info_for($table) };
-    if($@) {
-        $self->_dbic_stmt($table_class,'add_columns',@$cols);
-    }
-    else {
-        if ($self->_is_case_sensitive) {
-            for my $col (keys %$col_info) {
-                $col_info->{$col}{accessor} = lc $col
-                    if $col ne lc($col);
-            }
-        } else {
-            $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
+    my $col_info = $self->__columns_info_for($table);
+    if ($self->_is_case_sensitive) {
+        for my $col (keys %$col_info) {
+            $col_info->{$col}{accessor} = lc $col
+                if $col ne lc($col);
         }
-
-        my $fks = $self->_table_fk_info($table);
-
-        for my $fkdef (@$fks) {
-            for my $col (@{ $fkdef->{local_columns} }) {
-                $col_info->{$col}{is_foreign_key} = 1;
-            }
-        }
-        $self->_dbic_stmt(
-            $table_class,
-            'add_columns',
-            map { $_, ($col_info->{$_}||{}) } @$cols
-        );
+    } else {
+        $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
     }
+
+    my $fks = $self->_table_fk_info($table);
+
+    for my $fkdef (@$fks) {
+        for my $col (@{ $fkdef->{local_columns} }) {
+            $col_info->{$col}{is_foreign_key} = 1;
+        }
+    }
+    $self->_dbic_stmt(
+        $table_class,
+        'add_columns',
+        map { $_, ($col_info->{$_}||{}) } @$cols
+    );
 
     my %uniq_tag; # used to eliminate duplicate uniqs
 

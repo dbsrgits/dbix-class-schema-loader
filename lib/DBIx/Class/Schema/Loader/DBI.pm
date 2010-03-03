@@ -290,7 +290,9 @@ sub _columns_info_for {
                 my $col_name = $info->{COLUMN_NAME};
                 $col_name =~ s/^\"(.*)\"$/$1/;
 
-                my $extra_info = $self->_extra_column_info($info) || {};
+                my $extra_info = $self->_extra_column_info(
+                    $table, $col_name, $column_info, $info
+                ) || {};
                 $column_info = { %$column_info, %$extra_info };
 
                 $result{$col_name} = $column_info;
@@ -315,7 +317,7 @@ sub _columns_info_for {
             $column_info->{size}    = $2;
         }
 
-        my $extra_info = $self->_extra_column_info($table, $columns[$i], $sth, $i) || {};
+        my $extra_info = $self->_extra_column_info($table, $columns[$i], $column_info) || {};
         $column_info = { %$column_info, %$extra_info };
 
         $result{$columns[$i]} = $column_info;

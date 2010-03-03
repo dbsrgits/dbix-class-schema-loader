@@ -50,13 +50,12 @@ sub rescan {
 }
 
 sub _extra_column_info {
-    my ($self, $table, $col_name, $sth, $col_num) = @_;
-    ($table, $col_name) = @{$table}{qw/TABLE_NAME COLUMN_NAME/} if ref $table;
+    my ($self, $table, $col_name, $info, $dbi_info) = @_;
     my %extra_info;
 
     my $dbh = $self->schema->storage->dbh;
     my $has_autoinc = eval {
-      my $get_seq = $self->{_cache}->{sqlite_sequence}
+      my $get_seq = $self->{_cache}{sqlite_sequence}
         ||= $dbh->prepare(q{SELECT count(*) FROM sqlite_sequence WHERE name = ?});
       $get_seq->execute($table);
       my ($ret) = $get_seq->fetchrow_array;
