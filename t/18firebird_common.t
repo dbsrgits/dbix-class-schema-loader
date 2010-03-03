@@ -32,7 +32,6 @@ my $tester = dbixcsl_common_tests->new(
         );
     },
     null        => '',
-    date_datatype => 'TIMESTAMP',
     dsn         => $dsn,
     user        => $user,
     password    => $password,

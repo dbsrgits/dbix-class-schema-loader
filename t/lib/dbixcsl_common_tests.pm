@@ -832,17 +832,25 @@ sub check_no_duplicate_unique_constraints {
 sub dbconnect {
     my ($self, $complain) = @_;
 
-    my $dbh = DBI->connect(
-         $self->{dsn}, $self->{user},
-         $self->{password},
-         {
-             RaiseError => $complain,
-             PrintError => $complain,
-             AutoCommit => 1,
-         }
-    );
+    require DBIx::Class::Storage::DBI;
+    my $storage = DBIx::Class::Storage::DBI->new;
 
-    die "Failed to connect to database: $DBI::errstr" if !$dbh;
+    $complain = defined $complain ? $complain : 1;
+
+    $storage->connect_info([
+        @{ $self }{qw/dsn user password/},
+        {
+            unsafe => 1,
+            RaiseError => $complain,
+            ShowErrorStatement => $complain,
+            PrintError => 0,
+        },
+    ]);
+
+    my $dbh = eval { $storage->dbh };
+    die "Failed to connect to database: $@" if !$dbh;
+
+    $self->{storage} = $storage; # storage DESTROY disconnects
 
     return $dbh;
 }
