@@ -210,6 +210,8 @@ sub test_schema {
     foreach my $source_name ($schema_class->sources) {
         my $table_name = $schema_class->source($source_name)->from;
 
+        $table_name = $$table_name if ref $table_name;
+
         $monikers->{$table_name} = $source_name;
         $classes->{$table_name} = $schema_class . q{::} . $source_name;
 
