@@ -124,7 +124,7 @@ EOF
         my @trig_cols = $trigger =~ /new\."?(\w+)/ig;
 
         my ($generator) = $trigger =~
-/(?:gen_id\s* \( \s* |next \s* value \s* for \s*)(\w+)/ix;
+/(?:gen_id\s* \( \s* |next \s* value \s* for \s*)"?(\w+)/ix;
 
         if (first { lc($_) eq lc($column) } @trig_cols) {
             $extra_info{is_auto_increment} = 1;
