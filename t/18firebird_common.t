@@ -42,5 +42,11 @@ if( !$dsn ) {
     $tester->skip_tests('You need to set the DBICTEST_FIREBIRD_DSN, _USER, and _PASS environment variables');
 }
 else {
+    # get rid of stupid warning from InterBase/GetInfo.pm
+    {
+        local $SIG{__WARN__} = sub {};
+        require DBD::InterBase;
+        require DBD::InterBase::GetInfo;
+    }
     $tester->run_tests();
 }

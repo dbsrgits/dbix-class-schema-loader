@@ -327,7 +327,7 @@ sub test_schema {
         is( $rsobj1->loader_test1_rsmeth, 'all is still well', 'Result set method' );
     }
     
-    ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_incrment detection' );
+    ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_increment detection' );
 
     my $obj    = $rsobj1->find(1);
     is( $obj->id,  1, "Find got the right row" );

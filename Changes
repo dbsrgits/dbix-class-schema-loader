@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - preliminary Firebird support
         - use introspection pragmas instead of regexes to introspect SQLite
           (hobbs)
         - generate POD for refs correctly from column_info

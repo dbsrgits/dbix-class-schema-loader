@@ -2,9 +2,11 @@ package DBIx::Class::Schema::Loader::DBI::InterBase;
 
 use strict;
 use warnings;
+use namespace::autoclean;
 use Class::C3;
 use base qw/DBIx::Class::Schema::Loader::DBI/;
 use Carp::Clan qw/^DBIx::Class/;
+use List::Util 'first';
 
 our $VERSION = '0.05003';
 
@@ -116,16 +118,44 @@ SELECT t.rdb$trigger_source
 FROM rdb$triggers t
 WHERE t.rdb$relation_name = ?
 EOF
-
     $sth->execute($table);
 
     while (my ($trigger) = $sth->fetchrow_array) {
-        my ($trig_col, $generator) = $trigger =~
-/new\s*.\s*(\w+) \s* = \s* gen_id\s* \( \s* (\w+)/ix;
+        my @trig_cols = $trigger =~ /new\."?(\w+)/ig;
 
-        if ($trig_col eq $column) {
+        my ($generator) = $trigger =~
+/(?:gen_id\s* \( \s* |next \s* value \s* for \s*)(\w+)/ix;
+
+        if (first { lc($_) eq lc($column) } @trig_cols) {
             $extra_info{is_auto_increment} = 1;
             $extra_info{sequence}          = $generator;
+        }
+    }
+
+# fix up DT types, no idea which other types are fucked
+    if ($info->{data_type} eq '11') {
+        $extra_info{data_type} = 'TIMESTAMP';
+    }
+    elsif ($info->{data_type} eq '9') {
+        $extra_info{data_type} = 'DATE';
+    }
+
+# get default
+    $sth = $dbh->prepare(<<'EOF');
+SELECT rf.rdb$default_source
+FROM rdb$relation_fields rf
+WHERE rf.rdb$relation_name = ?
+AND rf.rdb$field_name = ?
+EOF
+    $sth->execute($table, uc $column);
+    my ($default_src) = $sth->fetchrow_array;
+
+    if ($default_src && (my ($def) = $default_src =~ /^DEFAULT \s+ (\S+)/ix)) {
+        if (my ($quoted) = $def =~ /^'(.*?)'\z/) {
+            $extra_info{default_value} = $quoted;
+        }
+        else {
+            $extra_info{default_value} = $def =~ /^\d/ ? $def : \$def;
         }
     }
 

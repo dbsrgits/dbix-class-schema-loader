@@ -328,7 +328,7 @@ sub _columns_info_for {
         my $colinfo = $result{$col};
         my $type_num = $colinfo->{data_type};
         my $type_name;
-        if(defined $type_num && $dbh->can('type_info')) {
+        if(defined $type_num && $type_num =~ /^\d+\z/ && $dbh->can('type_info')) {
             my $type_info = $dbh->type_info($type_num);
             $type_name = $type_info->{TYPE_NAME} if $type_info;
             $colinfo->{data_type} = $type_name if $type_name;
