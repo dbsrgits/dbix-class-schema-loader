@@ -119,6 +119,8 @@ sub _extra_column_info {
 SELECT t.rdb$trigger_source
 FROM rdb$triggers t
 WHERE t.rdb$relation_name = ?
+AND t.rdb$system_flag = 0 -- user defined
+AND t.rdb$trigger_type = 1 -- BEFORE INSERT
 EOF
     $sth->execute($table);
 
