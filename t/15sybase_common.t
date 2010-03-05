@@ -65,7 +65,7 @@ my $tester = dbixcsl_common_tests->new(
             },
         ],
         drop  => [ qw/ sybase_loader_test1 sybase_loader_test2 / ],
-        count => 36,
+        count => 37,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -143,6 +143,8 @@ my $tester = dbixcsl_common_tests->new(
             is_deeply $rsrc->column_info('the_decimal')->{size}, [6,3],
                 'size for DECIMAL(precision, scale) is correct';
 
+            is $schema->resultset($monikers->{loader_test35})->result_source->column_info('a_function')->{inflate_datetime}, 1,
+                'AS getdate() columns get inflate_datetime => 1';
         },
     },
 );

@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - set inflate_datetime => 1 for 'AS getdate()' computed columns in
+          Sybase
         - preliminary Firebird support
         - use introspection pragmas instead of regexes to introspect SQLite
           (hobbs)

@@ -253,6 +253,10 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
             if ($default =~ /^AS \s+ (\S+)/ix) {
                 my $function = $1;
                 $res->{default_value} = \$function;
+
+                if ($function =~ /^getdate\b/) {
+                    $res->{inflate_datetime} = 1;
+                }
             }
             elsif ($default =~ /^DEFAULT \s+ (\S+)/ix) {
                 my ($constant_default) = $1 =~ /^['"\[\]]?(.*?)['"\[\]]?\z/;
