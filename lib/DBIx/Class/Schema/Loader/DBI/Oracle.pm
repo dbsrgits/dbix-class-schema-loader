@@ -73,6 +73,7 @@ sub _tables_list {
         push @tables, $1
           if $table =~ /\A(\w+)\z/;
     }
+
     return $self->_filter_tables(@tables);
 }
 

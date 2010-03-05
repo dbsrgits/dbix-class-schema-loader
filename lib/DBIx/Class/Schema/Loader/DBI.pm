@@ -48,8 +48,6 @@ sub new {
     # Set up the default quoting character and name seperators
     $self->{_quoter}  = $self->_build_quoter;
     $self->{_namesep} = $self->_build_namesep;
-    $self->schema->storage->sql_maker->quote_char($self->{_quoter});
-    $self->schema->storage->sql_maker->name_sep($self->{_namesep});
 
     # For our usage as regex matches, concatenating multiple quoter
     # values works fine (e.g. s/\Q<>\E// if quoter was [ '<', '>' ])

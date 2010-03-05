@@ -23,6 +23,13 @@ See L<DBIx::Class::Schema::Loader::Base> for available options.
 
 sub _is_case_sensitive { 1 }
 
+sub _setup {
+    my $self = shift;
+
+    $self->schema->storage->sql_maker->quote_char('"');
+    $self->schema->storage->sql_maker->name_sep('.');
+}
+
 sub _table_pk_info {
     my ($self, $table) = @_;
 

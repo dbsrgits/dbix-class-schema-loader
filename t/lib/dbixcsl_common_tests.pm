@@ -30,7 +30,7 @@ sub new {
     # Only MySQL uses this
     $self->{innodb} ||= '';
 
-    # DB2 doesn't support this
+    # DB2 and Firebird don't support 'field type NULL'
     $self->{null} = 'NULL' unless defined $self->{null};
     
     $self->{verbose} = $ENV{TEST_VERBOSE} || 0;
@@ -136,6 +136,8 @@ sub setup_schema {
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
 
+    my $file_count;
+    my $expected_count = 36;
     {
        my @loader_warnings;
        local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
@@ -149,10 +151,7 @@ sub setup_schema {
 
        ok(!$@, "Loader initialization") or diag $@;
 
-       my $file_count;
        find sub { return if -d; $file_count++ }, $DUMP_DIR;
-
-       my $expected_count = 36;
 
        $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
            @{ $self->{extra}{create} || [] };
@@ -167,8 +166,6 @@ sub setup_schema {
            if $self->{skip_rels};
 
        is $file_count, $expected_count, 'correct number of files generated';
-
-       exit if $file_count != $expected_count;
 
        my $warn_count = 2;
        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
@@ -196,7 +193,9 @@ sub setup_schema {
                  "Missing PK warning");
         }
     }
-    
+
+    exit if $file_count != $expected_count;
+   
     return $schema_class;
 }
 
@@ -1399,8 +1398,8 @@ sub drop_tables {
         else {
             $dbh->do($drop_fk);
         }
-        $dbh->do("DROP TABLE $_") for (@tables_advanced);
         $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
+        $dbh->do("DROP TABLE $_") for (@tables_advanced);
 
         unless($self->{no_inline_rels}) {
             $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
@@ -1409,8 +1408,13 @@ sub drop_tables {
             $dbh->do("DROP TABLE $_") for (@tables_implicit_rels);
         }
     }
-    $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
     $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
+    $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
+    $dbh->disconnect;
+
+# fixup for Firebird
+    $dbh = $self->dbconnect(0);
+    $dbh->do('DROP TABLE loader_test2');
     $dbh->disconnect;
 }
 
