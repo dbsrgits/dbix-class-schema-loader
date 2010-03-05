@@ -46,8 +46,11 @@ sub new {
     }
 
     # Set up the default quoting character and name seperators
-    $self->{_quoter} = $self->_build_quoter;
+    $self->{_quoter}  = $self->_build_quoter;
     $self->{_namesep} = $self->_build_namesep;
+    $self->schema->storage->sql_maker->quote_char($self->{_quoter});
+    $self->schema->storage->sql_maker->name_sep($self->{_namesep});
+
     # For our usage as regex matches, concatenating multiple quoter
     # values works fine (e.g. s/\Q<>\E// if quoter was [ '<', '>' ])
     if( ref $self->{_quoter} eq 'ARRAY') {
@@ -178,7 +181,7 @@ sub _table_columns {
 
     my $sth = $self->_sth_for($table, undef, \'1 = 0');
     $sth->execute;
-    my $retval = \@{$sth->{NAME_lc}};
+    my $retval = $self->_is_case_sensitive ? \@{$sth->{NAME}} : \@{$sth->{NAME_lc}};
     $sth->finish;
 
     $retval;
@@ -305,7 +308,7 @@ sub _columns_info_for {
     my %result;
     my $sth = $self->_sth_for($table, undef, \'1 = 0');
     $sth->execute;
-    my @columns = @{$sth->{NAME_lc}};
+    my @columns = @{ $self->_is_case_sensitive ? $sth->{NAME} : $sth->{NAME_lc} };
     for my $i ( 0 .. $#columns ){
         my $column_info = {};
         $column_info->{data_type} = $sth->{TYPE}->[$i];

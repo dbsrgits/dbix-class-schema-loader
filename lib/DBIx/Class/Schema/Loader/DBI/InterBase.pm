@@ -17,9 +17,11 @@ Firebird Implementation.
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+See L<DBIx::Class::Schema::Loader::Base> for available options.
 
 =cut
+
+sub _is_case_sensitive { 1 }
 
 sub _table_pk_info {
     my ($self, $table) = @_;
@@ -39,7 +41,7 @@ EOF
     while (my ($col) = $sth->fetchrow_array) {
         s/^\s+//, s/\s+\z// for $col;
 
-        push @keydata, lc $col;
+        push @keydata, $col;
     }
 
     return \@keydata;
@@ -65,8 +67,8 @@ EOF
     while (my ($fk, $local_col, $remote_tab, $remote_col) = $sth->fetchrow_array) {
         s/^\s+//, s/\s+\z// for $fk, $local_col, $remote_tab, $remote_col;
 
-        push @{$local_cols->{$fk}},  lc $local_col;
-        push @{$remote_cols->{$fk}}, lc $remote_col;
+        push @{$local_cols->{$fk}},  $local_col;
+        push @{$remote_cols->{$fk}}, $remote_col;
         $remote_table->{$fk} = $remote_tab;
     }
 
@@ -97,7 +99,7 @@ EOF
     while (my ($constraint_name, $column) = $sth->fetchrow_array) {
         s/^\s+//, s/\s+\z// for $constraint_name, $column;
 
-        push @{$constraints->{$constraint_name}}, lc $column;
+        push @{$constraints->{$constraint_name}}, $column;
     }
 
     my @uniqs = map { [ $_ => $constraints->{$_} ] } keys %$constraints;
@@ -121,12 +123,16 @@ EOF
     $sth->execute($table);
 
     while (my ($trigger) = $sth->fetchrow_array) {
-        my @trig_cols = $trigger =~ /new\."?(\w+)/ig;
+        my @trig_cols = map {
+            /^"([^"]+)/ ? $1 : uc($1)
+        } $trigger =~ /new\.("?\w+"?)/ig;
 
-        my ($generator) = $trigger =~
-/(?:gen_id\s* \( \s* |next \s* value \s* for \s*)"?(\w+)/ix;
+        my ($quoted, $generator) = $trigger =~
+/(?:gen_id\s* \( \s* |next \s* value \s* for \s*)(")?(\w+)/ix;
 
-        if (first { lc($_) eq lc($column) } @trig_cols) {
+        $generator = uc $generator unless $quoted;
+
+        if ((first { $_ eq $column } @trig_cols) && $generator) {
             $extra_info{is_auto_increment} = 1;
             $extra_info{sequence}          = $generator;
         }
@@ -147,7 +153,7 @@ FROM rdb$relation_fields rf
 WHERE rf.rdb$relation_name = ?
 AND rf.rdb$field_name = ?
 EOF
-    $sth->execute($table, uc $column);
+    $sth->execute($table, $column);
     my ($default_src) = $sth->fetchrow_array;
 
     if ($default_src && (my ($def) = $default_src =~ /^DEFAULT \s+ (\S+)/ix)) {

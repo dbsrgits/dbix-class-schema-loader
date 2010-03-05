@@ -27,14 +27,6 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
-sub _setup {
-    my $self = shift;
-
-    $self->next::method(@_);
-    $self->{db_schema} ||= $self->_build_db_schema;
-    $self->_set_quote_char_and_name_sep;
-}
-
 sub _table_pk_info {
     my ($self, $table) = @_;
     my $dbh = $self->schema->storage->dbh;

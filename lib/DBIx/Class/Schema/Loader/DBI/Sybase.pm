@@ -29,14 +29,6 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 sub _is_case_sensitive { 1 }
 
-sub _setup {
-    my $self = shift;
-
-    $self->next::method(@_);
-    $self->{db_schema} ||= $self->_build_db_schema;
-    $self->_set_quote_char_and_name_sep;
-}
-
 sub _rebless {
     my $self = shift;
 

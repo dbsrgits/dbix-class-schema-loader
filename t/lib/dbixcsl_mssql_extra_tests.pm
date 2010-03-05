@@ -5,9 +5,6 @@ use warnings;
 use Test::More;
 use Test::Exception;
 
-# for cleanup in END
-my $storage;
-
 sub extra { +{
     create => [
         q{
@@ -26,9 +23,13 @@ sub extra { +{
             SELECT * FROM mssql_loader_test3
         },
     ],
+    pre_drop_ddl => [
+        'CREATE TABLE mssql_loader_test3 (id INT IDENTITY NOT NULL PRIMARY KEY)',
+        'DROP VIEW mssql_loader_test4',
+    ],
     drop   => [
-        "[mssql_loader_test1.dot]",
-        "mssql_loader_test3"
+        '[mssql_loader_test1.dot]',
+        'mssql_loader_test3'
     ],
     count  => 8,
     run    => sub {
@@ -59,9 +60,7 @@ sub extra { +{
             q{'INT IDENTITY' column has is_auto_increment => 1};
 
 # Test that a bad view (where underlying table is gone) is ignored.
-        $storage = $schema->storage;
-
-        my $dbh = $storage->dbh;
+        my $dbh = $schema->storage->dbh;
         $dbh->do("DROP TABLE mssql_loader_test3");
 
         my @warnings;
@@ -78,18 +77,5 @@ sub extra { +{
             'no source registered for bad view';
     },
 }}
-
-# Clean up the bad view
-END {
-    local $@;
-    eval {
-        my $dbh = $storage->dbh;
-        $dbh->do($_) for (
-"CREATE TABLE mssql_loader_test3 (id INT IDENTITY NOT NULL PRIMARY KEY)",
-"DROP VIEW mssql_loader_test4",
-"DROP TABLE mssql_loader_test3",
-        );
-    };
-}
 
 1;

@@ -23,14 +23,14 @@ See L<DBIx::Class::Schema::Loader::Base>.
 sub _build_quoter  { '"' }
 sub _build_namesep { '.' }
 
-sub _set_quote_char_and_name_sep {
+sub _setup {
     my $self = shift;
 
-    $self->schema->storage->sql_maker->quote_char([qw/[ ]/])
-        unless $self->schema->storage->sql_maker->quote_char;
+    $self->next::method(@_);
 
-    $self->schema->storage->sql_maker->name_sep('.')
-        unless $self->schema->storage->sql_maker->name_sep;
+    $self->schema->storage->sql_maker->quote_char([qw/[ ]/]);
+    $self->schema->storage->sql_maker->name_sep('.');
+    $self->{db_schema} ||= $self->_build_db_schema;
 }
 
 sub _build_db_schema {

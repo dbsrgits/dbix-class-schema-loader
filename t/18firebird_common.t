@@ -1,6 +1,7 @@
 use strict;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
+use dbixcsl_firebird_extra_tests;
 
 my $dsn      = $ENV{DBICTEST_FIREBIRD_DSN} || '';
 my $user     = $ENV{DBICTEST_FIREBIRD_USER} || '';
@@ -32,6 +33,8 @@ my $tester = dbixcsl_common_tests->new(
         );
     },
     null        => '',
+    extra       => dbixcsl_firebird_extra_tests->extra,
+    uppercase_identifiers => 1,
     dsn         => $dsn,
     user        => $user,
     password    => $password,

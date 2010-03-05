@@ -184,6 +184,7 @@ sub _remote_relname {
     # name, to make filter accessors work, but strip trailing _id
     if(scalar keys %{$cond} == 1) {
         my ($col) = values %{$cond};
+        $col = lc $col;
         $col =~ s/_id$//;
         $remote_relname = $self->_inflect_singular($col);
     }
@@ -266,7 +267,7 @@ sub _relnames_and_method {
     my $remote_moniker = $rel->{remote_source};
     my $remote_obj     = $self->{schema}->source( $remote_moniker );
     my $remote_class   = $self->{schema}->class(  $remote_moniker );
-    my $remote_relname = $self->_remote_relname( $remote_obj->from, $cond);
+    my $remote_relname = lc $self->_remote_relname( $remote_obj->from, $cond);
 
     my $local_cols  = $rel->{local_columns};
     my $local_table = $self->{schema}->source($local_moniker)->from;
@@ -276,7 +277,7 @@ sub _relnames_and_method {
     my $local_relname;
     my $old_multirel_name; #< TODO: remove me
     if ( $counters->{$remote_moniker} > 1) {
-        my $colnames = q{_} . join(q{_}, @$local_cols);
+        my $colnames = lc(q{_} . join(q{_}, @$local_cols));
         $remote_relname .= $colnames if keys %$cond > 1;
 
         $local_relname = lc($local_table) . $colnames;
