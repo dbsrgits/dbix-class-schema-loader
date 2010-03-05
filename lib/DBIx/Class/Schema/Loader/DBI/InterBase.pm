@@ -139,11 +139,14 @@ EOF
         my ($quoted, $generator) = $trigger =~
 /(?:gen_id\s* \( \s* |next \s* value \s* for \s*)(")?(\w+)/ix;
 
-        $generator = uc $generator unless $quoted;
+        if ($generator) {
+            $generator = uc $generator unless $quoted;
 
-        if ((first { $_ eq $column } @trig_cols) && $generator) {
-            $extra_info{is_auto_increment} = 1;
-            $extra_info{sequence}          = $generator;
+            if (first { $_ eq $column } @trig_cols) {
+                $extra_info{is_auto_increment} = 1;
+                $extra_info{sequence}          = $generator;
+                last;
+            }
         }
     }
 
