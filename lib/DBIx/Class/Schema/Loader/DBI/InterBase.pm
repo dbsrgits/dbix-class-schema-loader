@@ -8,6 +8,10 @@ use base qw/DBIx::Class::Schema::Loader::DBI/;
 use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
 
+__PACKAGE__->mk_group_ro_accessors('simple', qw/
+    unquoted_ddl
+/);
+
 our $VERSION = '0.05003';
 
 =head1 NAME
@@ -19,15 +23,59 @@ Firebird Implementation.
 
 See L<DBIx::Class::Schema::Loader::Base> for available options.
 
+By default column names from unquoted DDL will be generated in uppercase, as
+that is the only way they will work with quoting on.
+
+See the L</unquoted_ddl> option in this driver if you would like to have
+lowercase column names.
+
+=head1 DRIVER OPTIONS
+
+=head2 unquoted_ddl
+
+Set this loader option if your DDL uses unquoted identifiers and you will not
+use quoting (the L<quote_char|DBIx::Class::Storage::DBI/quote_char> option in
+L<connect_info|DBIx::Class::Storage::DBI/connect_info>.)
+
+This will generate lowercase column names (as opposed to the actual uppercase
+names) in your Result classes that will only work with quoting off.
+
+Mixed-case table and column names will be ignored when this option is on and
+will not work with quoting turned off.
+
 =cut
 
-sub _is_case_sensitive { 1 }
+sub _is_case_sensitive {
+    my $self = shift;
+
+    return $self->unquoted_ddl ? 0 : 1;
+}
 
 sub _setup {
     my $self = shift;
 
-    $self->schema->storage->sql_maker->quote_char('"');
+    $self->next::method;
+
     $self->schema->storage->sql_maker->name_sep('.');
+
+    if (not $self->unquoted_ddl) {
+        $self->schema->storage->sql_maker->quote_char('"');
+    }
+    else {
+        $self->schema->storage->sql_maker->quote_char(undef);
+    }
+}
+
+sub _lc {
+    my ($self, $name) = @_;
+
+    return $self->unquoted_ddl ? lc($name) : $name;
+}
+
+sub _uc {
+    my ($self, $name) = @_;
+
+    return $self->unquoted_ddl ? uc($name) : $name;
 }
 
 sub _table_pk_info {
@@ -48,7 +96,7 @@ EOF
     while (my ($col) = $sth->fetchrow_array) {
         s/^\s+//, s/\s+\z// for $col;
 
-        push @keydata, $col;
+        push @keydata, $self->_lc($col);
     }
 
     return \@keydata;
@@ -74,8 +122,8 @@ EOF
     while (my ($fk, $local_col, $remote_tab, $remote_col) = $sth->fetchrow_array) {
         s/^\s+//, s/\s+\z// for $fk, $local_col, $remote_tab, $remote_col;
 
-        push @{$local_cols->{$fk}},  $local_col;
-        push @{$remote_cols->{$fk}}, $remote_col;
+        push @{$local_cols->{$fk}},  $self->_lc($local_col);
+        push @{$remote_cols->{$fk}}, $self->_lc($remote_col);
         $remote_table->{$fk} = $remote_tab;
     }
 
@@ -106,7 +154,7 @@ EOF
     while (my ($constraint_name, $column) = $sth->fetchrow_array) {
         s/^\s+//, s/\s+\z// for $constraint_name, $column;
 
-        push @{$constraints->{$constraint_name}}, $column;
+        push @{$constraints->{$constraint_name}}, $self->_lc($column);
     }
 
     my @uniqs = map { [ $_ => $constraints->{$_} ] } keys %$constraints;
@@ -142,7 +190,7 @@ EOF
         if ($generator) {
             $generator = uc $generator unless $quoted;
 
-            if (first { $_ eq $column } @trig_cols) {
+            if (first { $self->_uc($_) eq $self->_uc($column) } @trig_cols) {
                 $extra_info{is_auto_increment} = 1;
                 $extra_info{sequence}          = $generator;
                 last;
@@ -165,7 +213,7 @@ FROM rdb$relation_fields rf
 WHERE rf.rdb$relation_name = ?
 AND rf.rdb$field_name = ?
 EOF
-    $sth->execute($table, $column);
+    $sth->execute($table, $self->_uc($column));
     my ($default_src) = $sth->fetchrow_array;
 
     if ($default_src && (my ($def) = $default_src =~ /^DEFAULT \s+ (\S+)/ix)) {

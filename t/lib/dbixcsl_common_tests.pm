@@ -131,7 +131,8 @@ sub setup_schema {
         use_namespaces          => 0,
         dump_directory          => $DUMP_DIR,
         datetime_timezone       => 'Europe/Berlin',
-        datetime_locale         => 'de_DE'
+        datetime_locale         => 'de_DE',
+        %{ $self->{loader_options} || {} },
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
@@ -251,13 +252,13 @@ sub test_schema {
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( [ map lc, @columns_lt2 ], [ qw/id dat dat2/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2/ ], "Column Ordering" );
 
     my %uniq1 = $class1->unique_constraints;
     my $uniq1_test = 0;
     foreach my $ucname (keys %uniq1) {
         my $cols_arrayref = $uniq1{$ucname};
-        if(@$cols_arrayref == 1 && lc($cols_arrayref->[0]) eq 'dat') {
+        if(@$cols_arrayref == 1 && $cols_arrayref->[0] eq 'dat') {
            $uniq1_test = 1;
            last;
         }
@@ -271,8 +272,8 @@ sub test_schema {
     foreach my $ucname (keys %uniq2) {
         my $cols_arrayref = $uniq2{$ucname};
         if(@$cols_arrayref == 2
-           && lc($cols_arrayref->[0]) eq 'dat2'
-           && lc($cols_arrayref->[1]) eq 'dat') {
+           && $cols_arrayref->[0] eq 'dat2'
+           && $cols_arrayref->[1] eq 'dat') {
             $uniq2_test = 2;
             last;
         }
@@ -330,8 +331,8 @@ sub test_schema {
             or skip "Pre-requisite test failed";
         is( $rsobj1->loader_test1_rsmeth, 'all is still well', 'Result set method' );
     }
-
-    ok( $self->_dbic_column_info($class1, 'id')->{is_auto_increment}, 'is_auto_increment detection' );
+    
+    ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_increment detection' );
 
     my $obj    = $rsobj1->find(1);
     is( $obj->id,  1, "Find got the right row" );
@@ -339,35 +340,35 @@ sub test_schema {
     is( $rsobj2->count, 4, "Count" );
     my $saved_id;
     eval {
-        my $new_obj1 = $self->_dbic_create($rsobj1, { dat => 'newthing' });
+        my $new_obj1 = $rsobj1->create({ dat => 'newthing' });
         $saved_id = $new_obj1->id;
     };
     ok(!$@, "Inserting new record using a PK::Auto key didn't die") or diag $@;
     ok($saved_id, "Got PK::Auto-generated id");
 
-    my $new_obj1 = $self->_dbic_search($rsobj1, { dat => 'newthing' })->first;
+    my $new_obj1 = $rsobj1->search({ dat => 'newthing' })->first;
     ok($new_obj1, "Found newly inserted PK::Auto record");
     is($new_obj1->id, $saved_id, "Correct PK::Auto-generated id");
 
-    my ($obj2) = $self->_dbic_search($rsobj2, { dat => 'bbb' })->first;
+    my ($obj2) = $rsobj2->search({ dat => 'bbb' })->first;
     is( $obj2->id, 2 );
 
     is(
-        $self->_dbic_column_info($class35, 'a_varchar')->{default_value}, 'foo',
+        $class35->column_info('a_varchar')->{default_value}, 'foo',
         'constant character default',
     );
 
     is(
-        $self->_dbic_column_info($class35, 'an_int')->{default_value}, 42,
+        $class35->column_info('an_int')->{default_value}, 42,
         'constant integer default',
     );
 
     is(
-        $self->_dbic_column_info($class35, 'a_double')->{default_value}, 10.555,
+        $class35->column_info('a_double')->{default_value}, 10.555,
         'constant numeric default',
     );
 
-    my $function_default = $self->_dbic_column_info($class35, 'a_function')->{default_value};
+    my $function_default = $class35->column_info('a_function')->{default_value};
 
     isa_ok( $function_default, 'SCALAR', 'default_value for function default' );
     is_deeply(
@@ -503,7 +504,7 @@ sub test_schema {
         my $obj4 = $rsobj4->find(123);
         isa_ok( $obj4->fkid_singular, $class3);
 
-        ok($self->_dbic_column_info($class4, 'fkid')->{is_foreign_key}, 'Foreign key detected');
+        ok($class4->column_info('fkid')->{is_foreign_key}, 'Foreign key detected');
 
         my $obj3 = $rsobj3->find(1);
         my $rs_rel4 = $obj3->search_related('loader_test4zes');
@@ -511,8 +512,8 @@ sub test_schema {
 
         # find on multi-col pk
         my $obj5 = 
-	    eval { $self->_dbic_find($rsobj5, {id1 => 1, iD2 => 1}) } ||
-	    eval { $self->_dbic_find($rsobj5, {id1 => 1, id2 => 1}) };
+	    eval { $rsobj5->find({id1 => 1, iD2 => 1}) } ||
+	    eval { $rsobj5->find({id1 => 1, id2 => 1}) };
 	die $@ if $@;
 
         is( $obj5->id2, 1, "Find on multi-col PK" );
@@ -522,18 +523,18 @@ sub test_schema {
         isa_ok( $obj6->loader_test2, $class2);
         isa_ok( $obj6->loader_test5, $class5);
 
-        ok($self->_dbic_column_info($class6, 'loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class6, 'id')->{is_foreign_key}, 'Foreign key detected');
+        ok($class6->column_info('loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
+        ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
 
-	my $id2_info = eval { $self->_dbic_column_info($class6, 'id2') } ||
-			$self->_dbic_column_info($class6, 'Id2');
+	my $id2_info = eval { $class6->column_info('id2') } ||
+			$class6->column_info('Id2');
         ok($id2_info->{is_foreign_key}, 'Foreign key detected');
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = $rsobj8->find(1);
         isa_ok( $obj8->loader_test7, $class7);
 
-        ok($self->_dbic_column_info($class8, 'loader_test7')->{is_foreign_key}, 'Foreign key detected');
+        ok($class8->column_info('loader_test7')->{is_foreign_key}, 'Foreign key detected');
 
         # test double-fk 17 ->-> 16
         my $obj17 = $rsobj17->find(33);
@@ -542,13 +543,13 @@ sub test_schema {
         isa_ok($rs_rel16_one, $class16);
         is($rs_rel16_one->dat, 'y16', "Multiple FKs to same table");
 
-        ok($self->_dbic_column_info($class17, 'loader16_one')->{is_foreign_key}, 'Foreign key detected');
+        ok($class17->column_info('loader16_one')->{is_foreign_key}, 'Foreign key detected');
 
         my $rs_rel16_two = $obj17->loader16_two;
         isa_ok($rs_rel16_two, $class16);
         is($rs_rel16_two->dat, 'z16', "Multiple FKs to same table");
 
-        ok($self->_dbic_column_info($class17, 'loader16_two')->{is_foreign_key}, 'Foreign key detected');
+        ok($class17->column_info('loader16_two')->{is_foreign_key}, 'Foreign key detected');
 
         my $obj16 = $rsobj16->find(2);
         my $rs_rel17 = $obj16->search_related('loader_test17_loader16_ones');
@@ -556,12 +557,12 @@ sub test_schema {
         is($rs_rel17->first->id, 3, "search_related with multiple FKs from same table");
         
         # XXX test m:m 18 <- 20 -> 19
-        ok($self->_dbic_column_info($class20, 'parent')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class20, 'child')->{is_foreign_key}, 'Foreign key detected');
+        ok($class20->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
+        ok($class20->column_info('child')->{is_foreign_key}, 'Foreign key detected');
         
         # XXX test double-fk m:m 21 <- 22 -> 21
-        ok($self->_dbic_column_info($class22, 'parent')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class22, 'child')->{is_foreign_key}, 'Foreign key detected');
+        ok($class22->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
+        ok($class22->column_info('child')->{is_foreign_key}, 'Foreign key detected');
 
         # test double multi-col fk 26 -> 25
         my $obj26 = $rsobj26->find(33);
@@ -570,9 +571,9 @@ sub test_schema {
         isa_ok($rs_rel25_one, $class25);
         is($rs_rel25_one->dat, 'x25', "Multiple multi-col FKs to same table");
 
-        ok($self->_dbic_column_info($class26, 'id')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class26, 'rel1')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class26, 'rel2')->{is_foreign_key}, 'Foreign key detected');
+        ok($class26->column_info('id')->{is_foreign_key}, 'Foreign key detected');
+        ok($class26->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
+        ok($class26->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
 
         my $rs_rel25_two = $obj26->loader_test25_id_rel2;
         isa_ok($rs_rel25_two, $class25);
@@ -587,26 +588,26 @@ sub test_schema {
         my $obj27 = $rsobj27->find(1);
         my $obj28 = $obj27->loader_test28;
         isa_ok($obj28, $class28);
-        is($self->_dbic_get_column($obj28, 'id'), 1, "One-to-one relationship with PRIMARY FK");
+        is($obj28->get_column('id'), 1, "One-to-one relationship with PRIMARY FK");
 
-        ok($self->_dbic_column_info($class28, 'id')->{is_foreign_key}, 'Foreign key detected');
+        ok($class28->column_info('id')->{is_foreign_key}, 'Foreign key detected');
 
         my $obj29 = $obj27->loader_test29;
         isa_ok($obj29, $class29);
         is($obj29->id, 1, "One-to-one relationship with UNIQUE FK");
 
-        ok($self->_dbic_column_info($class29, 'fk')->{is_foreign_key}, 'Foreign key detected');
+        ok($class29->column_info('fk')->{is_foreign_key}, 'Foreign key detected');
 
         $obj27 = $rsobj27->find(2);
         is($obj27->loader_test28, undef, "Undef for missing one-to-one row");
         is($obj27->loader_test29, undef, "Undef for missing one-to-one row");
 
         # test outer join for nullable referring columns:
-        is $self->_dbic_column_info($class32, 'rel2')->{is_nullable}, 1,
+        is $class32->column_info('rel2')->{is_nullable}, 1,
           'is_nullable detection';
 
-        ok($self->_dbic_column_info($class32, 'rel1')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class32, 'rel2')->{is_foreign_key}, 'Foreign key detected');
+        ok($class32->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
+        ok($class32->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
         
         my $obj32 = $rsobj32->find(1,{prefetch=>[qw/rel1 rel2/]});
         my $obj34 = $rsobj34->find(
@@ -615,9 +616,9 @@ sub test_schema {
         isa_ok($obj32,$class32);
         isa_ok($obj34,$class34);
 
-        ok($self->_dbic_column_info($class34, 'id')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class34, 'rel1')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class34, 'rel2')->{is_foreign_key}, 'Foreign key detected');
+        ok($class34->column_info('id')->{is_foreign_key}, 'Foreign key detected');
+        ok($class34->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
+        ok($class34->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
 
         my $rs_rel31_one = $obj32->rel1;
         my $rs_rel31_two = $obj32->rel2;
@@ -642,21 +643,21 @@ sub test_schema {
         isa_ok( $rsobj10, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
 
-        ok($self->_dbic_column_info($class10, 'loader_test11')->{is_foreign_key}, 'Foreign key detected');
-        ok($self->_dbic_column_info($class11, 'loader_test10')->{is_foreign_key}, 'Foreign key detected');
+        ok($class10->column_info('loader_test11')->{is_foreign_key}, 'Foreign key detected');
+        ok($class11->column_info('loader_test10')->{is_foreign_key}, 'Foreign key detected');
 
-        my $obj10 = $self->_dbic_create($rsobj10, { subject => 'xyzzy' });
+        my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
 
         $obj10->update();
         ok( defined $obj10, 'Create row' );
 
-        my $obj11 = $self->_dbic_create($rsobj11, { loader_test10 => $obj10->id() });
+        my $obj11 = $rsobj11->create({ loader_test10 => $obj10->id() });
         $obj11->update();
         ok( defined $obj11, 'Create related row' );
 
         eval {
             my $obj10_2 = $obj11->loader_test10;
-            $self->_dbic_update($obj10_2, { loader_test11 => $obj11->id11 });
+            $obj10_2->update({ loader_test11 => $obj11->id11 });
         };
         diag $@ if $@;
         ok(!$@, "Setting up circular relationship");
@@ -664,7 +665,7 @@ sub test_schema {
         SKIP: {
             skip 'Previous eval block failed', 3 if $@;
     
-            my $results = $self->_dbic_search($rsobj10, { subject => 'xyzzy' });
+            my $results = $rsobj10->search({ subject => 'xyzzy' });
             is( $results->count(), 1, 'No duplicate row created' );
 
             my $obj10_3 = $results->first();
@@ -688,9 +689,9 @@ sub test_schema {
             isa_ok( $rsobj12, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj13, "DBIx::Class::ResultSet" );
 
-            ok($self->_dbic_column_info($class13, 'id')->{is_foreign_key}, 'Foreign key detected');
-            ok($self->_dbic_column_info($class13, 'loader_test12')->{is_foreign_key}, 'Foreign key detected');
-            ok($self->_dbic_column_info($class13, 'dat')->{is_foreign_key}, 'Foreign key detected');
+            ok($class13->column_info('id')->{is_foreign_key}, 'Foreign key detected');
+            ok($class13->column_info('loader_test12')->{is_foreign_key}, 'Foreign key detected');
+            ok($class13->column_info('dat')->{is_foreign_key}, 'Foreign key detected');
 
             my $obj13 = $rsobj13->find(1);
             isa_ok( $obj13->id, $class12 );
@@ -715,7 +716,7 @@ sub test_schema {
             isa_ok( $rsobj14, "DBIx::Class::ResultSet" ); 
             isa_ok( $rsobj15, "DBIx::Class::ResultSet" );
 
-            ok($self->_dbic_column_info($class15, 'loader_test14')->{is_foreign_key}, 'Foreign key detected');
+            ok($class15->column_info('loader_test14')->{is_foreign_key}, 'Foreign key detected');
 
             my $obj15 = $rsobj15->find(1);
             isa_ok( $obj15->loader_test14, $class14 );
@@ -727,18 +728,18 @@ sub test_schema {
         my $class35 = $classes->{loader_test35};
         my $class36 = $classes->{loader_test36};
 
-        ok($self->_dbic_column_info($class35, 'an_int')->{is_numeric}, 'custom_column_info');
+        ok($class35->column_info('an_int')->{is_numeric}, 'custom_column_info');
 
-        is($self->_dbic_column_info($class36, 'a_date')->{locale},'de_DE','datetime_locale');
-        is($self->_dbic_column_info($class36, 'a_date')->{timezone},'Europe/Berlin','datetime_timezone');
+        is($class36->column_info('a_date')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('a_date')->{timezone},'Europe/Berlin','datetime_timezone');
 
-        ok($self->_dbic_column_info($class36, 'b_char_as_data')->{inflate_datetime},'custom_column_info');
-        is($self->_dbic_column_info($class36, 'b_char_as_data')->{locale},'de_DE','datetime_locale');
-        is($self->_dbic_column_info($class36, 'b_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
+        ok($class36->column_info('b_char_as_data')->{inflate_datetime},'custom_column_info');
+        is($class36->column_info('b_char_as_data')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('b_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
 
-        ok($self->_dbic_column_info($class36, 'c_char_as_data')->{inflate_date},'custom_column_info');
-        is($self->_dbic_column_info($class36, 'c_char_as_data')->{locale},'de_DE','datetime_locale');
-        is($self->_dbic_column_info($class36, 'c_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
+        ok($class36->column_info('c_char_as_data')->{inflate_date},'custom_column_info');
+        is($class36->column_info('c_char_as_data')->{locale},'de_DE','datetime_locale');
+        is($class36->column_info('c_char_as_data')->{timezone},'Europe/Berlin','datetime_timezone');
     }
 
     # rescan and norewrite test
@@ -810,7 +811,7 @@ sub test_schema {
         my $obj30 = $rsobj30->find(123);
         isa_ok( $obj30->loader_test2, $class2);
 
-        ok($self->_dbic_column_info($rsobj30->result_source, 'loader_test2')->{is_foreign_key},
+        ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key},
            'Foreign key detected');
     }
 
@@ -1416,52 +1417,6 @@ sub drop_tables {
     $dbh = $self->dbconnect(0);
     $dbh->do('DROP TABLE loader_test2');
     $dbh->disconnect;
-}
-
-sub _dbic_column_info {
-    my ($self, $class, $colname) = @_;
-
-    return $self->{uppercase_identifiers} ? $class->column_info(uc $colname) : $class->column_info($colname);
-}
-
-sub _dbic_get_column {
-    my ($self, $obj, $colname) = @_;
-
-    return $self->{uppercase_identifiers} ? $obj->get_column(uc $colname) : $obj->get_column($colname);
-}
-
-sub _dbic_update {
-    my ($self, $obj, $data) = @_;
-
-    return $self->_wrap_dbic_method_with_hash($obj, 'update', $data);
-}
-
-sub _dbic_create {
-    my ($self, $rs, $data) = @_;
-
-    return $self->_wrap_dbic_method_with_hash($rs, 'create', $data);
-}
-
-sub _dbic_search {
-    my ($self, $rs, $cond) = @_;
-
-    return $self->_wrap_dbic_method_with_hash($rs, 'search', $cond);
-}
-
-sub _dbic_find {
-    my ($self, $rs, $cond) = @_;
-
-    return $self->_wrap_dbic_method_with_hash($rs, 'find', $cond);
-}
-
-sub _wrap_dbic_method_with_hash {
-    my ($self, $obj, $method, $hash) = @_;
-
-    return $obj->$method($hash) unless $self->{uppercase_identifiers};
-
-    my %hash;
-    @hash{map uc, keys %$hash} = values %$hash;
-    $obj->$method(\%hash)
 }
 
 sub DESTROY {

@@ -33,8 +33,8 @@ my $tester = dbixcsl_common_tests->new(
         );
     },
     null        => '',
+    loader_options => { unquoted_ddl => 1 },
     extra       => dbixcsl_firebird_extra_tests->extra,
-    uppercase_identifiers => 1,
     dsn         => $dsn,
     user        => $user,
     password    => $password,
