@@ -98,7 +98,7 @@ sub new {
 
 # pluralize a relationship name
 sub _inflect_plural {
-    my ($self, $relname) = @_;
+    my ($self, $relname, $method) = @_;
 
     return '' if !defined $relname || $relname eq '';
 
@@ -111,7 +111,9 @@ sub _inflect_plural {
         return $inflected if $inflected;
     }
 
-    return Lingua::EN::Inflect::Number::to_PL($relname);
+    $method ||= '_to_PL';
+
+    return $self->$method($relname);
 }
 
 # Singularize a relationship name
@@ -129,7 +131,29 @@ sub _inflect_singular {
         return $inflected if $inflected;
     }
 
-    return Lingua::EN::Inflect::Number::to_S($relname);
+    return $self->_to_S($relname);
+}
+
+sub _to_PL {
+    my ($self, $name) = @_;
+
+    $name =~ s/_/ /g;
+    my $plural = Lingua::EN::Inflect::Number::to_PL($name);
+    $plural =~ s/ /_/g;
+
+    return $plural;
+}
+
+sub _old_to_PL {
+    my ($self, $name) = @_;
+
+    return Lingua::EN::Inflect::Number::to_PL($name);
+}
+
+sub _to_S {
+    my ($self, $name) = @_;
+
+    return Lingua::EN::Inflect::Number::to_S($name);
 }
 
 # accessor for options to be passed to each generated relationship
@@ -161,19 +185,17 @@ sub _array_eq {
 }
 
 sub _remote_attrs {
-	my ($self, $local_moniker, $local_cols) = @_;
+    my ($self, $local_moniker, $local_cols) = @_;
 
-	# get our base set of attrs from _relationship_attrs, if present
-	my $attrs = $self->_relationship_attrs('belongs_to') || {};
+    # get our base set of attrs from _relationship_attrs, if present
+    my $attrs = $self->_relationship_attrs('belongs_to') || {};
 
-	# If the referring column is nullable, make 'belongs_to' an
-	# outer join, unless explicitly set by relationship_attrs
-	my $nullable = grep { $self->{schema}->source($local_moniker)->column_info($_)->{is_nullable} }
-		@$local_cols;
-	$attrs->{join_type} = 'LEFT'
-	    if $nullable && !defined $attrs->{join_type};
+    # If the referring column is nullable, make 'belongs_to' an
+    # outer join, unless explicitly set by relationship_attrs
+    my $nullable = grep { $self->{schema}->source($local_moniker)->column_info($_)->{is_nullable} } @$local_cols;
+    $attrs->{join_type} = 'LEFT' if $nullable && !defined $attrs->{join_type};
 
-	return $attrs;
+    return $attrs;
 }
 
 sub _remote_relname {
@@ -274,20 +296,26 @@ sub _relnames_and_method {
 
     # If more than one rel between this pair of tables, use the local
     # col names to distinguish
-    my $local_relname;
-    my $old_multirel_name; #< TODO: remove me
+    my ($local_relname, $old_local_relname, $local_relname_uninflected, $old_local_relname_uninflected);
     if ( $counters->{$remote_moniker} > 1) {
         my $colnames = lc(q{_} . join(q{_}, @$local_cols));
         $remote_relname .= $colnames if keys %$cond > 1;
 
         $local_relname = lc($local_table) . $colnames;
-        $local_relname =~ s/_id$//
-            #< TODO: remove me
-            and $old_multirel_name = $self->_inflect_plural( lc($local_table) . $colnames );
+        $local_relname =~ s/_id$//;
+
+        $local_relname_uninflected = $local_relname;
         $local_relname = $self->_inflect_plural( $local_relname );
 
+        $old_local_relname_uninflected = lc($local_table) . $colnames;
+        $old_local_relname = $self->_inflect_plural( lc($local_table) . $colnames, '_old_to_PL' );
+
     } else {
+        $local_relname_uninflected = lc $local_table;
         $local_relname = $self->_inflect_plural(lc $local_table);
+
+        $old_local_relname_uninflected = lc $local_table;
+        $old_local_relname = $self->_inflect_plural(lc $local_table, '_old_to_PL');
     }
 
     my $remote_method = 'has_many';
@@ -297,14 +325,11 @@ sub _relnames_and_method {
     if (_array_eq([ $local_source->primary_columns ], $local_cols) ||
             grep { _array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method = 'might_have';
-        $local_relname = $self->_inflect_singular($local_relname);
-        #< TODO: remove me
-        $old_multirel_name = $self->_inflect_singular($old_multirel_name);
+        $local_relname = $self->_inflect_singular($local_relname_uninflected);
+        $old_local_relname = $self->_inflect_singular($old_local_relname_uninflected);
     }
 
-    # TODO: remove me after 0.05003 release
-    $old_multirel_name
-        and warn __PACKAGE__." $VERSION: warning, stripping trailing _id from ${remote_class} relation '$old_multirel_name', renaming to '$local_relname'.  This behavior is new as of 0.05003.\n";
+    warn __PACKAGE__." $VERSION: renaming ${remote_class} relation '$old_local_relname' to '$local_relname'.  This behavior is new as of 0.05003.\n" if $old_local_relname && $local_relname ne $old_local_relname;
 
     return ( $local_relname, $remote_relname, $remote_method );
 }

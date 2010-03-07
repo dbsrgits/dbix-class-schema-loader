@@ -6,6 +6,12 @@ use Class::C3;
 
 use base 'DBIx::Class::Schema::Loader::RelBuilder';
 
+sub _to_PL {
+    my ($self, $name) = @_;
+
+    return Lingua::EN::Inflect::Number::to_PL($name);
+}
+
 sub _relnames_and_method {
     my ( $self, $local_moniker, $rel, $cond, $uniqs, $counters ) = @_;
 

@@ -85,7 +85,7 @@ sub _custom_column_info {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 157 + ($self->{extra}->{count} || 0);
+    plan tests => 159 + ($self->{extra}->{count} || 0);
 
     $self->create();
 
@@ -173,7 +173,7 @@ sub setup_schema {
 
        $warn_count++ for grep /^Bad table or view/, @loader_warnings;
 
-       $warn_count++ for grep /stripping trailing _id/, @loader_warnings;
+       $warn_count++ for grep /renaming \S+ relation/, @loader_warnings;
 
        my $vendor = $self->{vendor};
        $warn_count++ for grep /${vendor}_\S+ has no primary key/,
@@ -377,7 +377,7 @@ sub test_schema {
     );
 
     SKIP: {
-        skip $self->{skip_rels}, 99 if $self->{skip_rels};
+        skip $self->{skip_rels}, 101 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -509,6 +509,13 @@ sub test_schema {
         my $obj3 = $rsobj3->find(1);
         my $rs_rel4 = $obj3->search_related('loader_test4zes');
         isa_ok( $rs_rel4->first, $class4);
+
+        # check rel naming with prepositions
+        ok ($class4->has_relationship('loader_test5s_to'),
+            "rel with preposition 'to' pluralized correctly");
+
+        ok ($class4->has_relationship('loader_test5s_from'),
+            "rel with preposition 'from' pluralized correctly");
 
         # find on multi-col pk
         my $obj5 = 
@@ -959,7 +966,11 @@ sub create {
                 id1 INTEGER NOT NULL,
                 iD2 INTEGER NOT NULL,
                 dat VARCHAR(8),
-                PRIMARY KEY (id1,iD2)
+                from_id INTEGER,
+                to_id INTEGER,
+                PRIMARY KEY (id1,iD2),
+                FOREIGN KEY (from_id) REFERENCES loader_test4 (id),
+                FOREIGN KEY (to_id) REFERENCES loader_test4 (id)
             ) $self->{innodb}
         },
 

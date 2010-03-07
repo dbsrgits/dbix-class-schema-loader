@@ -10,7 +10,7 @@ use File::Slurp 'slurp';
 use DBIx::Class::Schema::Loader ();
 use Lingua::EN::Inflect::Number ();
 use lib qw(t/lib);
-use make_dbictest_db2;
+use make_dbictest_db_with_unique;
 
 my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
@@ -792,7 +792,7 @@ sub run_loader {
     };
     undef $@;
 
-    my @connect_info = $make_dbictest_db2::dsn;
+    my @connect_info = $make_dbictest_db_with_unique::dsn;
     my @loader_warnings;
     local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
     eval qq{

@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 89;
+    plan tests => 91;
 
     $self->create();
 
@@ -255,7 +255,7 @@ sub run_tests {
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 50 if $self->{skip_rels};
+        skip $self->{skip_rels}, 52 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -345,6 +345,14 @@ sub run_tests {
         my $obj3 = $rsobj3->find(1);
         my $rs_rel4 = $obj3->search_related('loader_test4zes');
         isa_ok( $rs_rel4->first, $class4);
+
+        # test that _id is not stripped and prepositions in rel names are
+        # ignored
+        ok ($class4->has_relationship('loader_test5_to_ids'),
+            "rel with preposition 'to' and _id pluralized backward-compatibly");
+
+        ok ($class4->has_relationship('loader_test5_from_ids'),
+            "rel with preposition 'from' and _id pluralized backward-compatibly");
 
         # find on multi-col pk
         my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});
@@ -624,7 +632,11 @@ sub create {
                 id1 INTEGER NOT NULL,
                 iD2 INTEGER NOT NULL,
                 dat VARCHAR(8),
+                from_id INTEGER,
+                to_id INTEGER,
                 PRIMARY KEY (id1,id2)
+                FOREIGN KEY (from_id) REFERENCES loader_test4 (id),
+                FOREIGN KEY (to_id) REFERENCES loader_test4 (id)
             ) $self->{innodb}
         },
 

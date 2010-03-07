@@ -1,4 +1,4 @@
-package make_dbictest_db2;
+package make_dbictest_db_with_unique;
 
 use strict;
 use warnings;
