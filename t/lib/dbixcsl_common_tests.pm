@@ -511,10 +511,10 @@ sub test_schema {
         isa_ok( $rs_rel4->first, $class4);
 
         # check rel naming with prepositions
-        ok ($class4->has_relationship('loader_test5s_to'),
+        ok ($rsobj4->result_source->has_relationship('loader_test5s_to'),
             "rel with preposition 'to' pluralized correctly");
 
-        ok ($class4->has_relationship('loader_test5s_from'),
+        ok ($rsobj4->result_source->has_relationship('loader_test5s_from'),
             "rel with preposition 'from' pluralized correctly");
 
         # find on multi-col pk

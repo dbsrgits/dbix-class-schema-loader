@@ -348,10 +348,10 @@ sub run_tests {
 
         # test that _id is not stripped and prepositions in rel names are
         # ignored
-        ok ($class4->has_relationship('loader_test5_to_ids'),
+        ok ($rsobj4->result_source->has_relationship('loader_test5_to_ids'),
             "rel with preposition 'to' and _id pluralized backward-compatibly");
 
-        ok ($class4->has_relationship('loader_test5_from_ids'),
+        ok ($rsobj4->result_source->has_relationship('loader_test5_from_ids'),
             "rel with preposition 'from' and _id pluralized backward-compatibly");
 
         # find on multi-col pk
