@@ -11,7 +11,6 @@ test_requires 'File::Copy';
 test_requires 'File::Temp'    => '0.16';
 test_requires 'File::Path'    => '2.07';
 test_requires 'IPC::Open3'    => 0;
-test_requires 'List::MoreUtils' => 0;
 
 requires 'File::Spec'                  => 0;
 requires 'Scalar::Util'                => 0;
@@ -31,105 +30,11 @@ requires 'List::MoreUtils'             => 0;
 requires 'namespace::autoclean'        => 0;
 requires 'Data::Dumper::Concise'       => '1.200';
 requires 'Scope::Guard'                => 0;
+requires 'List::MoreUtils'             => 0;
 
 install_script 'script/dbicdump';
 
 tests_recursive;
-
-# This is my manual hack for better feature control
-#  If you want to change the default answer for a feature,
-#  set the appropriate environment variable, like
-#  DBIC_FEATURE_MYSQL.  If you want the defaults to
-#  apply automatically without asking any questions,
-#  set DBIC_FEATURE_NOQUESTIONS.  Hopefully this will
-#  save someone some pain when trying to automate
-#  the installation of this software.
-
-# Maintainer shouldn't set these, as they would affect
-# the META.yml shipped to CPAN.
-
-my $_features = [
-    SQLITE => {
-        label => 'SQLite Support',
-        def   => $ENV{DBIC_FEATURE_SQLITE} || 0,
-        deps  => [
-            'DBI'         => '1.56',
-            'DBD::SQLite' => '1.12',
-        ],
-    },
-    MYSQL => {
-        label => 'MySQL Support',
-        def   => $ENV{DBIC_FEATURE_MYSQL} || 0,
-        deps  => [
-            'DBI'         => '1.56',
-            'DBD::mysql'  => '4.004',
-        ],
-    },
-    PG => {
-        label => 'PostgreSQL Support',
-        def   => $ENV{DBIC_FEATURE_PG} || 0,
-        deps  => [
-            'DBI'         => '1.56',
-            'DBD::Pg'     => '1.49', # Soon to be 1.50
-        ],
-    },
-    DB2 => {
-        label => 'DB2 Support',
-        def   => $ENV{DBIC_FEATURE_DB2} || 0,
-        deps  => [
-            'DBI'         => '1.56',
-            'DBD::DB2'    => '1.0',
-        ],
-    },
-    ORACLE => {
-        label => 'Oracle Support',
-        def   => $ENV{DBIC_FEATURE_ORACLE} || 0,
-        deps  => [
-            'DBI'         => '1.56',
-            'DBD::Oracle' => '0.19',
-        ],
-    },
-    SYBASE => {
-        label => 'Sybase Support',
-        def   => $ENV{DBIC_FEATURE_SYBASE} || 0,
-        deps  => [
-            'DBI'         => '1.56',
-            'DBD::Sybase' => '1.09',
-        ],
-    },
-    MSSQL => {
-        label => 'Microsoft SQL Server Support via DBD::Sybase',
-        def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
-        deps  => [
-            'DBI'         => '1.56',
-            'DBD::Sybase' => '1.09',
-        ],
-    },
-    MSSQL_ODBC => {
-        label => 'Microsoft SQL Server Support via DBD::ODBC',
-        def   => $ENV{DBIC_FEATURE_MSSQL} || 0,
-        deps  => [
-            'DBI'       => '1.56',
-            'DBD::ODBC' => '1.22',
-        ],
-    },
-];
-
-for(my $i = 0; $i <= $#$_features - 1; $i += 2) {
-    my $name = $_features->[$i];
-    my $attrs = $_features->[$i+1];
-
-    if($ENV{DBIC_FEATURE_NOQUESTIONS}) {
-        if($attrs->{def}) {
-            requires @{$attrs->{deps}};
-        }
-    }
-    else {
-        feature $attrs->{label} =>
-            -default => $attrs->{def},
-            @{$attrs->{deps}};
-    }
-}
 
 # Rebuild README for maintainers
 if ($Module::Install::AUTHOR) {
