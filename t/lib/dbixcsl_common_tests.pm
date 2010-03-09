@@ -10,6 +10,7 @@ use File::Path;
 use DBI;
 use Digest::MD5;
 use File::Find 'find';
+use Class::Unload ();
 
 my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
@@ -85,20 +86,32 @@ sub _custom_column_info {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 159 + ($self->{extra}->{count} || 0);
+    my @connect_info;
 
-    $self->create();
+    if ($self->{dsn}) {
+        push @connect_info, [ @{$self}{qw/dsn user password connect_info_opts/ } ];
+    }
+    else {
+        foreach my $info (@{ $self->{connect_info} || [] }) {
+            push @connect_info, [ @{$info}{qw/dsn user password connect_info_opts/ } ];
+        }
+    }
 
-    my @connect_info = (
-	$self->{dsn},
-	$self->{user},
-	$self->{password},
-	$self->{connect_info_opts},
-    );
+    plan tests => @connect_info * (159 + ($self->{extra}->{count} || 0));
 
-    # First, with in-memory classes
-    my $schema_class = $self->setup_schema(@connect_info);
-    $self->test_schema($schema_class);
+    foreach my $info_idx (0..$#connect_info) {
+        my $info = $connect_info[$info_idx];
+
+        @{$self}{qw/dsn user password connect_info_opts/} = @$info;
+
+        $self->create();
+
+        my $schema_class = $self->setup_schema(@$info);
+        $self->test_schema($schema_class);
+
+        rmtree $DUMP_DIR
+            unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#connect_info;
+    }
 }
 
 # defined in sub create
@@ -136,6 +149,8 @@ sub setup_schema {
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
+
+    Class::Unload->unload($schema_class);
 
     my $file_count;
     my $expected_count = 36;
@@ -824,6 +839,8 @@ sub test_schema {
 
     $self->{extra}->{run}->($conn, $monikers, $classes) if $self->{extra}->{run};
 
+    $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
+
     $conn->storage->disconnect;
 }
 
@@ -855,6 +872,7 @@ sub dbconnect {
             RaiseError => $complain,
             ShowErrorStatement => $complain,
             PrintError => 0,
+            %{ $self->{connect_info_opts} || {} },
         },
     ]);
 
@@ -966,8 +984,8 @@ sub create {
                 id1 INTEGER NOT NULL,
                 iD2 INTEGER NOT NULL,
                 dat VARCHAR(8),
-                from_id INTEGER,
-                to_id INTEGER,
+                from_id INTEGER $self->{null},
+                to_id INTEGER $self->{null},
                 PRIMARY KEY (id1,iD2),
                 FOREIGN KEY (from_id) REFERENCES loader_test4 (id),
                 FOREIGN KEY (to_id) REFERENCES loader_test4 (id)
