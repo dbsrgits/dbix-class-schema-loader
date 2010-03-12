@@ -61,6 +61,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 naming
                                 datetime_timezone
                                 datetime_locale
+                                config_file
 /);
 
 
@@ -418,6 +419,11 @@ columns with the DATE/DATETIME/TIMESTAMP data_types.
 Sets the locale attribute for L<DBIx::Class::InflateColumn::DateTime> for all
 columns with the DATE/DATETIME/TIMESTAMP data_types.
 
+=head1 config_file
+
+File in Perl format, which should return a HASH reference, from which to read
+loader options.
+
 =head1 METHODS
 
 None of these methods are intended for direct invocation by regular
@@ -458,6 +464,18 @@ sub new {
     my $self = { %args };
 
     bless $self => $class;
+
+    if (my $config_file = $self->config_file) {
+        my $config_opts = do $config_file;
+
+        croak "Error reading config from $config_file: $@" if $@;
+
+        croak "Config file $config_file must be a hashref" unless ref($config_opts) eq 'HASH';
+
+        while (my ($k, $v) = each %$config_opts) {
+            $self->{$k} = $v unless exists $self->{$k};
+        }
+    }
 
     $self->_ensure_arrayref(qw/additional_classes
                                additional_base_classes

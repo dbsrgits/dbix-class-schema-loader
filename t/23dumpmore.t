@@ -1,11 +1,12 @@
 use strict;
 use Test::More;
-use lib qw(t/lib);
 use File::Path;
 use IPC::Open3;
-use make_dbictest_db;
 use Data::Dumper::Concise;
-require DBIx::Class::Schema::Loader;
+use DBIx::Class::Schema::Loader ();
+use File::Temp 'tempfile';
+use lib qw(t/lib);
+use make_dbictest_db;
 
 my $DUMP_PATH = './t/_dump';
 
@@ -184,6 +185,32 @@ qr/package DBICTest::Schema::14::Foo;\nour \$skip_me = "bad mojo";\n1;/
 );
 
 rmtree($DUMP_PATH, 1, 1);
+
+# test config_file
+
+my ($fh, $config_file) = tempfile;
+
+print $fh <<'EOF';
+{ skip_relationships => 1 }
+EOF
+close $fh;
+
+do_dump_test(
+    classname => 'DBICTest::Schema::14',
+    options => { config_file => $config_file },
+    error => '',
+    warnings => [
+        qr/Dumping manual schema for DBICTest::Schema::14 to directory /,
+        qr/Schema dump completed/,
+    ],
+    neg_regexes => {
+        Foo => [
+            qr/has_many/,
+        ],
+    },
+);
+
+unlink $config_file;
 
 # test out the POD
 
