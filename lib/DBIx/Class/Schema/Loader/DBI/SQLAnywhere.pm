@@ -2,14 +2,12 @@ package DBIx::Class::Schema::Loader::DBI::SQLAnywhere;
 
 use strict;
 use warnings;
-use namespace::autoclean;
 use Class::C3;
 use base qw/
     DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
     DBIx::Class::Schema::Loader::DBI
 /;
 use Carp::Clan qw/^DBIx::Class/;
-use List::MoreUtils 'uniq';
 
 our $VERSION = '0.05003';
 
@@ -87,14 +85,13 @@ sub _table_fk_info {
     my $sth = $dbh->prepare(<<'EOF');
 select fki.index_name fk_name, fktc.column_name local_column, pkt.table_name remote_table, pktc.column_name remote_column
 from sysfkey fk
-join sysidx    pki  on fk.primary_table_id = pki.table_id  and fk.primary_index_id = pki.index_id
-join sysidx    fki  on fk.foreign_table_id = fki.table_id  and fk.foreign_index_id = fki.index_id
 join systab    pkt  on fk.primary_table_id = pkt.table_id
 join systab    fkt  on fk.foreign_table_id = fkt.table_id
-join sysidxcol pkic on pki.table_id        = pkic.table_id and pki.index_id        = pkic.index_id
-join sysidxcol fkic on fki.table_id        = fkic.table_id and fki.index_id        = fkic.index_id
-join systabcol pktc on pkic.table_id       = pktc.table_id and pkic.column_id      = pktc.column_id
-join systabcol fktc on fkic.table_id       = fktc.table_id and fkic.column_id      = fktc.column_id
+join sysidx    pki  on fk.primary_table_id = pki.table_id  and fk.primary_index_id    = pki.index_id
+join sysidx    fki  on fk.foreign_table_id = fki.table_id  and fk.foreign_index_id    = fki.index_id
+join sysidxcol fkic on fkt.table_id        = fkic.table_id and fki.index_id           = fkic.index_id
+join systabcol pktc on pkt.table_id        = pktc.table_id and fkic.primary_column_id = pktc.column_id
+join systabcol fktc on fkt.table_id        = fktc.table_id and fkic.column_id         = fktc.column_id
 where fkt.table_name = ?
 EOF
     $sth->execute($table);
@@ -107,8 +104,8 @@ EOF
 
     foreach my $fk (keys %$remote_table) {
         push @rels, {
-            local_columns => [ uniq @{ $local_cols->{$fk} } ],
-            remote_columns => [ uniq @{ $remote_cols->{$fk} } ],
+            local_columns => $local_cols->{$fk},
+            remote_columns => $remote_cols->{$fk},
             remote_table => $remote_table->{$fk},
         };
     }
