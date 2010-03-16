@@ -28,6 +28,12 @@ It will also more correctly infer the relationship type, e.g. some relationships
 that were previously detected as a C<has_many> will now be a C<might_have>
 (when it detects a unique constraint on the foreign key column.)
 
+Also C<cascade_delete> and C<cascade_copy> are turned off for by default for
+C<has_many> and C<might_have> relationships, while C<belongs_to> relationships
+are created with C<< on_delete => 'CASCADE' >> and C<< on_update => 'CASCADE' >>
+by default. This is overridable via
+L<relationship_attrs|DBIx::Class::Schema::Loader::Base/relationship_attrs>.
+
 =item *
 
 moniker_map

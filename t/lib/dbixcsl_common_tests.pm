@@ -60,29 +60,6 @@ sub _monikerize {
     return undef;
 }
 
-sub _custom_column_info {
-    my ( $table_name, $column_name, $column_info ) = @_;
-
-    $table_name = lc ( $table_name );
-    $column_name = lc ( $column_name );
-
-    if ( $table_name eq 'loader_test35' 
-        and $column_name eq 'an_int' 
-    ){
-        return { is_numeric => 1 }
-    }
-    # Set inflate_datetime or  inflate_date to check 
-    #   datetime_timezone and datetime_locale
-    if ( $table_name eq 'loader_test36' ){
-        return { inflate_datetime => 1 } if 
-            ( $column_name eq 'b_char_as_data' );
-        return { inflate_date => 1 } if 
-            ( $column_name eq 'c_char_as_data' );
-    }
-
-    return;
-}
-
 sub run_tests {
     my $self = shift;
 
@@ -97,7 +74,7 @@ sub run_tests {
         }
     }
 
-    plan tests => @connect_info * (159 + ($self->{extra}->{count} || 0));
+    plan tests => @connect_info * (171 + ($self->{extra}->{count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -392,7 +369,7 @@ sub test_schema {
     );
 
     SKIP: {
-        skip $self->{skip_rels}, 101 if $self->{skip_rels};
+        skip $self->{skip_rels}, 113 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -531,6 +508,43 @@ sub test_schema {
 
         ok ($rsobj4->result_source->has_relationship('loader_test5s_from'),
             "rel with preposition 'from' pluralized correctly");
+
+        # check default relationship attributes
+        is $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_delete}, 0,
+            'cascade_delete => 0 on has_many by default';
+
+        is $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_copy}, 0,
+            'cascade_copy => 0 on has_many by default';
+
+        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_delete}),
+            'has_many does not have on_delete');
+
+        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_update}),
+            'has_many does not have on_update');
+
+        is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete}, 'CASCADE',
+            "on_delete => 'CASCADE' on belongs_to by default";
+
+        is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update}, 'CASCADE',
+            "on_update => 'CASCADE' on belongs_to by default";
+
+        ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete}),
+            'belongs_to does not have cascade_delete');
+
+        ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_copy}),
+            'belongs_to does not have cascade_copy');
+
+        is $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_delete}, 0,
+            'cascade_delete => 0 on might_have by default';
+
+        is $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_copy}, 0,
+            'cascade_copy => 0 on might_have by default';
+
+        ok ((not exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{on_delete}),
+            'might_have does not have on_delete');
+
+        ok ((not exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{on_update}),
+            'might_have does not have on_update');
 
         # find on multi-col pk
         my $obj5 = 
@@ -1446,6 +1460,29 @@ sub drop_tables {
     $dbh = $self->dbconnect(0);
     $dbh->do('DROP TABLE loader_test2');
     $dbh->disconnect;
+}
+
+sub _custom_column_info {
+    my ( $table_name, $column_name, $column_info ) = @_;
+
+    $table_name = lc ( $table_name );
+    $column_name = lc ( $column_name );
+
+    if ( $table_name eq 'loader_test35' 
+        and $column_name eq 'an_int' 
+    ){
+        return { is_numeric => 1 }
+    }
+    # Set inflate_datetime or  inflate_date to check 
+    #   datetime_timezone and datetime_locale
+    if ( $table_name eq 'loader_test36' ){
+        return { inflate_datetime => 1 } if 
+            ( $column_name eq 'b_char_as_data' );
+        return { inflate_date => 1 } if 
+            ( $column_name eq 'c_char_as_data' );
+    }
+
+    return;
 }
 
 sub DESTROY {

@@ -6,6 +6,8 @@ use Class::C3;
 
 use base 'DBIx::Class::Schema::Loader::RelBuilder';
 
+sub _default_relationship_attrs { +{} }
+
 sub _to_PL {
     my ($self, $name) = @_;
 

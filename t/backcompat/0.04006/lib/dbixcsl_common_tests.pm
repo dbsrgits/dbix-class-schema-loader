@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 91;
+    plan tests => 99;
 
     $self->create();
 
@@ -255,7 +255,7 @@ sub run_tests {
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 52 if $self->{skip_rels};
+        skip $self->{skip_rels}, 61 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -353,6 +353,31 @@ sub run_tests {
 
         ok ($rsobj4->result_source->has_relationship('loader_test5_from_ids'),
             "rel with preposition 'from' and _id pluralized backward-compatibly");
+
+        # check that default relationship attributes are not applied in 0.04006 mode
+        is $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_delete}, 1,
+            'cascade_delete => 1 on has_many by default';
+
+        is $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_copy}, 1,
+            'cascade_copy => 1 on has_many by default';
+
+        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_delete}),
+            'has_many does not have on_delete');
+
+        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_update}),
+            'has_many does not have on_update');
+
+        isnt $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete}, 'CASCADE',
+            "on_delete => 'CASCADE' not on belongs_to by default";
+
+        isnt $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update}, 'CASCADE',
+            "on_update => 'CASCADE' not on belongs_to by default";
+
+        ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete}),
+            'belongs_to does not have cascade_delete');
+
+        ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_copy}),
+            'belongs_to does not have cascade_copy');
 
         # find on multi-col pk
         my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});

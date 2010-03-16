@@ -156,15 +156,33 @@ sub _to_S {
     return Lingua::EN::Inflect::Number::to_S($name);
 }
 
+sub _default_relationship_attrs { +{
+    has_many => {
+        cascade_delete => 0,
+        cascade_copy   => 0,
+    },
+    might_have => {
+        cascade_delete => 0,
+        cascade_copy   => 0,
+    },
+    belongs_to => {
+        on_delete => 'CASCADE',
+        on_update => 'CASCADE',
+    },
+} }
+
 # accessor for options to be passed to each generated relationship
 # type.  take single argument, the relationship type name, and returns
 # either a hashref (if some options are set), or nothing
 sub _relationship_attrs {
     my ( $self, $reltype ) = @_;
     my $r = $self->{relationship_attrs};
-    return unless $r && ( $r->{all} || $r->{$reltype} );
 
-    my %composite = %{ $r->{all} || {} };
+    my %composite = (
+        %{ $self->_default_relationship_attrs->{$reltype} || {} },
+        %{ $r->{all} || {} }
+    );
+
     if( my $specific = $r->{$reltype} ) {
 	while( my ($k,$v) = each %$specific ) {
 	    $composite{$k} = $v;
