@@ -16,6 +16,7 @@ requires 'File::Spec'                  => 0;
 requires 'Scalar::Util'                => 0;
 requires 'Data::Dump'                  => '1.06';
 requires 'Lingua::EN::Inflect::Number' => '1.1';
+requires 'Lingua::EN::Inflect::Phrase' => '0.02';
 requires 'Text::Balanced'              => 0;
 requires 'Digest::MD5'                 => '2.36';
 requires 'Class::Accessor::Grouped'    => '0.09002';

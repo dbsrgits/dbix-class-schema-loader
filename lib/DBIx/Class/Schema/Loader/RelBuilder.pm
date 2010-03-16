@@ -5,6 +5,7 @@ use warnings;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
+use Lingua::EN::Inflect::Phrase ();
 
 our $VERSION = '0.05003';
 
@@ -138,7 +139,7 @@ sub _to_PL {
     my ($self, $name) = @_;
 
     $name =~ s/_/ /g;
-    my $plural = Lingua::EN::Inflect::Number::to_PL($name);
+    my $plural = Lingua::EN::Inflect::Phrase::to_PL($name);
     $plural =~ s/ /_/g;
 
     return $plural;
@@ -153,7 +154,11 @@ sub _old_to_PL {
 sub _to_S {
     my ($self, $name) = @_;
 
-    return Lingua::EN::Inflect::Number::to_S($name);
+    $name =~ s/_/ /g;
+    my $singular = Lingua::EN::Inflect::Phrase::to_S($name);
+    $singular =~ s/ /_/g;
+
+    return $singular;
 }
 
 sub _default_relationship_attrs { +{

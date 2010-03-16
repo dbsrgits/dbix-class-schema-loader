@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
 use strict;
 use warnings;
 use Class::C3;
+use Lingua::EN::Inflect::Number ();
 
 use base 'DBIx::Class::Schema::Loader::RelBuilder';
 
@@ -12,6 +13,12 @@ sub _to_PL {
     my ($self, $name) = @_;
 
     return Lingua::EN::Inflect::Number::to_PL($name);
+}
+
+sub _to_S {
+    my ($self, $name) = @_;
+
+    return Lingua::EN::Inflect::Number::to_S($name);
 }
 
 sub _relnames_and_method {

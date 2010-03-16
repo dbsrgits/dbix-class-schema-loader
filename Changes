@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - better inflection using Lingua::EN::Inflect::Phrase
         - cascade_delete and cascade_copy are turned off for has_many/might_have
           by default, and belongs_to has on_delete => 'CASCADE' and on_update =>
           'CASCADE' by default, overridable via relationship_attrs
