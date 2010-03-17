@@ -74,7 +74,7 @@ sub run_tests {
         }
     }
 
-    plan tests => @connect_info * (171 + ($self->{extra}->{count} || 0));
+    plan tests => @connect_info * (174 + ($self->{extra}->{count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -369,7 +369,7 @@ sub test_schema {
     );
 
     SKIP: {
-        skip $self->{skip_rels}, 113 if $self->{skip_rels};
+        skip $self->{skip_rels}, 116 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -522,11 +522,17 @@ sub test_schema {
         ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_update}),
             'has_many does not have on_update');
 
+        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{is_deferrable}),
+            'has_many does not have is_deferrable');
+
         is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete}, 'CASCADE',
             "on_delete => 'CASCADE' on belongs_to by default";
 
         is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update}, 'CASCADE',
             "on_update => 'CASCADE' on belongs_to by default";
+
+        is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable}, 1,
+            "is_deferrable => 1 on belongs_to by default";
 
         ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete}),
             'belongs_to does not have cascade_delete');
@@ -545,6 +551,9 @@ sub test_schema {
 
         ok ((not exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{on_update}),
             'might_have does not have on_update');
+
+        ok ((not exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{is_deferrable}),
+            'might_have does not have is_deferrable');
 
         # find on multi-col pk
         my $obj5 = 

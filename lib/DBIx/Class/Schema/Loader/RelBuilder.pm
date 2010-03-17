@@ -119,7 +119,7 @@ sub _inflect_plural {
 
 # Singularize a relationship name
 sub _inflect_singular {
-    my ($self, $relname) = @_;
+    my ($self, $relname, $method) = @_;
 
     return '' if !defined $relname || $relname eq '';
 
@@ -132,7 +132,9 @@ sub _inflect_singular {
         return $inflected if $inflected;
     }
 
-    return $self->_to_S($relname);
+    $method ||= '_to_S';
+
+    return $self->$method($relname);
 }
 
 sub _to_PL {
@@ -161,6 +163,12 @@ sub _to_S {
     return $singular;
 }
 
+sub _old_to_S {
+    my ($self, $name) = @_;
+
+    return Lingua::EN::Inflect::Number::to_S($name);
+}
+
 sub _default_relationship_attrs { +{
     has_many => {
         cascade_delete => 0,
@@ -173,6 +181,7 @@ sub _default_relationship_attrs { +{
     belongs_to => {
         on_delete => 'CASCADE',
         on_update => 'CASCADE',
+        is_deferrable => 1,
     },
 } }
 
@@ -349,7 +358,7 @@ sub _relnames_and_method {
             grep { _array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method = 'might_have';
         $local_relname = $self->_inflect_singular($local_relname_uninflected);
-        $old_local_relname = $self->_inflect_singular($old_local_relname_uninflected);
+        $old_local_relname = $self->_inflect_singular($old_local_relname_uninflected, '_old_to_S');
     }
 
     warn __PACKAGE__." $VERSION: renaming ${remote_class} relation '$old_local_relname' to '$local_relname'.  This behavior is new as of 0.05003.\n" if $old_local_relname && $local_relname ne $old_local_relname;

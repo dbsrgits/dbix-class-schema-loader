@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 99;
+    plan tests => 101;
 
     $self->create();
 
@@ -255,7 +255,7 @@ sub run_tests {
     is( $obj2->id, 2 );
 
     SKIP: {
-        skip $self->{skip_rels}, 61 if $self->{skip_rels};
+        skip $self->{skip_rels}, 63 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -367,11 +367,17 @@ sub run_tests {
         ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_update}),
             'has_many does not have on_update');
 
+        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{is_deferrable}),
+            'has_many does not have is_deferrable');
+
         isnt $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete}, 'CASCADE',
             "on_delete => 'CASCADE' not on belongs_to by default";
 
         isnt $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update}, 'CASCADE',
             "on_update => 'CASCADE' not on belongs_to by default";
+
+        isnt $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable}, 1,
+            "is_deferrable => 1 not on belongs_to by default";
 
         ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete}),
             'belongs_to does not have cascade_delete');
