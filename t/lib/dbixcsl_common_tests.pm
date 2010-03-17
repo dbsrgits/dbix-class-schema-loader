@@ -11,6 +11,7 @@ use DBI;
 use Digest::MD5;
 use File::Find 'find';
 use Class::Unload ();
+use Data::Dumper::Concise;
 
 my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
@@ -45,7 +46,11 @@ sub new {
     $self->{default_function} ||= "CURRENT_TIMESTAMP";
     $self->{default_function_def} ||= "TIMESTAMP DEFAULT $self->{default_function}";
 
-    return bless $self => $class;
+    $self = bless $self, $class;
+
+    $self->setup_data_type_tests;
+
+    return $self;
 }
 
 sub skip_tests {
@@ -74,7 +79,7 @@ sub run_tests {
         }
     }
 
-    plan tests => @connect_info * (174 + ($self->{extra}->{count} || 0));
+    plan tests => @connect_info * (174 + ($self->{extra}{count} || 0) + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -130,7 +135,7 @@ sub setup_schema {
     Class::Unload->unload($schema_class);
 
     my $file_count;
-    my $expected_count = 36;
+    my $expected_count = 36 + ($self->{data_type_tests} ? 1 : 0);
     {
        my @loader_warnings;
        local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
@@ -860,7 +865,29 @@ sub test_schema {
            'Foreign key detected');
     }
 
-    $self->{extra}->{run}->($conn, $monikers, $classes) if $self->{extra}->{run};
+    # test data types
+    if (my $data_type_tests = $self->{data_type_tests}) {
+        my $columns = $data_type_tests->{columns};
+
+        my $rsrc = $conn->resultset($data_type_tests->{table_moniker})->result_source;
+
+        while (my ($col_name, $expected_info) = each %$columns) {
+            while (my ($info_key, $info_val) = each %$expected_info) {
+                my $text_info_val = do {
+                    my $dd = Dumper;
+                    $dd->Indent(0);
+                    $dd->Values([$info_val]);
+                    $dd->Dump;
+                };
+
+                is_deeply $rsrc->column_info($col_name)->{$info_key}, $info_val,
+                    "column of type $col_name has $info_key => $text_info_val";
+            }
+        }
+    }
+
+    # run extra tests
+    $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
 
     $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 
@@ -1342,6 +1369,9 @@ sub create {
     };
 
     $dbh->do($_) for (@statements);
+
+    $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests};
+
     unless($self->{skip_rels}) {
         # hack for now, since DB2 doesn't like inline comments, and we need
         # to test one for mysql, which works on everyone else...
@@ -1463,6 +1493,9 @@ sub drop_tables {
     }
     $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
     $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
+
+    $dbh->do("DROP TABLE ".$self->{data_type_tests}{table_name}) if $self->{data_type_tests};
+
     $dbh->disconnect;
 
 # fixup for Firebird
@@ -1492,6 +1525,44 @@ sub _custom_column_info {
     }
 
     return;
+}
+
+sub setup_data_type_tests {
+    my $self = shift;
+
+    return unless my $types = $self->{data_types};
+
+    my $tests = $self->{data_type_tests} = {};
+    my $cols  = $tests->{columns}        = {};
+
+    $tests->{table_name}    = 'loader_test9999';
+    $tests->{table_moniker} = 'LoaderTest9999';
+
+    my $ddl = "CREATE TABLE loader_test9999 (\n    id INTEGER NOT NULL PRIMARY KEY,\n";
+
+    my $test_count = 0;
+
+    while (my ($col_def, $expected_info) = each %$types) {
+        my $have_size = $col_def =~ /\(/ ? 1 : 0;
+
+        (my $type_alias = $col_def) =~ s/\([^()]+\)//g;
+        $type_alias =~ s/\s/_/g;
+
+        my $col_name = $type_alias . ($have_size ? '_with_size' : '');
+
+        $ddl .= "    $col_name $col_def,\n";
+
+        $cols->{$col_name} = $expected_info;
+
+        $test_count += scalar keys %$expected_info;
+    }
+
+    $ddl =~ s/,\n\z/\n)/;
+
+    $tests->{ddl}        = $ddl;
+    $tests->{test_count} = $test_count;
+
+    return $test_count;
 }
 
 sub DESTROY {
