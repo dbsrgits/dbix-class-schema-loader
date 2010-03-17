@@ -31,7 +31,7 @@ my $tester = dbixcsl_common_tests->new(
                     person_id INTEGER PRIMARY KEY
                 )
             },
-            # Wordy, newline-heavy SQL to stress the regexes
+            # Wordy, newline-heavy SQL
             q{
                 CREATE TABLE extra_loader_test4 (
                     event_id INTEGER NOT NULL
@@ -43,7 +43,12 @@ my $tester = dbixcsl_common_tests->new(
                     PRIMARY KEY (event_id, person_id)
                 )
             },
+            # make sure views are picked up
+            q{
+                CREATE VIEW extra_loader_test5 AS SELECT * FROM extra_loader_test4
+            }
         ],
+        pre_drop_ddl => [ 'DROP VIEW extra_loader_test5' ],
         drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3 extra_loader_test4 / ],
         count => 8,
         run   => sub {

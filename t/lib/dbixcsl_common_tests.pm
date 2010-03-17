@@ -135,46 +135,48 @@ sub setup_schema {
     Class::Unload->unload($schema_class);
 
     my $file_count;
-    my $expected_count = 36 + ($self->{data_type_tests} ? 1 : 0);
+    my $expected_count = 36 + ($self->{data_type_tests}{test_count} ? 1 : 0);
     {
-       my @loader_warnings;
-       local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
-        eval qq{
-            package $schema_class;
-            use base qw/DBIx::Class::Schema::Loader/;
-    
-            __PACKAGE__->loader_options(\%loader_opts);
-            __PACKAGE__->connection(\@connect_info);
-        };
+        my @loader_warnings;
+        local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
+         eval qq{
+             package $schema_class;
+             use base qw/DBIx::Class::Schema::Loader/;
+     
+             __PACKAGE__->loader_options(\%loader_opts);
+             __PACKAGE__->connection(\@connect_info);
+         };
+ 
+        ok(!$@, "Loader initialization") or diag $@;
+ 
+        find sub { return if -d; $file_count++ }, $DUMP_DIR;
+ 
+        $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
+            @{ $self->{extra}{create} || [] };
+ 
+        $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
+            if $self->{skip_rels} || $self->{no_inline_rels};
+ 
+        $expected_count -= grep /CREATE TABLE/, @statements_implicit_rels
+            if $self->{skip_rels} || $self->{no_implicit_rels};
+ 
+        $expected_count -= grep /CREATE TABLE/, ($self->{vendor} =~ /sqlite/ ? @statements_advanced_sqlite : @statements_advanced), @statements_reltests
+            if $self->{skip_rels};
+ 
+        is $file_count, $expected_count, 'correct number of files generated';
+ 
+        my $warn_count = 2;
+        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
+ 
+        $warn_count++ for grep /^Bad table or view/, @loader_warnings;
+ 
+        $warn_count++ for grep /renaming \S+ relation/, @loader_warnings;
+ 
+        my $vendor = $self->{vendor};
+        $warn_count++ for grep /${vendor}_\S+ has no primary key/,
+            @loader_warnings;
 
-       ok(!$@, "Loader initialization") or diag $@;
-
-       find sub { return if -d; $file_count++ }, $DUMP_DIR;
-
-       $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
-           @{ $self->{extra}{create} || [] };
-
-       $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
-           if $self->{skip_rels} || $self->{no_inline_rels};
-
-       $expected_count -= grep /CREATE TABLE/, @statements_implicit_rels
-           if $self->{skip_rels} || $self->{no_implicit_rels};
-
-       $expected_count -= grep /CREATE TABLE/, ($self->{vendor} =~ /sqlite/ ? @statements_advanced_sqlite : @statements_advanced), @statements_reltests
-           if $self->{skip_rels};
-
-       is $file_count, $expected_count, 'correct number of files generated';
-
-       my $warn_count = 2;
-       $warn_count++ if grep /ResultSetManager/, @loader_warnings;
-
-       $warn_count++ for grep /^Bad table or view/, @loader_warnings;
-
-       $warn_count++ for grep /renaming \S+ relation/, @loader_warnings;
-
-       my $vendor = $self->{vendor};
-       $warn_count++ for grep /${vendor}_\S+ has no primary key/,
-           @loader_warnings;
+        $warn_count++ for grep /\b(?!loader_test9)\w+ has no primary key/i, @loader_warnings;
 
         if($self->{skip_rels}) {
             SKIP: {
@@ -866,7 +868,8 @@ sub test_schema {
     }
 
     # test data types
-    if (my $data_type_tests = $self->{data_type_tests}) {
+    if ($self->{data_type_tests}{test_count}) {
+        my $data_type_tests = $self->{data_type_tests};
         my $columns = $data_type_tests->{columns};
 
         my $rsrc = $conn->resultset($data_type_tests->{table_moniker})->result_source;
@@ -1494,7 +1497,9 @@ sub drop_tables {
     $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
     $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
 
-    $dbh->do("DROP TABLE ".$self->{data_type_tests}{table_name}) if $self->{data_type_tests};
+    if (my $data_type_table = $self->{data_type_tests}{table_name}) {
+        $dbh->do("DROP TABLE $data_type_table");
+    }
 
     $dbh->disconnect;
 
