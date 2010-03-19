@@ -50,7 +50,7 @@ my $tester = dbixcsl_common_tests->new(
         ],
         pre_drop_ddl => [ 'DROP VIEW extra_loader_test5' ],
         drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3 extra_loader_test4 / ],
-        count => 8,
+        count => 9,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -77,6 +77,9 @@ my $tester = dbixcsl_common_tests->new(
             is ($source->relationships, 2,
                 '2 foreign key constraints found');
 
+            # test that columns for views are picked up
+            is $schema->resultset($monikers->{extra_loader_test5})->result_source->column_info('person_id')->{data_type}, 'INTEGER',
+                'columns for views are introspected';
         },
     },
 );
