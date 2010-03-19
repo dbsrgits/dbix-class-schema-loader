@@ -172,10 +172,6 @@ sub setup_schema {
  
         $warn_count++ for grep /renaming \S+ relation/, @loader_warnings;
  
-        my $vendor = $self->{vendor};
-        $warn_count++ for grep /${vendor}_\S+ has no primary key/,
-            @loader_warnings;
-
         $warn_count++ for grep /\b(?!loader_test9)\w+ has no primary key/i, @loader_warnings;
 
         if($self->{skip_rels}) {
@@ -1373,7 +1369,7 @@ sub create {
 
     $dbh->do($_) for (@statements);
 
-    $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests};
+    $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests}{ddl};
 
     unless($self->{skip_rels}) {
         # hack for now, since DB2 doesn't like inline comments, and we need

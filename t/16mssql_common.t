@@ -37,6 +37,9 @@ my $tester = dbixcsl_common_tests->new(
             password    => $odbc_password,
         } : ()),
     ],
+    data_types => {
+        'int identity' => { data_type => 'int', is_auto_increment => 1 },
+    },
     extra => {
         create => [
             q{
@@ -54,6 +57,15 @@ my $tester = dbixcsl_common_tests->new(
                 CREATE VIEW mssql_loader_test4 AS
                 SELECT * FROM mssql_loader_test3
             },
+            # test capitalization of cols in unique constraints
+            q{
+                CREATE TABLE mssql_loader_test5 (
+                    id INT IDENTITY NOT NULL PRIMARY KEY,
+                    FooCol INT NOT NULL,
+                    BarCol INT NOT NULL,
+                    UNIQUE (FooCol, BarCol)
+                )
+            },
         ],
         pre_drop_ddl => [
             'CREATE TABLE mssql_loader_test3 (id INT IDENTITY NOT NULL PRIMARY KEY)',
@@ -61,9 +73,10 @@ my $tester = dbixcsl_common_tests->new(
         ],
         drop   => [
             '[mssql_loader_test1.dot]',
-            'mssql_loader_test3'
+            'mssql_loader_test3',
+            'mssql_loader_test5',
         ],
-        count  => 8,
+        count  => 9,
         run    => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -80,16 +93,18 @@ my $tester = dbixcsl_common_tests->new(
             is eval { $$from }, "[mssql_loader_test1.dot]",
                 '->table with dot in name has correct name';
 
-# Test that identity columns do not have 'identity' in the data_type, and do
-# have is_auto_increment.
-            my $identity_col_info = $schema->resultset($monikers->{loader_test10})
-                ->result_source->column_info('id10');
+# Test capitalization of columns and unique constraints
+            ok ((my $rsrc = $schema->resultset($monikers->{mssql_loader_test5})->result_source),
+                'got result_source');
 
-            is $identity_col_info->{data_type}, 'int',
-                q{'INT IDENTITY' column has data_type => 'int'};
+            is $rsrc->column_info('foocol')->{data_type}, 'int',
+                'column names are lowercased';
 
-            is $identity_col_info->{is_auto_increment}, 1,
-                q{'INT IDENTITY' column has is_auto_increment => 1};
+            my %uniqs = $rsrc->unique_constraints;
+            delete $uniqs{primary};
+
+            is_deeply ((values %uniqs)[0], [qw/foocol barcol/],
+                'columns in unique constraint lowercased');
 
 # Test that a bad view (where underlying table is gone) is ignored.
             my $dbh = $schema->storage->dbh;
