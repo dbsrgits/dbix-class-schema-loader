@@ -1543,6 +1543,8 @@ sub setup_data_type_tests {
 
     my $test_count = 0;
 
+    my %seen_col_names;
+
     while (my ($col_def, $expected_info) = each %$types) {
         my $have_size = $col_def =~ /\(/ ? 1 : 0;
 
@@ -1550,6 +1552,8 @@ sub setup_data_type_tests {
         $type_alias =~ s/\s/_/g;
 
         my $col_name = $type_alias . ($have_size ? '_with_size' : '');
+
+        $col_name .= $seen_col_names{$col_name} if $seen_col_names{$col_name}++;
 
         $ddl .= "    $col_name $col_def,\n";
 

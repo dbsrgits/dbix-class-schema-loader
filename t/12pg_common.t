@@ -70,6 +70,9 @@ my $tester = dbixcsl_common_tests->new(
 	'char(2)'                        => { size => 2, data_type => 'character' },
 	'numeric(6, 3)'                  => { size => [6,3], data_type => 'numeric' },
 	'decimal(6, 3)'                  => { size => [6,3], data_type => 'numeric' },
+        'float(24)'                      => { size => undef, data_type => 'real' },
+        'float(53)'                      => { size => undef, data_type => 'double precision' },
+        'float'                          => { size => undef, data_type => 'double precision' },
     },
     extra       => {
         create => [
