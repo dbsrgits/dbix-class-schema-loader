@@ -12,20 +12,34 @@ our $VERSION = '0.05003';
 
 DBIx::Class::Schema::Loader::DBI::MSSQL - DBIx::Class::Schema::Loader::DBI MSSQL Implementation.
 
-=head1 SYNOPSIS
-
-  package My::Schema;
-  use base qw/DBIx::Class::Schema::Loader/;
-
-  __PACKAGE__->loader_options( debug => 1 );
-
-  1;
-
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+Base driver for Microsoft SQL Server, used by
+L<DBIx::Class::Schema::Loader::DBI::Sybase::Microsoft_SQL_Server> for support
+via L<DBD::Sybase> and
+L<DBIx::Class::Schema::Loader::DBI::ODBC::Microsoft_SQL_Server> for support via
+L<DBD::ODBC>.
+
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base> for
+usage information.
 
 =cut
+
+sub _tables_list {
+    my $self = shift;
+
+    my $dbh = $self->schema->storage->dbh;
+    my $sth = $dbh->prepare(<<'EOF');
+select t.table_name
+from information_schema.tables t
+where t.table_schema = ?
+EOF
+    $sth->execute($self->db_schema);
+
+    my @tables = map lc $_, map @$_, @{ $sth->fetchall_arrayref };
+
+    return $self->_filter_tables(@tables);
+}
 
 sub _table_pk_info {
     my ($self, $table) = @_;
@@ -130,6 +144,8 @@ sub _extra_column_info {
 
 =head1 SEE ALSO
 
+L<DBIx::Class::Schema::Loader::DBI::Sybase::Microsoft_SQL_Server>,
+L<DBIx::Class::Schema::Loader::DBI::ODBC::Microsoft_SQL_Server>,
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
 L<DBIx::Class::Schema::Loader::DBI>
 

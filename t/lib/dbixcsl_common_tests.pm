@@ -148,7 +148,7 @@ sub setup_schema {
          };
  
         ok(!$@, "Loader initialization") or diag $@;
- 
+
         find sub { return if -d; $file_count++ }, $DUMP_DIR;
  
         $expected_count += grep /CREATE (?:TABLE|VIEW)/i,

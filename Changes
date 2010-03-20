@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - better _tables_list for MSSQL
         - pick up views in SQLite too
         - better rel inflection using Lingua::EN::Inflect::Phrase
         - cascade_delete and cascade_copy are turned off for has_many/might_have
