@@ -102,44 +102,50 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
-sub _extra_column_info {
-    my ($self, $table, $column, $info, $dbi_info) = @_;
-    my %extra_info;
+sub _columns_info_for {
+    my $self    = shift;
+    my ($table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE COLUMNPROPERTY(object_id(@{[ $dbh->quote($table) ]}, 'U'), '$column', 'IsIdentity') = 1
-          AND TABLE_NAME = @{[ $dbh->quote($table) ]} AND COLUMN_NAME = @{[ $dbh->quote($column) ]}
-    });
-    $sth->execute();
+    my $result = $self->next::method(@_);
 
-    if ($sth->fetchrow_array) {
-        $extra_info{is_auto_increment} = 1;
-    }
+    while (my ($col, $info) = each %$result) {
+        my $dbh = $self->schema->storage->dbh;
+        my $sth = $dbh->prepare(qq{
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE COLUMNPROPERTY(object_id(@{[ $dbh->quote($table) ]}, 'U'), @{[ $dbh->quote($col) ]}, 'IsIdentity') = 1
+              AND TABLE_NAME = @{[ $dbh->quote($table) ]} AND COLUMN_NAME = @{[ $dbh->quote($col) ]}
+        });
+        $sth->execute();
+
+        if ($sth->fetchrow_array) {
+            $info->{is_auto_increment} = 1;
+            $info->{data_type} =~ s/\s*identity//i;
+            delete $info->{size};
+        }
 
 # get default
-    $sth = $dbh->prepare(qq{
-        SELECT COLUMN_DEFAULT
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_NAME = @{[ $dbh->quote($table) ]} AND COLUMN_NAME = @{[ $dbh->quote($column) ]}
-    });
-    $sth->execute;
-    my ($default) = $sth->fetchrow_array;
+        $sth = $dbh->prepare(qq{
+            SELECT COLUMN_DEFAULT
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = @{[ $dbh->quote($table) ]} AND COLUMN_NAME = @{[ $dbh->quote($col) ]}
+        });
+        $sth->execute;
+        my ($default) = $sth->fetchrow_array;
 
-    if (defined $default) {
-        # strip parens
-        $default =~ s/^\( (.*) \)\z/$1/x;
+        if (defined $default) {
+            # strip parens
+            $default =~ s/^\( (.*) \)\z/$1/x;
 
-        # Literal strings are in ''s, numbers are in ()s (in some versions of
-        # MSSQL, in others they are unquoted) everything else is a function.
-        $extra_info{default_value} =
-            $default =~ /^['(] (.*) [)']\z/x ? $1 :
-                $default =~ /^\d/ ? $default : \$default;
+            # Literal strings are in ''s, numbers are in ()s (in some versions of
+            # MSSQL, in others they are unquoted) everything else is a function.
+            $info->{default_value} =
+                $default =~ /^['(] (.*) [)']\z/x ? $1 :
+                    $default =~ /^\d/ ? $default : \$default;
+        }
     }
 
-    return \%extra_info;
+    return $result;
 }
 
 =head1 SEE ALSO
