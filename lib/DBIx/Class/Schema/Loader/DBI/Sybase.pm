@@ -10,20 +10,12 @@ our $VERSION = '0.05003';
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::DBI::Sybase - DBIx::Class::Schema::Loader::DBI Sybase Implementation.
-
-=head1 SYNOPSIS
-
-  package My::Schema;
-  use base qw/DBIx::Class::Schema::Loader/;
-
-  __PACKAGE__->loader_options( debug => 1 );
-
-  1;
+DBIx::Class::Schema::Loader::DBI::Sybase - DBIx::Class::Schema::Loader::DBI
+Sybase ASE Implementation.
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
@@ -229,11 +221,11 @@ sub _columns_info_for {
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare(qq{
-SELECT c.name name, t.name type, cm.text deflt, c.prec prec, c.scale scale,
-        c.length len
+SELECT c.name name, bt.name base_type, ut.name user_type, cm.text deflt, c.prec prec, c.scale scale, c.length len
 FROM syscolumns c
 JOIN sysobjects o ON c.id = o.id
-LEFT JOIN systypes t ON c.type = t.type AND c.usertype = t.usertype
+LEFT JOIN systypes bt ON c.type     = bt.type 
+LEFT JOIN systypes ut ON c.usertype = ut.usertype
 LEFT JOIN syscomments cm
     ON cm.id = CASE WHEN c.cdefault = 0 THEN c.computedcol ELSE c.cdefault END
 WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
@@ -243,7 +235,7 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
     my $info = $sth->fetchall_hashref('name');
 
     while (my ($col, $res) = each %$result) {
-        my $data_type = $res->{data_type} = $info->{$col}{type};
+        my $data_type = $res->{data_type} = $info->{$col}{user_type} || $info->{$col}{base_type};
 
         if ($data_type && $data_type =~ /^timestamp\z/i) {
             $res->{inflate_datetime} = 0;
@@ -257,6 +249,9 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
                 if ($function =~ /^getdate\b/) {
                     $res->{inflate_datetime} = 1;
                 }
+
+                delete $res->{size};
+                $res->{data_type} = undef;
             }
             elsif ($default =~ /^DEFAULT \s+ (\S+)/ix) {
                 my ($constant_default) = $1 =~ /^['"\[\]]?(.*?)['"\[\]]?\z/;
@@ -264,18 +259,34 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
             }
         }
 
-# XXX we need to handle "binary precision" for FLOAT(X)
-# (see: http://msdn.microsoft.com/en-us/library/aa258876(SQL.80).aspx )
         if (my $data_type = $res->{data_type}) {
-            if ($data_type =~ /^(?:text|unitext|image|bigint|int|integer|smallint|tinyint|real|double|double precision|float|date|time|datetime|smalldatetime|money|smallmoney|timestamp|bit)\z/i) {
+            if ($data_type eq 'int') {
+                $data_type = $res->{data_type} = 'integer';
+            }
+            elsif ($data_type eq 'decimal') {
+                $data_type = $res->{data_type} = 'numeric';
+            }
+
+            if ($data_type =~ /^(?:text|unitext|image|bigint|integer|smallint|tinyint|real|double|double precision|float|date|time|datetime|smalldatetime|money|smallmoney|timestamp|bit)\z/i) {
                 delete $res->{size};
             }
-            elsif ($data_type =~ /^(?:numeric|decimal)\z/i) {
-                $res->{size} = [ $info->{$col}{prec}, $info->{$col}{scale} ];
+            elsif ($data_type eq 'numeric') {
+                my ($prec, $scale) = @{$info->{$col}}{qw/prec scale/};
+
+                if ($prec == 18 && $scale == 0) {
+                    delete $res->{size};
+                }
+                else {
+                    $res->{size} = [ $prec, $scale ];
+                }
             }
             elsif ($data_type =~ /^(?:unichar|univarchar)\z/i) {
                 $res->{size} /= 2;
             }
+        }
+
+        if ($data_type eq 'float') {
+            $res->{data_type} = $info->{$col}{len} <= 4 ? 'real' : 'double precision';
         }
     }
 
@@ -299,6 +310,7 @@ sub _extra_column_info {
 
 =head1 SEE ALSO
 
+L<DBIx::Class::Schema::Loader::DBI::Sybase::Common>,
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
 L<DBIx::Class::Schema::Loader::DBI>
 

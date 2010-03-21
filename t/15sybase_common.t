@@ -17,135 +17,45 @@ my $tester = dbixcsl_common_tests->new(
     dsn         => $dsn,
     user        => $user,
     password    => $password,
-    extra       => {
-        create  => [
-            q{
-                CREATE TABLE sybase_loader_test1 (
-                    id INTEGER IDENTITY NOT NULL PRIMARY KEY,
-                    ts timestamp,
-                    computed_dt AS getdate()
-                )
-            },
 # Test data types, see http://ispirer.com/wiki/sqlways/sybase/data-types
-# XXX handle FLOAT(P) at some point
-# ( http://msdn.microsoft.com/en-us/library/aa258876(SQL.80).aspx )
-            q{
-                CREATE TABLE sybase_loader_test2 (
-                    id INTEGER IDENTITY NOT NULL PRIMARY KEY,
-                    a_text TEXT,
-                    a_unitext UNITEXT,
-                    an_image IMAGE,
-                    a_bigint BIGINT,
-                    an_int INT,
-                    an_integer INTEGER,
-                    a_smallint SMALLINT,
-                    a_tinyint TINYINT,
-                    a_real REAL,
-                    a_double_precision DOUBLE PRECISION,
-                    a_date DATE,
-                    a_time TIME,
-                    a_datetime DATETIME,
-                    a_smalldatetime SMALLDATETIME,
-                    a_money MONEY,
-                    a_smallmoney SMALLMONEY,
-                    a_timestamp timestamp,
-                    a_bit BIT,
-                    a_char_with_precision CHAR(2),
-                    an_nchar_with_precision NCHAR(2),
-                    a_unichar_with_precision UNICHAR(2),
-                    a_varchar_with_precision VARCHAR(2),
-                    an_nvarchar_with_precision NVARCHAR(2),
-                    a_univarchar_with_precision UNIVARCHAR(2),
-                    a_float FLOAT,
-                    a_binary_with_precision BINARY(2),
-                    a_varbinary_with_precision VARBINARY(2),
-                    the_numeric NUMERIC(6,3),
-                    the_decimal DECIMAL(6,3)
-                )
-            },
-        ],
-        drop  => [ qw/ sybase_loader_test1 sybase_loader_test2 / ],
-        count => 37,
-        run   => sub {
-            my ($schema, $monikers, $classes) = @_;
-
-            my $rs = $schema->resultset($monikers->{sybase_loader_test1});
-            my $rsrc = $rs->result_source;
-
-            is $rsrc->column_info('id')->{data_type},
-                'int',
-                'INTEGER IDENTITY data_type is correct';
-
-            is $rsrc->column_info('id')->{is_auto_increment},
-                1,
-                'INTEGER IDENTITY is_auto_increment => 1';
-
-            is $rsrc->column_info('ts')->{data_type},
-               'timestamp',
-               'timestamps have the correct data_type';
-
-            is $rsrc->column_info('ts')->{inflate_datetime},
-                0,
-                'timestamps have inflate_datetime => 0';
-
-            ok ((exists $rsrc->column_info('computed_dt')->{data_type}
-              && (not defined $rsrc->column_info('computed_dt')->{data_type})),
-                'data_type for computed column exists and is undef')
-            or diag "Data type is: ",
-                $rsrc->column_info('computed_dt')->{data_type}
-            ;
-
-            my $computed_dt_default =
-                $rsrc->column_info('computed_dt')->{default_value};
-
-            ok ((ref $computed_dt_default eq 'SCALAR'),
-                'default_value for computed column is a scalar ref')
-            or diag "default_value is: ", $computed_dt_default
-            ;
-
-            eval { is $$computed_dt_default,
-                'getdate()',
-                'default_value for computed column is correct' };
-
-            $rsrc = $schema->resultset($monikers->{sybase_loader_test2})
-                ->result_source;
-            my @type_columns = grep /^a/, $rsrc->columns;
-            my @without_precision = grep !/_with_precision\z/, @type_columns;
-            my @with_precision    = grep  /_with_precision\z/, @type_columns;
-            my %with_precision;
-            @with_precision{
-                apply { s/_with_precision\z// } @with_precision
-            } = ();
-
-            for my $col (@without_precision) {
-                my ($data_type) = $col =~ /^an?_(.*)/;
-                $data_type =~ s/_/ /g;
-
-                ok((not exists $rsrc->column_info($col)->{size}),
-                    "$data_type " .
-                    (exists $with_precision{$col} ? 'without precision ' : '') .
-                    "has no 'size' column_info")
-                or diag "size is ".$rsrc->column_info($col)->{size}."\n";
-            }
-
-            for my $col (@with_precision) {
-                my ($data_type) = $col =~ /^an?_(.*)_with_precision\z/;
-                ($data_type = uc $data_type) =~ s/_/ /g;
-                my $size = $rsrc->column_info($col)->{size};
-
-                is $size, 2,
-                  "$data_type with precision has a correct 'size' column_info";
-            }
-
-            is_deeply $rsrc->column_info('the_numeric')->{size}, [6,3],
-                'size for NUMERIC(precision, scale) is correct';
-
-            is_deeply $rsrc->column_info('the_decimal')->{size}, [6,3],
-                'size for DECIMAL(precision, scale) is correct';
-
-            is $schema->resultset($monikers->{loader_test35})->result_source->column_info('a_function')->{inflate_datetime}, 1,
-                'AS getdate() columns get inflate_datetime => 1';
-        },
+    data_types  => {
+        'integer identity' => { data_type => 'integer', is_auto_increment => 1 },
+        'AS getdate()'     => { data_type => undef, inflate_datetime => 1, default_value => \'getdate()' },
+        text     => { data_type => 'text' },
+        unitext  => { data_type => 'unitext' },
+        image    => { data_type => 'image' },
+        bigint   => { data_type => 'bigint' },
+        int      => { data_type => 'integer' },
+        integer  => { data_type => 'integer' },
+        smallint => { data_type => 'smallint' },
+        tinyint  => { data_type => 'tinyint' },
+        date     => { data_type => 'date' },
+        time     => { data_type => 'time' },
+        datetime => { data_type => 'datetime' },
+        smalldatetime  => { data_type => 'smalldatetime' },
+        money          => { data_type => 'money' },
+        smallmoney     => { data_type => 'smallmoney' },
+        timestamp      => { data_type => 'timestamp', inflate_datetime => 0 },
+        bit            => { data_type => 'bit' },
+        'char(2)'      => { data_type => 'char', size => 2 },
+        'nchar(2)'     => { data_type => 'nchar', size => 2 },
+        'unichar(2)'   => { data_type => 'unichar', size => 2 },
+        'varchar(2)'   => { data_type => 'varchar', size => 2 },
+        'nvarchar(2)'  => { data_type => 'nvarchar', size => 2 },
+        'univarchar(2)' => { data_type => 'univarchar', size => 2 },
+        'binary(2)'    => { data_type => 'binary', size => 2 },
+        'varbinary(2)' => { data_type => 'varbinary', size => 2 },
+        'double precision' => { data_type => 'double precision' },
+        real           => { data_type => 'real' },
+        float          => { data_type => 'double precision' },
+        'float(14)'    => { data_type => 'real' },
+        'float(15)'    => { data_type => 'real' },
+        'float(16)'    => { data_type => 'double precision' },
+        'float(48)'    => { data_type => 'double precision' },
+        'numeric(6,3)' => { data_type => 'numeric', size => [6,3] },
+        'decimal(6,3)' => { data_type => 'numeric', size => [6,3] },
+        numeric        => { data_type => 'numeric' },
+        decimal        => { data_type => 'numeric' },
     },
 );
 

@@ -1556,12 +1556,15 @@ sub setup_data_type_tests {
     while (my ($col_def, $expected_info) = each %$types) {
         my $have_size = $col_def =~ /\(/ ? 1 : 0;
 
-        (my $type_alias = $col_def) =~ s/\([^()]+\)//g;
+        (my $type_alias = lc($col_def)) =~ s/\([^()]+\)//g;
         $type_alias =~ s/\s/_/g;
+        $type_alias =~ s/\W//g;
 
-        my $col_name = $type_alias . ($have_size ? '_with_size' : '');
+        my @size = grep defined($_), $col_def =~ /\( \s* (\d+) \s* ,? \s* (\d+)?/x;
 
-        $col_name .= $seen_col_names{$col_name} if $seen_col_names{$col_name}++;
+        my $col_name = $type_alias . ($have_size ? "_with_size_".(join '_', @size) : '');
+
+        $col_name .= "_$seen_col_names{$col_name}" if $seen_col_names{$col_name}++;
 
         $ddl .= "    $col_name $col_def,\n";
 

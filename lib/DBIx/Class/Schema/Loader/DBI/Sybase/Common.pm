@@ -10,12 +10,12 @@ our $VERSION = '0.05003';
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::DBI::Sybase::Common - Common functions for Sybase
+DBIx::Class::Schema::Loader::DBI::Sybase::Common - Common methods for Sybase
 and MSSQL
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
@@ -80,6 +80,8 @@ sub _columns_info_for {
 
 L<DBIx::Class::Schema::Loader::DBI::Sybase>,
 L<DBIx::Class::Schema::Loader::DBI::MSSQL>,
+L<DBIx::Class::Schema::Loader::DBI::ODBC::Microsoft_SQL_Server>,
+L<DBIx::Class::Schema::Loader::DBI::Sybase::Microsoft_SQL_Server>,
 L<DBIx::Class::Schema::Loader::DBI>
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
 
