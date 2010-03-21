@@ -871,17 +871,25 @@ sub test_schema {
         my $rsrc = $conn->resultset($data_type_tests->{table_moniker})->result_source;
 
         while (my ($col_name, $expected_info) = each %$columns) {
-            while (my ($info_key, $info_val) = each %$expected_info) {
-                my $text_info_val = do {
-                    my $dd = Dumper;
-                    $dd->Indent(0);
-                    $dd->Values([$info_val]);
-                    $dd->Dump;
-                };
+            my %info = %{ $rsrc->column_info($col_name) };
+            delete @info{qw/is_nullable timezone locale sequence/};
 
-                is_deeply $rsrc->column_info($col_name)->{$info_key}, $info_val,
-                    "column of type $col_name has $info_key => $text_info_val";
-            }
+            my $text_col_def = do {
+                my $dd = Dumper;
+                $dd->Indent(0);
+                $dd->Values([\%info]);
+                $dd->Dump;
+            };
+
+            my $text_expected_info = do {
+                my $dd = Dumper;
+                $dd->Indent(0);
+                $dd->Values([$expected_info]);
+                $dd->Dump;
+            };
+
+            is_deeply \%info, $expected_info,
+                "test column $col_name has definition: $text_col_def expecting: $text_expected_info";
         }
     }
 
@@ -1559,7 +1567,7 @@ sub setup_data_type_tests {
 
         $cols->{$col_name} = $expected_info;
 
-        $test_count += scalar keys %$expected_info;
+        $test_count++;
     }
 
     $ddl =~ s/,\n\z/\n)/;
@@ -1579,3 +1587,4 @@ sub DESTROY {
 }
 
 1;
+# vim:et sts=4 sw=4 tw=0:

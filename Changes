@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - better type info for Pg: sets sequence for serials, handles numerics
+          without precision
         - better _tables_list for MSSQL
         - pick up views in SQLite too
         - better rel inflection using Lingua::EN::Inflect::Phrase

@@ -284,10 +284,10 @@ sub _columns_info_for {
             my $sth = $dbh->column_info( undef, $self->db_schema, $table, '%' );
             while ( my $info = $sth->fetchrow_hashref() ){
                 my $column_info = {};
-                $column_info->{data_type}   = $info->{TYPE_NAME};
-                $column_info->{size}      = $info->{COLUMN_SIZE};
+                $column_info->{data_type}     = $info->{TYPE_NAME};
+                $column_info->{size}          = $info->{COLUMN_SIZE} if defined $info->{COLUMN_SIZE};
                 $column_info->{is_nullable}   = $info->{NULLABLE} ? 1 : 0;
-                $column_info->{default_value} = $info->{COLUMN_DEF};
+                $column_info->{default_value} = $info->{COLUMN_DEF} if defined $info->{COLUMN_DEF};
                 my $col_name = $info->{COLUMN_NAME};
                 $col_name =~ s/^\"(.*)\"$/$1/;
 
@@ -310,7 +310,7 @@ sub _columns_info_for {
     for my $i ( 0 .. $#columns ){
         my $column_info = {};
         $column_info->{data_type} = $sth->{TYPE}->[$i];
-        $column_info->{size} = $sth->{PRECISION}->[$i];
+        $column_info->{size} = $sth->{PRECISION}->[$i] if $sth->{PRECISION}->[$i];
         $column_info->{is_nullable} = $sth->{NULLABLE}->[$i] ? 1 : 0;
 
         if ($column_info->{data_type} =~ m/^(.*?)\((.*?)\)$/) {
