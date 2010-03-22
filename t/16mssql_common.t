@@ -58,12 +58,14 @@ my $tester = dbixcsl_common_tests->new(
                 SELECT * FROM mssql_loader_test3
             },
             # test capitalization of cols in unique constraints
+            q{ SET QUOTED_IDENTIFIER ON },
+            q{ SET ANSI_NULLS ON },
             q{
-                CREATE TABLE mssql_loader_test5 (
-                    id INT IDENTITY NOT NULL PRIMARY KEY,
-                    FooCol INT NOT NULL,
-                    BarCol INT NOT NULL,
-                    UNIQUE (FooCol, BarCol)
+                CREATE TABLE [mssql_loader_test5] (
+                    [id] INT IDENTITY NOT NULL PRIMARY KEY,
+                    [FooCol] INT NOT NULL,
+                    [BarCol] INT NOT NULL,
+                    UNIQUE ([FooCol], [BarCol])
                 )
             },
         ],
