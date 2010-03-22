@@ -932,6 +932,34 @@ sub _load_tables {
     }
 
     $self->_make_src_class($_) for @tables;
+
+
+    # sanity-check for moniker clashes
+    my $inverse_moniker_idx;
+    for (keys %{$self->monikers}) {
+      push @{$inverse_moniker_idx->{$self->monikers->{$_}}}, $_;
+    }
+
+    my @clashes;
+    for (keys %$inverse_moniker_idx) {
+      my $tables = $inverse_moniker_idx->{$_};
+      if (@$tables > 1) {
+        push @clashes, sprintf ("tables %s reduced to the same source moniker '%s'",
+          join (', ', map { "'$_'" } @$tables),
+          $_,
+        );
+      }
+    }
+
+    if (@clashes) {
+      die   'Unable to load schema - chosen moniker/class naming style results in moniker clashes. '
+          . 'Either change the naming style, or supply an explicit moniker_map: '
+          . join ('; ', @clashes)
+          . "\n"
+      ;
+    }
+
+
     $self->_setup_src_meta($_) for @tables;
 
     if(!$self->skip_relationships) {
