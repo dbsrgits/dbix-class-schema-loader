@@ -174,8 +174,6 @@ rmtree($DUMP_PATH, 1, 1);
 # test loading external content
 do_dump_test(
     classname => 'DBICTest::Schema::13',
-    options => { },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::Schema::13 to directory /,
         qr/Schema dump completed/,
@@ -191,7 +189,6 @@ qr/package DBICTest::Schema::13::Foo;\nour \$skip_me = "bad mojo";\n1;/
 do_dump_test(
     classname => 'DBICTest::Schema::14',
     options => { skip_load_external => 1 },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::Schema::14 to directory /,
         qr/Schema dump completed/,
@@ -217,7 +214,6 @@ close $fh;
 do_dump_test(
     classname => 'DBICTest::Schema::14',
     options => { config_file => $config_file },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::Schema::14 to directory /,
         qr/Schema dump completed/,
@@ -251,7 +247,6 @@ do_dump_test(
             return +{ extra => { is_footext => 1 } } if $col eq 'footext';
         }
     },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
         qr/Schema dump completed/,
@@ -290,8 +285,6 @@ append_to_class('DBICTest::DumpMore::1::Foo',q{# XXX This is my custom content X
 
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
-    options => { },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
         qr/Schema dump completed/,
@@ -317,7 +310,6 @@ do_dump_test(
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { really_erase_my_files => 1 },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
         qr/Deleting existing file /,
@@ -348,10 +340,11 @@ do_dump_test(
     },
 );
 
+rmtree($DUMP_PATH, 1, 1);
+
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { use_namespaces => 1, generate_pod => 0 },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
         qr/Schema dump completed/,
@@ -363,10 +356,11 @@ do_dump_test(
     },
 );
 
+rmtree($DUMP_PATH, 1, 1);
+
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { use_namespaces => 1 },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
         qr/Schema dump completed/,
@@ -389,6 +383,8 @@ do_dump_test(
     },
 );
 
+rmtree($DUMP_PATH, 1, 1);
+
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { use_namespaces => 1,
@@ -396,7 +392,6 @@ do_dump_test(
                  resultset_namespace => 'RSet',
                  default_resultset_class => 'RSetBase',
              },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
         qr/Schema dump completed/,
@@ -422,6 +417,8 @@ do_dump_test(
     },
 );
 
+rmtree($DUMP_PATH, 1, 1);
+
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
     options => { use_namespaces => 1,
@@ -431,7 +428,6 @@ do_dump_test(
                  result_base_class => 'My::ResultBaseClass',
                  schema_base_class => 'My::SchemaBaseClass',
              },
-    error => '',
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
         qr/Schema dump completed/,
@@ -459,6 +455,8 @@ do_dump_test(
         ],
     },
 );
+
+rmtree($DUMP_PATH, 1, 1);
 
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
