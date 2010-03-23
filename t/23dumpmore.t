@@ -6,9 +6,10 @@ use Data::Dumper::Concise;
 use DBIx::Class::Schema::Loader ();
 use File::Temp 'tempfile';
 use lib qw(t/lib);
-use make_dbictest_db;
 
 my $DUMP_PATH = './t/_dump';
+
+my $TEST_DB_CLASS = 'make_dbictest_db';
 
 sub dump_directly {
     my %tdata = @_;
@@ -22,7 +23,7 @@ sub dump_directly {
     my @warns;
     eval {
         local $SIG{__WARN__} = sub { push(@warns, @_) };
-        $schema_class->connect($make_dbictest_db::dsn);
+        $schema_class->connect(get_dsn(\%tdata));
     };
     my $err = $@;
     $schema_class->storage->disconnect if !$err && $schema_class->storage;
@@ -44,7 +45,7 @@ sub dump_dbicdump {
         push @cmd, '-o', "$opt=$val";
     }
 
-    push @cmd, $tdata{classname}, $make_dbictest_db::dsn;
+    push @cmd, $tdata{classname}, get_dsn(\%tdata);
 
     # make sure our current @INC gets used by dbicdump
     use Config;
@@ -67,6 +68,22 @@ sub dump_dbicdump {
     }
 
     return @warns;
+}
+
+sub get_dsn {
+    my $opts = shift;
+
+    my $test_db_class = $opts->{test_db_class} || $TEST_DB_CLASS;
+
+    eval "require $test_db_class;";
+    die $@ if $@;
+
+    my $dsn = do {
+        no strict 'refs';
+        ${$test_db_class . '::dsn'};
+    };
+
+    return $dsn;
 }
 
 sub check_error {
@@ -112,7 +129,9 @@ sub test_dumps {
     
     my $schema_path = $DUMP_PATH . '/' . $schema_class;
     $schema_path =~ s{::}{/}g;
-    dump_file_like($schema_path . '.pm', @$schema_regexes);
+
+    dump_file_like($schema_path . '.pm', @$schema_regexes) if $schema_regexes;
+
     foreach my $src (keys %$file_regexes) {
         my $src_file = $schema_path . '/' . $src . '.pm';
         dump_file_like($src_file, @{$file_regexes->{$src}});
@@ -212,6 +231,16 @@ do_dump_test(
 
 unlink $config_file;
 
+rmtree($DUMP_PATH, 1, 1);
+
+do_dump_test(
+    classname => 'DBICTest::Schema::14',
+    test_db_class => 'make_dbictest_db_clashing_monikers',
+    error => qr/tables 'bar', 'bars' reduced to the same source moniker 'Bar'/,
+);
+
+rmtree($DUMP_PATH, 1, 1);
+
 # test out the POD
 
 do_dump_test(
@@ -236,8 +265,8 @@ do_dump_test(
 qr/package DBICTest::DumpMore::1::Foo;/,
 qr/=head1 NAME\n\nDBICTest::DumpMore::1::Foo\n\n=cut\n\n/,
 qr/=head1 ACCESSORS\n\n/,
-qr/=head2 fooid\n\n  data_type: 'INTEGER'\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
-qr/=head2 footext\n\n  data_type: 'TEXT'\n  default_value: 'footext'\n  extra: {is_footext => 1}\n  is_nullable: 1\n  size: undef\n\n/,
+qr/=head2 fooid\n\n  data_type: 'INTEGER'\n  is_nullable: 1\n\n/,
+qr/=head2 footext\n\n  data_type: 'TEXT'\n  default_value: 'footext'\n  extra: {is_footext => 1}\n  is_nullable: 1\n\n/,
 qr/->set_primary_key/,
 qr/=head1 RELATIONS\n\n/,
 qr/=head2 bars\n\nType: has_many\n\nRelated object: L<DBICTest::DumpMore::1::Bar>\n\n=cut\n\n/,
@@ -247,8 +276,8 @@ qr/1;\n$/,
 qr/package DBICTest::DumpMore::1::Bar;/,
 qr/=head1 NAME\n\nDBICTest::DumpMore::1::Bar\n\n=cut\n\n/,
 qr/=head1 ACCESSORS\n\n/,
-qr/=head2 barid\n\n  data_type: 'INTEGER'\n  default_value: undef\n  is_nullable: 1\n  size: undef\n\n/,
-qr/=head2 fooref\n\n  data_type: 'INTEGER'\n  default_value: undef\n  is_foreign_key: 1\n  is_nullable: 1\n  size: undef\n\n/,
+qr/=head2 barid\n\n  data_type: 'INTEGER'\n  is_nullable: 1\n\n/,
+qr/=head2 fooref\n\n  data_type: 'INTEGER'\n  is_foreign_key: 1\n  is_nullable: 1\n\n/,
 qr/->set_primary_key/,
 qr/=head1 RELATIONS\n\n/,
 qr/=head2 fooref\n\nType: belongs_to\n\nRelated object: L<DBICTest::DumpMore::1::Foo>\n\n=cut\n\n/,

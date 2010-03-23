@@ -7,7 +7,7 @@ use DBI;
 eval { require DBD::SQLite };
 my $class = $@ ? 'SQLite2' : 'SQLite';
 
-my $fn = './t/dbictest.db';
+my $fn = './t/dbictest_with_unique.db';
 
 unlink($fn);
 our $dsn = "dbi:$class:dbname=$fn";
