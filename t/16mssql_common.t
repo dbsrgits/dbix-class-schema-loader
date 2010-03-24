@@ -57,15 +57,20 @@ my $tester = dbixcsl_common_tests->new(
                 CREATE VIEW mssql_loader_test4 AS
                 SELECT * FROM mssql_loader_test3
             },
-            # test capitalization of cols in unique constraints
+            # test capitalization of cols in unique constraints and rels
             q{ SET QUOTED_IDENTIFIER ON },
             q{ SET ANSI_NULLS ON },
             q{
-                CREATE TABLE [mssql_loader_test5] (
-                    [id] INT IDENTITY NOT NULL PRIMARY KEY,
+                CREATE TABLE [MSSQL_Loader_Test5] (
+                    [Id] INT IDENTITY NOT NULL PRIMARY KEY,
                     [FooCol] INT NOT NULL,
                     [BarCol] INT NOT NULL,
                     UNIQUE ([FooCol], [BarCol])
+                )
+            },
+            q{
+                CREATE TABLE [MSSQL_Loader_Test6] (
+                    [Five_Id] INT REFERENCES [MSSQL_Loader_Test5] ([Id])
                 )
             },
         ],
@@ -77,8 +82,9 @@ my $tester = dbixcsl_common_tests->new(
             '[mssql_loader_test1.dot]',
             'mssql_loader_test3',
             'mssql_loader_test5',
+            'mssql_loader_test6',
         ],
-        count  => 9,
+        count  => 11,
         run    => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -99,7 +105,10 @@ my $tester = dbixcsl_common_tests->new(
             ok ((my $rsrc = $schema->resultset($monikers->{mssql_loader_test5})->result_source),
                 'got result_source');
 
-            is $rsrc->column_info('foocol')->{data_type}, 'int',
+            is $rsrc->name, 'mssql_loader_test5',
+                'table name is lowercased';
+
+            is_deeply [ $rsrc->columns ], [qw/id foocol barcol/],
                 'column names are lowercased';
 
             my %uniqs = $rsrc->unique_constraints;
@@ -107,6 +116,13 @@ my $tester = dbixcsl_common_tests->new(
 
             is_deeply ((values %uniqs)[0], [qw/foocol barcol/],
                 'columns in unique constraint lowercased');
+
+            lives_and {
+                my $five_row = $schema->resultset($monikers->{mssql_loader_test5})->create({ foocol => 1, barcol => 2 });
+                my $six_row  = $five_row->create_related('mssql_loader_test6s', {});
+
+                is $six_row->five->id, 1;
+            } 'relationships for mixed-case tables/columns detected';
 
 # Test that a bad view (where underlying table is gone) is ignored.
             my $dbh = $schema->storage->dbh;

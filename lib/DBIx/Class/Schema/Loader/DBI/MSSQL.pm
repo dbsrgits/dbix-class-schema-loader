@@ -30,9 +30,9 @@ sub _tables_list {
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare(<<'EOF');
-select t.table_name
-from information_schema.tables t
-where t.table_schema = ?
+SELECT t.table_name
+FROM information_schema.tables t
+WHERE t.table_schema = ?
 EOF
     $sth->execute($self->db_schema);
 
@@ -68,7 +68,7 @@ sub _table_fk_info {
         my $fk = $row->{FK_NAME};
         push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
         push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
-        $remote_table->{$fk} = $row->{PKTABLE_NAME};
+        $remote_table->{$fk} = lc $row->{PKTABLE_NAME};
     }
 
     foreach my $fk (keys %$remote_table) {
@@ -86,15 +86,20 @@ sub _table_uniq_info {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{SELECT CCU.CONSTRAINT_NAME, CCU.COLUMN_NAME FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE CCU
-                               JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TC ON (CCU.CONSTRAINT_NAME = TC.CONSTRAINT_NAME)
-                               JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU ON (CCU.CONSTRAINT_NAME = KCU.CONSTRAINT_NAME AND CCU.COLUMN_NAME = KCU.COLUMN_NAME)
-                               WHERE CCU.TABLE_NAME = @{[ $dbh->quote($table) ]} AND CONSTRAINT_TYPE = 'UNIQUE' ORDER BY KCU.ORDINAL_POSITION});
+    local $dbh->{FetchHashKeyName} = 'NAME_lc';
+
+    my $sth = $dbh->prepare(qq{
+SELECT ccu.constraint_name, ccu.column_name
+FROM information_schema.constraint_column_usage ccu
+JOIN information_schema.table_constraints tc on (ccu.constraint_name = tc.constraint_name)
+JOIN information_schema.key_column_usage kcu on (ccu.constraint_name = kcu.constraint_name and ccu.column_name = kcu.column_name)
+wHERE lower(ccu.table_name) = @{[ $dbh->quote($table) ]} AND constraint_type = 'UNIQUE' ORDER BY kcu.ordinal_position
+    });
     $sth->execute;
     my $constraints;
     while (my $row = $sth->fetchrow_hashref) {
-        my $name = lc $row->{CONSTRAINT_NAME};
-        my $col  = lc $row->{COLUMN_NAME};
+        my $name = $row->{constraint_name};
+        my $col  = lc $row->{column_name};
         push @{$constraints->{$name}}, $col;
     }
 
@@ -110,15 +115,14 @@ sub _columns_info_for {
 
     while (my ($col, $info) = each %$result) {
         my $dbh = $self->schema->storage->dbh;
-        my $sth = $dbh->prepare(qq{
-            SELECT COLUMN_NAME 
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE COLUMNPROPERTY(object_id(@{[ $dbh->quote($table) ]}, 'U'), @{[ $dbh->quote($col) ]}, 'IsIdentity') = 1
-              AND TABLE_NAME = @{[ $dbh->quote($table) ]} AND COLUMN_NAME = @{[ $dbh->quote($col) ]}
-        });
-        $sth->execute();
 
-        if ($sth->fetchrow_array) {
+        my $sth = $dbh->prepare(qq{
+SELECT column_name 
+FROM information_schema.columns
+WHERE columnproperty(object_id(@{[ $dbh->quote($table) ]}, 'U'), @{[ $dbh->quote($col) ]}, 'IsIdentity') = 1
+AND lower(table_name) = @{[ $dbh->quote($table) ]} AND lower(column_name) = @{[ $dbh->quote($col) ]}
+        });
+        if (eval { $sth->execute; $sth->fetchrow_array }) {
             $info->{is_auto_increment} = 1;
             $info->{data_type} =~ s/\s*identity//i;
             delete $info->{size};
@@ -126,12 +130,11 @@ sub _columns_info_for {
 
 # get default
         $sth = $dbh->prepare(qq{
-            SELECT COLUMN_DEFAULT
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = @{[ $dbh->quote($table) ]} AND COLUMN_NAME = @{[ $dbh->quote($col) ]}
+SELECT column_default
+FROM information_schema.columns
+wHERE lower(table_name) = @{[ $dbh->quote($table) ]} AND lower(column_name) = @{[ $dbh->quote($col) ]}
         });
-        $sth->execute;
-        my ($default) = $sth->fetchrow_array;
+        my ($default) = eval { $sth->execute; $sth->fetchrow_array };
 
         if (defined $default) {
             # strip parens
