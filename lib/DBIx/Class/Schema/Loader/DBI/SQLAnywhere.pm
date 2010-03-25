@@ -30,7 +30,7 @@ sub _setup {
 }
 
 sub _tables_list {
-    my $self = shift;
+    my ($self, $opts) = @_;
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare(<<'EOF');
@@ -42,7 +42,7 @@ EOF
 
     my @tables = map @$_, @{ $sth->fetchall_arrayref };
 
-    return $self->_filter_tables(@tables);
+    return $self->_filter_tables(\@tables, $opts);
 }
 
 # check for IDENTITY columns

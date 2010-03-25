@@ -56,7 +56,7 @@ sub _table_as_sql {
 }
 
 sub _tables_list { 
-    my $self = shift;
+    my ($self, $opts) = @_;
 
     my $dbh = $self->schema->storage->dbh;
 
@@ -74,7 +74,7 @@ sub _tables_list {
           if $table =~ /\A(\w+)\z/;
     }
 
-    return $self->_filter_tables(@tables);
+    return $self->_filter_tables(\@tables, $opts);
 }
 
 sub _table_uniq_info {

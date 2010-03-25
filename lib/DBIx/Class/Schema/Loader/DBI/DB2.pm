@@ -73,7 +73,7 @@ sub _table_uniq_info {
 
 # DBD::DB2 doesn't follow the DBI API for ->tables
 sub _tables_list { 
-    my $self = shift;
+    my ($self, $opts) = @_;
     
     my $dbh = $self->schema->storage->dbh;
     my @tables = map { lc } $dbh->tables(
@@ -82,7 +82,7 @@ sub _tables_list {
     s/\Q$self->{_quoter}\E//g for @tables;
     s/^.*\Q$self->{_namesep}\E// for @tables;
 
-    return @tables;
+    return $self->_filter_tables(\@tables, $opts);
 }
 
 sub _table_pk_info {

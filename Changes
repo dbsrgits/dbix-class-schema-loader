@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - suppress 'bad table or view' warnings for filtered tables/views
         - croak if several tables reduce to an identical moniker (ribasushi)
         - better type info for Sybase ASE
         - better type info for Pg: sets sequence for serials, handles numerics

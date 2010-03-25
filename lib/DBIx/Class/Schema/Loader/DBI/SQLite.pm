@@ -132,7 +132,7 @@ sub _table_uniq_info {
 }
 
 sub _tables_list {
-    my $self = shift;
+    my ($self, $opts) = @_;
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare("SELECT * FROM sqlite_master");
@@ -144,7 +144,7 @@ sub _tables_list {
         push @tables, $row->{tbl_name};
     }
     $sth->finish;
-    return $self->_filter_tables(@tables);
+    return $self->_filter_tables(\@tables, $opts);
 }
 
 =head1 SEE ALSO

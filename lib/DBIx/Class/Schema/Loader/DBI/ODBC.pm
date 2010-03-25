@@ -42,9 +42,9 @@ sub _rebless {
 }
 
 sub _tables_list { 
-    my $self = shift;
+    my ($self, $opts) = @_;
 
-    return $self->next::method(undef, undef);
+    return $self->next::method($opts, undef, undef);
 }
 
 =head1 SEE ALSO

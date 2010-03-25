@@ -855,7 +855,9 @@ Does the actual schema-construction work.
 sub load {
     my $self = shift;
 
-    $self->_load_tables($self->_tables_list);
+    $self->_load_tables(
+        $self->_tables_list({ constraint => $self->constraint, exclude => $self->exclude })
+    );
 }
 
 =head2 rescan
@@ -880,8 +882,8 @@ sub rescan {
     $self->_relbuilder->{schema} = $schema;
 
     my @created;
-    my @current = $self->_tables_list;
-    foreach my $table ($self->_tables_list) {
+    my @current = $self->_tables_list({ constraint => $self->constraint, exclude => $self->exclude });
+    foreach my $table (@current) {
         if(!exists $self->{_tables}->{$table}) {
             push(@created, $table);
         }
@@ -917,22 +919,12 @@ sub _relbuilder {
 sub _load_tables {
     my ($self, @tables) = @_;
 
-    # First, use _tables_list with constraint and exclude
-    #  to get a list of tables to operate on
-
-    my $constraint   = $self->constraint;
-    my $exclude      = $self->exclude;
-
-    @tables = grep { /$constraint/ } @tables if $constraint;
-    @tables = grep { ! /$exclude/ } @tables if $exclude;
-
     # Save the new tables to the tables list
     foreach (@tables) {
         $self->{_tables}->{$_} = 1;
     }
 
     $self->_make_src_class($_) for @tables;
-
 
     # sanity-check for moniker clashes
     my $inverse_moniker_idx;
@@ -1360,11 +1352,13 @@ sub _make_src_class {
             unless $table_class eq $old_class;
     }
 
-    my $table_normalized = lc $table;
+# this was a bad idea, should be ok now without it
+#    my $table_normalized = lc $table;
+#    $self->classes->{$table_normalized} = $table_class;
+#    $self->monikers->{$table_normalized} = $table_moniker;
+
     $self->classes->{$table} = $table_class;
-    $self->classes->{$table_normalized} = $table_class;
     $self->monikers->{$table} = $table_moniker;
-    $self->monikers->{$table_normalized} = $table_moniker;
 
     $self->_use   ($table_class, @{$self->additional_classes});
     $self->_inject($table_class, @{$self->left_base_classes});
@@ -1722,3 +1716,4 @@ the same terms as Perl itself.
 =cut
 
 1;
+# vim:et sts=4 sw=4 tw=0:

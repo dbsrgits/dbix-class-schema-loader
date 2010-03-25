@@ -84,7 +84,7 @@ my $tester = dbixcsl_common_tests->new(
             'mssql_loader_test5',
             'mssql_loader_test6',
         ],
-        count  => 11,
+        count  => 10,
         run    => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -105,8 +105,9 @@ my $tester = dbixcsl_common_tests->new(
             ok ((my $rsrc = $schema->resultset($monikers->{mssql_loader_test5})->result_source),
                 'got result_source');
 
-            is $rsrc->name, 'mssql_loader_test5',
-                'table name is lowercased';
+## not anymore
+#            is $rsrc->name, 'mssql_loader_test5',
+#                'table name is lowercased';
 
             is_deeply [ $rsrc->columns ], [qw/id foocol barcol/],
                 'column names are lowercased';

@@ -84,7 +84,7 @@ sub _rebless { }
 
 # Returns an array of table names
 sub _tables_list { 
-    my $self = shift;
+    my ($self, $opts) = (shift, shift);
 
     my ($table, $type) = @_ ? @_ : ('%', '%');
 
@@ -102,14 +102,22 @@ sub _tables_list {
     }
     s/$qt//g for @tables;
 
-    return $self->_filter_tables(@tables);
+    return $self->_filter_tables(\@tables, $opts);
 }
 
-# ignore bad tables and views
+# apply constraint/exclude and ignore bad tables and views
 sub _filter_tables {
-    my ($self, @tables) = @_;
+    my ($self, $tables, $opts) = @_;
 
+    my @tables = @$tables;
     my @filtered_tables;
+
+    $opts ||= {};
+    my $constraint   = $opts->{constraint};
+    my $exclude      = $opts->{exclude};
+
+    @tables = grep { /$constraint/ } @$tables if defined $constraint;
+    @tables = grep { ! /$exclude/  } @$tables if defined $exclude;
 
     for my $table (@tables) {
         eval {

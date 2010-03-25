@@ -1366,6 +1366,7 @@ sub create {
     );
 
     $self->drop_tables;
+    $self->drop_tables; # twice for good measure
 
     my $dbh = $self->dbconnect(1);
 

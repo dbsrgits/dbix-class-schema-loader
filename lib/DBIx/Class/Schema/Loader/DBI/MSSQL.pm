@@ -26,7 +26,7 @@ usage information.
 =cut
 
 sub _tables_list {
-    my $self = shift;
+    my ($self, $opts) = @_;
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare(<<'EOF');
@@ -36,9 +36,9 @@ WHERE t.table_schema = ?
 EOF
     $sth->execute($self->db_schema);
 
-    my @tables = map lc $_, map @$_, @{ $sth->fetchall_arrayref };
+    my @tables = map @$_, @{ $sth->fetchall_arrayref };
 
-    return $self->_filter_tables(@tables);
+    return $self->_filter_tables(\@tables, $opts);
 }
 
 sub _table_pk_info {
@@ -68,7 +68,7 @@ sub _table_fk_info {
         my $fk = $row->{FK_NAME};
         push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
         push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
-        $remote_table->{$fk} = lc $row->{PKTABLE_NAME};
+        $remote_table->{$fk} = $row->{PKTABLE_NAME};
     }
 
     foreach my $fk (keys %$remote_table) {
@@ -93,7 +93,7 @@ SELECT ccu.constraint_name, ccu.column_name
 FROM information_schema.constraint_column_usage ccu
 JOIN information_schema.table_constraints tc on (ccu.constraint_name = tc.constraint_name)
 JOIN information_schema.key_column_usage kcu on (ccu.constraint_name = kcu.constraint_name and ccu.column_name = kcu.column_name)
-wHERE lower(ccu.table_name) = @{[ $dbh->quote($table) ]} AND constraint_type = 'UNIQUE' ORDER BY kcu.ordinal_position
+wHERE lower(ccu.table_name) = @{[ $dbh->quote(lc $table) ]} AND constraint_type = 'UNIQUE' ORDER BY kcu.ordinal_position
     });
     $sth->execute;
     my $constraints;
@@ -119,8 +119,8 @@ sub _columns_info_for {
         my $sth = $dbh->prepare(qq{
 SELECT column_name 
 FROM information_schema.columns
-WHERE columnproperty(object_id(@{[ $dbh->quote($table) ]}, 'U'), @{[ $dbh->quote($col) ]}, 'IsIdentity') = 1
-AND lower(table_name) = @{[ $dbh->quote($table) ]} AND lower(column_name) = @{[ $dbh->quote($col) ]}
+WHERE columnproperty(object_id(@{[ $dbh->quote(lc $table) ]}, 'U'), @{[ $dbh->quote(lc $col) ]}, 'IsIdentity') = 1
+AND lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @{[ $dbh->quote(lc $col) ]}
         });
         if (eval { $sth->execute; $sth->fetchrow_array }) {
             $info->{is_auto_increment} = 1;
@@ -132,7 +132,7 @@ AND lower(table_name) = @{[ $dbh->quote($table) ]} AND lower(column_name) = @{[ 
         $sth = $dbh->prepare(qq{
 SELECT column_default
 FROM information_schema.columns
-wHERE lower(table_name) = @{[ $dbh->quote($table) ]} AND lower(column_name) = @{[ $dbh->quote($col) ]}
+wHERE lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @{[ $dbh->quote(lc $col) ]}
         });
         my ($default) = eval { $sth->execute; $sth->fetchrow_array };
 
@@ -170,3 +170,4 @@ the same terms as Perl itself.
 =cut
 
 1;
+# vim:et sts=4 sw=4 tw=0:

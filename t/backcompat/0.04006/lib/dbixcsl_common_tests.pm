@@ -665,7 +665,7 @@ sub create {
                 dat VARCHAR(8),
                 from_id INTEGER,
                 to_id INTEGER,
-                PRIMARY KEY (id1,id2)
+                PRIMARY KEY (id1,id2),
                 FOREIGN KEY (from_id) REFERENCES loader_test4 (id),
                 FOREIGN KEY (to_id) REFERENCES loader_test4 (id)
             ) $self->{innodb}
