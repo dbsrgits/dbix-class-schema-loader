@@ -59,12 +59,14 @@ sub _table_pk_info {
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my ($local_cols, $remote_cols, $remote_table, @rels);
+    my ($local_cols, $remote_cols, $remote_table, @rels, $sth);
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{sp_fkeys \@FKTABLE_NAME = '$table'});
-    $sth->execute;
+    eval {
+        $sth = $dbh->prepare(qq{sp_fkeys \@FKTABLE_NAME = '$table'});
+        $sth->execute;
+    };
 
-    while (my $row = $sth->fetchrow_hashref) {
+    while (my $row = eval { $sth->fetchrow_hashref }) {
         my $fk = $row->{FK_NAME};
         push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
         push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
