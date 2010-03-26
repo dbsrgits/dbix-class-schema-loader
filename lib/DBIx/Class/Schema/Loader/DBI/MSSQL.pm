@@ -32,9 +32,9 @@ sub _tables_list {
     my $sth = $dbh->prepare(<<'EOF');
 SELECT t.table_name
 FROM information_schema.tables t
-WHERE t.table_schema = ?
+WHERE lower(t.table_schema) = ?
 EOF
-    $sth->execute($self->db_schema);
+    $sth->execute(lc $self->db_schema);
 
     my @tables = map @$_, @{ $sth->fetchall_arrayref };
 
