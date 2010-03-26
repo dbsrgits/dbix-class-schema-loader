@@ -163,11 +163,15 @@ sub _invoke_loader {
     $args->{use_namespaces} = $self->use_namespaces if $self->use_namespaces;
 
     # XXX this only works for relative storage_type, like ::DBI ...
-    my $impl = $self->loader_class
-      || "DBIx::Class::Schema::Loader" . $self->storage_type;
-    $impl = "DBIx::Class::Schema::Loader${impl}" if $impl =~ /^::/;
+    my $loader_class = $self->loader_class;
+    if ($loader_class) {
+        $loader_class = "DBIx::Class::Schema::Loader${loader_class}" if $loader_class =~ /^::/;
+        $args->{loader_class} = $loader_class;
+    };
+
+    my $impl = $loader_class || "DBIx::Class::Schema::Loader" . $self->storage_type;
     eval { $self->ensure_class_loaded($impl) };
-    croak qq/Could not load storage_type loader "$impl": "$@"/ if $@;
+    croak qq/Could not load loader class "$impl": "$@"/ if $@;
 
     $self->_loader($impl->new(%$args));
     $self->_loader->load;
@@ -370,6 +374,8 @@ sub make_schema_at {
         @{$target . '::ISA'} = qw/DBIx::Class::Schema::Loader/;
     }
 
+    eval { $target->_loader_invoked(0) };
+
     $target->loader_options($opts);
     $target->connection(@$connect_info);
 }
@@ -518,3 +524,4 @@ L<DBIx::Class>, L<DBIx::Class::Manual::ExampleSchema>
 =cut
 
 1;
+# vim:et sts=4 sw=4 tw=0:

@@ -50,7 +50,8 @@ sub _tables_list {
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader::DBI::ODBC::Microsoft_SQL_Server>,
-L<DBIx::Class::Schema::Loader::DBI::MSSQL>,
+L<DBIx::Class::Schema::Loader::DBI::ODBC::SQL_Anywhere>,
+L<DBIx::Class::Schema::Loader::DBI::ODBC::Firebird>,
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
 L<DBIx::Class::Schema::Loader::DBI>
 

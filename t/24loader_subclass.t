@@ -4,9 +4,11 @@ use Test::More;
 use lib qw(t/lib);
 use make_dbictest_db;
 
-my %loader_class = ( 'TestLoaderSubclass' => 'TestLoaderSubclass',
-                     '::DBI::SQLite'      => 'DBIx::Class::Schema::Loader::DBI::SQLite'
-                   );
+my %loader_class = (
+    'TestLoaderSubclass'           => 'TestLoaderSubclass',
+    'TestLoaderSubclass_NoRebless' => 'TestLoaderSubclass_NoRebless',
+    '::DBI::SQLite'                => 'DBIx::Class::Schema::Loader::DBI::SQLite'
+);
 
 my %invocations = (
     loader_class => sub {

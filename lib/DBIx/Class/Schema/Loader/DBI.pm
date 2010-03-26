@@ -35,14 +35,17 @@ things.
 sub new {
     my $self = shift->next::method(@_);
 
-    # rebless to vendor-specific class if it exists and loads
-    my $dbh = $self->schema->storage->dbh;
-    my $driver = $dbh->{Driver}->{Name};
+    # rebless to vendor-specific class if it exists and loads and we're not in a
+    # custom class.
+    if (not $self->loader_class) {
+        my $dbh = $self->schema->storage->dbh;
+        my $driver = $dbh->{Driver}->{Name};
 
-    my $subclass = 'DBIx::Class::Schema::Loader::DBI::' . $driver;
-    if ($self->load_optional_class($subclass)) {
-        bless $self, $subclass unless $self->isa($subclass);
-        $self->_rebless;
+        my $subclass = 'DBIx::Class::Schema::Loader::DBI::' . $driver;
+        if ($self->load_optional_class($subclass)) {
+            bless $self, $subclass unless $self->isa($subclass);
+            $self->_rebless;
+        }
     }
 
     # Set up the default quoting character and name seperators

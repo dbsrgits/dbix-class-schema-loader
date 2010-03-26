@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - do not try to detect driver and rebless when used with a custom
+          loader_class
         - suppress 'bad table or view' warnings for filtered tables/views
         - croak if several tables reduce to an identical moniker (ribasushi)
         - better type info for Sybase ASE

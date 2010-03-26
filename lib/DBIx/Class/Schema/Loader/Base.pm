@@ -62,6 +62,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 datetime_timezone
                                 datetime_locale
                                 config_file
+                                loader_class
 /);
 
 
