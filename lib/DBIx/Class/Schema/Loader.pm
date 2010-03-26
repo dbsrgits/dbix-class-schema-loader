@@ -38,7 +38,7 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
       { debug => 1,
         dump_directory => './lib',
       },
-      [ 'dbi:Pg:dbname="foo"', 'myuser', 'mypassword' ],
+      [ 'dbi:Pg:dbname="foo"', 'myuser', 'mypassword', { loader_class => 'MyLoader' } ],
   );
 
   # from the command line or a shell script with dbicdump (distributed
@@ -352,7 +352,7 @@ these Examples:
     make_schema_at(
         'New::Schema::Name',
         { debug => 1 },
-        [ 'dbi:Pg:dbname="foo"','postgres' ],
+        [ 'dbi:Pg:dbname="foo"','postgres','', { loader_class => 'MyLoader' } ],
     );
 
     # Inside a script, specifying a dump directory in which to write
@@ -361,8 +361,11 @@ these Examples:
     make_schema_at(
         'New::Schema::Name',
         { debug => 1, dump_directory => './lib' },
-        [ 'dbi:Pg:dbname="foo"','postgres' ],
+        [ 'dbi:Pg:dbname="foo"','postgres','', { loader_class => 'MyLoader' } ],
     );
+
+The last hashref in the C<\@connect_info> is checked for loader arguments such
+as C<loader_options> and C<loader_class>, see L</connection> for more details.
 
 =cut
 
