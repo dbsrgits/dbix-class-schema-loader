@@ -42,11 +42,19 @@ sub _setup {
 
     my $dbh = $self->schema->storage->dbh;
 
-    my ($collation_name) = $dbh->selectrow_array(<<'EOS');
-SELECT collation_name
-FROM sys.databases
-WHERE name = DB_NAME()
-EOS
+    # We use the sys.databases query for the general case, and fallback to
+    # databasepropertyex() if for some reason sys.databases is not available,
+    # which does not work over DBD::ODBC with unixODBC+FreeTDS.
+    #
+    # XXX why does databasepropertyex() not work over DBD::ODBC ?
+    my ($collation_name) =
+           eval { $dbh->selectrow_array('SELECT collation_name FROM sys.databases WHERE name = DB_NAME()') }
+        || eval { $dbh->selectrow_array("SELECT databasepropertyex(DB_NAME(), 'collation')") };
+
+    if (not $collation_name) {
+        $self->case_sensitive_collation(0); # most likely not
+        return;
+    }
 
     my ($sensitivity) = $collation_name =~ /(C\w)_[A-z]+\z/;
 
