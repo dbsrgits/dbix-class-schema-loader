@@ -6,6 +6,10 @@ use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
+__PACKAGE__->mk_group_accessors('simple', qw/
+    case_sensitive_collation
+/);
+
 our $VERSION = '0.05003';
 
 =head1 NAME
@@ -24,6 +28,36 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base> for
 usage information.
 
 =cut
+
+sub _is_case_sensitive {
+    my $self = shift;
+
+    return $self->case_sensitive_collation ? 1 : 0;
+}
+
+sub _setup {
+    my $self = shift;
+
+    $self->next::method;
+
+    my $dbh = $self->schema->storage->dbh;
+
+    my ($collation_name) = $dbh->selectrow_array(<<'EOS');
+SELECT collation_name
+FROM sys.databases
+WHERE name = DB_NAME()
+EOS
+
+    my ($sensitivity) = $collation_name =~ /(C\w)_[A-z]+\z/;
+
+    $self->case_sensitive_collation($sensitivity eq 'CS' ? 1 : 0);
+}
+
+sub _lc {
+    my ($self, $name) = @_;
+
+    return $self->case_sensitive_collation ? $name : lc($name);
+}
 
 sub _tables_list {
     my ($self, $opts) = @_;
@@ -50,7 +84,7 @@ sub _table_pk_info {
     my @keydata;
 
     while (my $row = $sth->fetchrow_hashref) {
-        push @keydata, lc $row->{COLUMN_NAME};
+        push @keydata, $self->_lc($row->{COLUMN_NAME});
     }
 
     return \@keydata;
@@ -68,8 +102,8 @@ sub _table_fk_info {
 
     while (my $row = eval { $sth->fetchrow_hashref }) {
         my $fk = $row->{FK_NAME};
-        push @{$local_cols->{$fk}}, lc $row->{FKCOLUMN_NAME};
-        push @{$remote_cols->{$fk}}, lc $row->{PKCOLUMN_NAME};
+        push @{$local_cols->{$fk}}, $self->_lc($row->{FKCOLUMN_NAME});
+        push @{$remote_cols->{$fk}}, $self->_lc($row->{PKCOLUMN_NAME});
         $remote_table->{$fk} = $row->{PKTABLE_NAME};
     }
 
@@ -101,7 +135,7 @@ wHERE lower(ccu.table_name) = @{[ $dbh->quote(lc $table) ]} AND constraint_type 
     my $constraints;
     while (my $row = $sth->fetchrow_hashref) {
         my $name = $row->{constraint_name};
-        my $col  = lc $row->{column_name};
+        my $col  = $self->_lc($row->{column_name});
         push @{$constraints->{$name}}, $col;
     }
 
