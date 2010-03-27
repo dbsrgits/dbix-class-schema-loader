@@ -12,6 +12,9 @@ my $tester = dbixcsl_common_tests->new(
     dsn             => "dbi:$class:dbname=./t/sqlite_test",
     user            => '',
     password        => '',
+    connect_info_opts => {
+        on_connect_do => 'PRAGMA foreign_keys = ON',
+    },
     extra           => {
         create => [
             # 'sqlite_' is reserved, so we use 'extra_'
