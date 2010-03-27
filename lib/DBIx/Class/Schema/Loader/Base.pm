@@ -13,6 +13,7 @@ use File::Spec qw//;
 use Cwd qw//;
 use Digest::MD5 qw//;
 use Lingua::EN::Inflect::Number qw//;
+use Lingua::EN::Inflect::Phrase qw//;
 use File::Temp qw//;
 use Class::Unload;
 use Class::Inspector ();
@@ -110,15 +111,15 @@ with the same name found in @INC into the schema file we are creating.
 
 =head2 naming
 
-Static schemas (ones dumped to disk) will, by default, use the new-style 0.05XXX
+Static schemas (ones dumped to disk) will, by default, use the new-style
 relationship names and singularized Results, unless you're overwriting an
-existing dump made by a 0.04XXX version of L<DBIx::Class::Schema::Loader>, in
-which case the backward compatible RelBuilder will be activated, and
-singularization will be turned off.
+existing dump made by an older version of L<DBIx::Class::Schema::Loader>, in
+which case the backward compatible RelBuilder will be activated, and the
+appropriate monikerization used.
 
 Specifying
 
-    naming => 'v5'
+    naming => 'current'
 
 will disable the backward-compatible RelBuilder and use
 the new-style relationship names along with singularized Results, even when
@@ -126,7 +127,7 @@ overwriting a dump made with an earlier version.
 
 The option also takes a hashref:
 
-    naming => { relationships => 'v5', monikers => 'v4' }
+    naming => { relationships => 'v6', monikers => 'v6' }
 
 The keys are:
 
@@ -148,15 +149,26 @@ The values can be:
 
 =item current
 
-Latest default style, whatever that happens to be.
-
-=item v5
-
-Version 0.05XXX style.
+Latest style, whatever that happens to be.
 
 =item v4
 
-Version 0.04XXX style.
+Unsingularlized monikers, C<has_many> only relationships with no _id stripping.
+
+=item v5
+
+Monikers singularized as whole words, C<might_have> relationships for FKs on
+C<UNIQUE> constraints, C<_id> stripping for belongs_to relationships.
+
+Some of the C<_id> stripping edge cases in C<0.05003> have been reverted for
+the v5 RelBuilder.
+
+=item v6
+
+All monikers and relationships inflected using L<Lingua::EN::Inflect::Phrase>,
+more aggressive C<_id> stripping from relationships.
+
+In general, there is very little difference between v5 and v6 schemas.
 
 =back
 
@@ -908,12 +920,21 @@ sub _relbuilder {
                 $self->schema, $self->inflect_plural, $self->inflect_singular
             );
     }
+    elsif ($self->naming->{relationships} eq 'v5') {
+        require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05;
+        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05->new (
+             $self->schema,
+             $self->inflect_plural,
+             $self->inflect_singular,
+             $self->relationship_attrs,
+        );
+    }
 
-    $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new (
-	 $self->schema,
-	 $self->inflect_plural,
-	 $self->inflect_singular,
-	 $self->relationship_attrs,
+    return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new (
+             $self->schema,
+             $self->inflect_plural,
+             $self->inflect_singular,
+             $self->relationship_attrs,
     );
 }
 
@@ -1471,9 +1492,15 @@ sub _default_table2moniker {
     if ($self->naming->{monikers} eq 'v4') {
         return join '', map ucfirst, split /[\W_]+/, lc $table;
     }
+    elsif ($self->naming->{monikers} eq 'v5') {
+        return join '', map ucfirst, split /[\W_]+/,
+            Lingua::EN::Inflect::Number::to_S(lc $table);
+    }
 
-    return join '', map ucfirst, split /[\W_]+/,
-        Lingua::EN::Inflect::Number::to_S(lc $table);
+    (my $as_phrase = lc $table) =~ s/_+/ /g;
+    my $inflected = Lingua::EN::Inflect::Phrase::to_S($as_phrase);
+
+    return join '', map ucfirst, split /\W+/, $inflected;
 }
 
 sub _table2moniker {

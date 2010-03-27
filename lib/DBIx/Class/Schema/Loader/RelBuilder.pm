@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
-use Lingua::EN::Inflect::Number ();
 use Lingua::EN::Inflect::Phrase ();
 
 our $VERSION = '0.06000';
@@ -77,7 +76,6 @@ arguments, like so:
 =cut
 
 sub new {
-
     my ( $class, $schema, $inflect_pl, $inflect_singular, $rel_attrs ) = @_;
 
     my $self = {
@@ -99,7 +97,7 @@ sub new {
 
 # pluralize a relationship name
 sub _inflect_plural {
-    my ($self, $relname, $method) = @_;
+    my ($self, $relname) = @_;
 
     return '' if !defined $relname || $relname eq '';
 
@@ -112,14 +110,12 @@ sub _inflect_plural {
         return $inflected if $inflected;
     }
 
-    $method ||= '_to_PL';
-
-    return $self->$method($relname);
+    return $self->_to_PL($relname);
 }
 
 # Singularize a relationship name
 sub _inflect_singular {
-    my ($self, $relname, $method) = @_;
+    my ($self, $relname) = @_;
 
     return '' if !defined $relname || $relname eq '';
 
@@ -132,9 +128,7 @@ sub _inflect_singular {
         return $inflected if $inflected;
     }
 
-    $method ||= '_to_S';
-
-    return $self->$method($relname);
+    return $self->_to_S($relname);
 }
 
 sub _to_PL {
@@ -147,12 +141,6 @@ sub _to_PL {
     return $plural;
 }
 
-sub _old_to_PL {
-    my ($self, $name) = @_;
-
-    return Lingua::EN::Inflect::Number::to_PL($name);
-}
-
 sub _to_S {
     my ($self, $name) = @_;
 
@@ -161,12 +149,6 @@ sub _to_S {
     $singular =~ s/ /_/g;
 
     return $singular;
-}
-
-sub _old_to_S {
-    my ($self, $name) = @_;
-
-    return Lingua::EN::Inflect::Number::to_S($name);
 }
 
 sub _default_relationship_attrs { +{
@@ -206,7 +188,7 @@ sub _relationship_attrs {
 }
 
 sub _array_eq {
-    my ($a, $b) = @_;
+    my ($self, $a, $b) = @_;
 
     return unless @$a == @$b;
 
@@ -321,16 +303,16 @@ sub _relnames_and_method {
     my $remote_moniker = $rel->{remote_source};
     my $remote_obj     = $self->{schema}->source( $remote_moniker );
     my $remote_class   = $self->{schema}->class(  $remote_moniker );
-    my $remote_relname = lc $self->_remote_relname( $remote_obj->from, $cond);
+    my $remote_relname = $self->_remote_relname( $remote_obj->from, $cond);
 
     my $local_cols  = $rel->{local_columns};
     my $local_table = $self->{schema}->source($local_moniker)->from;
 
     # If more than one rel between this pair of tables, use the local
     # col names to distinguish
-    my ($local_relname, $old_local_relname, $local_relname_uninflected, $old_local_relname_uninflected);
+    my ($local_relname, $local_relname_uninflected);
     if ( $counters->{$remote_moniker} > 1) {
-        my $colnames = lc(q{_} . join(q{_}, @$local_cols));
+        my $colnames = lc(q{_} . join(q{_}, map lc($_), @$local_cols));
         $remote_relname .= $colnames if keys %$cond > 1;
 
         $local_relname = lc($local_table) . $colnames;
@@ -338,30 +320,20 @@ sub _relnames_and_method {
 
         $local_relname_uninflected = $local_relname;
         $local_relname = $self->_inflect_plural( $local_relname );
-
-        $old_local_relname_uninflected = lc($local_table) . $colnames;
-        $old_local_relname = $self->_inflect_plural( lc($local_table) . $colnames, '_old_to_PL' );
-
     } else {
         $local_relname_uninflected = lc $local_table;
         $local_relname = $self->_inflect_plural(lc $local_table);
-
-        $old_local_relname_uninflected = lc $local_table;
-        $old_local_relname = $self->_inflect_plural(lc $local_table, '_old_to_PL');
     }
 
     my $remote_method = 'has_many';
 
     # If the local columns have a UNIQUE constraint, this is a one-to-one rel
     my $local_source = $self->{schema}->source($local_moniker);
-    if (_array_eq([ $local_source->primary_columns ], $local_cols) ||
-            grep { _array_eq($_->[1], $local_cols) } @$uniqs) {
+    if ($self->_array_eq([ $local_source->primary_columns ], $local_cols) ||
+            grep { $self->_array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method = 'might_have';
         $local_relname = $self->_inflect_singular($local_relname_uninflected);
-        $old_local_relname = $self->_inflect_singular($old_local_relname_uninflected, '_old_to_S');
     }
-
-    warn __PACKAGE__." $VERSION: renaming ${remote_class} relation '$old_local_relname' to '$local_relname'.  This behavior is new as of 0.05003.\n" if $old_local_relname && $local_relname ne $old_local_relname;
 
     return ( $local_relname, $remote_relname, $remote_method );
 }

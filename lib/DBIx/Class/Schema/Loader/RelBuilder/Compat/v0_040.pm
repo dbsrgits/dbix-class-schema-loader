@@ -3,9 +3,11 @@ package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
 use strict;
 use warnings;
 use Class::C3;
+use base 'DBIx::Class::Schema::Loader::RelBuilder';
+use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
 
-use base 'DBIx::Class::Schema::Loader::RelBuilder';
+our $VERSION = '0.06000';
 
 sub _default_relationship_attrs { +{} }
 
@@ -52,8 +54,6 @@ sub _relnames_and_method {
 
 sub _remote_attrs { }
 
-1;
-
 =head1 NAME
 
 DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040 - RelBuilder for
@@ -61,6 +61,18 @@ compatibility with DBIx::Class::Schema::Loader version 0.04006
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base/naming>.
+See L<DBIx::Class::Schema::Loader::Base/naming> and
+L<DBIx::Class::Schema::Loader::RelBuilder>.
+
+=head1 AUTHOR
+
+See L<DBIx::Class::Schema::Loader/AUTHOR> and L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
+
+1;

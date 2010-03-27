@@ -31,6 +31,14 @@ $dbh->do($_) for (
         baz_id INTEGER NOT NULL UNIQUE,
         FOREIGN KEY (baz_id) REFERENCES bazs (baz_num)
       )|,
+    q|CREATE TABLE stations_visited (
+        id INTEGER PRIMARY KEY
+      )|,
+    q|CREATE TABLE email (
+        id INTEGER PRIMARY KEY,
+        to_id INTEGER REFERENCES foos (fooid),
+        from_id INTEGER REFERENCES foos (fooid)
+      )|,
     q|INSERT INTO foos VALUES (1,'Foos text for number 1')|,
     q|INSERT INTO foos VALUES (2,'Foos record associated with the Bar with barid 3')|,
     q|INSERT INTO foos VALUES (3,'Foos text for number 3')|,
@@ -43,6 +51,7 @@ $dbh->do($_) for (
     q|INSERT INTO bazs VALUES (2,19)|,
     q|INSERT INTO quuxs VALUES (1,20)|,
     q|INSERT INTO quuxs VALUES (2,19)|,
+    q|INSERT INTO stations_visited VALUES (1)|,
 );
 
 END { unlink($fn); }

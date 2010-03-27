@@ -45,7 +45,7 @@ sub class_content_like;
 {
     my $res = run_loader(naming => 'current');
     is_deeply $res->{warnings}, [], 'no warnings with naming attribute set';
-    run_v5_tests($res);
+    run_v6_tests($res);
 }
 
 # test upgraded dynamic schema with external content loaded
@@ -82,7 +82,7 @@ sub class_content_like;
 'unsingularized class names in external content from unchanged Result class ' .
 'names are translated';
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 }
 
 # test upgraded dynamic schema with use_namespaces with external content loaded
@@ -116,7 +116,7 @@ sub class_content_like;
 'unsingularized class names in external content from unchanged Result class ' .
 'names are translated';
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 }
 
 # test upgraded static schema with external content loaded
@@ -133,7 +133,7 @@ sub class_content_like;
     my $res = run_loader(static => 1, naming => 'current');
     my $schema = $res->{schema};
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     lives_and { is $schema->resultset('Quux')->find(1)->a_method, 'hlagh' }
 'external custom content for unsingularized Result was loaded by upgraded ' .
@@ -153,6 +153,29 @@ sub class_content_like;
 
     class_content_like $schema, $res->{classes}{quuxs}, qr/sub a_method { 'hlagh' }/,
 'external custom content loaded into static dump correctly';
+}
+
+# test creating static schema in v5 mode then upgrade to current with external
+# content loaded
+# XXX needs real load_external tests
+{
+    clean_dumpdir();
+
+    my $temp_dir = setup_load_external({
+        Quux => 'Baz',
+        Bar  => 'Foo',
+    }, { result_namespace => 'Result' });
+
+    write_v5_schema_pm();
+
+    my $res = run_loader(static => 1);
+
+    run_v5_tests($res);
+
+    $res = run_loader(static => 1, naming => 'current');
+    my $schema = $res->{schema};
+
+    run_v6_tests($res);
 }
 
 # test running against v4 schema without upgrade, twice, then upgrade
@@ -201,9 +224,9 @@ sub class_content_like;
 'correct number of warnings on upgrading static schema (with "naming" set)'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
-    is result_count('Result'), 4,
+    is result_count('Result'), 6,
         'un-singularized results were replaced during upgrade';
 
     # check that custom content was preserved
@@ -265,9 +288,9 @@ sub class_content_like;
 'correct number of warnings on upgrading static schema (with "naming" set)'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
-    is result_count(), 4,
+    is result_count(), 6,
         'un-singularized results were replaced during upgrade';
 
     # check that custom content was preserved
@@ -282,7 +305,7 @@ sub class_content_like;
 'custom content from unsingularized Result loaded into static dump correctly';
 }
 
-# test running against v4 schema with load_namespaces, upgrade to v5 but
+# test running against v4 schema with load_namespaces, upgrade to current but
 # downgrade to load_classes, with external content
 {
     clean_dumpdir();
@@ -319,7 +342,7 @@ sub class_content_like;
         rel_name_map => { QuuxBaz => 'bazrel2' },
     });
 
-    # now upgrade the schema to v5 but downgrade to load_classes
+    # now upgrade the schema to current but downgrade to load_classes
     $res = run_loader(
         static => 1,
         naming => 'current',
@@ -339,9 +362,9 @@ sub class_content_like;
 'correct number of warnings on upgrading static schema (with "naming" set)'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
-    is result_count(), 4,
+    is result_count(), 6,
 'un-singularized results were replaced during upgrade and Result dir removed';
 
     ok ((not -d result_dir('Result')),
@@ -396,7 +419,7 @@ sub class_content_like;
 'correct number of warnings on dumping static schema with use_namespaces => 0'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     my $schema   = $res->{schema};
     add_custom_content($res->{schema}, {
@@ -423,7 +446,7 @@ sub class_content_like;
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Quux',
         'load_classes preserved on re-dump';
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     # now upgrade the schema to use_namespaces
     $res = run_loader(
@@ -442,7 +465,7 @@ sub class_content_like;
 'correct number of warnings on upgrading to use_namespaces'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     my @schema_files = schema_files();
 
@@ -479,7 +502,7 @@ sub class_content_like;
 'correct number of warnings on dumping static schema'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Result::Quux',
         'defaults to use_namespaces on regular dump';
@@ -502,7 +525,7 @@ sub class_content_like;
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Result::Quux',
         'use_namespaces preserved on re-dump';
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     # now downgrade the schema to load_classes
     $res = run_loader(
@@ -521,12 +544,12 @@ sub class_content_like;
 'correct number of warnings on downgrading to load_classes'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Quux',
         'load_classes downgrade correct';
 
-    is result_count(), 4,
+    is result_count(), 6,
 'correct number of Results after upgrade and Result dir removed';
 
     ok ((not -d result_dir('Result')),
@@ -565,7 +588,7 @@ sub class_content_like;
 'correct number of warnings on dumping static schema'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::MyResult::Quux',
         'defaults to use_namespaces and uses custom result_namespace';
@@ -589,7 +612,7 @@ sub class_content_like;
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::MyResult::Quux',
         'use_namespaces and custom result_namespace preserved on re-dump';
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     # now downgrade the schema to load_classes
     $res = run_loader(
@@ -608,12 +631,12 @@ sub class_content_like;
 'correct number of warnings on downgrading to load_classes'
         or diag @{ $res->{warnings} };
 
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Quux',
         'load_classes downgrade correct';
 
-    is result_count(), 4,
+    is result_count(), 6,
 'correct number of Results after upgrade and Result dir removed';
 
     ok ((not -d result_dir('MyResult')),
@@ -653,7 +676,7 @@ sub class_content_like;
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::MyResult::Quux',
         'using new result_namespace';
 
-    is result_count('MyResult'), 4,
+    is result_count('MyResult'), 6,
 'correct number of Results after rewritten result_namespace';
 
     ok ((not -d schema_dir('Result')),
@@ -681,7 +704,7 @@ sub class_content_like;
     is $res->{classes}{quuxs}, 'DBIXCSL_Test::Schema::Mtfnpy::Quux',
         'using new result_namespace';
 
-    is result_count('Mtfnpy'), 4,
+    is result_count('Mtfnpy'), 6,
 'correct number of Results after rewritten result_namespace';
 
     ok ((not -d result_dir('MyResult')),
@@ -749,7 +772,7 @@ sub class_content_like;
     # now upgrade the schema
     $res = run_loader(static => 1, naming => 'current');
     $schema = $res->{schema};
-    run_v5_tests($res);
+    run_v6_tests($res);
 
     # check that custom content was preserved
     lives_and { is $schema->resultset('Bar')->find(1)->b_method, 'dongs' }
@@ -872,12 +895,68 @@ EOF
     }
 }
 
+sub write_v5_schema_pm {
+    my %opts = @_;
+
+    (my $schema_dir = "$DUMP_DIR/$SCHEMA_CLASS") =~ s/::[^:]+\z//;
+    rmtree $schema_dir;
+    make_path $schema_dir;
+    my $schema_pm = "$schema_dir/Schema.pm";
+    open my $fh, '>', $schema_pm or die $!;
+    if (exists $opts{use_namespaces} && $opts{use_namespaces} == 0) {
+        print $fh <<'EOF';
+package DBIXCSL_Test::Schema;
+
+# Created by DBIx::Class::Schema::Loader
+# DO NOT MODIFY THE FIRST PART OF THIS FILE
+
+use strict;
+use warnings;
+
+use base 'DBIx::Class::Schema';
+
+__PACKAGE__->load_classes;
+
+
+# Created by DBIx::Class::Schema::Loader v0.05003 @ 2010-03-27 17:07:37
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:LIzC/LT5IYvWpgusfbqMrg
+
+
+# You can replace this text with custom content, and it will be preserved on regeneration
+1;
+EOF
+    }
+    else {
+        print $fh <<'EOF';
+package DBIXCSL_Test::Schema;
+
+# Created by DBIx::Class::Schema::Loader
+# DO NOT MODIFY THE FIRST PART OF THIS FILE
+
+use strict;
+use warnings;
+
+use base 'DBIx::Class::Schema';
+
+__PACKAGE__->load_classes;
+
+
+# Created by DBIx::Class::Schema::Loader v0.05003 @ 2010-03-27 17:07:37
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:LIzC/LT5IYvWpgusfbqMrg
+
+
+# You can replace this text with custom content, and it will be preserved on regeneration
+1;
+EOF
+    }
+}
+
 sub run_v4_tests {
     my $res = shift;
     my $schema = $res->{schema};
 
-    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs/} ],
-        [qw/Foos Bar Bazs Quuxs/],
+    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs stations_visited email/} ],
+        [qw/Foos Bar Bazs Quuxs StationsVisited Email/],
         'correct monikers in 0.04006 mode';
 
     isa_ok ((my $bar = eval { $schema->resultset('Bar')->find(1) }),
@@ -891,14 +970,43 @@ sub run_v4_tests {
 
     isa_ok eval { $baz->quux }, 'DBIx::Class::ResultSet',
         'correct rel type and name for UNIQUE FK in 0.04006 mode';
+
+    ok my $foo = eval { $schema->resultset('Foos')->find(1) };
+
+    isa_ok eval { $foo->email_to_ids }, 'DBIx::Class::ResultSet',
+        'correct rel name inflection in 0.04006 mode';
 }
 
 sub run_v5_tests {
     my $res = shift;
     my $schema = $res->{schema};
 
-    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs/} ],
-        [qw/Foo Bar Baz Quux/],
+    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs stations_visited email/} ],
+        [qw/Foo Bar Baz Quux StationsVisited Email/],
+        'correct monikers in current mode';
+
+    ok my $bar = eval { $schema->resultset('Bar')->find(1) };
+
+    isa_ok eval { $bar->foo }, $res->{classes}{foos},
+        'correct rel name in v5 mode';
+
+    ok my $baz  = eval { $schema->resultset('Baz')->find(1) };
+
+    isa_ok eval { $baz->quux }, $res->{classes}{quuxs},
+        'correct rel type and name for UNIQUE FK in v5 mode';
+
+    ok my $foo = eval { $schema->resultset('Foo')->find(1) };
+
+    isa_ok eval { $foo->email_to_ids }, 'DBIx::Class::ResultSet',
+        'correct rel name inflection in v5 mode';
+}
+
+sub run_v6_tests {
+    my $res = shift;
+    my $schema = $res->{schema};
+
+    is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs stations_visited email/} ],
+        [qw/Foo Bar Baz Quux StationVisited Email/],
         'correct monikers in current mode';
 
     ok my $bar = eval { $schema->resultset('Bar')->find(1) };
@@ -910,6 +1018,11 @@ sub run_v5_tests {
 
     isa_ok eval { $baz->quux }, $res->{classes}{quuxs},
         'correct rel type and name for UNIQUE FK in current mode';
+
+    ok my $foo = eval { $schema->resultset('Foo')->find(1) };
+
+    isa_ok eval { $foo->emails_to }, 'DBIx::Class::ResultSet',
+        'correct rel name inflection in current mode';
 }
 
 {
@@ -1075,3 +1188,5 @@ sub result_dir {
 }
 
 sub schema_dir { result_dir(@_) }
+
+# vim:et sts=4 sw=4 tw=0:
