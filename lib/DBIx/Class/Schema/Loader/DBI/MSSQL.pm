@@ -62,7 +62,7 @@ sub _table_fk_info {
     my ($local_cols, $remote_cols, $remote_table, @rels, $sth);
     my $dbh = $self->schema->storage->dbh;
     eval {
-        $sth = $dbh->prepare(qq{sp_fkeys \@FKTABLE_NAME = '$table'});
+        $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = '$table'});
         $sth->execute;
     };
 
