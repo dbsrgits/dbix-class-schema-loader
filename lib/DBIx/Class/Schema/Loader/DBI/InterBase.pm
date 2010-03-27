@@ -12,7 +12,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
     unquoted_ddl
 /);
 
-our $VERSION = '0.05003';
+our $VERSION = '0.06000';
 
 =head1 NAME
 

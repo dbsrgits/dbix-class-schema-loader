@@ -10,7 +10,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
     case_sensitive_collation
 /);
 
-our $VERSION = '0.05003';
+our $VERSION = '0.06000';
 
 =head1 NAME
 

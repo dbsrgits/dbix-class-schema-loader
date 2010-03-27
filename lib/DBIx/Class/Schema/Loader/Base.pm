@@ -21,7 +21,7 @@ use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
 require DBIx::Class;
 
-our $VERSION = '0.05003';
+our $VERSION = '0.06000';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
@@ -433,7 +433,7 @@ L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-my $CURRENT_V = 'v5';
+my $CURRENT_V = 'v6';
 
 my @CLASS_ARGS = qw(
     schema_base_class result_base_class additional_base_classes
@@ -646,8 +646,8 @@ Version $real_ver static schema detected, turning on backcompat mode.
 Set the 'naming' attribute or the SCHEMA_LOADER_BACKCOMPAT environment variable
 to disable this warning.
 
-See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
-details.
+See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 if upgrading
+from version 0.04006.
 EOF
             }
             else {
@@ -1089,9 +1089,12 @@ sub _dump_to_dir {
     if ($self->use_namespaces) {
         $schema_text .= qq|__PACKAGE__->load_namespaces|;
         my $namespace_options;
-        for my $attr (qw(result_namespace
-                         resultset_namespace
-                         default_resultset_class)) {
+
+        my @attr = qw/resultset_namespace default_resultset_class/;
+
+        unshift @attr, 'result_namespace' unless (not $self->result_namespace) || $self->result_namespace eq 'Result';
+
+        for my $attr (@attr) {
             if ($self->$attr) {
                 $namespace_options .= qq|    $attr => '| . $self->$attr . qq|',\n|
             }

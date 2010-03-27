@@ -7,7 +7,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
 use Lingua::EN::Inflect::Phrase ();
 
-our $VERSION = '0.05003';
+our $VERSION = '0.06000';
 
 =head1 NAME
 

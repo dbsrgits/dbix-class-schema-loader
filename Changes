@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - don't set result_namespace if it's 'Result'
         - support for MSSQL databases with case sensitive collation
         - do not try to detect driver and rebless when used with a custom
           loader_class
