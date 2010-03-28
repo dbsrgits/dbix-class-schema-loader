@@ -49,7 +49,7 @@ sub _setup {
     # XXX why does databasepropertyex() not work over DBD::ODBC ?
     my ($collation_name) =
            eval { $dbh->selectrow_array('SELECT collation_name FROM sys.databases WHERE name = DB_NAME()') }
-        || eval { $dbh->selectrow_array("SELECT databasepropertyex(DB_NAME(), 'collation')") };
+        || eval { $dbh->selectrow_array("SELECT databasepropertyex(DB_NAME(), 'Collation')") };
 
     if (not $collation_name) {
         $self->case_sensitive_collation(0); # most likely not
@@ -73,7 +73,7 @@ sub _tables_list {
     my $dbh = $self->schema->storage->dbh;
     my $sth = $dbh->prepare(<<'EOF');
 SELECT t.table_name
-FROM information_schema.tables t
+FROM INFORMATION_SCHEMA.TABLES t
 WHERE lower(t.table_schema) = ?
 EOF
     $sth->execute(lc $self->db_schema);
@@ -134,9 +134,9 @@ sub _table_uniq_info {
 
     my $sth = $dbh->prepare(qq{
 SELECT ccu.constraint_name, ccu.column_name
-FROM information_schema.constraint_column_usage ccu
-JOIN information_schema.table_constraints tc on (ccu.constraint_name = tc.constraint_name)
-JOIN information_schema.key_column_usage kcu on (ccu.constraint_name = kcu.constraint_name and ccu.column_name = kcu.column_name)
+FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu
+JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc on (ccu.constraint_name = tc.constraint_name)
+JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu on (ccu.constraint_name = kcu.constraint_name and ccu.column_name = kcu.column_name)
 wHERE lower(ccu.table_name) = @{[ $dbh->quote(lc $table) ]} AND constraint_type = 'UNIQUE' ORDER BY kcu.ordinal_position
     });
     $sth->execute;
@@ -162,7 +162,7 @@ sub _columns_info_for {
 
         my $sth = $dbh->prepare(qq{
 SELECT column_name 
-FROM information_schema.columns
+FROM INFORMATION_SCHEMA.COLUMNS
 WHERE columnproperty(object_id(@{[ $dbh->quote(lc $table) ]}, 'U'), @{[ $dbh->quote(lc $col) ]}, 'IsIdentity') = 1
 AND lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @{[ $dbh->quote(lc $col) ]}
         });
@@ -175,7 +175,7 @@ AND lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @
 # get default
         $sth = $dbh->prepare(qq{
 SELECT column_default
-FROM information_schema.columns
+FROM INFORMATION_SCHEMA.COLUMNS
 wHERE lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @{[ $dbh->quote(lc $col) ]}
         });
         my ($default) = eval { $sth->execute; $sth->fetchrow_array };

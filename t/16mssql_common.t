@@ -81,8 +81,8 @@ my $tester = dbixcsl_common_tests->new(
         drop   => [
             '[mssql_loader_test1.dot]',
             'mssql_loader_test3',
-            'mssql_loader_test5',
-            'mssql_loader_test6',
+            'MSSQL_Loader_Test6',
+            'MSSQL_Loader_Test5',
         ],
         count  => 10,
         run    => sub {
@@ -105,21 +105,33 @@ my $tester = dbixcsl_common_tests->new(
             ok ((my $rsrc = $schema->resultset($monikers->{mssql_loader_test5})->result_source),
                 'got result_source');
 
-## not anymore
-#            is $rsrc->name, 'mssql_loader_test5',
-#                'table name is lowercased';
+            if ($schema->_loader->_is_case_sensitive) {
+                is_deeply [ $rsrc->columns ], [qw/Id FooCol BarCol/],
+                    'column name case is preserved with case-sensitive collation';
 
-            is_deeply [ $rsrc->columns ], [qw/id foocol barcol/],
-                'column names are lowercased';
+                my %uniqs = $rsrc->unique_constraints;
+                delete $uniqs{primary};
 
-            my %uniqs = $rsrc->unique_constraints;
-            delete $uniqs{primary};
+                is_deeply ((values %uniqs)[0], [qw/FooCol BarCol/],
+                    'column name case is preserved in unique constraint with case-sensitive collation');
+            }
+            else {
+                is_deeply [ $rsrc->columns ], [qw/id foocol barcol/],
+                    'column names are lowercased for case-insensitive collation';
 
-            is_deeply ((values %uniqs)[0], [qw/foocol barcol/],
-                'columns in unique constraint lowercased');
+                my %uniqs = $rsrc->unique_constraints;
+                delete $uniqs{primary};
+
+                is_deeply ((values %uniqs)[0], [qw/foocol barcol/],
+                    'columns in unique constraint lowercased for case-insensitive collation');
+            }
 
             lives_and {
-                my $five_row = $schema->resultset($monikers->{mssql_loader_test5})->create({ foocol => 1, barcol => 2 });
+                my $five_row = $schema->resultset($monikers->{mssql_loader_test5})->new_result({});
+                $five_row->foocol(1);
+                $five_row->barcol(2);
+                $five_row->insert;
+
                 my $six_row  = $five_row->create_related('mssql_loader_test6s', {});
 
                 is $six_row->five->id, 1;
@@ -151,3 +163,4 @@ if(not ($dbd_sybase_dsn || $odbc_dsn)) {
 else {
     $tester->run_tests();
 }
+# vim:et sts=4 sw=4 tw=0:
