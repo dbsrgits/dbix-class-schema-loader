@@ -56,9 +56,9 @@ sub _setup {
         return;
     }
 
-    my ($sensitivity) = $collation_name =~ /(C\w)_[A-z]+\z/;
+    my $case_sensitive = $collation_name =~ /_(?:CS|BIN2?)(?:_|\z)/;
 
-    $self->case_sensitive_collation($sensitivity eq 'CS' ? 1 : 0);
+    $self->case_sensitive_collation($case_sensitive ? 1 : 0);
 }
 
 sub _lc {
