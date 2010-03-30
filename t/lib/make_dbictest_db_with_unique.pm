@@ -24,7 +24,8 @@ $dbh->do($_) for (
       )|,
     q|CREATE TABLE bazs (
         bazid INTEGER PRIMARY KEY,
-        baz_num INTEGER NOT NULL UNIQUE
+        baz_num INTEGER NOT NULL UNIQUE,
+        stations_visited_id INTEGER REFERENCES stations_visited (id)
       )|,
     q|CREATE TABLE quuxs (
         quuxid INTEGER PRIMARY KEY,
@@ -32,7 +33,8 @@ $dbh->do($_) for (
         FOREIGN KEY (baz_id) REFERENCES bazs (baz_num)
       )|,
     q|CREATE TABLE stations_visited (
-        id INTEGER PRIMARY KEY
+        id INTEGER PRIMARY KEY,
+        quuxs_id INTEGER REFERENCES quuxs (quuxid)
       )|,
     q|CREATE TABLE email (
         id INTEGER PRIMARY KEY,
@@ -47,11 +49,11 @@ $dbh->do($_) for (
     q|INSERT INTO bar VALUES (2,3)|,
     q|INSERT INTO bar VALUES (3,2)|,
     q|INSERT INTO bar VALUES (4,1)|,
-    q|INSERT INTO bazs VALUES (1,20)|,
-    q|INSERT INTO bazs VALUES (2,19)|,
+    q|INSERT INTO bazs VALUES (1,20,1)|,
+    q|INSERT INTO bazs VALUES (2,19,1)|,
     q|INSERT INTO quuxs VALUES (1,20)|,
     q|INSERT INTO quuxs VALUES (2,19)|,
-    q|INSERT INTO stations_visited VALUES (1)|,
+    q|INSERT INTO stations_visited VALUES (1,1)|,
 );
 
 END { unlink($fn); }

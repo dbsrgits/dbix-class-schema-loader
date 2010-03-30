@@ -155,29 +155,6 @@ sub class_content_like;
 'external custom content loaded into static dump correctly';
 }
 
-# test creating static schema in v5 mode then upgrade to current with external
-# content loaded
-# XXX needs real load_external tests
-{
-    clean_dumpdir();
-
-    my $temp_dir = setup_load_external({
-        Quux => 'Baz',
-        Bar  => 'Foo',
-    }, { result_namespace => 'Result' });
-
-    write_v5_schema_pm();
-
-    my $res = run_loader(static => 1);
-
-    run_v5_tests($res);
-
-    $res = run_loader(static => 1, naming => 'current');
-    my $schema = $res->{schema};
-
-    run_v6_tests($res);
-}
-
 # test running against v4 schema without upgrade, twice, then upgrade
 {
     clean_dumpdir();
@@ -788,6 +765,53 @@ sub class_content_like;
 'correctly';
 }
 
+# test creating static schema in v5 mode then upgrade to current with external
+# content loaded
+# XXX needs real load_external tests
+{
+    clean_dumpdir();
+
+    write_v5_schema_pm();
+
+    my $res = run_loader(static => 1);
+
+    like $res->{warnings}[0], qr/0.05003 static schema/, 'backcompat warning';
+
+    run_v5_tests($res);
+
+    my $temp_dir = setup_load_external({
+        Baz => 'StationsVisited',
+        StationsVisited => 'Quux',
+    }, { result_namespace => 'Result' });
+
+    add_custom_content($res->{schema}, {
+        Baz => 'StationsVisited',
+    }, {
+        result_namespace => 'Result',
+        rel_name_map => { BazStationsvisited => 'custom_content_rel' },
+    });
+
+    $res = run_loader(static => 1, naming => 'current');
+    my $schema = $res->{schema};
+
+    run_v6_tests($res);
+
+    lives_and { is $schema->resultset('Baz')->find(1)->a_method, 'hlagh' }
+        'external custom content loaded for v5 -> v6';
+
+    lives_and { isa_ok $schema->resultset('Baz')->find(1)->stationsvisitedrel,
+        $res->{classes}{stations_visited} }
+        'external content rewritten for v5 -> v6';
+
+    lives_and { isa_ok $schema->resultset('Baz')->find(1)->custom_content_rel,
+        $res->{classes}{stations_visited} }
+        'custom content rewritten for v5 -> v6';
+
+    lives_and { isa_ok $schema->resultset('StationVisited')->find(1)->quuxrel,
+        $res->{classes}{quuxs} }
+        'external content rewritten for v5 -> v6 for upgraded Result class names';
+}
+
 done_testing;
 
 END {
@@ -938,11 +962,11 @@ use warnings;
 
 use base 'DBIx::Class::Schema';
 
-__PACKAGE__->load_classes;
+__PACKAGE__->load_namespaces;
 
 
-# Created by DBIx::Class::Schema::Loader v0.05003 @ 2010-03-27 17:07:37
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:LIzC/LT5IYvWpgusfbqMrg
+# Created by DBIx::Class::Schema::Loader v0.05003 @ 2010-03-29 19:44:52
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:D+MYxtGxz97Ghvido5DTEg
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration
@@ -983,7 +1007,7 @@ sub run_v5_tests {
 
     is_deeply [ @{ $res->{monikers} }{qw/foos bar bazs quuxs stations_visited email/} ],
         [qw/Foo Bar Baz Quux StationsVisited Email/],
-        'correct monikers in current mode';
+        'correct monikers in v5 mode';
 
     ok my $bar = eval { $schema->resultset('Bar')->find(1) };
 
@@ -1103,6 +1127,8 @@ sub _rel_condition {
     return +{
         QuuxBaz => q{'foreign.baz_num' => 'self.baz_id'},
         BarFoo  => q{'foreign.fooid'   => 'self.foo_id'},
+        BazStationsvisited => q{'foreign.id' => 'self.stations_visited_id'},
+        StationsvisitedQuux => q{'foreign.quuxid' => 'self.quuxs_id'},
     }->{_rel_key($from, $to)};
 }
 

@@ -47,6 +47,8 @@ sub _setup {
     # which does not work over DBD::ODBC with unixODBC+FreeTDS.
     #
     # XXX why does databasepropertyex() not work over DBD::ODBC ?
+    #
+    # more on collations here: http://msdn.microsoft.com/en-us/library/ms143515.aspx
     my ($collation_name) =
            eval { $dbh->selectrow_array('SELECT collation_name FROM sys.databases WHERE name = DB_NAME()') }
         || eval { $dbh->selectrow_array("SELECT databasepropertyex(DB_NAME(), 'Collation')") };
