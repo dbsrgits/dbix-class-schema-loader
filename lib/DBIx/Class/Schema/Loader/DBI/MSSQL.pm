@@ -27,6 +27,26 @@ L<DBD::ODBC>.
 See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base> for
 usage information.
 
+=head1 CASE SENSITIVITY
+
+Most MSSQL databases use C<CI> (case-insensitive) collation, for this reason
+generated column names are lower-cased as this makes them easier to work with
+in L<DBIx::Class>.
+
+We attempt to detect the database collation at startup, and set the column
+lowercasing behavior accordingly, as lower-cased column names do not work on
+case-sensitive databases.
+
+If you are using FreeTDS with C<tds version> set to C<8.0> the collation
+detection may fail, and Loader will default to case-insensitive mode. C<tds
+version> C<7.0> will work fine.
+
+If this happens set:
+
+    case_sensitive_collation => 1
+
+in your Loader options to override it.
+
 =cut
 
 sub _is_case_sensitive {
@@ -39,6 +59,8 @@ sub _setup {
     my $self = shift;
 
     $self->next::method;
+
+    return if defined $self->case_sensitive_collation;
 
     my $dbh = $self->schema->storage->dbh;
 
@@ -54,7 +76,13 @@ sub _setup {
         || eval { $dbh->selectrow_array("SELECT databasepropertyex(DB_NAME(), 'Collation')") };
 
     if (not $collation_name) {
-        $self->case_sensitive_collation(0); # most likely not
+        warn <<'EOF';
+
+WARNING: MSSQL Collation detection failed. Defaulting to case-insensitive mode.
+Override the 'case_sensitive_collation' attribute in your Loader options if
+needed.
+EOF
+        $self->case_sensitive_collation(0);
         return;
     }
 
