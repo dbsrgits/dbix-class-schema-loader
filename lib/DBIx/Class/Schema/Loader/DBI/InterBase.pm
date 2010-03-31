@@ -58,6 +58,16 @@ sub _setup {
 
     $self->schema->storage->sql_maker->name_sep('.');
 
+    if (not defined $self->unquoted_ddl) {
+        warn <<'EOF';
+
+WARNING: Assuming mixed-case Firebird DDL, see the unquoted_ddl option in
+perldoc DBIx::Class::Schema::Loader::DBI::InterBase
+for more information.
+
+EOF
+    }
+
     if (not $self->unquoted_ddl) {
         $self->schema->storage->sql_maker->quote_char('"');
     }

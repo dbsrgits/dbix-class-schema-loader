@@ -55,7 +55,7 @@ my $tester = dbixcsl_common_tests->new(
         } : ()),
     ],
     extra => {
-        count  => 6,
+        count  => 7,
         run    => sub {
             $schema = shift;
 
@@ -87,8 +87,16 @@ q{
 
             my $guard = Scope::Guard->new(\&cleanup_extra);
 
-            $schema->_loader->{unquoted_ddl} = 0;
-            $schema->_loader->_setup;
+            delete $schema->_loader->{unquoted_ddl};
+
+            my $warning;
+            {
+                local $SIG{__WARN__} = sub { $warning = shift };
+                $schema->_loader->_setup;
+            }
+            like $warning, qr/unquoted_ddl option/,
+                'warning mentions unquoted_ddl option';
+
             {
                 local $SIG{__WARN__} = sub {};
                 $schema->rescan;
