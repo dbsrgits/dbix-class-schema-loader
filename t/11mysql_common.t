@@ -33,7 +33,7 @@ my $tester = dbixcsl_common_tests->new(
         'float '       => { data_type => 'FLOAT',     size => 32 },
         'double '      => { data_type => 'DOUBLE',    size => 64 },
         'double precision' =>
-                        { data_type => 'DOUBLE',    size => 64 },
+                          { data_type => 'DOUBLE',    size => 64 },
         'decimal '     => { data_type => 'DECIMAL',   size => 10 },
         'dec '         => { data_type => 'DECIMAL',   size => 10 },
         'fixed '       => { data_type => 'DECIMAL',   size => 10 },
