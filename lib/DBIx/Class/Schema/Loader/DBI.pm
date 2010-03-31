@@ -292,11 +292,20 @@ sub _columns_info_for {
     if ($dbh->can('column_info')) {
         my %result;
         eval {
-            my $sth = $dbh->column_info( undef, $self->db_schema, $table, '%' );
+            my $sth = eval { local $SIG{__WARN__} = sub {}; $dbh->column_info( undef, $self->db_schema, $table, '%' ); };
             while ( my $info = $sth->fetchrow_hashref() ){
                 my $column_info = {};
-                $column_info->{data_type}     = $info->{TYPE_NAME};
-                $column_info->{size}          = $info->{COLUMN_SIZE} if defined $info->{COLUMN_SIZE};
+                $column_info->{data_type}     = lc $info->{TYPE_NAME};
+
+                my $size = $info->{COLUMN_SIZE};
+
+                if (defined $size && defined $info->{DECIMAL_DIGITS}) {
+                    $column_info->{size} = [$size, $info->{DECIMAL_DIGITS}];
+                }
+                elsif (defined $size) {
+                    $column_info->{size} = $size;
+                }
+
                 $column_info->{is_nullable}   = $info->{NULLABLE} ? 1 : 0;
                 $column_info->{default_value} = $info->{COLUMN_DEF} if defined $info->{COLUMN_DEF};
                 my $col_name = $info->{COLUMN_NAME};
@@ -320,8 +329,17 @@ sub _columns_info_for {
     my @columns = @{ $self->_is_case_sensitive ? $sth->{NAME} : $sth->{NAME_lc} };
     for my $i ( 0 .. $#columns ){
         my $column_info = {};
-        $column_info->{data_type} = $sth->{TYPE}->[$i];
-        $column_info->{size} = $sth->{PRECISION}->[$i] if $sth->{PRECISION}->[$i];
+        $column_info->{data_type} = lc $sth->{TYPE}->[$i];
+
+        my $size = $sth->{PRECISION}[$i];
+
+        if (defined $size && defined $sth->{SCALE}[$i]) {
+            $column_info->{size} = [$size, $sth->{SCALE}[$i]];
+        }
+        elsif (defined $size) {
+            $column_info->{size} = $size;
+        }
+
         $column_info->{is_nullable} = $sth->{NULLABLE}->[$i] ? 1 : 0;
 
         if ($column_info->{data_type} =~ m/^(.*?)\((.*?)\)$/) {
@@ -370,3 +388,4 @@ the same terms as Perl itself.
 =cut
 
 1;
+# vim:et sts=4 sw=4 tw=0:

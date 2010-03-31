@@ -12,6 +12,7 @@ use Digest::MD5;
 use File::Find 'find';
 use Class::Unload ();
 use Data::Dumper::Concise;
+use List::MoreUtils 'apply';
 
 my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
@@ -1555,15 +1556,23 @@ sub setup_data_type_tests {
     my %seen_col_names;
 
     while (my ($col_def, $expected_info) = each %$types) {
-        my $have_size = $col_def =~ /\(/ ? 1 : 0;
+        (my $type_alias = lc($col_def)) =~ s/\( ([^)]+) \)//xg;
 
-        (my $type_alias = lc($col_def)) =~ s/\([^()]+\)//g;
+        my $size = $1;
+        $size = '' unless defined $size;
+        $size =~ s/\s+//g;
+        my @size = split /,/, $size;
+
         $type_alias =~ s/\s/_/g;
         $type_alias =~ s/\W//g;
 
-        my @size = grep defined($_), $col_def =~ /\( \s* (\d+) \s* ,? \s* (\d+)?/x;
+        my $col_name = 'col_' . $type_alias;
+        
+        if (@size) {
+            my $size_name = join '_', apply { s/\W//g } @size;
 
-        my $col_name = $type_alias . ($have_size ? "_with_size_".(join '_', @size) : '');
+            $col_name .= "_with_size_$size_name";
+        }
 
         $col_name .= "_$seen_col_names{$col_name}" if $seen_col_names{$col_name}++;
 
