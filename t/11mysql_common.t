@@ -21,6 +21,44 @@ my $tester = dbixcsl_common_tests->new(
     skip_rels        => $test_innodb ? 0 : $skip_rels_msg,
     no_inline_rels   => 1,
     no_implicit_rels => 1,
+    data_types  => {
+        # http://dev.mysql.com/doc/refman/5.5/en/data-type-overview.html
+        # Numeric Types
+        'smallint '    => { data_type => 'SMALLINT',  size => 6  },   # Space in key makes column name smallint_
+        'mediumint '   => { data_type => 'MEDIUMINT', size => 9  },   # to avoid MySQL reserved word.
+        'int '         => { data_type => 'INT',       size => 11 },
+        'integer '     => { data_type => 'INT',       size => 11 },
+        'bigint '      => { data_type => 'BIGINT',    size => 20 },
+        'serial '      => { data_type => 'BIGINT',    size => 20, is_auto_increment => 1, extra => {unsigned => 1} },
+        'float '       => { data_type => 'FLOAT',     size => 32 },
+        'double '      => { data_type => 'DOUBLE',    size => 64 },
+        'double precision' =>
+                        { data_type => 'DOUBLE',    size => 64 },
+        'decimal '     => { data_type => 'DECIMAL',   size => 10 },
+        'dec '         => { data_type => 'DECIMAL',   size => 10 },
+        'fixed '       => { data_type => 'DECIMAL',   size => 10 },
+        # Date and Time Types
+        'date '        => { data_type => 'DATE',      size => 10 },
+        'datetime '    => { data_type => 'DATETIME',  size => 19 },
+        'timestamp '   => { data_type => 'TIMESTAMP', size => 14, default_value => \"CURRENT_TIMESTAMP" },
+        'time '        => { data_type => 'TIME',      size => 8  },
+        'year '        => { data_type => 'YEAR',      size => 4  },
+        # String Types
+        'char '        => { data_type => 'CHAR',      size => 1  },
+        'varchar(20)'  => { data_type => 'VARCHAR',   size => 20 },
+        'binary(1)'    => { data_type => 'BINARY',    size => 1 },
+        'varbinary(1)' => { data_type => 'VARBINARY', size => 1 },
+        'tinytext '    => { data_type => 'TINYTEXT',  size => 255 },
+        'text '        => { data_type => 'TEXT',      size => 65535 },
+        'longtext '    => { data_type => 'LONGTEXT',  size => 4294967295 },
+        'tinyblob '    => { data_type => 'TINYBLOB',  size => 255 },
+        'blob '        => { data_type => 'BLOB',      size => 65535 },
+        'mediumblob '  => { data_type => 'MEDIUMBLOB',size => 16777215 },
+        'longblob '    => { data_type => 'LONGBLOB',  size => 4294967295 },
+        # Hmm... need some t/lib/dbixcsl_common_tests.pm hackery to get these working I think...
+        # 'enum(1,2,3)'  => { data_type => 'ENUM',  size => 1 },
+        # 'set(1,2,3)'   => { data_type => 'SET',  size => 1 },
+    },
     extra            => {
         create => [
             qq{
