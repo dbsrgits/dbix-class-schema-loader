@@ -79,8 +79,15 @@ sub run_tests {
             push @connect_info, [ @{$info}{qw/dsn user password connect_info_opts/ } ];
         }
     }
+    
+    if ($ENV{SCHEMA_LOADER_TESTS_EXTRA_ONLY}) {
+        $self->run_only_extra_tests(\@connect_info);
+        return;
+    }
 
-    plan tests => @connect_info * (174 + ($self->{extra}{count} || 0) + ($self->{data_type_tests}{test_count} || 0));
+    my $extra_count = $self->{extra}{count} || 0;
+
+    plan tests => @connect_info * (174 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -89,11 +96,33 @@ sub run_tests {
 
         $self->create();
 
-        my $schema_class = $self->setup_schema(@$info);
+        my $schema_class = $self->setup_schema($info);
         $self->test_schema($schema_class);
 
         rmtree $DUMP_DIR
             unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#connect_info;
+    }
+}
+
+sub run_only_extra_tests {
+    my ($self, $connect_info) = @_;
+
+    plan tests => @$connect_info * (4 + ($self->{extra}{count} || 0));
+
+    foreach my $info (@$connect_info) {
+        @{$self}{qw/dsn user password connect_info_opts/} = @$info;
+
+        my $dbh = $self->dbconnect(0);
+        $dbh->do($_) for @{ $self->{extra}{create} || [] };
+        $self->{_created} = 1;
+
+        my $result_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
+
+        my $schema_class = $self->setup_schema($info, $result_count + 1);
+        my ($monikers, $classes) = $self->monikers_and_classes($schema_class);
+        my $conn = $schema_class->clone;
+
+        $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
     }
 }
 
@@ -103,8 +132,7 @@ my (@statements, @statements_reltests, @statements_advanced,
     @statements_implicit_rels);
 
 sub setup_schema {
-    my $self = shift;
-    my @connect_info = @_;
+    my ($self, $connect_info, $expected_count) = @_;
 
     my $schema_class = 'DBIXCSL_Test::Schema';
 
@@ -136,7 +164,6 @@ sub setup_schema {
     Class::Unload->unload($schema_class);
 
     my $file_count;
-    my $expected_count = 36 + ($self->{data_type_tests}{test_count} ? 1 : 0);
     {
         my @loader_warnings;
         local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
@@ -145,24 +172,30 @@ sub setup_schema {
              use base qw/DBIx::Class::Schema::Loader/;
      
              __PACKAGE__->loader_options(\%loader_opts);
-             __PACKAGE__->connection(\@connect_info);
+             __PACKAGE__->connection(\@\$connect_info);
          };
  
         ok(!$@, "Loader initialization") or diag $@;
 
         find sub { return if -d; $file_count++ }, $DUMP_DIR;
- 
-        $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
-            @{ $self->{extra}{create} || [] };
- 
-        $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
-            if $self->{skip_rels} || $self->{no_inline_rels};
- 
-        $expected_count -= grep /CREATE TABLE/, @statements_implicit_rels
-            if $self->{skip_rels} || $self->{no_implicit_rels};
- 
-        $expected_count -= grep /CREATE TABLE/, ($self->{vendor} =~ /sqlite/ ? @statements_advanced_sqlite : @statements_advanced), @statements_reltests
-            if $self->{skip_rels};
+
+        my $standard_sources = not defined $expected_count;
+
+        if ($standard_sources) {
+            $expected_count = 36 + ($self->{data_type_tests}{test_count} ? 1 : 0);
+
+            $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
+                @{ $self->{extra}{create} || [] };
+     
+            $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
+                if $self->{skip_rels} || $self->{no_inline_rels};
+     
+            $expected_count -= grep /CREATE TABLE/, @statements_implicit_rels
+                if $self->{skip_rels} || $self->{no_implicit_rels};
+     
+            $expected_count -= grep /CREATE TABLE/, ($self->{vendor} =~ /sqlite/ ? @statements_advanced_sqlite : @statements_advanced), @statements_reltests
+                if $self->{skip_rels};
+        }
  
         is $file_count, $expected_count, 'correct number of files generated';
  
@@ -175,19 +208,27 @@ sub setup_schema {
  
         $warn_count++ for grep /\b(?!loader_test9)\w+ has no primary key/i, @loader_warnings;
 
-        if($self->{skip_rels}) {
-            SKIP: {
-                is(scalar(@loader_warnings), $warn_count, "No loader warnings")
+        if ($standard_sources) {
+            if($self->{skip_rels}) {
+                SKIP: {
+                    is(scalar(@loader_warnings), $warn_count, "No loader warnings")
+                        or diag @loader_warnings;
+                    skip "No missing PK warnings without rels", 1;
+                }
+            }
+            else {
+                $warn_count++;
+                is(scalar(@loader_warnings), $warn_count, "Expected loader warning")
                     or diag @loader_warnings;
-                skip "No missing PK warnings without rels", 1;
+                is(grep(/loader_test9 has no primary key/i, @loader_warnings), 1,
+                     "Missing PK warning");
             }
         }
         else {
-	    $warn_count++;
-            is(scalar(@loader_warnings), $warn_count, "Expected loader warning")
-                or diag @loader_warnings;
-            is(grep(/loader_test9 has no primary key/i, @loader_warnings), 1,
-                 "Missing PK warning");
+            SKIP: {
+                is scalar(@loader_warnings), $warn_count, 'Correct number of warnings';
+                skip "not testing standard sources", 1;
+            }
         }
     }
 
@@ -204,20 +245,7 @@ sub test_schema {
 
     ($self->{before_tests_run} || sub {})->($conn);
 
-    my $monikers = {};
-    my $classes = {};
-    foreach my $source_name ($schema_class->sources) {
-        my $table_name = $schema_class->source($source_name)->from;
-
-        $table_name = $$table_name if ref $table_name;
-
-        $monikers->{$table_name} = $source_name;
-        $classes->{$table_name} = $schema_class . q{::} . $source_name;
-
-        # some DBs (Firebird) uppercase everything
-        $monikers->{lc $table_name} = $source_name;
-        $classes->{lc $table_name} = $schema_class . q{::} . $source_name;
-    }
+    my ($monikers, $classes) = $self->monikers_and_classes($schema_class);
 
     my $moniker1 = $monikers->{loader_test1s};
     my $class1   = $classes->{loader_test1s};
@@ -900,6 +928,26 @@ sub test_schema {
     $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 
     $conn->storage->disconnect;
+}
+
+sub monikers_and_classes {
+    my ($self, $schema_class) = @_;
+    my ($monikers, $classes);
+
+    foreach my $source_name ($schema_class->sources) {
+        my $table_name = $schema_class->source($source_name)->from;
+
+        $table_name = $$table_name if ref $table_name;
+
+        $monikers->{$table_name} = $source_name;
+        $classes->{$table_name} = $schema_class . q{::} . $source_name;
+
+        # some DBs (Firebird) uppercase everything
+        $monikers->{lc $table_name} = $source_name;
+        $classes->{lc $table_name} = $schema_class . q{::} . $source_name;
+    }
+
+    return ($monikers, $classes);
 }
 
 sub check_no_duplicate_unique_constraints {

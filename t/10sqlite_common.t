@@ -81,7 +81,7 @@ my $tester = dbixcsl_common_tests->new(
                 '2 foreign key constraints found');
 
             # test that columns for views are picked up
-            is $schema->resultset($monikers->{extra_loader_test5})->result_source->column_info('person_id')->{data_type}, 'INTEGER',
+            is $schema->resultset($monikers->{extra_loader_test5})->result_source->column_info('person_id')->{data_type}, 'integer',
                 'columns for views are introspected';
         },
     },
