@@ -109,7 +109,9 @@ sub run_only_extra_tests {
 
     plan tests => @$connect_info * (4 + ($self->{extra}{count} || 0));
 
-    foreach my $info (@$connect_info) {
+    foreach my $info_idx (0..$#$connect_info) {
+        my $info = $connect_info->[$info_idx];
+
         @{$self}{qw/dsn user password connect_info_opts/} = @$info;
 
         my $dbh = $self->dbconnect(0);
@@ -123,6 +125,12 @@ sub run_only_extra_tests {
         my $conn = $schema_class->clone;
 
         $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
+
+        if (not ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#$connect_info)) {
+            $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+            $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
+            rmtree $DUMP_DIR;
+        }
     }
 }
 
