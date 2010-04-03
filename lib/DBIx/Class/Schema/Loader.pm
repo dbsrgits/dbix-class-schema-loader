@@ -171,7 +171,7 @@ sub _invoke_loader {
 
     my $impl = $loader_class || "DBIx::Class::Schema::Loader" . $self->storage_type;
     eval { $self->ensure_class_loaded($impl) };
-    croak qq/Could not load loader class "$impl": "$@"/ if $@;
+    croak qq/Could not load loader_class "$impl": "$@"/ if $@;
 
     $self->_loader($impl->new(%$args));
     $self->_loader->load;
