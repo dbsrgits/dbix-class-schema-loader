@@ -283,8 +283,8 @@ sub test_schema {
     my $rsobj2   = $conn->resultset($moniker2);
     check_no_duplicate_unique_constraints($class2);
 
-    my $moniker23 = $monikers->{LOADER_TEST23} || $monikers->{loader_test23};
-    my $class23   = $classes->{LOADER_TEST23}  || $classes->{loader_test23};
+    my $moniker23 = $monikers->{LOADER_test23} || $monikers->{loader_test23};
+    my $class23   = $classes->{LOADER_test23}  || $classes->{loader_test23};
     my $rsobj23   = $conn->resultset($moniker1);
 
     my $moniker24 = $monikers->{LoAdEr_test24} || $monikers->{loader_test24};
@@ -1056,7 +1056,7 @@ sub create {
         q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ddd', 'www') }, 
 
         qq{
-            CREATE TABLE LOADER_TEST23 (
+            CREATE TABLE LOADER_test23 (
                 ID INTEGER NOT NULL PRIMARY KEY,
                 DAT VARCHAR(32) NOT NULL UNIQUE
             ) $self->{innodb}
@@ -1489,7 +1489,7 @@ sub drop_tables {
     my @tables = qw/
         loader_test1s
         loader_test2
-        LOADER_TEST23
+        LOADER_test23
         LoAdEr_test24
         loader_test35
         loader_test36
