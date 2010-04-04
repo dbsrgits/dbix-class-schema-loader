@@ -54,6 +54,54 @@ my $tester = dbixcsl_common_tests->new(
             password    => $odbc_password,
         } : ()),
     ],
+    data_types  => {
+        # based on the Interbase Data Definition Guide
+        # http://www.ibphoenix.com/downloads/60DataDef.zip
+        #
+        # Numeric types
+        'smallint'    => { data_type => 'smallint' },
+        'int'         => { data_type => 'integer' },
+        'integer'     => { data_type => 'integer' },
+        'bigint'      => { data_type => 'bigint' },
+        'float'       => { data_type => 'float' },
+        'double precision' =>
+                         { data_type => 'double precision' },
+        'real'        => { data_type => 'float' },
+
+        'float(2)'    => { data_type => 'float' },
+        'float(7)'    => { data_type => 'float' },
+        'float(8)'    => { data_type => 'double precision' },
+
+        'decimal'     => { data_type => 'decimal' },
+        'dec'         => { data_type => 'decimal' },
+        'numeric'     => { data_type => 'numeric' },
+
+        'decimal(3)'   => { data_type => 'decimal', size => [3,0] },
+
+        'decimal(3,3)' => { data_type => 'decimal', size => [3,3] },
+        'dec(3,3)'     => { data_type => 'decimal', size => [3,3] },
+        'numeric(3,3)' => { data_type => 'numeric', size => [3,3] },
+
+        'decimal(18,18)' => { data_type => 'decimal', size => [18,18] },
+        'dec(18,18)'     => { data_type => 'decimal', size => [18,18] },
+        'numeric(18,18)' => { data_type => 'numeric', size => [18,18] },
+
+        # Date and Time Types
+        'date'        => { data_type => 'date' },
+        'timestamp DEFAULT CURRENT_TIMESTAMP'
+                      => { data_type => 'timestamp', default_value => \"CURRENT_TIMESTAMP" },
+        'time'        => { data_type => 'time' },
+
+        # String Types
+        'char'         => { data_type => 'char',      size => 1  },
+        'char(11)'     => { data_type => 'char',      size => 11 },
+        'varchar(20)'  => { data_type => 'varchar',   size => 20 },
+
+        # Blob types
+        'blob'        => { data_type => 'blob' },
+        'blob sub_type text'
+                      => { data_type => 'blob sub_type text' },
+    },
     extra => {
         count  => 7,
         run    => sub {

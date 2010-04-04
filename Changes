@@ -21,7 +21,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - added config_file option for loading loader options from a file
         - set inflate_datetime => 1 for 'AS getdate()' computed columns in
           Sybase
-        - preliminary Firebird support
+        - Firebird support
         - use introspection pragmas instead of regexes to introspect SQLite
           (hobbs)
         - generate POD for refs correctly from column_info

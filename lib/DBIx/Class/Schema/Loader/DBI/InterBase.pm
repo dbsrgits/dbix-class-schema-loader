@@ -171,71 +171,146 @@ EOF
     return \@uniqs;
 }
 
-sub _extra_column_info {
-    my ($self, $table, $column, $info, $dbi_info) = @_;
-    my %extra_info;
+sub _columns_info_for {
+    my $self = shift;
+    my ($table) = @_;
+
+    my $result = $self->next::method(@_);
 
     my $dbh = $self->schema->storage->dbh;
 
     local $dbh->{LongReadLen} = 100000;
     local $dbh->{LongTruncOk} = 1;
 
-    my $sth = $dbh->prepare(<<'EOF');
+    while (my ($column, $info) = each %$result) {
+        my $sth = $dbh->prepare(<<'EOF');
 SELECT t.rdb$trigger_source
 FROM rdb$triggers t
 WHERE t.rdb$relation_name = ?
 AND t.rdb$system_flag = 0 -- user defined
 AND t.rdb$trigger_type = 1 -- BEFORE INSERT
 EOF
-    $sth->execute($table);
+        $sth->execute($table);
 
-    while (my ($trigger) = $sth->fetchrow_array) {
-        my @trig_cols = map {
-            /^"([^"]+)/ ? $1 : uc($1)
-        } $trigger =~ /new\.("?\w+"?)/ig;
+        while (my ($trigger) = $sth->fetchrow_array) {
+            my @trig_cols = map { /^"([^"]+)/ ? $1 : uc($_) } $trigger =~ /new\.("?\w+"?)/ig;
 
-        my ($quoted, $generator) = $trigger =~
-/(?:gen_id\s* \( \s* |next \s* value \s* for \s*)(")?(\w+)/ix;
+            my ($quoted, $generator) = $trigger =~ /(?:gen_id\s* \( \s* |next \s* value \s* for \s*)(")?(\w+)/ix;
 
-        if ($generator) {
-            $generator = uc $generator unless $quoted;
+            if ($generator) {
+                $generator = uc $generator unless $quoted;
 
-            if (first { $self->_uc($_) eq $self->_uc($column) } @trig_cols) {
-                $extra_info{is_auto_increment} = 1;
-                $extra_info{sequence}          = $generator;
-                last;
+                if (first { $self->_uc($_) eq $self->_uc($column) } @trig_cols) {
+                    $info->{is_auto_increment} = 1;
+                    $info->{sequence}          = $generator;
+                    last;
+                }
             }
         }
-    }
 
-# fix up DT types, no idea which other types are fucked
-    if ($info->{data_type} eq '11') {
-        $extra_info{data_type} = 'TIMESTAMP';
-    }
-    elsif ($info->{data_type} eq '9') {
-        $extra_info{data_type} = 'DATE';
-    }
+# fix up types
+        $sth = $dbh->prepare(<<'EOF');
+SELECT f.rdb$field_precision, f.rdb$field_scale, f.rdb$field_type, f.rdb$field_sub_type, t.rdb$type_name, st.rdb$type_name
+FROM rdb$fields f
+JOIN rdb$relation_fields rf ON rf.rdb$field_source = f.rdb$field_name
+JOIN rdb$types t  ON f.rdb$field_type     = t.rdb$type  AND t.rdb$field_name  = 'RDB$FIELD_TYPE'
+JOIN rdb$types st ON f.rdb$field_sub_type = st.rdb$type AND st.rdb$field_name = 'RDB$FIELD_SUB_TYPE'
+WHERE rf.rdb$relation_name = ?
+    AND rf.rdb$field_name  = ?
+EOF
+        $sth->execute($table, $self->_uc($column));
+        my ($precision, $scale, $type_num, $sub_type_num, $type_name, $sub_type_name) = $sth->fetchrow_array;
+        $scale = -$scale if $scale && $scale < 0;
+
+        if ($type_name && $sub_type_name) {
+            s/\s+\z// for $type_name, $sub_type_name;
+
+            # fixups primarily for DBD::InterBase
+            if ($info->{data_type} =~ /^integer|int|smallint|bigint|-9581\z/) {
+                if ($precision && $type_name =~ /^LONG|INT64\z/ && $sub_type_name eq 'BLR') {
+                    $info->{data_type} = 'decimal';
+                }
+                elsif ($precision && $type_name =~ /^LONG|SHORT|INT64\z/ && $sub_type_name eq 'TEXT') {
+                    $info->{data_type} = 'numeric';
+                }
+                elsif ((not $precision) && $type_name eq 'INT64' && $sub_type_name eq 'BINARY') {
+                    $info->{data_type} = 'bigint';
+                }
+            }
+            # ODBC makes regular blobs sub_type blr
+            elsif ($type_name eq 'BLOB') {
+                if ($sub_type_name eq 'BINARY') {
+                    $info->{data_type} = 'blob';
+                }
+                elsif ($sub_type_name eq 'TEXT') {
+                    $info->{data_type} = 'blob sub_type text';
+                }
+            }
+        }
+
+        if ($info->{data_type} =~ /^decimal|numeric\z/ && defined $precision && defined $scale) {
+            if ($precision == 9 && $scale == 0) {
+                delete $info->{size};
+            }
+            else {
+                $info->{size} = [$precision, $scale];
+            }
+        }
+
+        if ($info->{data_type} eq '11') {
+            $info->{data_type} = 'timestamp';
+        }
+        elsif ($info->{data_type} eq '10') {
+            $info->{data_type} = 'time';
+        }
+        elsif ($info->{data_type} eq '9') {
+            $info->{data_type} = 'date';
+        }
+        elsif ($info->{data_type} eq 'character varying') {
+            $info->{data_type} = 'varchar';
+        }
+        elsif ($info->{data_type} eq 'character') {
+            $info->{data_type} = 'char';
+        }
+        elsif ($info->{data_type} eq 'real') {
+            $info->{data_type} = 'float';
+        }
+        elsif ($info->{data_type} eq 'int64' || $info->{data_type} eq '-9581') {
+            # the constant is just in case, the query should pick up the type
+            $info->{data_type} = 'bigint';
+        }
+
+        # DBD::InterBase sets scale to '0' for some reason for char types
+        if ($info->{data_type} =~ /^char|varchar\z/ && ref($info->{size}) eq 'ARRAY') {
+            $info->{size} = $info->{size}[0];
+        }
+        elsif ($info->{data_type} !~ /^char|varchar|numeric|decimal\z/) {
+            delete $info->{size};
+        }
 
 # get default
-    $sth = $dbh->prepare(<<'EOF');
+        delete $info->{default_value} if $info->{default_value} && $info->{default_value} eq 'NULL';
+
+        $sth = $dbh->prepare(<<'EOF');
 SELECT rf.rdb$default_source
 FROM rdb$relation_fields rf
 WHERE rf.rdb$relation_name = ?
 AND rf.rdb$field_name = ?
 EOF
-    $sth->execute($table, $self->_uc($column));
-    my ($default_src) = $sth->fetchrow_array;
+        $sth->execute($table, $self->_uc($column));
+        my ($default_src) = $sth->fetchrow_array;
 
-    if ($default_src && (my ($def) = $default_src =~ /^DEFAULT \s+ (\S+)/ix)) {
-        if (my ($quoted) = $def =~ /^'(.*?)'\z/) {
-            $extra_info{default_value} = $quoted;
-        }
-        else {
-            $extra_info{default_value} = $def =~ /^\d/ ? $def : \$def;
+        if ($default_src && (my ($def) = $default_src =~ /^DEFAULT \s+ (\S+)/ix)) {
+            if (my ($quoted) = $def =~ /^'(.*?)'\z/) {
+                $info->{default_value} = $quoted;
+            }
+            else {
+                $info->{default_value} = $def =~ /^\d/ ? $def : \$def;
+            }
         }
     }
 
-    return \%extra_info;
+    return $result;
 }
 
 =head1 SEE ALSO
@@ -255,3 +330,4 @@ the same terms as Perl itself.
 =cut
 
 1;
+# vim:et sw=4 sts=4 tw=0:

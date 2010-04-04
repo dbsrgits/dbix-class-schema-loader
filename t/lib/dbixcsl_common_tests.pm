@@ -114,14 +114,18 @@ sub run_only_extra_tests {
 
         @{$self}{qw/dsn user password connect_info_opts/} = @$info;
 
-        my $dbh = $self->dbconnect(0);
+        $self->drop_extra_tables_only;
+
+        my $dbh = $self->dbconnect(1);
         $dbh->do($_) for @{ $self->{extra}{create} || [] };
         $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests}{ddl};
         $self->{_created} = 1;
 
-        my $result_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
+        my $file_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
+        $file_count++; # schema
+        $file_count++ if $self->{data_type_tests}{ddl};
 
-        my $schema_class = $self->setup_schema($info, $result_count + 2); # + schema + data_type table
+        my $schema_class = $self->setup_schema($info, $file_count);
         my ($monikers, $classes) = $self->monikers_and_classes($schema_class);
         my $conn = $schema_class->clone;
 
@@ -129,10 +133,21 @@ sub run_only_extra_tests {
         $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
 
         if (not ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#$connect_info)) {
-            $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
-            $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
+            $self->drop_extra_tables_only;
             rmtree $DUMP_DIR;
         }
+    }
+}
+
+sub drop_extra_tables_only {
+    my $self = shift;
+
+    my $dbh = $self->dbconnect(0);
+    $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+    $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
+
+    if (my $data_type_table = $self->{data_type_tests}{table_name}) {
+        $dbh->do("DROP TABLE $data_type_table");
     }
 }
 
@@ -236,7 +251,8 @@ sub setup_schema {
         }
         else {
             SKIP: {
-                is scalar(@loader_warnings), $warn_count, 'Correct number of warnings';
+                is scalar(@loader_warnings), $warn_count, 'Correct number of warnings'
+                    or diag @loader_warnings;
                 skip "not testing standard sources", 1;
             }
         }
@@ -1625,6 +1641,11 @@ sub setup_data_type_tests {
         $size = '' unless defined $size;
         $size =~ s/\s+//g;
         my @size = split /,/, $size;
+
+        # Firebird doesn't like very long column names
+        if ($self->{vendor} =~ /^firebird\z/i) {
+            $type_alias =~ s/default\b.*/_with_dflt/i;
+        }
 
         $type_alias =~ s/\s/_/g;
         $type_alias =~ s/\W//g;
