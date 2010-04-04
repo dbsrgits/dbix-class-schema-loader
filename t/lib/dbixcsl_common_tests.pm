@@ -107,7 +107,7 @@ sub run_tests {
 sub run_only_extra_tests {
     my ($self, $connect_info) = @_;
 
-    plan tests => @$connect_info * (4 + ($self->{extra}{count} || 0));
+    plan tests => @$connect_info * (4 + ($self->{extra}{count} || 0) + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#$connect_info) {
         my $info = $connect_info->[$info_idx];
@@ -116,14 +116,16 @@ sub run_only_extra_tests {
 
         my $dbh = $self->dbconnect(0);
         $dbh->do($_) for @{ $self->{extra}{create} || [] };
+        $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests}{ddl};
         $self->{_created} = 1;
 
         my $result_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
 
-        my $schema_class = $self->setup_schema($info, $result_count + 1);
+        my $schema_class = $self->setup_schema($info, $result_count + 2); # + schema + data_type table
         my ($monikers, $classes) = $self->monikers_and_classes($schema_class);
         my $conn = $schema_class->clone;
 
+        $self->test_data_types($conn);
         $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
 
         if (not ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#$connect_info)) {
@@ -900,7 +902,19 @@ sub test_schema {
            'Foreign key detected');
     }
 
-    # test data types
+    $self->test_data_types($conn);
+
+    # run extra tests
+    $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
+
+    $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
+
+    $conn->storage->disconnect;
+}
+
+sub test_data_types {
+    my ($self, $conn) = @_;
+
     if ($self->{data_type_tests}{test_count}) {
         my $data_type_tests = $self->{data_type_tests};
         my $columns = $data_type_tests->{columns};
@@ -929,13 +943,6 @@ sub test_schema {
                 "test column $col_name has definition: $text_col_def expecting: $text_expected_info";
         }
     }
-
-    # run extra tests
-    $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
-
-    $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
-
-    $conn->storage->disconnect;
 }
 
 sub monikers_and_classes {
