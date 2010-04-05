@@ -82,6 +82,12 @@ my $tester = dbixcsl_common_tests->new(
         'dec(3,3)'     => { data_type => 'decimal', size => [3,3] },
         'numeric(3,3)' => { data_type => 'numeric', size => [3,3] },
 
+        'decimal(6,3)' => { data_type => 'decimal', size => [6,3] },
+        'numeric(6,3)' => { data_type => 'numeric', size => [6,3] },
+
+        'decimal(12,3)' => { data_type => 'decimal', size => [12,3] },
+        'numeric(12,3)' => { data_type => 'numeric', size => [12,3] },
+
         'decimal(18,18)' => { data_type => 'decimal', size => [18,18] },
         'dec(18,18)'     => { data_type => 'decimal', size => [18,18] },
         'numeric(18,18)' => { data_type => 'numeric', size => [18,18] },
