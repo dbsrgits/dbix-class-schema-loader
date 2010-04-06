@@ -24,6 +24,6 @@ plan tests => 1;
 eval { DBICTest::Schema->connect($make_dbictest_db::dsn) };
 like(
     $@,
-    qr/Could not load storage_type loader "DBIx::Class::Schema::Loader::xyzzy": /,
+    qr/Could not load loader_class "DBIx::Class::Schema::Loader::xyzzy": /,
     'Bad storage type dies correctly'
 );
