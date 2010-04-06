@@ -38,7 +38,9 @@ DBIx::Class::Schema::Loader - Dynamic definition of a DBIx::Class::Schema
       { debug => 1,
         dump_directory => './lib',
       },
-      [ 'dbi:Pg:dbname="foo"', 'myuser', 'mypassword', { loader_class => 'MyLoader' } ],
+      [ 'dbi:Pg:dbname="foo"', 'myuser', 'mypassword',
+         { loader_class => 'MyLoader' } # optionally
+      ],
   );
 
   # from the command line or a shell script with dbicdump (distributed
@@ -343,6 +345,8 @@ memory at runtime without generating on-disk class files.
 For a complete list of supported loader_options, see
 L<DBIx::Class::Schema::Loader::Base>
 
+The last hashref in the C<\@connect_info> can specify the L</loader_class>.
+
 This function can be imported in the usual way, as illustrated in
 these Examples:
 
@@ -352,7 +356,9 @@ these Examples:
     make_schema_at(
         'New::Schema::Name',
         { debug => 1 },
-        [ 'dbi:Pg:dbname="foo"','postgres','', { loader_class => 'MyLoader' } ],
+        [ 'dbi:Pg:dbname="foo"','postgres','',
+          { loader_class => 'MyLoader' } # optionally
+        ],
     );
 
     # Inside a script, specifying a dump directory in which to write
@@ -361,7 +367,9 @@ these Examples:
     make_schema_at(
         'New::Schema::Name',
         { debug => 1, dump_directory => './lib' },
-        [ 'dbi:Pg:dbname="foo"','postgres','', { loader_class => 'MyLoader' } ],
+        [ 'dbi:Pg:dbname="foo"','postgres','',
+          { loader_class => 'MyLoader' } # optionally
+        ],
     );
 
 The last hashref in the C<\@connect_info> is checked for loader arguments such
