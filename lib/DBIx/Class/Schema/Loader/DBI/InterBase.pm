@@ -213,8 +213,8 @@ EOF
 SELECT f.rdb$field_precision, f.rdb$field_scale, f.rdb$field_type, f.rdb$field_sub_type, t.rdb$type_name, st.rdb$type_name
 FROM rdb$fields f
 JOIN rdb$relation_fields rf ON rf.rdb$field_source = f.rdb$field_name
-JOIN rdb$types t  ON f.rdb$field_type     = t.rdb$type  AND t.rdb$field_name  = 'RDB$FIELD_TYPE'
-JOIN rdb$types st ON f.rdb$field_sub_type = st.rdb$type AND st.rdb$field_name = 'RDB$FIELD_SUB_TYPE'
+LEFT JOIN rdb$types t  ON f.rdb$field_type     = t.rdb$type  AND t.rdb$field_name  = 'RDB$FIELD_TYPE'
+LEFT JOIN rdb$types st ON f.rdb$field_sub_type = st.rdb$type AND st.rdb$field_name = 'RDB$FIELD_SUB_TYPE'
 WHERE rf.rdb$relation_name = ?
     AND rf.rdb$field_name  = ?
 EOF
@@ -226,11 +226,11 @@ EOF
             s/\s+\z// for $type_name, $sub_type_name;
 
             # fixups primarily for DBD::InterBase
-            if ($info->{data_type} =~ /^integer|int|smallint|bigint|-9581\z/) {
-                if ($precision && $type_name =~ /^LONG|INT64\z/ && $sub_type_name eq 'BLR') {
+            if ($info->{data_type} =~ /^(?:integer|int|smallint|bigint|-9581)\z/) {
+                if ($precision && $type_name =~ /^(?:LONG|INT64)\z/ && $sub_type_name eq 'BLR') {
                     $info->{data_type} = 'decimal';
                 }
-                elsif ($precision && $type_name =~ /^LONG|SHORT|INT64\z/ && $sub_type_name eq 'TEXT') {
+                elsif ($precision && $type_name =~ /^(?:LONG|SHORT|INT64)\z/ && $sub_type_name eq 'TEXT') {
                     $info->{data_type} = 'numeric';
                 }
                 elsif ((not $precision) && $type_name eq 'INT64' && $sub_type_name eq 'BINARY') {
@@ -248,7 +248,7 @@ EOF
             }
         }
 
-        if ($info->{data_type} =~ /^decimal|numeric\z/ && defined $precision && defined $scale) {
+        if ($info->{data_type} =~ /^(?:decimal|numeric)\z/ && defined $precision && defined $scale) {
             if ($precision == 9 && $scale == 0) {
                 delete $info->{size};
             }
@@ -281,10 +281,10 @@ EOF
         }
 
         # DBD::InterBase sets scale to '0' for some reason for char types
-        if ($info->{data_type} =~ /^char|varchar\z/ && ref($info->{size}) eq 'ARRAY') {
+        if ($info->{data_type} =~ /^(?:char|varchar)\z/ && ref($info->{size}) eq 'ARRAY') {
             $info->{size} = $info->{size}[0];
         }
-        elsif ($info->{data_type} !~ /^char|varchar|numeric|decimal\z/) {
+        elsif ($info->{data_type} !~ /^(?:char|varchar|numeric|decimal)\z/) {
             delete $info->{size};
         }
 

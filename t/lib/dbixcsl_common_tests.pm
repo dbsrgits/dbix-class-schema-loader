@@ -1642,9 +1642,13 @@ sub setup_data_type_tests {
         $size =~ s/\s+//g;
         my @size = split /,/, $size;
 
-        # Firebird doesn't like very long column names
-        if ($self->{vendor} =~ /^firebird\z/i) {
-            $type_alias =~ s/default\b.*/_with_dflt/i;
+        # some DBs don't like very long column names
+        if ($self->{vendor} =~ /^firebird|sqlanywhere\z/i) {
+            my ($col_def, $default) = $type_alias =~ /^(.*)(default.*)?\z/i;
+
+            $type_alias = substr $col_def, 0, 15;
+
+            $type_alias .= '_with_dflt' if $default;
         }
 
         $type_alias =~ s/\s/_/g;
@@ -1655,7 +1659,7 @@ sub setup_data_type_tests {
         if (@size) {
             my $size_name = join '_', apply { s/\W//g } @size;
 
-            $col_name .= "_with_size_$size_name";
+            $col_name .= "_sz_$size_name";
         }
 
         $col_name .= "_$seen_col_names{$col_name}" if $seen_col_names{$col_name}++;

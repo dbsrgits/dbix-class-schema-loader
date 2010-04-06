@@ -3,9 +3,10 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - better type info for MySQL
         - initial MySQL data type tests (jhannah)
         - don't set result_namespace if it's 'Result'
-        - support for MSSQL databases with case sensitive collation
+        - support for MSSQL databases with case sensitive collation, manually
+          overridable with 'case_sensitive_collation' option
         - do not try to detect driver and rebless when used with a custom
-          loader_class
+          'loader_class'
         - suppress 'bad table or view' warnings for filtered tables/views
         - croak if several tables reduce to an identical moniker (ribasushi)
         - better type info for Sybase ASE
@@ -25,7 +26,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - use introspection pragmas instead of regexes to introspect SQLite
           (hobbs)
         - generate POD for refs correctly from column_info
-        - fix tables list and fk introspection for SQL Anywhere
+        - fix tables list, fk introspection and type info for SQL Anywhere
 
 0.05003  2010-02-20 05:19:51
         - support for custom_column_info, datetime_timezone and datetime_locale

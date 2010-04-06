@@ -45,17 +45,60 @@ EOF
     return $self->_filter_tables(\@tables, $opts);
 }
 
-# check for IDENTITY columns
 sub _columns_info_for {
-    my $self   = shift;
+    my $self    = shift;
+    my ($table) = @_;
+
     my $result = $self->next::method(@_);
 
-    while (my ($col, $info) = each %$result) {
+    my $dbh = $self->schema->storage->dbh;
+
+    while (my ($column, $info) = each %$result) {
         my $def = $info->{default_value};
         if (ref $def eq 'SCALAR' && $$def eq 'autoincrement') {
             delete $info->{default_value};
             $info->{is_auto_increment} = 1;
         }
+
+        my ($user_type) = $dbh->selectrow_array(<<'EOF', {}, $table, lc $column);
+SELECT ut.type_name
+FROM systabcol tc
+JOIN systab t ON tc.table_id = t.table_id
+JOIN sysusertype ut on tc.user_type = ut.type_id
+WHERE t.table_name = ? AND lower(tc.column_name) = ?
+EOF
+        $info->{data_type} = $user_type if defined $user_type;
+
+        if ($info->{data_type} eq 'double') {
+            $info->{data_type} = 'double precision';
+        }
+
+        if ($info->{data_type} =~ /^(?:char|varchar|binary|varbinary)\z/ && ref($info->{size}) eq 'ARRAY') {
+            $info->{size} = $info->{size}[0];
+        }
+        elsif ($info->{data_type} !~ /^(?:char|varchar|binary|varbinary|numeric|decimal)\z/) {
+            delete $info->{size};
+        }
+
+        my $sth = $dbh->prepare(<<'EOF');
+SELECT tc.width, tc.scale
+FROM systabcol tc
+JOIN systab t ON t.table_id = tc.table_id
+WHERE t.table_name = ? AND lower(tc.column_name) = ?
+EOF
+        $sth->execute($table, lc $column);
+        my ($width, $scale) = $sth->fetchrow_array;
+        $sth->finish;
+
+        if ($info->{data_type} =~ /^(?:numeric|decimal)\z/) {
+            # We do not check for the default precision/scale, because they can be changed as PUBLIC database options.
+            $info->{size} = [$width, $scale];
+        }
+        elsif ($info->{data_type} =~ /^(?:n(?:varchar|char) | varbit)\z/x) {
+            $info->{size} = $width;
+        }
+
+        delete $info->{default_value} if ref($info->{default_value}) eq 'SCALAR' && ${ $info->{default_value} } eq 'NULL';
     }
 
     return $result;
@@ -153,3 +196,4 @@ the same terms as Perl itself.
 =cut
 
 1;
+# vim:et sw=4 sts=4 tw=0:
