@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.06000  2010-04-06 01:12:25
         - better type info for MySQL
         - initial MySQL data type tests (jhannah)
         - don't set result_namespace if it's 'Result'
