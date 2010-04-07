@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix MSSQL collation detection on freetds tds version 8.0
+
 0.06000  2010-04-06 01:12:25
         - better type info for MySQL
         - initial MySQL data type tests (jhannah)

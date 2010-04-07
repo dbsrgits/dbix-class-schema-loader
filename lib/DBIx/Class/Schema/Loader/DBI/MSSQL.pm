@@ -37,15 +37,11 @@ We attempt to detect the database collation at startup, and set the column
 lowercasing behavior accordingly, as lower-cased column names do not work on
 case-sensitive databases.
 
-If you are using FreeTDS with C<tds version> set to C<8.0> the collation
-detection may fail, and Loader will default to case-insensitive mode. C<tds
-version> C<7.0> will work fine.
-
-If this happens set:
+To manually set or unset case-sensitive mode, put:
 
     case_sensitive_collation => 1
 
-in your Loader options to override it.
+in your Loader options.
 
 =cut
 
@@ -73,7 +69,7 @@ sub _setup {
     # more on collations here: http://msdn.microsoft.com/en-us/library/ms143515.aspx
     my ($collation_name) =
            eval { $dbh->selectrow_array('SELECT collation_name FROM sys.databases WHERE name = DB_NAME()') }
-        || eval { $dbh->selectrow_array("SELECT databasepropertyex(DB_NAME(), 'Collation')") };
+        || eval { $dbh->selectrow_array("SELECT CAST(databasepropertyex(DB_NAME(), 'Collation') AS VARCHAR)") };
 
     if (not $collation_name) {
         warn <<'EOF';
