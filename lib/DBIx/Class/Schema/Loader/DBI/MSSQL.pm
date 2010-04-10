@@ -37,9 +37,9 @@ We attempt to detect the database collation at startup, and set the column
 lowercasing behavior accordingly, as lower-cased column names do not work on
 case-sensitive databases.
 
-To manually set or unset case-sensitive mode, put:
+To manually control case-sensitive mode, put:
 
-    case_sensitive_collation => 1
+    case_sensitive_collation => 1|0
 
 in your Loader options.
 
@@ -186,6 +186,7 @@ sub _columns_info_for {
     while (my ($col, $info) = each %$result) {
         my $dbh = $self->schema->storage->dbh;
 
+# find identities
         my $sth = $dbh->prepare(qq{
 SELECT column_name 
 FROM INFORMATION_SCHEMA.COLUMNS
@@ -195,6 +196,78 @@ AND lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @
         if (eval { $sth->execute; $sth->fetchrow_array }) {
             $info->{is_auto_increment} = 1;
             $info->{data_type} =~ s/\s*identity//i;
+            delete $info->{size};
+        }
+
+# fix types
+        if ($info->{data_type} eq 'int') {
+            $info->{data_type} = 'integer';
+        }
+        elsif ($info->{data_type} eq 'timestamp') {
+            $info->{inflate_datetime} = 0;
+        }
+        elsif ($info->{data_type} =~ /^(?:numeric|decimal)\z/) {
+            if (ref($info->{size}) && $info->{size}[0] == 18 && $info->{size}[1] == 0) {
+                delete $info->{size};
+            }
+        }
+        elsif ($info->{data_type} eq 'real') {
+            $info->{data_type} = 'float';
+            $info->{size}      = 24;
+        }
+        elsif ($info->{data_type} eq 'float') {
+            $info->{data_type} = 'double precision';
+        }
+        elsif ($info->{data_type} =~ /^(?:small)?datetime\z/) {
+            # fixup for DBD::Sybase
+            if ($info->{default_value} && $info->{default_value} eq '3') {
+                delete $info->{default_value};
+            }
+        }
+        elsif ($info->{data_type} eq 'datetimeoffset') {
+            $info->{size} = {
+                26 => 0,
+                28 => 1,
+                29 => 2,
+                30 => 3,
+                31 => 4,
+                32 => 5,
+                33 => 6,
+                34 => 7,
+            }->{$info->{size}};
+
+            delete $info->{size} if $info->{size} == 7;
+        }
+        elsif ($info->{data_type} eq 'datetime2') {
+            $info->{size} = {
+                19 => 0,
+                21 => 1,
+                22 => 2,
+                23 => 3,
+                24 => 4,
+                25 => 5,
+                26 => 6,
+                27 => 7,
+            }->{$info->{size}};
+
+            delete $info->{size} if $info->{size} == 7;
+        }
+        elsif ($info->{data_type} eq 'time') {
+            $info->{size} = {
+                 8 => 0,
+                10 => 1,
+                11 => 2,
+                12 => 3,
+                13 => 4,
+                14 => 5,
+                15 => 6,
+                16 => 7,
+            }->{$info->{size}};
+
+            delete $info->{size} if $info->{size} == 7;
+        }
+
+        if ($info->{data_type} !~ /^(?:n?char|n?varchar|binary|varbinary|numeric|decimal|float|datetime(?:2|offset)|time)\z/) {
             delete $info->{size};
         }
 

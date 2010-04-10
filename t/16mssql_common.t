@@ -38,7 +38,93 @@ my $tester = dbixcsl_common_tests->new(
         } : ()),
     ],
     data_types => {
-        'int identity' => { data_type => 'int', is_auto_increment => 1 },
+        # http://msdn.microsoft.com/en-us/library/ms187752.aspx
+
+        # numeric types
+        'int identity' => { data_type => 'integer', is_auto_increment => 1 },
+        bigint   => { data_type => 'bigint' },
+        int      => { data_type => 'integer' },
+        integer  => { data_type => 'integer' },
+        smallint => { data_type => 'smallint' },
+        tinyint  => { data_type => 'tinyint' },
+        money       => { data_type => 'money' },
+        smallmoney  => { data_type => 'smallmoney' },
+        bit         => { data_type => 'bit' },
+        real           => { data_type => 'float', size => 24 },
+        'float(14)'    => { data_type => 'float', size => 24 },
+        'float(24)'    => { data_type => 'float', size => 24 },
+        'float(25)'    => { data_type => 'double precision' },
+        'float(53)'    => { data_type => 'double precision' },
+        float          => { data_type => 'double precision' },
+        'double precision'
+                       => { data_type => 'double precision' },
+        'numeric(6,3)' => { data_type => 'numeric', size => [6,3] },
+        'decimal(6,3)' => { data_type => 'decimal', size => [6,3] },
+        'dec(6,3)'     => { data_type => 'decimal', size => [6,3] },
+        numeric        => { data_type => 'numeric' },
+        decimal        => { data_type => 'decimal' },
+        dec            => { data_type => 'decimal' },
+
+        # datetime types
+        date     => { data_type => 'date' },
+        datetime => { data_type => 'datetime' },
+        'datetime DEFAULT getdate()'
+                 => { data_type => 'datetime', default_value => \'getdate()' },
+        smalldatetime  => { data_type => 'smalldatetime' },
+        time     => { data_type => 'time' },
+        'time(0)'=> { data_type => 'time', size => 0 },
+        'time(1)'=> { data_type => 'time', size => 1 },
+        'time(2)'=> { data_type => 'time', size => 2 },
+        'time(3)'=> { data_type => 'time', size => 3 },
+        'time(4)'=> { data_type => 'time', size => 4 },
+        'time(5)'=> { data_type => 'time', size => 5 },
+        'time(6)'=> { data_type => 'time', size => 6 },
+        'time(7)'=> { data_type => 'time' },
+        datetimeoffset => { data_type => 'datetimeoffset' },
+        'datetimeoffset(0)' => { data_type => 'datetimeoffset', size => 0 },
+        'datetimeoffset(1)' => { data_type => 'datetimeoffset', size => 1 },
+        'datetimeoffset(2)' => { data_type => 'datetimeoffset', size => 2 },
+        'datetimeoffset(3)' => { data_type => 'datetimeoffset', size => 3 },
+        'datetimeoffset(4)' => { data_type => 'datetimeoffset', size => 4 },
+        'datetimeoffset(5)' => { data_type => 'datetimeoffset', size => 5 },
+        'datetimeoffset(6)' => { data_type => 'datetimeoffset', size => 6 },
+        'datetimeoffset(7)' => { data_type => 'datetimeoffset' },
+        datetime2      => { data_type => 'datetime2' },
+        'datetime2(0)' => { data_type => 'datetime2', size => 0 },
+        'datetime2(1)' => { data_type => 'datetime2', size => 1 },
+        'datetime2(2)' => { data_type => 'datetime2', size => 2 },
+        'datetime2(3)' => { data_type => 'datetime2', size => 3 },
+        'datetime2(4)' => { data_type => 'datetime2', size => 4 },
+        'datetime2(5)' => { data_type => 'datetime2', size => 5 },
+        'datetime2(6)' => { data_type => 'datetime2', size => 6 },
+        'datetime2(7)' => { data_type => 'datetime2' },
+
+        # string types
+        char           => { data_type => 'char', size => 1 },
+        'char(2)'      => { data_type => 'char', size => 2 },
+        'varchar(2)'   => { data_type => 'varchar', size => 2 },
+        nchar          => { data_type => 'nchar', size => 1 },
+        'nchar(2)'     => { data_type => 'nchar', size => 2 },
+        'nvarchar(2)'  => { data_type => 'nvarchar', size => 2 },
+
+        # binary types
+        'binary(2)'      => { data_type => 'binary', size => 2 },
+        'varbinary(2)'   => { data_type => 'varbinary', size => 2 },
+
+        # blob types
+        'varchar(max)'   => { data_type => 'text' },
+        text             => { data_type => 'text' },
+        'nvarchar(max)'  => { data_type => 'ntext' },
+        ntext            => { data_type => 'ntext' },
+        'varbinary(max)' => { data_type => 'image' },
+        image            => { data_type => 'image' },
+
+        # other types
+        timestamp        => { data_type => 'timestamp', inflate_datetime => 0 },
+        uniqueidentifier => { data_type => 'uniqueidentifier' },
+        hierarchyid      => { data_type => 'hierarchyid' },
+        sql_variant      => { data_type => 'sql_variant' },
+        xml              => { data_type => 'xml' },
     },
     extra => {
         create => [
