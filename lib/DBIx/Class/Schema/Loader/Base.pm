@@ -22,7 +22,7 @@ use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
 require DBIx::Class;
 
-our $VERSION = '0.06000';
+our $VERSION = '0.06001';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
