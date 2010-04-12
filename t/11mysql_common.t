@@ -121,6 +121,30 @@ my $tester = dbixcsl_common_tests->new(
         "set('foo', 'bar', 'baz')"
                       => { data_type => 'set',  extra => { list => [qw/foo bar baz/] } },
     },
+    extra => {
+        create => [
+            q{
+                CREATE TABLE mysql_loader_test1 (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    value varchar(100)
+                )
+            },
+            q{
+                CREATE VIEW mysql_loader_test2 AS SELECT * FROM mysql_loader_test1
+            },
+        ],
+        pre_drop_ddl => [ 'DROP VIEW mysql_loader_test2', ],
+        drop => [ 'mysql_loader_test1', ],
+        count => 1,
+        run => sub {
+            my ($schema, $monikers, $classes) = @_;
+
+            my $rsrc = $schema->resultset($monikers->{mysql_loader_test2})->result_source;
+
+            is $rsrc->column_info('value')->{data_type}, 'varchar',
+                'view introspected successfully';
+        },
+    },
 );
 
 if( !$dsn || !$user ) {

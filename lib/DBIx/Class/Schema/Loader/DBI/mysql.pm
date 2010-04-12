@@ -37,9 +37,14 @@ sub _table_fk_info {
     my ($self, $table) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my $table_def_ref = $dbh->selectrow_arrayref("SHOW CREATE TABLE `$table`")
-        or croak ("Cannot get table definition for $table");
-    my $table_def = $table_def_ref->[1] || '';
+
+    local $dbh->{RaiseError} = 0;
+    local $dbh->{PrintError} = 0;
+
+    my $table_def_ref = eval { $dbh->selectrow_arrayref("SHOW CREATE TABLE `$table`") };
+    my $table_def = $table_def_ref->[1];
+
+    return [] if not $table_def;
 
     my $qt = qr/["`]/;
 
