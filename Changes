@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix column name collisions with methods (RT#49443)
         - fix loading MySQL views on older MySQL versions (RT#47399)
 
 0.06001  2010-04-10 01:31:12

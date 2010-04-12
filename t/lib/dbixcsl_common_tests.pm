@@ -87,7 +87,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (174 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @connect_info * (176 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -302,7 +302,13 @@ sub test_schema {
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( \@columns_lt2, [ qw/id dat dat2/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key dbix_class_testcomponent/ ], "Column Ordering" );
+
+    is $class2->column_info('set_primary_key')->{accessor}, 'Set_primary_key',
+        'accessor for column name that conflicts with a result base class method renamed';
+
+    is $class2->column_info('dbix_class_testcomponent')->{accessor}, 'Dbix_class_testcomponent',
+        'accessor for column name that conflicts with a component class method renamed';
 
     my %uniq1 = $class1->unique_constraints;
     my $uniq1_test = 0;
@@ -1040,11 +1046,14 @@ sub create {
         q{ INSERT INTO loader_test1s (dat) VALUES('bar') }, 
         q{ INSERT INTO loader_test1s (dat) VALUES('baz') }, 
 
+        # also test method collision
         qq{ 
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL,
                 dat2 VARCHAR(32) NOT NULL,
+                set_primary_key INTEGER,
+                dbix_class_testcomponent INTEGER,
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },

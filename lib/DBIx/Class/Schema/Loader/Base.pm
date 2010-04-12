@@ -1397,6 +1397,35 @@ sub _make_src_class {
     $self->_inject($table_class, @{$self->additional_base_classes});
 }
 
+sub _resolve_col_accessor_collisions {
+    my ($self, $col_info) = @_;
+
+    my $base       = $self->result_base_class || 'DBIx::Class::Core';
+    my @components = map "DBIx::Class::$_", @{ $self->components };
+
+    my @methods;
+
+    for my $class ($base, @components) {
+        eval "require ${class};";
+        die $@ if $@;
+
+        push @methods, @{ Class::Inspector->methods($class) || [] };
+    }
+
+    my %methods;
+    @methods{@methods} = ();
+
+    while (my ($col, $info) = each %$col_info) {
+        my $accessor = $info->{accessor} || $col;
+
+        next if $accessor eq 'id'; # XXX fix this in DBIC
+
+        if (exists $methods{$accessor}) {
+            $info->{accessor} = ucfirst $accessor;
+        }
+    }
+}
+
 # Set up metadata (cols, pks, etc)
 sub _setup_src_meta {
     my ($self, $table) = @_;
@@ -1426,6 +1455,8 @@ sub _setup_src_meta {
     } else {
         $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
     }
+
+    $self->_resolve_col_accessor_collisions($col_info);
 
     my $fks = $self->_table_fk_info($table);
 
