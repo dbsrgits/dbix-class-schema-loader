@@ -56,10 +56,10 @@ sub _table_fk_info {
         my $f_cols = shift @reldata;
 
         my @cols   = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; lc $_ }
-            split(/\s*,\s*/, $cols);
+            split(/$qt?\s*$qt?,$qt?\s*$qt?/, $cols);
 
         my @f_cols = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; lc $_ }
-            split(/\s*,\s*/, $f_cols);
+            split(/$qt?\s*$qt?,$qt?\s*$qt?/, $f_cols);
 
         push(@rels, {
             local_columns => \@cols,
