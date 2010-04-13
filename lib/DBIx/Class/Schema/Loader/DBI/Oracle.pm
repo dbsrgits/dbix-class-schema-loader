@@ -16,20 +16,9 @@ our $VERSION = '0.06001';
 DBIx::Class::Schema::Loader::DBI::Oracle - DBIx::Class::Schema::Loader::DBI 
 Oracle Implementation.
 
-=head1 SYNOPSIS
-
-  package My::Schema;
-  use base qw/DBIx::Class::Schema::Loader/;
-
-  __PACKAGE__->loader_options( debug => 1 );
-
-  1;
-
 =head1 DESCRIPTION
 
 See L<DBIx::Class::Schema::Loader::Base>.
-
-This module is considered experimental and not well tested yet.
 
 =cut
 
@@ -75,6 +64,15 @@ sub _tables_list {
     }
 
     return $self->_filter_tables(\@tables, $opts);
+}
+
+sub _table_columns {
+    my ($self, $table) = @_;
+
+    my $dbh = $self->schema->storage->dbh;
+
+    my $sth = $dbh->column_info(undef, $self->db_schema, uc $table, '%');
+    return [ map lc($_->{COLUMN_NAME}), @{ $sth->fetchall_arrayref({ COLUMN_NAME => 1 }) || [] } ];
 }
 
 sub _table_uniq_info {
@@ -137,8 +135,8 @@ sub _extra_column_info {
             SELECT COUNT(*)
             FROM all_triggers ut JOIN all_trigger_cols atc USING (trigger_name)
             WHERE atc.table_name = ? AND atc.column_name = ?
-            AND column_usage LIKE '%NEW%' AND column_usage LIKE '%OUT%'
-            AND trigger_type = 'BEFORE EACH ROW' AND triggering_event LIKE '%INSERT%'
+            AND lower(column_usage) LIKE '%new%' AND lower(column_usage) LIKE '%out%'
+            AND trigger_type = 'BEFORE EACH ROW' AND lower(triggering_event) LIKE '%insert%'
         },
         {}, 1);
 
