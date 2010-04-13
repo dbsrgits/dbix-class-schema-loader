@@ -38,9 +38,6 @@ sub _table_fk_info {
 
     my $dbh = $self->schema->storage->dbh;
 
-    local $dbh->{RaiseError} = 0;
-    local $dbh->{PrintError} = 0;
-
     my $table_def_ref = eval { $dbh->selectrow_arrayref("SHOW CREATE TABLE `$table`") };
     my $table_def = $table_def_ref->[1];
 
@@ -186,8 +183,8 @@ sub _extra_column_info {
     if ($dbi_info->{mysql_values}) {
         $extra_info{extra}{list} = $dbi_info->{mysql_values};
     }
-    if (   $dbi_info->{COLUMN_DEF}      =~ /^CURRENT_TIMESTAMP\z/i
-        && $dbi_info->{mysql_type_name} =~ /^TIMESTAMP\z/i) {
+    if (   lc($dbi_info->{COLUMN_DEF})      eq 'current_timestamp'
+        && lc($dbi_info->{mysql_type_name}) eq 'timestamp') {
 
         $extra_info{default_value} = \'CURRENT_TIMESTAMP';
     }
