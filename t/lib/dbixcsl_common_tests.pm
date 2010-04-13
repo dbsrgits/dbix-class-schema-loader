@@ -304,11 +304,11 @@ sub test_schema {
     my @columns_lt2 = $class2->columns;
     is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key dbix_class_testcomponent/ ], "Column Ordering" );
 
-    is $class2->column_info('set_primary_key')->{accessor}, 'Set_primary_key',
-        'accessor for column name that conflicts with a result base class method renamed';
+    is $class2->column_info('set_primary_key')->{accessor}, undef,
+        'accessor for column name that conflicts with a result base class method removed';
 
-    is $class2->column_info('dbix_class_testcomponent')->{accessor}, 'Dbix_class_testcomponent',
-        'accessor for column name that conflicts with a component class method renamed';
+    is $class2->column_info('dbix_class_testcomponent')->{accessor}, undef,
+        'accessor for column name that conflicts with a component class method removed';
 
     my %uniq1 = $class1->unique_constraints;
     my $uniq1_test = 0;

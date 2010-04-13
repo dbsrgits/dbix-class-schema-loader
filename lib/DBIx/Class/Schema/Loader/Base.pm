@@ -1421,7 +1421,7 @@ sub _resolve_col_accessor_collisions {
         next if $accessor eq 'id'; # XXX fix this in DBIC
 
         if (exists $methods{$accessor}) {
-            $info->{accessor} = ucfirst $accessor;
+            $info->{accessor} = undef;
         }
     }
 }
