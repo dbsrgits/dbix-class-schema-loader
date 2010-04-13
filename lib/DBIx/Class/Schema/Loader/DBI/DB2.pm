@@ -49,7 +49,8 @@ sub _table_uniq_info {
     my $sth = $self->{_cache}->{db2_uniq} ||= $dbh->prepare(
         q{SELECT kcu.COLNAME, kcu.CONSTNAME, kcu.COLSEQ
         FROM SYSCAT.TABCONST as tc
-        JOIN SYSCAT.KEYCOLUSE as kcu ON tc.CONSTNAME = kcu.CONSTNAME
+        JOIN SYSCAT.KEYCOLUSE as kcu
+        ON tc.CONSTNAME = kcu.CONSTNAME AND tc.TABSCHEMA = kcu.TABSCHEMA
         WHERE tc.TABSCHEMA = ? and tc.TABNAME = ? and tc.TYPE = 'U'}
     ) or die $DBI::errstr;
 

@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix unique detection in DB2 for multiple schemas (RT#39622)
         - fix column name collisions with methods (RT#49443)
         - fix loading MySQL views on older MySQL versions (RT#47399)
 
