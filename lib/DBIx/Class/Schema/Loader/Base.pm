@@ -1401,7 +1401,7 @@ sub _resolve_col_accessor_collisions {
     my ($self, $col_info) = @_;
 
     my $base       = $self->result_base_class || 'DBIx::Class::Core';
-    my @components = map "DBIx::Class::$_", @{ $self->components };
+    my @components = map "DBIx::Class::$_", @{ $self->components || [] };
 
     my @methods;
 
