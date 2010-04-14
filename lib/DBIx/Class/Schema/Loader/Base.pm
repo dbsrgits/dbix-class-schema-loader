@@ -1418,7 +1418,7 @@ sub _resolve_col_accessor_collisions {
     while (my ($col, $info) = each %$col_info) {
         my $accessor = $info->{accessor} || $col;
 
-        next if $accessor eq 'id'; # XXX fix this in DBIC
+        next if $accessor eq 'id'; # special case (very common column)
 
         if (exists $methods{$accessor}) {
             $info->{accessor} = undef;
@@ -1452,7 +1452,9 @@ sub _setup_src_meta {
             $col_info->{$col}{accessor} = lc $col
                 if $col ne lc($col);
         }
-    } else {
+    }
+    else {
+        # XXX this needs to go away
         $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
     }
 

@@ -1052,8 +1052,8 @@ sub create {
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL,
                 dat2 VARCHAR(32) NOT NULL,
-                set_primary_key INTEGER,
-                dbix_class_testcomponent INTEGER,
+                set_primary_key INTEGER $self->{null},
+                dbix_class_testcomponent INTEGER $self->{null},
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
