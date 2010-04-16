@@ -11,7 +11,6 @@ my $password = $ENV{DBICTEST_PG_PASS} || '';
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'Pg',
     auto_inc_pk => 'SERIAL NOT NULL PRIMARY KEY',
-    default_function => 'now()',
     dsn         => $dsn,
     user        => $user,
     password    => $password,
@@ -57,6 +56,8 @@ my $tester = dbixcsl_common_tests->new(
 	'time with time zone'            => { data_type => 'time with time zone' },
 	'time(2) with time zone'         => { size => 2, data_type => 'time with time zone' },
 	timestamp                        => { data_type => 'timestamp without time zone' },
+        'timestamp default current_timestamp'
+                                         => { data_type => 'timestamp without time zone', default_value => \'CURRENT_TIMESTAMP' },
 	'timestamp(2)'                   => { size => 2, data_type => 'timestamp without time zone' },
 	'timestamp without time zone'    => { data_type => 'timestamp without time zone' },
 	'timestamp(2) without time zone' => { size => 2, data_type => 'timestamp without time zone' },
@@ -133,3 +134,4 @@ if( !$dsn || !$user ) {
 else {
     $tester->run_tests();
 }
+# vim:et sw=4 sts=4 tw=0:
