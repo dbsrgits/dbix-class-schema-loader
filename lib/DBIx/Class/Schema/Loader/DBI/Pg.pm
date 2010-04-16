@@ -203,7 +203,7 @@ EOF
 
 # alias now() to current_timestamp for deploying to other DBs
         if (eval { lc ${ $result->{$col}{default_value} } eq 'now()' }) {
-            $result->{$col}{default_value} = \'CURRENT_TIMESTAMP';
+            ${$result->{$col}{default_value}} = 'CURRENT_TIMESTAMP';
         }
     }
 
