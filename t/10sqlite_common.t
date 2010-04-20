@@ -15,6 +15,45 @@ my $tester = dbixcsl_common_tests->new(
     connect_info_opts => {
         on_connect_do => 'PRAGMA foreign_keys = ON',
     },
+    data_types  => {
+        # SQLite ignores data types aside from INTEGER pks.
+        # We just test that they roundtrip sanely.
+        #
+        # Numeric types
+        'smallint'    => { data_type => 'smallint' },
+        'int'         => { data_type => 'int' },
+        'integer'     => { data_type => 'integer' },
+        'bigint'      => { data_type => 'bigint' },
+        'float'       => { data_type => 'float' },
+        'double precision' =>
+                         { data_type => 'double precision' },
+        'real'        => { data_type => 'real' },
+
+        'float(2)'    => { data_type => 'float', size => 2 },
+        'float(7)'    => { data_type => 'float', size => 7 },
+
+        'decimal'     => { data_type => 'decimal' },
+        'dec'         => { data_type => 'dec' },
+        'numeric'     => { data_type => 'numeric' },
+
+        'decimal(3)'   => { data_type => 'decimal', size => 3 },
+        'numeric(3)'   => { data_type => 'numeric', size => 3 },
+
+        'decimal(3,3)' => { data_type => 'decimal', size => [3,3] },
+        'dec(3,3)'     => { data_type => 'dec', size => [3,3] },
+        'numeric(3,3)' => { data_type => 'numeric', size => [3,3] },
+
+        # Date and Time Types
+        'date'        => { data_type => 'date' },
+        'timestamp DEFAULT CURRENT_TIMESTAMP'
+                      => { data_type => 'timestamp', default_value => \'CURRENT_TIMESTAMP' },
+        'time'        => { data_type => 'time' },
+
+        # String Types
+        'char'         => { data_type => 'char' },
+        'char(11)'     => { data_type => 'char',    size => 11 },
+        'varchar(20)'  => { data_type => 'varchar', size => 20 },
+    },
     extra           => {
         create => [
             # 'sqlite_' is reserved, so we use 'extra_'
