@@ -24,7 +24,6 @@ my $odbc_password = $ENV{DBICTEST_MSSQL_ODBC_PASS} || '';
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'mssql',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
-    default_function     => 'getdate()',
     default_function_def => 'DATETIME DEFAULT getdate()',
     connect_info => [ ($dbd_sybase_dsn ? {
             dsn         => $dbd_sybase_dsn,
@@ -68,8 +67,9 @@ my $tester = dbixcsl_common_tests->new(
         # datetime types
         date     => { data_type => 'date' },
         datetime => { data_type => 'datetime' },
+        # test rewriting getdate() to CURRENT_TIMESTAMP
         'datetime DEFAULT getdate()'
-                 => { data_type => 'datetime', default_value => \'getdate()' },
+                 => { data_type => 'datetime', default_value => \'CURRENT_TIMESTAMP' },
         smalldatetime  => { data_type => 'smalldatetime' },
         time     => { data_type => 'time' },
         'time(0)'=> { data_type => 'time', size => 0 },

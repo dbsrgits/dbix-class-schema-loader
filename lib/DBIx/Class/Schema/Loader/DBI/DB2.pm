@@ -104,29 +104,35 @@ sub _table_fk_info {
 }
 
 sub _columns_info_for {
-    my ($self, $table) = @_;
-    return $self->next::method(uc $table);
-}
+    my $self = shift;
+    my ($table) = @_;
 
-sub _extra_column_info {
-    my ($self, $table, $column, $info, $dbi_info) = @_;
-    my %extra_info;
+    my $result = $self->next::method(uc $table);
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare_cached(
-        q{
-            SELECT COUNT(*)
-            FROM syscat.columns
-            WHERE tabschema = ? AND tabname = ? AND colname = ?
-            AND identity = 'Y' AND generated != ''
-        },
-        {}, 1);
-    $sth->execute($self->db_schema, $table, $column);
-    if ($sth->fetchrow_array) {
-        $extra_info{is_auto_increment} = 1;
+
+    while (my ($col, $info) = each %$result) {
+        # check for identities
+        my $sth = $dbh->prepare_cached(
+            q{
+                SELECT COUNT(*)
+                FROM syscat.columns
+                WHERE tabschema = ? AND tabname = ? AND colname = ?
+                AND identity = 'Y' AND generated != ''
+            },
+            {}, 1);
+        $sth->execute($self->db_schema, uc $table, uc $col);
+        if ($sth->fetchrow_array) {
+            $info->{is_auto_increment} = 1;
+        }
+
+        if (eval { lc ${ $info->{default_value} } }||'' eq 'CURRENT TIMESTAMP') {
+            ${ $info->{default_value} } = 'CURRENT_TIMESTAMP';
+            delete $info->{size};
+        }
     }
 
-    return \%extra_info;
+    return $result;
 }
 
 =head1 SEE ALSO
@@ -146,3 +152,4 @@ the same terms as Perl itself.
 =cut
 
 1;
+# vim:et sts=4 sw=4 tw=0:

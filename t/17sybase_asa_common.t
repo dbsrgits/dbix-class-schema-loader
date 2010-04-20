@@ -5,6 +5,8 @@ use dbixcsl_common_tests;
 
 # The default max_cursor_count and max_statement_count settings of 50 are too
 # low to run this test.
+#
+# Setting them to zero is preferred.
 
 my $dbd_sqlanywhere_dsn      = $ENV{DBICTEST_SYBASE_ASA_DSN} || '';
 my $dbd_sqlanywhere_user     = $ENV{DBICTEST_SYBASE_ASA_USER} || '';
@@ -17,7 +19,6 @@ my $odbc_password = $ENV{DBICTEST_SYBASE_ASA_ODBC_PASS} || '';
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'SQLAnywhere',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
-    default_function => 'current timestamp',
     connect_info => [ ($dbd_sqlanywhere_dsn ? {
             dsn         => $dbd_sqlanywhere_dsn,
             user        => $dbd_sqlanywhere_user,
@@ -90,8 +91,9 @@ my $tester = dbixcsl_common_tests->new(
         'smalldatetime'
                       => { data_type => 'smalldatetime' },
         'timestamp'   => { data_type => 'timestamp' },
+        # rewrite 'current timestamp' as 'CURRENT_TIMESTAMP'
         'timestamp DEFAULT current timestamp'
-                      => { data_type => 'timestamp', default_value => \"current timestamp" },
+                      => { data_type => 'timestamp', default_value => \"CURRENT_TIMESTAMP" },
         'time'        => { data_type => 'time' },
 
         # String Types

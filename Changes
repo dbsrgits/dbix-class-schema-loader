@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-        - rewrite default_value \'now()' as \'CURRENT_TIMESTAMP' for Pg
+        - rewrite datetime default functions as \'CURRENT_TIMESTAMP' where
+          possible (except for Sybase ASE) to ease cross-deployment
         - use column_info instead of select to get Oracle column list (RT#42281)
         - match quotes in MySQL parser in more places (RT#42101)
         - fix unique detection in DB2 for multiple schemas (RT#39622)

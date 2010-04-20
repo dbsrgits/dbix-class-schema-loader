@@ -288,6 +288,10 @@ wHERE lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) =
             $info->{default_value} =
                 $default =~ /^['(] (.*) [)']\z/x ? $1 :
                     $default =~ /^\d/ ? $default : \$default;
+
+            if (eval { lc ${ $info->{default_value} } }||'' eq 'getdate()') {
+                ${ $info->{default_value} } = 'CURRENT_TIMESTAMP';
+            }
         }
     }
 
