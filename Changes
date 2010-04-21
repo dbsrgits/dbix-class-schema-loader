@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - remove is_deferrable from default rel options to maintain
+          principle of least surprise when round-tripping to deploy()
         - rewrite datetime default functions as \'CURRENT_TIMESTAMP' where
           possible (except for Sybase ASE) to ease cross-deployment
         - use column_info instead of select to get Oracle column list (RT#42281)
