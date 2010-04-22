@@ -74,6 +74,7 @@ my $tester = dbixcsl_common_tests->new(
         numeric                          => { data_type => 'numeric' },
         decimal                          => { data_type => 'numeric' },
         'float(24)'                      => { data_type => 'real' },
+        'float(25)'                      => { data_type => 'double precision' },
         'float(53)'                      => { data_type => 'double precision' },
         float                            => { data_type => 'double precision' },
     },

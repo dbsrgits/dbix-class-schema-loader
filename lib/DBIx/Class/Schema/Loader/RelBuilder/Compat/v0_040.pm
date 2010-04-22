@@ -7,7 +7,7 @@ use base 'DBIx::Class::Schema::Loader::RelBuilder';
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
 
-our $VERSION = '0.06001';
+our $VERSION = '0.07000';
 
 sub _default_relationship_attrs { +{} }
 

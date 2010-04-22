@@ -117,8 +117,17 @@ sub run_only_extra_tests {
         $self->drop_extra_tables_only;
 
         my $dbh = $self->dbconnect(1);
-        $dbh->do($_) for @{ $self->{extra}{create} || [] };
-        $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests}{ddl};
+        {
+            # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
+            local $SIG{__WARN__} = sub {
+                my $msg = shift;
+                warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
+            };
+
+
+            $dbh->do($_) for @{ $self->{extra}{create} || [] };
+            $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests}{ddl};
+        }
         $self->{_created} = 1;
 
         my $file_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
@@ -887,7 +896,7 @@ sub test_schema {
             # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
             local $SIG{__WARN__} = sub {
                 my $msg = shift;
-                print STDERR $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
+                warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
             };
 
             $dbh->do($_) for @statements_rescan;
@@ -1462,7 +1471,7 @@ sub create {
     # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
     local $SIG{__WARN__} = sub {
         my $msg = shift;
-        print STDERR $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
+        warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
     };
 
     $dbh->do($_) for (@statements);

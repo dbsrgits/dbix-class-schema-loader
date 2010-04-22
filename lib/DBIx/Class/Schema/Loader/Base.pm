@@ -22,7 +22,7 @@ use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
 require DBIx::Class;
 
-our $VERSION = '0.06001';
+our $VERSION = '0.07000';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
@@ -170,6 +170,14 @@ more aggressive C<_id> stripping from relationships.
 
 In general, there is very little difference between v5 and v6 schemas.
 
+=item v7
+
+This mode is identical to C<v6> mode, except that monikerization of CamelCase
+table names is also done correctly.
+
+If you don't have any CamelCase table names, you can upgrade without breaking
+any of your code.
+
 =back
 
 Dynamic schemas will always default to the 0.04XXX relationship names and won't
@@ -273,17 +281,17 @@ a scalar moniker.  If the hash entry does not exist, or the function
 returns a false value, the code falls back to default behavior
 for that table name.
 
-The default behavior is to singularize the table name, and: C<join '', map
-ucfirst, split /[\W_]+/, lc $table>, which is to say: lowercase everything,
-split up the table name into chunks anywhere a non-alpha-numeric character
-occurs, change the case of first letter of each chunk to upper case, and put
-the chunks back together.  Examples:
+The default behavior is to split on case transition and non-alphanumeric
+boundaries, singularize the resulting phrase, then join the titlecased words
+together. Examples:
 
-    Table Name  | Moniker Name
-    ---------------------------
-    luser       | Luser
-    luser_group | LuserGroup
-    luser-opts  | LuserOpt
+    Table Name       | Moniker Name
+    ---------------------------------
+    luser            | Luser
+    luser_group      | LuserGroup
+    luser-opts       | LuserOpt
+    stations_visited | StationVisited
+    routeChange      | RouteChange
 
 =head2 inflect_plural
 
@@ -445,7 +453,7 @@ L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-my $CURRENT_V = 'v6';
+my $CURRENT_V = 'v7';
 
 my @CLASS_ARGS = qw(
     schema_base_class result_base_class additional_base_classes
@@ -657,6 +665,8 @@ Version $real_ver static schema detected, turning on backcompat mode.
 
 Set the 'naming' attribute or the SCHEMA_LOADER_BACKCOMPAT environment variable
 to disable this warning.
+
+See: 'naming' in perldoc DBIx::Class::Schema::Loader::Base .
 
 See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 if upgrading
 from version 0.04006.
@@ -1529,8 +1539,16 @@ sub _default_table2moniker {
         return join '', map ucfirst, split /[\W_]+/,
             Lingua::EN::Inflect::Number::to_S(lc $table);
     }
+    elsif ($self->naming->{monikers} eq 'v6') {
+        (my $as_phrase = lc $table) =~ s/_+/ /g;
+        my $inflected = Lingua::EN::Inflect::Phrase::to_S($as_phrase);
 
-    (my $as_phrase = lc $table) =~ s/_+/ /g;
+        return join '', map ucfirst, split /\W+/, $inflected;
+    }
+
+    my @words = map lc, split /(?<=[[:lower:]])[\W_]*(?=[[:upper:]])|[\W_]+/, $table;
+    my $as_phrase = join ' ', @words;
+
     my $inflected = Lingua::EN::Inflect::Phrase::to_S($as_phrase);
 
     return join '', map ucfirst, split /\W+/, $inflected;
