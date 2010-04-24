@@ -36,6 +36,10 @@ sub _setup {
     if (lc($self->db_schema) ne lc($current_schema)) {
         $dbh->do('ALTER SESSION SET current_schema=' . $self->db_schema);
     }
+
+    if (not defined $self->preserve_case) {
+        $self->preserve_case(0);
+    }
 }
 
 sub _table_as_sql {

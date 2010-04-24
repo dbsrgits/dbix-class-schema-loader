@@ -41,7 +41,7 @@ my $tester = dbixcsl_common_tests->new(
         );
     },
     null        => '',
-    loader_options => { unquoted_ddl => 1 },
+    loader_options => { preserve_case => 0 },
     connect_info => [ ($dbd_interbase_dsn ? {
             dsn         => $dbd_interbase_dsn,
             user        => $dbd_interbase_user,
@@ -141,15 +141,15 @@ q{
 
             my $guard = Scope::Guard->new(\&cleanup_extra);
 
-            delete $schema->_loader->{unquoted_ddl};
+            delete $schema->_loader->{preserve_case};
 
             my $warning;
             {
                 local $SIG{__WARN__} = sub { $warning = shift };
                 $schema->_loader->_setup;
             }
-            like $warning, qr/unquoted_ddl option/,
-                'warning mentions unquoted_ddl option';
+            like $warning, qr/'preserve_case' option/,
+                'warning mentions preserve_case option';
 
             {
                 local $SIG{__WARN__} = sub {};

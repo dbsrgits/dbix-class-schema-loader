@@ -191,7 +191,7 @@ my $tester = dbixcsl_common_tests->new(
             ok ((my $rsrc = $schema->resultset($monikers->{mssql_loader_test5})->result_source),
                 'got result_source');
 
-            if ($schema->_loader->_is_case_sensitive) {
+            if ($schema->_loader->preserve_case) {
                 is_deeply [ $rsrc->columns ], [qw/Id FooCol BarCol/],
                     'column name case is preserved with case-sensitive collation';
 

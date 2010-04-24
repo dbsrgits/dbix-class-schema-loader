@@ -79,6 +79,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 generate_pod
                                 pod_comment_mode
                                 pod_comment_spillover_length
+                                preserve_case
 /);
 
 =head1 NAME
@@ -449,6 +450,18 @@ columns with the DATE/DATETIME/TIMESTAMP data_types.
 
 File in Perl format, which should return a HASH reference, from which to read
 loader options.
+
+=head1 preserve_case
+
+Usually column names are lowercased, to make them easier to work with in
+L<DBIx::Class>. This option lets you turn this behavior off, if the driver
+supports it.
+
+Drivers for case sensitive databases like Sybase ASE or MSSQL with a
+case-sensitive collation will turn this option on unconditionally.
+
+Currently the drivers for SQLite, mysql, MSSQL and Firebird/InterBase support
+setting this option.
 
 =head1 METHODS
 
@@ -1474,7 +1487,7 @@ sub _setup_src_meta {
 
     my $cols = $self->_table_columns($table);
     my $col_info = $self->__columns_info_for($table);
-    if ($self->_is_case_sensitive) {
+    if ($self->preserve_case) {
         for my $col (keys %$col_info) {
             $col_info->{$col}{accessor} = lc $col
                 if $col ne lc($col);
@@ -1755,8 +1768,6 @@ sub _quote_table_name {
     return $qt . $table . $qt;
 }
 
-sub _is_case_sensitive { 0 }
-
 sub _custom_column_info {
     my ( $self, $table_name, $column_name, $column_info ) = @_;
 
@@ -1776,6 +1787,18 @@ sub _datetime_column_info {
         $result->{locale}   = $self->datetime_locale   if $self->datetime_locale;
     }
     return $result;
+}
+
+sub _lc {
+    my ($self, $name) = @_;
+
+    return $self->preserve_case ? $name : lc($name);
+}
+
+sub _uc {
+    my ($self, $name) = @_;
+
+    return $self->preserve_case ? $name : uc($name);
 }
 
 # remove the dump dir from @INC on destruction

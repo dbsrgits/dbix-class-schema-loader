@@ -35,9 +35,13 @@ sub _setup {
     my $self = shift;
 
     $self->next::method(@_);
-    $self->{db_schema} ||= 'public';
-}
 
+    $self->{db_schema} ||= 'public';
+
+    if (not defined $self->preserve_case) {
+        $self->preserve_case(0);
+    }
+}
 
 sub _table_uniq_info {
     my ($self, $table) = @_;

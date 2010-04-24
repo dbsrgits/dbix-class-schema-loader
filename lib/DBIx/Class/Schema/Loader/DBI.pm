@@ -190,7 +190,7 @@ sub _table_columns {
 
     my $sth = $self->_sth_for($table, undef, \'1 = 0');
     $sth->execute;
-    my $retval = $self->_is_case_sensitive ? \@{$sth->{NAME}} : \@{$sth->{NAME_lc}};
+    my $retval = $self->preserve_case ? \@{$sth->{NAME}} : \@{$sth->{NAME_lc}};
     $sth->finish;
 
     $retval;
@@ -326,7 +326,7 @@ sub _columns_info_for {
     my %result;
     my $sth = $self->_sth_for($table, undef, \'1 = 0');
     $sth->execute;
-    my @columns = @{ $self->_is_case_sensitive ? $sth->{NAME} : $sth->{NAME_lc} };
+    my @columns = @{ $self->preserve_case ? $sth->{NAME} : $sth->{NAME_lc} };
     for my $i ( 0 .. $#columns ){
         my $column_info = {};
         $column_info->{data_type} = lc $sth->{TYPE}->[$i];

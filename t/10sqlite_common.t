@@ -23,6 +23,10 @@ my $tester = dbixcsl_common_tests->new(
         'smallint'    => { data_type => 'smallint' },
         'int'         => { data_type => 'int' },
         'integer'     => { data_type => 'integer' },
+
+        # test that type name is lowercased
+        'INTEGER'     => { data_type => 'integer' },
+
         'bigint'      => { data_type => 'bigint' },
         'float'       => { data_type => 'float' },
         'double precision' =>

@@ -8,10 +8,6 @@ use base qw/DBIx::Class::Schema::Loader::DBI/;
 use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
 
-__PACKAGE__->mk_group_ro_accessors('simple', qw/
-    unquoted_ddl
-/);
-
 our $VERSION = '0.07000';
 
 =head1 NAME
@@ -21,21 +17,22 @@ Firebird Implementation.
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base> for available options.
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
+
+=head1 COLUMN NAME CASE ISSUES
 
 By default column names from unquoted DDL will be generated in uppercase, as
 that is the only way they will work with quoting on.
 
-See the L</unquoted_ddl> option in this driver if you would like to have
-lowercase column names.
+See the L<preserve_case|DBIx::Class::Schema::Loader::Base/preserve_case> option
+to false if you would like to have lowercase column names.
 
-=head1 DRIVER OPTIONS
-
-=head2 unquoted_ddl
-
-Set this loader option if your DDL uses unquoted identifiers and you will not
-use quoting (the L<quote_char|DBIx::Class::Storage::DBI/quote_char> option in
+Setting this option is a good idea if your DDL uses unquoted identifiers and
+you will not use quoting (the
+L<quote_char|DBIx::Class::Storage::DBI/quote_char> option in
 L<connect_info|DBIx::Class::Storage::DBI/connect_info>.)
+
+Be careful to also not use any SQL reserved words in your DDL.
 
 This will generate lowercase column names (as opposed to the actual uppercase
 names) in your Result classes that will only work with quoting off.
@@ -43,49 +40,37 @@ names) in your Result classes that will only work with quoting off.
 Mixed-case table and column names will be ignored when this option is on and
 will not work with quoting turned off.
 
+B<NOTE:> This option used to be called C<unquoted_ddl> but has been removed in
+favor of the more generic option.
+
 =cut
-
-sub _is_case_sensitive {
-    my $self = shift;
-
-    return $self->unquoted_ddl ? 0 : 1;
-}
 
 sub _setup {
     my $self = shift;
 
-    $self->next::method;
+    $self->next::method(@_);
 
     $self->schema->storage->sql_maker->name_sep('.');
 
-    if (not defined $self->unquoted_ddl) {
+    if (not defined $self->preserve_case) {
         warn <<'EOF';
 
-WARNING: Assuming mixed-case Firebird DDL, see the unquoted_ddl option in
+WARNING: Assuming mixed-case Firebird DDL, see
 perldoc DBIx::Class::Schema::Loader::DBI::InterBase
+and the 'preserve_case' option in
+perldoc DBIx::Class::Schema::Loader::Base
 for more information.
 
 EOF
+        $self->preserve_case(1);
     }
 
-    if (not $self->unquoted_ddl) {
+    if ($self->preserve_case) {
         $self->schema->storage->sql_maker->quote_char('"');
     }
     else {
         $self->schema->storage->sql_maker->quote_char(undef);
     }
-}
-
-sub _lc {
-    my ($self, $name) = @_;
-
-    return $self->unquoted_ddl ? lc($name) : $name;
-}
-
-sub _uc {
-    my ($self, $name) = @_;
-
-    return $self->unquoted_ddl ? uc($name) : $name;
 }
 
 sub _table_pk_info {

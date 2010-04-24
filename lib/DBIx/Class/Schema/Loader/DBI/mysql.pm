@@ -27,6 +27,16 @@ See L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
+sub _setup {
+    my $self = shift;
+
+    $self->next::method(@_);
+
+    if (not defined $self->preserve_case) {
+        $self->preserve_case(0);
+    }
+}
+
 sub _tables_list { 
     my ($self, $opts) = @_;
 
@@ -55,10 +65,10 @@ sub _table_fk_info {
         my $f_table = shift @reldata;
         my $f_cols = shift @reldata;
 
-        my @cols   = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; lc $_ }
+        my @cols   = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; $self->_lc($_) }
             split(/$qt?\s*$qt?,$qt?\s*$qt?/, $cols);
 
-        my @f_cols = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; lc $_ }
+        my @f_cols = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; $self->_lc($_) }
             split(/$qt?\s*$qt?,$qt?\s*$qt?/, $f_cols);
 
         push(@rels, {
@@ -84,7 +94,7 @@ sub _mysql_table_get_keys {
         while(my $row = $sth->fetchrow_hashref) {
             next if $row->{Non_unique};
             push(@{$keydata{$row->{Key_name}}},
-                [ $row->{Seq_in_index}, lc $row->{Column_name} ]
+                [ $row->{Seq_in_index}, $self->_lc($row->{Column_name}) ]
             );
         }
         foreach my $keyname (keys %keydata) {

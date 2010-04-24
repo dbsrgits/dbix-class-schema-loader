@@ -6,10 +6,6 @@ use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-__PACKAGE__->mk_group_accessors('simple', qw/
-    case_sensitive_collation
-/);
-
 our $VERSION = '0.07000';
 
 =head1 NAME
@@ -39,24 +35,23 @@ case-sensitive databases.
 
 To manually control case-sensitive mode, put:
 
-    case_sensitive_collation => 1|0
+    preserve_case => 1|0
 
 in your Loader options.
 
+See L<preserve_case|DBIx::Class::Schema::Loader::Base/preserve_case>.
+
+B<NOTE:> this option used to be called C<case_sensitive_collation>, but has
+been renamed to a more generic option.
+
 =cut
-
-sub _is_case_sensitive {
-    my $self = shift;
-
-    return $self->case_sensitive_collation ? 1 : 0;
-}
 
 sub _setup {
     my $self = shift;
 
-    $self->next::method;
+    $self->next::method(@_);
 
-    return if defined $self->case_sensitive_collation;
+    return if defined $self->preserve_case;
 
     my $dbh = $self->schema->storage->dbh;
 
@@ -75,22 +70,18 @@ sub _setup {
         warn <<'EOF';
 
 WARNING: MSSQL Collation detection failed. Defaulting to case-insensitive mode.
-Override the 'case_sensitive_collation' attribute in your Loader options if
-needed.
+Override the 'preserve_case' attribute in your Loader options if needed.
+
+See 'preserve_case' in
+perldoc DBIx::Class::Schema::Loader::Base
 EOF
-        $self->case_sensitive_collation(0);
+        $self->preserve_case(0);
         return;
     }
 
     my $case_sensitive = $collation_name =~ /_(?:CS|BIN2?)(?:_|\z)/;
 
-    $self->case_sensitive_collation($case_sensitive ? 1 : 0);
-}
-
-sub _lc {
-    my ($self, $name) = @_;
-
-    return $self->case_sensitive_collation ? $name : lc($name);
+    $self->preserve_case($case_sensitive ? 1 : 0);
 }
 
 sub _tables_list {

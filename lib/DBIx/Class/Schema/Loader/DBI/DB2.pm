@@ -37,6 +37,10 @@ sub _setup {
 
     my $dbh = $self->schema->storage->dbh;
     $self->{db_schema} ||= $dbh->selectrow_array('VALUES(CURRENT_USER)', {});
+
+    if (not defined $self->preserve_case) {
+        $self->preserve_case(0);
+    }
 }
 
 sub _table_uniq_info {

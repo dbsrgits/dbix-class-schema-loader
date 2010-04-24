@@ -25,8 +25,14 @@ See L<DBIx::Class::Schema::Loader::Base>.
 sub _setup {
     my $self = shift;
 
+    $self->next::method(@_);
+
     $self->{db_schema} ||=
         ($self->schema->storage->dbh->selectrow_array('select user'))[0];
+
+    if (not defined $self->preserve_case) {
+        $self->preserve_case(0);
+    }
 }
 
 sub _tables_list {

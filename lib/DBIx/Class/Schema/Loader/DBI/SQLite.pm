@@ -16,31 +16,31 @@ our $VERSION = '0.07000';
 
 DBIx::Class::Schema::Loader::DBI::SQLite - DBIx::Class::Schema::Loader::DBI SQLite Implementation.
 
-=head1 SYNOPSIS
-
-  package My::Schema;
-  use base qw/DBIx::Class::Schema::Loader/;
-
-  __PACKAGE__->loader_options( debug => 1 );
-
-  1;
-
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =head1 METHODS
 
 =head2 rescan
 
-SQLite will fail all further commands on a connection if the
-underlying schema has been modified.  Therefore, any runtime
-changes requiring C<rescan> also require us to re-connect
-to the database.  The C<rescan> method here handles that
-reconnection for you, but beware that this must occur for
-any other open sqlite connections as well.
+SQLite will fail all further commands on a connection if the underlying schema
+has been modified.  Therefore, any runtime changes requiring C<rescan> also
+require us to re-connect to the database.  The C<rescan> method here handles
+that reconnection for you, but beware that this must occur for any other open
+sqlite connections as well.
 
 =cut
+
+sub _setup {
+    my $self = shift;
+
+    $self->next::method(@_);
+
+    if (not defined $self->preserve_case) {
+        $self->preserve_case(0);
+    }
+}
 
 sub rescan {
     my ($self, $schema) = @_;
@@ -91,14 +91,14 @@ sub _table_fk_info {
         my $rel = $rels[ $fk->{id} ] ||= {
             local_columns => [],
             remote_columns => undef,
-            remote_table => lc $fk->{table}
+            remote_table => $fk->{table}
         };
 
-        push @{ $rel->{local_columns} }, lc $fk->{from};
-        push @{ $rel->{remote_columns} }, lc $fk->{to} if defined $fk->{to};
+        push @{ $rel->{local_columns} }, $self->_lc($fk->{from});
+        push @{ $rel->{remote_columns} }, $self->_lc($fk->{to}) if defined $fk->{to};
         warn "This is supposed to be the same rel but remote_table changed from ",
             $rel->{remote_table}, " to ", $fk->{table}
-            if $rel->{remote_table} ne lc $fk->{table};
+            if $rel->{remote_table} ne $fk->{table};
     }
     $sth->finish;
     return \@rels;
@@ -122,7 +122,7 @@ sub _table_uniq_info {
         $get_idx_sth->execute;
         my @cols;
         while (my $idx_row = $get_idx_sth->fetchrow_hashref) {
-            push @cols, lc $idx_row->{name};
+            push @cols, $self->_lc($idx_row->{name});
         }
         $get_idx_sth->finish;
         push @uniqs, [ $name => \@cols ];

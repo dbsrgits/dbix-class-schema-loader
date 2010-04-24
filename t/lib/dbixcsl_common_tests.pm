@@ -1653,7 +1653,7 @@ sub setup_data_type_tests {
     my %seen_col_names;
 
     while (my ($col_def, $expected_info) = each %$types) {
-        (my $type_alias = lc($col_def)) =~ s/\( ([^)]+) \)//xg;
+        (my $type_alias = $col_def) =~ s/\( ([^)]+) \)//xg;
 
         my $size = $1;
         $size = '' unless defined $size;
@@ -1680,7 +1680,10 @@ sub setup_data_type_tests {
             $col_name .= "_sz_$size_name";
         }
 
-        $col_name .= "_$seen_col_names{$col_name}" if $seen_col_names{$col_name}++;
+        # XXX would be better to check _loader->preserve_case
+        $col_name = lc $col_name;
+
+        $col_name .= '_' . $seen_col_names{$col_name} if $seen_col_names{$col_name}++;
 
         $ddl .= "    $col_name $col_def,\n";
 
