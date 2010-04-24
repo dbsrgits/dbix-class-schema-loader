@@ -3,25 +3,11 @@ package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
 use strict;
 use warnings;
 use Class::C3;
-use base 'DBIx::Class::Schema::Loader::RelBuilder';
+use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05';
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
 
 our $VERSION = '0.07000';
-
-sub _default_relationship_attrs { +{} }
-
-sub _to_PL {
-    my ($self, $name) = @_;
-
-    return Lingua::EN::Inflect::Number::to_PL($name);
-}
-
-sub _to_S {
-    my ($self, $name) = @_;
-
-    return Lingua::EN::Inflect::Number::to_S($name);
-}
 
 sub _relnames_and_method {
     my ( $self, $local_moniker, $rel, $cond, $uniqs, $counters ) = @_;

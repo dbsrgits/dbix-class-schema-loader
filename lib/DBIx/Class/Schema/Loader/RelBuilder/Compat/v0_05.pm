@@ -3,7 +3,7 @@ package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05;
 use strict;
 use warnings;
 use Class::C3;
-use base 'DBIx::Class::Schema::Loader::RelBuilder';
+use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06';
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
 
@@ -66,7 +66,7 @@ sub _relnames_and_method {
 =head1 NAME
 
 DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05 - RelBuilder for
-compatibility with DBIx::Class::Schema::Loader version 0.05000
+compatibility with DBIx::Class::Schema::Loader version 0.05003
 
 =head1 DESCRIPTION
 

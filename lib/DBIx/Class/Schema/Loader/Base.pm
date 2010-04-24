@@ -165,8 +165,9 @@ the v5 RelBuilder.
 
 =item v6
 
-All monikers and relationships inflected using L<Lingua::EN::Inflect::Phrase>,
-more aggressive C<_id> stripping from relationships.
+All monikers and relationships are inflected using
+L<Lingua::EN::Inflect::Phrase>, and there is more aggressive C<_id> stripping
+from relationship names.
 
 In general, there is very little difference between v5 and v6 schemas.
 
@@ -175,8 +176,15 @@ In general, there is very little difference between v5 and v6 schemas.
 This mode is identical to C<v6> mode, except that monikerization of CamelCase
 table names is also done correctly.
 
-If you don't have any CamelCase table names, you can upgrade without breaking
-any of your code.
+CamelCase column names in case-sensitive mode will also be handled correctly
+for relationship name inflection.
+
+Currently, only Sybase ASE, MSSQL with CS/BIN collation and Firebird without
+the L<unquoted_ddl|DBIx::Class::Schema::Loader::DBI::InterBase/unquoted_ddl>
+option are in case-sensitive mode.
+
+If you don't have any CamelCase table or column names, you can upgrade without
+breaking any of your code.
 
 =back
 
@@ -249,9 +257,6 @@ For example:
 
 will set the C<cascade_delete> option to 0 for all generated relationships,
 except for C<has_many>, which will have cascade_delete as 1.
-
-NOTE: this option is not supported if v4 backward-compatible naming is
-set either globally (naming => 'v4') or just for relationships.
 
 =head2 debug
 
@@ -927,12 +932,24 @@ sub _relbuilder {
         require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
         return $self->{relbuilder} ||=
             DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040->new(
-                $self->schema, $self->inflect_plural, $self->inflect_singular
+                $self->schema,
+                $self->inflect_plural,
+                $self->inflect_singular,
+                $self->relationship_attrs,
             );
     }
     elsif ($self->naming->{relationships} eq 'v5') {
         require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05;
         return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05->new (
+             $self->schema,
+             $self->inflect_plural,
+             $self->inflect_singular,
+             $self->relationship_attrs,
+        );
+    }
+    elsif ($self->naming->{relationships} eq 'v6') {
+        require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06;
+        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06->new (
              $self->schema,
              $self->inflect_plural,
              $self->inflect_singular,
