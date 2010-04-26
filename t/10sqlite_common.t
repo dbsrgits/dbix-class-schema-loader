@@ -15,6 +15,7 @@ my $tester = dbixcsl_common_tests->new(
     connect_info_opts => {
         on_connect_do => 'PRAGMA foreign_keys = ON',
     },
+    loader_options  => { preserve_case => 1 },
     data_types  => {
         # SQLite ignores data types aside from INTEGER pks.
         # We just test that they roundtrip sanely.

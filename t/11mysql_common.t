@@ -18,6 +18,7 @@ my $tester = dbixcsl_common_tests->new(
     user             => $user,
     password         => $password,
     connect_info_opts=> { on_connect_call => 'set_strict_mode' },
+    loader_options   => { preserve_case => 1 },
     skip_rels        => $test_innodb ? 0 : $skip_rels_msg,
     no_inline_rels   => 1,
     no_implicit_rels => 1,

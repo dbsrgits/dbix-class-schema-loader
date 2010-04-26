@@ -202,7 +202,7 @@ sub _table_pk_info {
 
     my $dbh = $self->schema->storage->dbh;
 
-    my @primary = map { lc } $dbh->primary_key('', $self->db_schema, $table);
+    my @primary = map { $self->_lc($_) } $dbh->primary_key('', $self->db_schema, $table);
     s/\Q$self->{_quoter}\E//g for @primary;
 
     return \@primary;
