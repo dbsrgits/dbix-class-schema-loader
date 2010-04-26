@@ -177,12 +177,8 @@ In general, there is very little difference between v5 and v6 schemas.
 This mode is identical to C<v6> mode, except that monikerization of CamelCase
 table names is also done correctly.
 
-CamelCase column names in case-sensitive mode will also be handled correctly
-for relationship name inflection.
-
-Currently, only Sybase ASE, MSSQL with CS/BIN collation and Firebird without
-the L<unquoted_ddl|DBIx::Class::Schema::Loader::DBI::InterBase/unquoted_ddl>
-option are in case-sensitive mode.
+CamelCase column names in case-preserving mode will also be handled correctly
+for relationship name inflection. See L</preserve_case>.
 
 If you don't have any CamelCase table or column names, you can upgrade without
 breaking any of your code.
@@ -924,9 +920,18 @@ sub rescan {
 
     my @created;
     my @current = $self->_tables_list({ constraint => $self->constraint, exclude => $self->exclude });
+
     foreach my $table (@current) {
         if(!exists $self->{_tables}->{$table}) {
             push(@created, $table);
+        }
+    }
+
+    my %current;
+    @current{@current} = ();
+    foreach my $table (keys %{ $self->{_tables} }) {
+        if (not exists $current{$table}) {
+            $self->_unregister_source_for_table($table);
         }
     }
 
@@ -1799,6 +1804,22 @@ sub _uc {
     my ($self, $name) = @_;
 
     return $self->preserve_case ? $name : uc($name);
+}
+
+sub _unregister_source_for_table {
+    my ($self, $table) = @_;
+
+    eval {
+        local $@;
+        my $schema = $self->schema;
+        # in older DBIC it's a private method
+        my $unregister = $schema->can('unregister_source') || $schema->can('_unregister_source');
+        $schema->$unregister($self->_table2moniker($table));
+        delete $self->monikers->{$table};
+        delete $self->classes->{$table};
+        delete $self->_upgrading_classes->{$table};
+        delete $self->{_tables}{$table};
+    };
 }
 
 # remove the dump dir from @INC on destruction

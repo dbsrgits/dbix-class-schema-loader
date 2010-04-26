@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Exception;
 use DBIx::Class::Schema::Loader;
 use Class::Unload;
 use File::Path;
@@ -87,7 +88,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (176 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @connect_info * (178 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -861,7 +862,7 @@ sub test_schema {
     }
 
     # rescan and norewrite test
-    SKIP: {
+    {
         my @statements_rescan = (
             qq{
                 CREATE TABLE loader_test30 (
@@ -924,13 +925,28 @@ sub test_schema {
         my $rsobj30   = $conn->resultset('LoaderTest30');
         isa_ok($rsobj30, 'DBIx::Class::ResultSet');
 
-        skip 'no rels', 2 if $self->{skip_rels};
+        SKIP: {
+            skip 'no rels', 2 if $self->{skip_rels};
 
-        my $obj30 = $rsobj30->find(123);
-        isa_ok( $obj30->loader_test2, $class2);
+            my $obj30 = $rsobj30->find(123);
+            isa_ok( $obj30->loader_test2, $class2);
 
-        ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key},
-           'Foreign key detected');
+            ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key},
+               'Foreign key detected');
+        }
+
+        $conn->storage->disconnect; # for Firebird
+        $conn->storage->dbh->do("DROP TABLE loader_test30");
+
+        @new = do {
+            local $SIG{__WARN__} = sub {};
+            $conn->rescan;
+        };
+        is_deeply(\@new, [], 'no new tables on rescan');
+
+        throws_ok { $conn->resultset('LoaderTest30') }
+            qr/Can't find source/,
+            'source unregistered for dropped table after rescan';
     }
 
     $self->test_data_types($conn);

@@ -8,8 +8,6 @@ support pk/uk/fk info on views, possibly.  May or may not be a sane thing to try
 Fix up ResultSet Manager / Methods / etc stuff.  May require some work in the
 main DBIx::Class first.
 
-SQLite needs some heavy refactoring, the subroutines are becoming too complex to understand easily.
-
 Refactor RelBuilder so that it doesn't require a live mostly-built
 DBIx::Class::Schema, so that other modules (SQLT) can use it easier.  And then
 when/if we get there, break it out as a seperate distribution with a new name.
@@ -18,5 +16,3 @@ Relationship stuff:
    Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up?
    While scanning for many-to-many, scan for implied rels as well? (if foo->belongs_to('bar') and baz->belongs_to('bar'), does that impliy foo->might_have('baz') and the reverse?)
    ...
-
-unregister sources for dropped tables on rescan
