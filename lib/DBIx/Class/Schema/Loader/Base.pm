@@ -852,7 +852,7 @@ sub _load_external {
         $self->_ext_stmt($class, <<"EOF");
 
 # These lines were loaded from '$old_real_inc_path',
-# based on the Result class name that would have been created by an 0.04006
+# based on the Result class name that would have been created by an older
 # version of the Loader. For a static schema, this happens only once during
 # upgrade. See skip_load_external to disable this feature.
 EOF
@@ -864,7 +864,7 @@ EOF
             warn <<"EOF";
 
 Detected external content in '$old_real_inc_path', a class name that would have
-been used by an 0.04006 version of the Loader.
+been used by an older version of the Loader.
 
 * PLEASE RENAME THIS CLASS: from '$old_class' to '$class', as that is the
 new name of the Result.

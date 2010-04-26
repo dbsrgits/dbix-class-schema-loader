@@ -38,7 +38,7 @@ $dbh->do($_) for (
       )|,
     q|CREATE TABLE RouteChange (
         id INTEGER PRIMARY KEY,
-        quuxs_id INTEGER REFERENCES quuxs (quuxid)
+        QuuxsId INTEGER REFERENCES quuxs (quuxid)
       )|,
     q|CREATE TABLE email (
         id INTEGER PRIMARY KEY,

@@ -386,6 +386,7 @@ sub class_content_like;
         clean_dumpdir => 1,
         static => 1,
         use_namespaces => 0,
+        naming => 'current',
     );
 
     like $res->{warnings}[0], qr/Dumping manual schema/i,
@@ -407,7 +408,7 @@ sub class_content_like;
 
     # test that with no use_namespaces option, there is a warning and
     # load_classes is preserved
-    $res = run_loader(static => 1);
+    $res = run_loader(static => 1, naming => 'current');
 
     like $res->{warnings}[0], qr/load_classes/i,
 'correct warnings on re-dumping static schema with load_classes';
@@ -431,6 +432,7 @@ sub class_content_like;
     $res = run_loader(
         static => 1,
         use_namespaces => 1,
+        naming => 'current',
     );
     $schema = $res->{schema};
 
@@ -469,7 +471,7 @@ sub class_content_like;
 # test a regular schema with default use_namespaces => 1, redump, and downgrade
 # to load_classes
 {
-    my $res = run_loader(clean_dumpdir => 1, static => 1);
+    my $res = run_loader(clean_dumpdir => 1, static => 1, naming => 'current');
 
     like $res->{warnings}[0], qr/Dumping manual schema/i,
 'correct warnings on dumping static schema';
@@ -489,7 +491,7 @@ sub class_content_like;
     add_custom_content($res->{schema}, { Quux => 'Baz' }, { result_namespace => 'Result' });
 
     # test that with no use_namespaces option, use_namespaces is preserved
-    $res = run_loader(static => 1);
+    $res = run_loader(static => 1, naming => 'current');
 
     like $res->{warnings}[0], qr/Dumping manual schema/i,
 'correct warnings on re-dumping static schema';
@@ -510,6 +512,7 @@ sub class_content_like;
     $res = run_loader(
         static => 1,
         use_namespaces => 0,
+        naming => 'current',
     );
     my $schema = $res->{schema};
 
@@ -555,6 +558,7 @@ sub class_content_like;
         clean_dumpdir => 1,
         static => 1,
         result_namespace => 'MyResult',
+        naming => 'current',
     );
 
     like $res->{warnings}[0], qr/Dumping manual schema/i,
@@ -576,7 +580,7 @@ sub class_content_like;
 
     # test that with no use_namespaces option, use_namespaces is preserved, and
     # the custom result_namespace is preserved
-    $res = run_loader(static => 1);
+    $res = run_loader(static => 1, naming => 'current');
 
     like $res->{warnings}[0], qr/Dumping manual schema/i,
 'correct warnings on re-dumping static schema';
@@ -597,6 +601,7 @@ sub class_content_like;
     $res = run_loader(
         static => 1,
         use_namespaces => 0,
+        naming => 'current',
     );
     my $schema = $res->{schema};
 
@@ -640,7 +645,7 @@ sub class_content_like;
     clean_dumpdir();
     my $temp_dir = setup_load_external({ Quux => 'Baz', Bar => 'Foo' }, { result_namespace => 'Result' });
 
-    my $res = run_loader(static => 1);
+    my $res = run_loader(static => 1, naming => 'current');
 
     # add some custom content to a Result that will be replaced
     add_custom_content($res->{schema}, { Quux => 'Baz' }, { result_namespace => 'Result', rel_name_map => { QuuxBaz => 'bazrel2' } });
@@ -649,6 +654,7 @@ sub class_content_like;
     $res = run_loader(
         static => 1,
         result_namespace => 'MyResult',
+        naming => 'current',
     );
     my $schema = $res->{schema};
 
@@ -677,6 +683,7 @@ sub class_content_like;
     $res = run_loader(
         static => 1,
         result_namespace => 'Mtfnpy',
+        naming => 'current',
     );
     $schema = $res->{schema};
 
@@ -869,6 +876,7 @@ sub run_loader {
     my %loader_opts = @_;
 
     $loader_opts{dump_directory} = $DUMP_DIR if delete $loader_opts{static};
+    $loader_opts{preserve_case}  = 1 if $loader_opts{naming} && $loader_opts{naming} eq 'current';
 
     clean_dumpdir() if delete $loader_opts{clean_dumpdir};
 
@@ -1145,6 +1153,11 @@ sub run_v6_tests {
 
     isa_ok eval { $foo->emails_to }, 'DBIx::Class::ResultSet',
         'correct rel name inflection in v6 mode';
+
+    ok my $route_change = eval { $schema->resultset('Routechange')->find(1) };
+
+    isa_ok eval { $route_change->quuxsid }, $res->{classes}{quuxs},
+        'correct rel name in v6 mode';
 }
 
 sub run_v7_tests {
@@ -1169,6 +1182,11 @@ sub run_v7_tests {
 
     isa_ok eval { $foo->emails_to }, 'DBIx::Class::ResultSet',
         'correct rel name inflection in current mode';
+
+    ok my $route_change = eval { $schema->resultset('RouteChange')->find(1) };
+
+    isa_ok eval { $route_change->quux }, $res->{classes}{quuxs},
+        'correct rel name based on mixed-case column name in current mode';
 }
 
 {
@@ -1251,7 +1269,7 @@ sub _rel_condition {
         BarFoo  => q{'foreign.fooid'   => 'self.foo_id'},
         BazStationsvisited => q{'foreign.id' => 'self.stations_visited_id'},
         StationsvisitedQuux => q{'foreign.quuxid' => 'self.quuxs_id'},
-        RoutechangeQuux => q{'foreign.quuxid' => 'self.quuxs_id'},
+        RoutechangeQuux => q{'foreign.quuxid' => 'self.QuuxsId'},
     }->{_rel_key($from, $to)};
 }
 
