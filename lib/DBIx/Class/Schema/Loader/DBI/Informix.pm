@@ -200,7 +200,8 @@ EOF
         }
         else {
             $default = (split ' ', $default, 2)[-1];
-            $default =~ s/\s+\z//;
+
+            $default =~ s/\s+\z// if looks_like_number $default;
 
             # remove trailing 0s in floating point defaults
             $default =~ s/0+\z// if $default =~ /^\d+\.\d+\z/;
