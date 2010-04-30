@@ -199,12 +199,11 @@ EOF
             $result->{$col}{default_value} = \$today;
         }
         else {
-            $default = (split ' ', $default)[-1];
+            $default = (split ' ', $default, 2)[-1];
+            $default =~ s/\s+\z//;
 
             # remove trailing 0s in floating point defaults
-            if (looks_like_number $default && int $default != $default) {
-                $default =~ s/0+\z//;
-            }
+            $default =~ s/0+\z// if $default =~ /^\d+\.\d+\z/;
 
             $result->{$col}{default_value} = $default;
         }
