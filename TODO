@@ -23,6 +23,7 @@
     - remove extra select for _filter_tables
     - option to promote non-nullable unique constraints to PK (prefer int
       columns when more than one) (RT#51696)
+    - normalize accessors for mixed case columns in v7 mode (FooBar -> foo_bar)
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up
