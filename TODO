@@ -74,3 +74,9 @@
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
+  - Informix
+    - data_type tests
+    - preserve_case mode
+    - table/column comments
+    - introspect on_update/on_delete/is_deferrable
+    - introspect view SQL
