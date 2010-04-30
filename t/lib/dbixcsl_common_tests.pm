@@ -891,6 +891,7 @@ sub test_schema {
 
         my $before_digest = $digest->digest;
 
+        $conn->storage->disconnect; # needed for Firebird and Informix
         my $dbh = $self->dbconnect(1);
 
         {
@@ -904,7 +905,6 @@ sub test_schema {
         }
 
         $dbh->disconnect;
-        $conn->storage->disconnect; # needed for Firebird
 
         sleep 1;
 
@@ -1406,9 +1406,16 @@ sub create {
         },
         $make_auto_inc->(qw/loader_test11 id11/),
 
-        (q{ ALTER TABLE loader_test10 ADD CONSTRAINT } .
-         q{ loader_test11_fk FOREIGN KEY (loader_test11) } .
-         q{ REFERENCES loader_test11 (id11) }),
+        (lc($self->{vendor}) ne 'informix' ?
+            (q{ ALTER TABLE loader_test10 ADD CONSTRAINT loader_test11_fk } .
+             q{ FOREIGN KEY (loader_test11) } .
+             q{ REFERENCES loader_test11 (id11) })
+        :
+            (q{ ALTER TABLE loader_test10 ADD CONSTRAINT } .
+             q{ FOREIGN KEY (loader_test11) } .
+             q{ REFERENCES loader_test11 (id11) } .
+             q{ CONSTRAINT loader_test11_fk })
+        ),
     );
 
     @statements_advanced_sqlite = (

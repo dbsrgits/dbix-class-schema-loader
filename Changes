@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - preliminary Informix support
         - unregister dropped sources on rescan
         - added 'preserve_case' option with support for SQLite, mysql, MSSQL and
           Firebird/InterBase; removed the MSSQL 'case_sensitive_collation' and

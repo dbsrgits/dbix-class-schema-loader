@@ -21,6 +21,8 @@
     - common tests for table/column comments
     - optimize queries
     - remove extra select for _filter_tables
+    - option to promote non-nullable unique constraints to PK (prefer int
+      columns when more than one) (RT#51696)
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up
