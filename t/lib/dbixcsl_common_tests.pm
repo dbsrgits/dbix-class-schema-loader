@@ -429,8 +429,8 @@ sub test_schema {
         'constant integer default',
     );
 
-    is(
-        $class35->column_info('a_double')->{default_value}, 10.555,
+    cmp_ok(
+        $class35->column_info('a_double')->{default_value}, '==', 10.555,
         'constant numeric default',
     );
 

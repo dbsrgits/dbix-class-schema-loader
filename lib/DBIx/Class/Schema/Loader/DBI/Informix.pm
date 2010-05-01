@@ -204,7 +204,8 @@ EOF
             $default =~ s/\s+\z// if looks_like_number $default;
 
             # remove trailing 0s in floating point defaults
-            $default =~ s/0+\z// if $default =~ /^\d+\.\d+\z/;
+            # disabled, this is unsafe since it might be a varchar default
+            #$default =~ s/0+\z// if $default =~ /^\d+\.\d+\z/;
 
             $result->{$col}{default_value} = $default;
         }
