@@ -635,7 +635,7 @@ sub test_schema {
 	    eval { $rsobj5->find({id1 => 1, id2 => 1}) };
 	die $@ if $@;
 
-        is( $obj5->id2, 1, "Find on multi-col PK" );
+        is( (eval { $obj5->id2 } || eval { $obj5->i_d2 }), 1, "Find on multi-col PK" );
 
         # mulit-col fk def
         my $obj6 = $rsobj6->find(1);

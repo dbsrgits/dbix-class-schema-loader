@@ -1105,6 +1105,9 @@ sub run_v4_tests {
 
     isa_ok eval { $foo->email_to_ids }, 'DBIx::Class::ResultSet',
         'correct rel name inflection in 0.04006 mode';
+
+    ok (($schema->resultset('Routechange')->find(1)->can('quuxsid')),
+        'correct column accessor in 0.04006 mode');
 }
 
 sub run_v5_tests {
@@ -1129,6 +1132,9 @@ sub run_v5_tests {
 
     isa_ok eval { $foo->email_to_ids }, 'DBIx::Class::ResultSet',
         'correct rel name inflection in v5 mode';
+
+    ok (($schema->resultset('Routechange')->find(1)->can('quuxsid')),
+        'correct column accessor in v5 mode');
 }
 
 sub run_v6_tests {
@@ -1158,6 +1164,9 @@ sub run_v6_tests {
 
     isa_ok eval { $route_change->quuxsid }, $res->{classes}{quuxs},
         'correct rel name in v6 mode';
+
+    ok (($schema->resultset('Routechange')->find(1)->can('quuxsid')),
+        'correct column accessor in v6 mode');
 }
 
 sub run_v7_tests {
@@ -1187,6 +1196,9 @@ sub run_v7_tests {
 
     isa_ok eval { $route_change->quux }, $res->{classes}{quuxs},
         'correct rel name based on mixed-case column name in current mode';
+
+    ok (($schema->resultset('RouteChange')->find(1)->can('quuxs_id')),
+        'correct column accessor in current mode');
 }
 
 {

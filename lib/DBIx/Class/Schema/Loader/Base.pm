@@ -142,6 +142,10 @@ How to name relationship accessors.
 
 How to name Result classes.
 
+=item column_accessors
+
+How to name column accessors in Result classes.
+
 =back
 
 The values can be:
@@ -179,6 +183,9 @@ table names is also done correctly.
 
 CamelCase column names in case-preserving mode will also be handled correctly
 for relationship name inflection. See L</preserve_case>.
+
+In this mode, CamelCase L</column_accessors> are normalized based on case
+transition instead of just being lowercased, so C<FooId> becomes C<foo_id>.
 
 If you don't have any CamelCase table or column names, you can upgrade without
 breaking any of your code.
@@ -551,6 +558,7 @@ sub new {
         $self->{naming} = {
             relationships => $naming_ver,
             monikers => $naming_ver,
+            column_accessors => $naming_ver,
         };
     }
 
@@ -691,8 +699,9 @@ EOF
                 last;
             }
 
-            $self->naming->{relationships} ||= $v;
-            $self->naming->{monikers}      ||= $v;
+            $self->naming->{relationships}    ||= $v;
+            $self->naming->{monikers}         ||= $v;
+            $self->naming->{column_accessors} ||= $v;
 
             $self->schema_version_to_dump($real_ver);
 
@@ -1471,6 +1480,12 @@ sub _resolve_col_accessor_collisions {
     }
 }
 
+sub _make_column_accessor_name {
+    my ($self, $column_name) = @_;
+
+    return join '_', map lc, split /(?<=[[:lower:]])[\W_]*(?=[[:upper:]])|[\W_]+/, $column_name;
+}
+
 # Set up metadata (cols, pks, etc)
 sub _setup_src_meta {
     my ($self, $table) = @_;
@@ -1494,8 +1509,14 @@ sub _setup_src_meta {
     my $col_info = $self->__columns_info_for($table);
     if ($self->preserve_case) {
         for my $col (keys %$col_info) {
-            $col_info->{$col}{accessor} = lc $col
-                if $col ne lc($col);
+            if ($col ne lc($col)) {
+                if ((not exists $self->naming->{column_accessors}) || (($self->naming->{column_accessors} =~ /(\d+)/)[0] >= 7)) {
+                    $col_info->{$col}{accessor} = $self->_make_column_accessor_name($col);
+                }
+                else {
+                    $col_info->{$col}{accessor} = lc $col;
+                }
+            }
         }
     }
     else {
