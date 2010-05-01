@@ -182,7 +182,7 @@ EOF
                 $result->{$col}{data_type} = 'date';
             }
             elsif ($type == 10) {
-                $result->{$col}{data_type} = 'datetime';
+                $result->{$col}{data_type} = 'datetime year to fraction(5)';
             }
         }
 
