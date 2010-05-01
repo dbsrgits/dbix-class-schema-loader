@@ -91,9 +91,9 @@ my $tester = dbixcsl_common_tests->new(
         'smalldatetime'
                       => { data_type => 'smalldatetime' },
         'timestamp'   => { data_type => 'timestamp' },
-        # rewrite 'current timestamp' as 'CURRENT_TIMESTAMP'
-        'timestamp DEFAULT current timestamp'
-                      => { data_type => 'timestamp', default_value => \"CURRENT_TIMESTAMP" },
+        # rewrite 'current timestamp' as 'current_timestamp'
+        'timestamp default current timestamp'
+                      => { data_type => 'timestamp', default_value => \'current_timestamp' },
         'time'        => { data_type => 'time' },
 
         # String Types

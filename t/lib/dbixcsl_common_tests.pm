@@ -45,8 +45,8 @@ sub new {
     $self->{date_datatype} ||= 'DATE';
 
     # Not all DBS do SQL-standard CURRENT_TIMESTAMP
-    $self->{default_function} ||= "CURRENT_TIMESTAMP";
-    $self->{default_function_def} ||= "TIMESTAMP DEFAULT $self->{default_function}";
+    $self->{default_function} ||= "current_timestamp";
+    $self->{default_function_def} ||= "timestamp default $self->{default_function}";
 
     $self = bless $self, $class;
 

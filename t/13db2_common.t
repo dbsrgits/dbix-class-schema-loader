@@ -14,7 +14,7 @@ my $tester = dbixcsl_common_tests->new(
     password       => $password,
     null           => '',
     data_types => {
-        'timestamp DEFAULT CURRENT TIMESTAMP' => { data_type => 'timestamp', default_value => \'CURRENT_TIMESTAMP' }
+        'timestamp default current timestamp' => { data_type => 'timestamp', default_value => \'current_timestamp' }
     },
 );
 

@@ -293,6 +293,9 @@ EOF
                 $info->{default_value} = $def =~ /^\d/ ? $def : \$def;
             }
         }
+
+        ${ $info->{default_value} } = 'current_timestamp'
+            if ref $info->{default_value} && ${ $info->{default_value} } eq 'CURRENT_TIMESTAMP';
     }
 
     return $result;

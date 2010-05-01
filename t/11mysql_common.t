@@ -90,8 +90,8 @@ my $tester = dbixcsl_common_tests->new(
         # Date and Time Types
         'date'        => { data_type => 'date' },
         'datetime'    => { data_type => 'datetime' },
-        'timestamp DEFAULT current_timestamp'
-                      => { data_type => 'timestamp', default_value => \"CURRENT_TIMESTAMP" },
+        'timestamp default current_timestamp'
+                      => { data_type => 'timestamp', default_value => \'current_timestamp' },
         'time'        => { data_type => 'time' },
         'year'        => { data_type => 'year' },
         'year(4)'     => { data_type => 'year' },

@@ -196,7 +196,8 @@ sub _extra_column_info {
     if (   lc($dbi_info->{COLUMN_DEF})      eq 'current_timestamp'
         && lc($dbi_info->{mysql_type_name}) eq 'timestamp') {
 
-        $extra_info{default_value} = \'CURRENT_TIMESTAMP';
+        my $current_timestamp = 'current_timestamp';
+        $extra_info{default_value} = \$current_timestamp;
     }
 
     return \%extra_info;

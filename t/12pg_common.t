@@ -57,7 +57,7 @@ my $tester = dbixcsl_common_tests->new(
 	'time(2) with time zone'         => { size => 2, data_type => 'time with time zone' },
 	timestamp                        => { data_type => 'timestamp without time zone' },
         'timestamp default current_timestamp'
-                                         => { data_type => 'timestamp without time zone', default_value => \'CURRENT_TIMESTAMP' },
+                                         => { data_type => 'timestamp without time zone', default_value => \'current_timestamp' },
 	'timestamp(2)'                   => { size => 2, data_type => 'timestamp without time zone' },
 	'timestamp without time zone'    => { data_type => 'timestamp without time zone' },
 	'timestamp(2) without time zone' => { size => 2, data_type => 'timestamp without time zone' },
