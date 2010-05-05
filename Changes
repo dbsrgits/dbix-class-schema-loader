@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - better type info for Oracle
         - preliminary Informix support
         - unregister dropped sources on rescan
         - added 'preserve_case' option with support for SQLite, mysql, MSSQL and

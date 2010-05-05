@@ -1684,7 +1684,7 @@ sub setup_data_type_tests {
         my @size = split /,/, $size;
 
         # some DBs don't like very long column names
-        if ($self->{vendor} =~ /^firebird|sqlanywhere\z/i) {
+        if ($self->{vendor} =~ /^(?:firebird|sqlanywhere|oracle)\z/i) {
             my ($col_def, $default) = $type_alias =~ /^(.*)(default.*)?\z/i;
 
             $type_alias = substr $col_def, 0, 15;

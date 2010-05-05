@@ -15,68 +15,99 @@ my $tester = dbixcsl_common_tests->new(
     user        => $user,
     password    => $password,
     data_types  => {
-	bigint    => { data_type => 'bigint' },
-	int8      => { data_type => 'bigint' },
-	bigserial => { data_type => 'bigint', is_auto_increment => 1 },
-	serial8   => { data_type => 'bigint', is_auto_increment => 1 },
-	bit       => { data_type => 'bit' },
-	boolean   => { data_type => 'boolean' },
-	bool      => { data_type => 'boolean' },
-	box       => { data_type => 'box' },
-	bytea     => { data_type => 'bytea' },
-	cidr      => { data_type => 'cidr' },
-	circle    => { data_type => 'circle' },
-	date      => { data_type => 'date' },
-	'double precision' => { data_type => 'double precision' },
-	float8      => { data_type => 'double precision' },
-	inet        => { data_type => 'inet' },
+        # http://www.postgresql.org/docs/7.4/interactive/datatype.html
+        #
+        # Numeric Types
+	boolean     => { data_type => 'boolean' },
+	bool        => { data_type => 'boolean' },
+
+	bigint      => { data_type => 'bigint' },
+	int8        => { data_type => 'bigint' },
+	bigserial   => { data_type => 'bigint', is_auto_increment => 1 },
+	serial8     => { data_type => 'bigint', is_auto_increment => 1 },
 	integer     => { data_type => 'integer' },
 	int         => { data_type => 'integer' },
 	int4        => { data_type => 'integer' },
-	interval    => { data_type => 'interval' },
-	'interval(2)' => { size => 2, data_type => 'interval' },
-	line        => { data_type => 'line' },
-	lseg        => { data_type => 'lseg' },
-	macaddr     => { data_type => 'macaddr' },
-	money       => { data_type => 'money' },
-	path        => { data_type => 'path' },
-	point       => { data_type => 'point' },
-	polygon     => { data_type => 'polygon' },
-	real        => { data_type => 'real' },
-	float4      => { data_type => 'real' },
-	smallint    => { data_type => 'smallint' },
-	int2        => { data_type => 'smallint' },
 	serial      => { data_type => 'integer', is_auto_increment => 1 },
 	serial4     => { data_type => 'integer', is_auto_increment => 1 },
-	text        => { data_type => 'text' },
-	time        => { data_type => 'time without time zone' },
-	'time(2)'     => { size => 2, data_type => 'time without time zone' },
+	smallint    => { data_type => 'smallint' },
+	int2        => { data_type => 'smallint' },
+
+	money       => { data_type => 'money' },
+
+	'double precision' => { data_type => 'double precision' },
+	float8             => { data_type => 'double precision' },
+	real               => { data_type => 'real' },
+	float4             => { data_type => 'real' },
+        'float(24)'        => { data_type => 'real' },
+        'float(25)'        => { data_type => 'double precision' },
+        'float(53)'        => { data_type => 'double precision' },
+        float              => { data_type => 'double precision' },
+
+        numeric        => { data_type => 'numeric' },
+        decimal        => { data_type => 'numeric' },
+	'numeric(6,3)' => { size => [6,3], data_type => 'numeric' },
+	'decimal(6,3)' => { size => [6,3], data_type => 'numeric' },
+
+        # Bit String Types
+        #
+        # XXX alias 'bit varying' to 'varbit'
+	'bit varying(2)' => { size => 2, data_type => 'bit varying' },
+	'varbit(2)'      => { size => 2, data_type => 'bit varying' },
+	'varbit'         => { size => 1, data_type => 'bit varying' },
+        # XXX support bit(n)
+	bit              => { data_type => 'bit' },
+
+        # Network Types
+	inet    => { data_type => 'inet' },
+	cidr    => { data_type => 'cidr' },
+	macaddr => { data_type => 'macaddr' },
+
+        # Geometric Types
+	point   => { data_type => 'point' },
+	line    => { data_type => 'line' },
+	lseg    => { data_type => 'lseg' },
+	box     => { data_type => 'box' },
+	path    => { data_type => 'path' },
+	polygon => { data_type => 'polygon' },
+	circle  => { data_type => 'circle' },
+
+        # Character Types
+        # XXX alias 'character varying' to 'varchar'
+	'character varying(2)'           => { size => 2, data_type => 'character varying' },
+	'varchar(2)'                     => { size => 2, data_type => 'character varying' },
+
+        # XXX alias 'character' to 'char'
+	'character(2)'                   => { size => 2, data_type => 'character' },
+	'char(2)'                        => { size => 2, data_type => 'character' },
+	'character'                      => { size => 1, data_type => 'character' },
+	'char'                           => { size => 1, data_type => 'character' },
+	text                             => { data_type => 'text' },
+
+        # Datetime Types
+	date                             => { data_type => 'date' },
+	interval                         => { data_type => 'interval' },
+	'interval(2)'                    => { size => 2, data_type => 'interval' },
+	time                             => { data_type => 'time without time zone' },
+	'time(2)'                        => { size => 2, data_type => 'time without time zone' },
 	'time without time zone'         => { data_type => 'time without time zone' },
 	'time(2) without time zone'      => { size => 2, data_type => 'time without time zone' },
 	'time with time zone'            => { data_type => 'time with time zone' },
 	'time(2) with time zone'         => { size => 2, data_type => 'time with time zone' },
+
+        # XXX alias 'timestamp without time zone' to 'timestamp'
 	timestamp                        => { data_type => 'timestamp without time zone' },
         'timestamp default current_timestamp'
                                          => { data_type => 'timestamp without time zone', default_value => \'current_timestamp' },
 	'timestamp(2)'                   => { size => 2, data_type => 'timestamp without time zone' },
 	'timestamp without time zone'    => { data_type => 'timestamp without time zone' },
 	'timestamp(2) without time zone' => { size => 2, data_type => 'timestamp without time zone' },
+
 	'timestamp with time zone'       => { data_type => 'timestamp with time zone' },
 	'timestamp(2) with time zone'    => { size => 2, data_type => 'timestamp with time zone' },
-	'bit varying(2)'                 => { size => 2, data_type => 'bit varying' },
-	'varbit(2)'                      => { size => 2, data_type => 'bit varying' },
-	'character varying(2)'           => { size => 2, data_type => 'character varying' },
-	'varchar(2)'                     => { size => 2, data_type => 'character varying' },
-	'character(2)'                   => { size => 2, data_type => 'character' },
-	'char(2)'                        => { size => 2, data_type => 'character' },
-	'numeric(6, 3)'                  => { size => [6,3], data_type => 'numeric' },
-	'decimal(6, 3)'                  => { size => [6,3], data_type => 'numeric' },
-        numeric                          => { data_type => 'numeric' },
-        decimal                          => { data_type => 'numeric' },
-        'float(24)'                      => { data_type => 'real' },
-        'float(25)'                      => { data_type => 'double precision' },
-        'float(53)'                      => { data_type => 'double precision' },
-        float                            => { data_type => 'double precision' },
+
+        # Blob Types
+	bytea => { data_type => 'bytea' },
     },
     extra       => {
         create => [

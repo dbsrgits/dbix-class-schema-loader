@@ -125,31 +125,85 @@ sub _table_fk_info {
 }
 
 sub _columns_info_for {
-    my ($self, $table) = @_;
-    return $self->next::method(uc $table);
-}
+    my ($self, $table) = (shift, shift);
 
-sub _extra_column_info {
-    my ($self, $table, $column, $info, $dbi_info) = @_;
-    my %extra_info;
+    my $result = $self->next::method(uc $table, @_);
 
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare_cached(
-        q{
-            SELECT COUNT(*)
-            FROM all_triggers ut JOIN all_trigger_cols atc USING (trigger_name)
-            WHERE atc.table_name = ? AND atc.column_name = ?
-            AND lower(column_usage) LIKE '%new%' AND lower(column_usage) LIKE '%out%'
-            AND trigger_type = 'BEFORE EACH ROW' AND lower(triggering_event) LIKE '%insert%'
-        },
-        {}, 1);
 
-    $sth->execute($table, $column);
-    if ($sth->fetchrow_array) {
-        $extra_info{is_auto_increment} = 1;
+    my $sth = $dbh->prepare_cached(q{
+SELECT atc.column_name
+FROM all_triggers ut
+JOIN all_trigger_cols atc USING (trigger_name)
+WHERE atc.table_name = ?
+AND lower(column_usage) LIKE '%new%' AND lower(column_usage) LIKE '%out%'
+AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIKE '%insert%'
+    }, {}, 1);
+
+    $sth->execute(uc $table);
+
+    while (my ($col_name) = $sth->fetchrow_array) {
+        $result->{lc $col_name}{is_auto_increment} = 1;
     }
 
-    return \%extra_info;
+    while (my ($col, $info) = each %$result) {
+        no warnings 'uninitialized';
+
+        if ($info->{data_type} =~ /^(?:n?[cb]lob|long(?: raw)?|bfile|date|binary_(?:float|double)|rowid)\z/i) {
+            delete $info->{size};
+        }
+
+        if ($info->{data_type} =~ /^n(?:var)?char2?\z/i) {
+            $info->{size} = $info->{size} / 2;
+        }
+        elsif (lc($info->{data_type}) eq 'number') {
+            $info->{data_type} = 'numeric';
+
+            if (eval { $info->{size}[0] == 38 && $info->{size}[1] == 0 }) {
+                $info->{data_type} = 'integer';
+                delete $info->{size};
+            }
+        }
+        elsif (my ($precision) = $info->{data_type} =~ /^timestamp\((\d+)\)(?: with (?:local )?time zone)?\z/i) {
+            $info->{data_type} = join ' ', $info->{data_type} =~ /[a-z]+/ig;
+
+            if ($precision == 6) {
+                delete $info->{size};
+            }
+            else {
+                $info->{size} = $precision;
+            }
+        }
+        elsif (($precision) = $info->{data_type} =~ /^interval year\((\d+)\) to month\z/i) {
+            $info->{data_type} = join ' ', $info->{data_type} =~ /[a-z]+/ig;
+
+            if ($precision == 2) {
+                delete $info->{size};
+            }
+            else {
+                $info->{size} = $precision;
+            }
+        }
+        elsif (my ($day_precision, $second_precision) = $info->{data_type} =~ /^interval day\((\d+)\) to second\((\d+)\)\z/i) {
+            $info->{data_type} = join ' ', $info->{data_type} =~ /[a-z]+/ig;
+
+            if ($day_precision == 2 && $second_precision == 6) {
+                delete $info->{size};
+            }
+            else {
+                $info->{size} = [ $day_precision, $second_precision ];
+            }
+        }
+        elsif (lc($info->{data_type}) eq 'urowid' && $info->{size} == 4000) {
+            delete $info->{size};
+        }
+
+        if (eval { lc(${ $info->{default_value} }) eq 'sysdate' }) {
+            ${ $info->{default_value} } = 'current_timestamp';
+        }
+    }
+
+    return $result;
 }
 
 =head1 SEE ALSO
@@ -169,3 +223,4 @@ the same terms as Perl itself.
 =cut
 
 1;
+# vim:et sts=4 sw=4 tw=0:

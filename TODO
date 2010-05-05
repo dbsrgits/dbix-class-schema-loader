@@ -23,6 +23,12 @@
     - remove extra select for _filter_tables
     - option to promote non-nullable unique constraints to PK (prefer int
       columns when more than one) (RT#51696)
+    - figure out how to represent Informix 'DATETIME YEAR TO FRACTION(5)' in a
+      way that SQLT will like
+    - support domains (aka custom data types) as a Schema deploy hook
+    - when checking whether to delete size from a type definition, use an
+      inclusive list rather than an exclusive list, in order to support domains
+    - add hashref form of generate_pod to control which POD is generated
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up
@@ -37,31 +43,37 @@
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
+    - domains?
   - Pg
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
     - preserve_case mode
+    - domains
   - DB2
     - data_type tests
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
     - preserve_case mode
+    - domains
   - Oracle
     - data_type tests
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
     - preserve_case mode
+    - domains
   - Sybase ASE
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
+    - domains
   - MSSQL
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
     - computed column support
+    - domains
     - Optimization
       - use one query for whole table instead of query-per-column in _columns_info_for
       - use placeholders when available
@@ -70,13 +82,16 @@
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
     - preserve_case mode
+    - domains
   - Firebird
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
+    - domains
   - Informix
     - data_type tests
     - preserve_case mode
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
+    - domains

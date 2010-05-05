@@ -17,8 +17,9 @@ my $tester = dbixcsl_common_tests->new(
     dsn         => $dsn,
     user        => $user,
     password    => $password,
-# Test data types, see http://ispirer.com/wiki/sqlways/sybase/data-types
     data_types  => {
+        # http://ispirer.com/wiki/sqlways/sybase/data-types
+        # XXX organize by category
         'integer identity' => { data_type => 'integer', is_auto_increment => 1 },
         'AS getdate()'     => { data_type => undef, inflate_datetime => 1, default_value => \'getdate()' },
         text     => { data_type => 'text' },

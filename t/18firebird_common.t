@@ -59,6 +59,7 @@ my $tester = dbixcsl_common_tests->new(
         # http://www.ibphoenix.com/downloads/60DataDef.zip
         #
         # Numeric types
+        # XXX rewrite low precision floats to 'real'
         'smallint'    => { data_type => 'smallint' },
         'int'         => { data_type => 'integer' },
         'integer'     => { data_type => 'integer' },

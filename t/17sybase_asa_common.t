@@ -34,6 +34,7 @@ my $tester = dbixcsl_common_tests->new(
         # http://infocenter.sybase.com/help/topic/com.sybase.help.sqlanywhere.11.0.1/dbreference_en11/rf-datatypes.html
         #
         # Numeric types
+        # XXX rewrite low-precision floats to 'real'
         'bit'         => { data_type => 'bit' },
         'tinyint'     => { data_type => 'tinyint' },
         'smallint'    => { data_type => 'smallint' },
