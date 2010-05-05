@@ -605,8 +605,8 @@ sub test_schema {
         is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update}, 'CASCADE',
             "on_update => 'CASCADE' on belongs_to by default";
 
-        is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable}, 1,
-            "is_deferrable => 1 on belongs_to by default";
+        ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable}),
+            "is_deferrable => 1 not on belongs_to by default");
 
         ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete}),
             'belongs_to does not have cascade_delete');

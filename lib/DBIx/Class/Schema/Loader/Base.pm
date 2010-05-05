@@ -255,12 +255,10 @@ relationship types override those set in 'all'.
 For example:
 
   relationship_attrs => {
-    all      => { cascade_delete => 0 },
-    has_many => { cascade_delete => 1 },
+    belongs_to => { is_deferrable => 1 },
   },
 
-will set the C<cascade_delete> option to 0 for all generated relationships,
-except for C<has_many>, which will have cascade_delete as 1.
+use this to make your foreign key constraints DEFERRABLE.
 
 =head2 debug
 

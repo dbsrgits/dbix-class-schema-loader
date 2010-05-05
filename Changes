@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - remove is_deferrable => 1 from default for belongs_to rels
         - better type info for Oracle
         - preliminary Informix support
         - unregister dropped sources on rescan
