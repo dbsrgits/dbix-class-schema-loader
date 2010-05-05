@@ -45,6 +45,8 @@ my $tester = dbixcsl_common_tests->new(
         'integer'     => { data_type => 'integer' },
         'integer unsigned'
                       => { data_type => 'integer',   extra => { unsigned => 1 } },
+        'integer not null'
+                      => { data_type => 'integer' },
         'bigint'      => { data_type => 'bigint' },
         'bigint unsigned'
                       => { data_type => 'bigint',    extra => { unsigned => 1 } },
@@ -117,9 +119,9 @@ my $tester = dbixcsl_common_tests->new(
         'longblob'    => { data_type => 'longblob' },
         'longtext'    => { data_type => 'longtext' },
 
-        "enum('foo', 'bar', 'baz')"
+        "enum('foo','bar','baz')"
                       => { data_type => 'enum', extra => { list => [qw/foo bar baz/] } },
-        "set('foo', 'bar', 'baz')"
+        "set('foo','bar','baz')"
                       => { data_type => 'set',  extra => { list => [qw/foo bar baz/] } },
     },
     extra => {

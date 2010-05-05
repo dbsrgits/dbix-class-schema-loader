@@ -136,8 +136,7 @@ sub _columns_info_for {
     my $dbh = $self->schema->storage->dbh;
 
     while (my ($col, $info) = each %$result) {
-        delete $info->{size}
-            unless $info->{data_type} =~ /^(?: (?:var)?(?:char(?:acter)?|binary) | bit | year)\z/ix;
+        delete $info->{size} if $info->{data_type} !~ /^(?: (?:var)?(?:char(?:acter)?|binary) | bit | year)\z/ix;
 
         if ($info->{data_type} eq 'int') {
             $info->{data_type} = 'integer';
@@ -146,17 +145,19 @@ sub _columns_info_for {
             $info->{data_type} = 'double precision';
         }
 
-        my ($precision, $scale, $column_type) = eval { $dbh->selectrow_array(<<'EOF', {}, lc $table, lc $col) };
-SELECT numeric_precision, numeric_scale, column_type
+        my ($precision, $scale, $column_type, $default) = eval { $dbh->selectrow_array(<<'EOF', {}, $table, $col) };
+SELECT numeric_precision, numeric_scale, column_type, column_default
 FROM information_schema.columns
-WHERE lower(table_name) = ? AND lower(column_name) = ?
+WHERE table_name = ? AND column_name = ?
 EOF
+        my $has_information_schema = not defined $@;
+
         $column_type = '' if not defined $column_type;
 
         if ($info->{data_type} eq 'bit' && (not exists $info->{size})) {
             $info->{size} = $precision if defined $precision;
         }
-        elsif ($info->{data_type} =~ /^(?:float|double precision|decimal)\z/) {
+        elsif ($info->{data_type} =~ /^(?:float|double precision|decimal)\z/i) {
             if (defined $precision && defined $scale) {
                 if ($precision == 10 && $scale == 0) {
                     delete $info->{size};
@@ -172,6 +173,19 @@ EOF
             }
             elsif ($column_type =~ /\(4\)/ || $info->{size} == 4) {
                 delete $info->{size};
+            }
+        }
+
+        # Sometimes apparently there's a bug where default_value gets set to ''
+        # for things that don't actually have or support that default (like ints.)
+        if (exists $info->{default_value} && $info->{default_value} eq '') {
+            if ($has_information_schema) {
+                if (not defined $default) {
+                    delete $info->{default_value};
+                }
+            }
+            else { # just check if it's a char/text type, otherwise remove
+                delete $info->{default_value} unless $info->{data_type} =~ /char|text/i;
             }
         }
     }

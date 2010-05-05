@@ -110,6 +110,8 @@ sub run_only_extra_tests {
 
     plan tests => @$connect_info * (4 + ($self->{extra}{count} || 0) + ($self->{data_type_tests}{test_count} || 0));
 
+    rmtree $DUMP_DIR;
+
     foreach my $info_idx (0..$#$connect_info) {
         my $info = $connect_info->[$info_idx];
 
