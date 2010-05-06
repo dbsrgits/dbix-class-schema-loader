@@ -26,9 +26,9 @@
     - figure out how to represent Informix 'DATETIME YEAR TO FRACTION(5)' in a
       way that SQLT will like
     - support domains (aka custom data types) as a Schema deploy hook
-    - when checking whether to delete size from a type definition, use an
-      inclusive list rather than an exclusive list, in order to support domains
     - add hashref form of generate_pod to control which POD is generated
+    - add hashref form of components to control which components are added to
+      which classes
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up

@@ -145,6 +145,7 @@ sub _columns_info_for {
             $info->{data_type} = 'double precision';
         }
 
+        # information_schema is available in 5.0+
         my ($precision, $scale, $column_type, $default) = eval { $dbh->selectrow_array(<<'EOF', {}, $table, $col) };
 SELECT numeric_precision, numeric_scale, column_type, column_default
 FROM information_schema.columns

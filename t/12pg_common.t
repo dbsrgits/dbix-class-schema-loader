@@ -46,17 +46,15 @@ my $tester = dbixcsl_common_tests->new(
 
         numeric        => { data_type => 'numeric' },
         decimal        => { data_type => 'numeric' },
-	'numeric(6,3)' => { size => [6,3], data_type => 'numeric' },
-	'decimal(6,3)' => { size => [6,3], data_type => 'numeric' },
+	'numeric(6,3)' => { data_type => 'numeric', size => [6,3] },
+	'decimal(6,3)' => { data_type => 'numeric', size => [6,3] },
 
         # Bit String Types
-        #
-        # XXX alias 'bit varying' to 'varbit'
-	'bit varying(2)' => { size => 2, data_type => 'bit varying' },
-	'varbit(2)'      => { size => 2, data_type => 'bit varying' },
-	'varbit'         => { size => 1, data_type => 'bit varying' },
-        # XXX support bit(n)
-	bit              => { data_type => 'bit' },
+	'bit varying(2)' => { data_type => 'varbit', size => 2 },
+	'varbit(2)'      => { data_type => 'varbit', size => 2 },
+	'varbit'         => { data_type => 'varbit' },
+	bit              => { data_type => 'bit', size => 1 },
+	'bit(3)'         => { data_type => 'bit', size => 3 },
 
         # Network Types
 	inet    => { data_type => 'inet' },
@@ -73,38 +71,35 @@ my $tester = dbixcsl_common_tests->new(
 	circle  => { data_type => 'circle' },
 
         # Character Types
-        # XXX alias 'character varying' to 'varchar'
-	'character varying(2)'           => { size => 2, data_type => 'character varying' },
-	'varchar(2)'                     => { size => 2, data_type => 'character varying' },
-
-        # XXX alias 'character' to 'char'
-	'character(2)'                   => { size => 2, data_type => 'character' },
-	'char(2)'                        => { size => 2, data_type => 'character' },
-	'character'                      => { size => 1, data_type => 'character' },
-	'char'                           => { size => 1, data_type => 'character' },
+	'character varying(2)'           => { data_type => 'varchar', size => 2 },
+	'varchar(2)'                     => { data_type => 'varchar', size => 2 },
+	'character(2)'                   => { data_type => 'char', size => 2 },
+	'char(2)'                        => { data_type => 'char', size => 2 },
+	'character'                      => { data_type => 'char', size => 1 },
+	'char'                           => { data_type => 'char', size => 1 },
 	text                             => { data_type => 'text' },
+        # varchar with no size has unlimited size, we rewrite to 'text'
+	varchar                          => { data_type => 'text' },
 
         # Datetime Types
 	date                             => { data_type => 'date' },
 	interval                         => { data_type => 'interval' },
-	'interval(2)'                    => { size => 2, data_type => 'interval' },
+	'interval(2)'                    => { data_type => 'interval', size => 2 },
 	time                             => { data_type => 'time without time zone' },
-	'time(2)'                        => { size => 2, data_type => 'time without time zone' },
+	'time(2)'                        => { data_type => 'time without time zone', size => 2 },
 	'time without time zone'         => { data_type => 'time without time zone' },
-	'time(2) without time zone'      => { size => 2, data_type => 'time without time zone' },
+	'time(2) without time zone'      => { data_type => 'time without time zone', size => 2 },
 	'time with time zone'            => { data_type => 'time with time zone' },
-	'time(2) with time zone'         => { size => 2, data_type => 'time with time zone' },
-
-        # XXX alias 'timestamp without time zone' to 'timestamp'
-	timestamp                        => { data_type => 'timestamp without time zone' },
+	'time(2) with time zone'         => { data_type => 'time with time zone', size => 2 },
+	timestamp                        => { data_type => 'timestamp' },
         'timestamp default current_timestamp'
-                                         => { data_type => 'timestamp without time zone', default_value => \'current_timestamp' },
-	'timestamp(2)'                   => { size => 2, data_type => 'timestamp without time zone' },
-	'timestamp without time zone'    => { data_type => 'timestamp without time zone' },
-	'timestamp(2) without time zone' => { size => 2, data_type => 'timestamp without time zone' },
+                                         => { data_type => 'timestamp', default_value => \'current_timestamp' },
+	'timestamp(2)'                   => { data_type => 'timestamp', size => 2 },
+	'timestamp without time zone'    => { data_type => 'timestamp' },
+	'timestamp(2) without time zone' => { data_type => 'timestamp', size => 2 },
 
 	'timestamp with time zone'       => { data_type => 'timestamp with time zone' },
-	'timestamp(2) with time zone'    => { size => 2, data_type => 'timestamp with time zone' },
+	'timestamp(2) with time zone'    => { data_type => 'timestamp with time zone', size => 2 },
 
         # Blob Types
 	bytea => { data_type => 'bytea' },
