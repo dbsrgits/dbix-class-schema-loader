@@ -40,6 +40,10 @@ sub _setup {
     if (not defined $self->preserve_case) {
         $self->preserve_case(0);
     }
+    elsif ($self->preserve_case) {
+        $self->schema->storage->quote_char('"');
+        $self->schema->storage->name_sep('.');
+    }
 }
 
 sub _table_as_sql {
@@ -62,7 +66,7 @@ sub _tables_list {
         $table =~ s/\w+\.//;
 
         next if $table eq 'PLAN_TABLE';
-        $table = lc $table;
+        $table = $self->_lc($table);
         push @tables, $1
           if $table =~ /\A(\w+)\z/;
     }
@@ -75,7 +79,8 @@ sub _table_columns {
 
     my $dbh = $self->schema->storage->dbh;
 
-    my $sth = $dbh->column_info(undef, $self->db_schema, uc $table, '%');
+    my $sth = $dbh->column_info(undef, $self->db_schema, $self->_uc($table), '%');
+
     return [ map lc($_->{COLUMN_NAME}), @{ $sth->fetchall_arrayref({ COLUMN_NAME => 1 }) || [] } ];
 }
 
@@ -93,14 +98,14 @@ sub _table_uniq_info {
         },
         {}, 1);
 
-    $sth->execute(uc $table,$self->{db_schema} );
+    $sth->execute($self->_uc($table),$self->{db_schema} );
     my %constr_names;
     while(my $constr = $sth->fetchrow_arrayref) {
-        my $constr_name = lc $constr->[0];
-        my $constr_def  = lc $constr->[1];
+        my $constr_name = $constr->[0];
+        my $constr_col  = $self->_lc($constr->[1]);
         $constr_name =~ s/\Q$self->{_quoter}\E//;
-        $constr_def =~ s/\Q$self->{_quoter}\E//;
-        push @{$constr_names{$constr_name}}, $constr_def;
+        $constr_col  =~ s/\Q$self->{_quoter}\E//;
+        push @{$constr_names{$constr_name}}, $constr_col;
     }
     
     my @uniqs = map { [ $_ => $constr_names{$_} ] } keys %constr_names;
@@ -108,17 +113,18 @@ sub _table_uniq_info {
 }
 
 sub _table_pk_info {
-    my ($self, $table) = @_;
-    return $self->next::method(uc $table);
+    my ($self, $table) = (shift, shift);
+
+    return $self->next::method($self->_uc($table), @_);
 }
 
 sub _table_fk_info {
-    my ($self, $table) = @_;
+    my ($self, $table) = (shift, shift);
 
-    my $rels = $self->next::method(uc $table);
+    my $rels = $self->next::method($self->_uc($table), @_);
 
     foreach my $rel (@$rels) {
-        $rel->{remote_table} = lc $rel->{remote_table};
+        $rel->{remote_table} = $self->_lc($rel->{remote_table});
     }
 
     return $rels;
@@ -127,7 +133,7 @@ sub _table_fk_info {
 sub _columns_info_for {
     my ($self, $table) = (shift, shift);
 
-    my $result = $self->next::method(uc $table, @_);
+    my $result = $self->next::method($self->_uc($table), @_);
 
     my $dbh = $self->schema->storage->dbh;
 
@@ -140,10 +146,10 @@ AND lower(column_usage) LIKE '%new%' AND lower(column_usage) LIKE '%out%'
 AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIKE '%insert%'
     }, {}, 1);
 
-    $sth->execute(uc $table);
+    $sth->execute($self->_uc($table));
 
     while (my ($col_name) = $sth->fetchrow_array) {
-        $result->{lc $col_name}{is_auto_increment} = 1;
+        $result->{$self->_lc($col_name)}{is_auto_increment} = 1;
     }
 
     while (my ($col, $info) = each %$result) {
@@ -197,9 +203,16 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
         elsif (lc($info->{data_type}) eq 'urowid' && $info->{size} == 4000) {
             delete $info->{size};
         }
+        elsif (lc($info->{data_type}) eq 'date') {
+            $info->{data_type}           = 'datetime';
+            $info->{original}{data_type} = 'date';
+        }
 
         if (eval { lc(${ $info->{default_value} }) eq 'sysdate' }) {
-            ${ $info->{default_value} } = 'current_timestamp';
+            $info->{original}{default_value} = $info->{default_value};
+
+            my $current_timestamp  = 'current_timestamp';
+            $info->{default_value} = \$current_timestamp;
         }
     }
 

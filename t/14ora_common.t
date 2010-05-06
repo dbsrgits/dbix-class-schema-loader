@@ -83,9 +83,10 @@ my $tester = dbixcsl_common_tests->new(
         'long raw'     => { data_type => 'long raw' },
 
         # Datetime Types
-        'date'         => { data_type => 'date' },
+        'date'         => { data_type => 'datetime', original => { data_type => 'date' } },
         'date default sysdate'
-                       => { data_type => 'date', default_value => \'current_timestamp' },
+                       => { data_type => 'datetime', default_value => \'current_timestamp',
+                            original  => { data_type => 'date', default_value => \'sysdate' } },
         'timestamp'    => { data_type => 'timestamp' },
         'timestamp default current_timestamp'
                        => { data_type => 'timestamp', default_value => \'current_timestamp' },
