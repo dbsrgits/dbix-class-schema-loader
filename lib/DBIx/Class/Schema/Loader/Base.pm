@@ -337,7 +337,8 @@ List of additional classes which all of your table classes will use.
 =head2 components
 
 List of additional components to be loaded into all of your table
-classes.  A good example would be C<ResultSetManager>.
+classes.  A good example would be
+L<InflateColumn::DateTime|DBIx::Class::InflateColumn::DateTime>
 
 =head2 resultset_components
 
