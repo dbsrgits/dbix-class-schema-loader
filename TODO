@@ -9,11 +9,14 @@
     - support multiple/all schemas, instead of just one
     - support pk/uk/fk info on views, possibly (materialized views?)
     - remove deprecated ResultSetManager stuff, rewrite using current features
-    - Refactor RelBuilder so that it doesn't require a live mostly-built DBIx::Class::Schema, so that other modules (SQLT) can use it easier.  And then when/if we get there, break it out as a seperate distribution with a new name.
+    - Refactor RelBuilder so that it doesn't require a live mostly-built
+      DBIx::Class::Schema, so that other modules (SQLT) can use it easier.  And
+      then when/if we get there, break it out as a seperate distribution with a
+      new name.
     - support for user-defined-types as Schema deploy hooks
-    - normalize float/real/double data types in a most cross-deployment friendly fashion, using float(25) as the double boundary where possible
-    - finish data_type tests for all DBs (DB2 and Oracle left)
-    - support for Informix
+    - normalize float/real/double data types in a most cross-deployment friendly
+      fashion, using float(25) as the double boundary where possible
+    - finish data_type tests for all DBs (DB2 and Informix left)
     - generate a schema accessor which stores which SQLT type it was loaded from
     - add a settable 'on-behalf-of' version tag (for catalyst model)
     - inject a table2moniker function into the schema
@@ -29,10 +32,14 @@
     - add hashref form of generate_pod to control which POD is generated
     - add hashref form of components to control which components are added to
       which classes
+    - add original => {} to all type info rewrites
 
 - Relationships
-   - Re-scan relations/tables after initial relation setup to find ->many_to_many() relations to be set up
-   - While scanning for many-to-many, scan for implied rels as well (if foo->belongs_to('bar') and baz->belongs_to('bar'), does that impliy foo->might_have('baz') and the reverse?)
+   - Re-scan relations/tables after initial relation setup to find
+     ->many_to_many() relations to be set up
+   - While scanning for many-to-many, scan for implied rels as well (if
+     foo->belongs_to('bar') and baz->belongs_to('bar'), does that impliy
+     foo->might_have('baz') and the reverse?)
 
 - Backends
   - SQLite
