@@ -33,6 +33,10 @@
     - add hashref form of components to control which components are added to
       which classes
     - add original => {} to all type info rewrites
+    - add common tests for preserve_case option
+    - correct handling of CamelCase names with numbers (eg. foo2Bar -> Foo2Bar,
+      foo2_bar)
+    - check rel accessors for method conflicts
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find
