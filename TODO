@@ -37,6 +37,7 @@
     - correct handling of CamelCase names with numbers (eg. foo2Bar -> Foo2Bar,
       foo2_bar)
     - check rel accessors for method conflicts
+    - add an option to add extra code to Result classes
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find
@@ -68,7 +69,6 @@
     - preserve_case mode
     - domains
   - Oracle
-    - data_type tests
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL

@@ -79,16 +79,17 @@ my $tester = dbixcsl_common_tests->new(
 	'char'                           => { data_type => 'char', size => 1 },
 	text                             => { data_type => 'text' },
         # varchar with no size has unlimited size, we rewrite to 'text'
-	varchar                          => { data_type => 'text' },
+	varchar                          => { data_type => 'text',
+                                              original => { data_type => 'varchar' } },
 
         # Datetime Types
 	date                             => { data_type => 'date' },
 	interval                         => { data_type => 'interval' },
 	'interval(2)'                    => { data_type => 'interval', size => 2 },
-	time                             => { data_type => 'time without time zone' },
-	'time(2)'                        => { data_type => 'time without time zone', size => 2 },
-	'time without time zone'         => { data_type => 'time without time zone' },
-	'time(2) without time zone'      => { data_type => 'time without time zone', size => 2 },
+	time                             => { data_type => 'time' },
+	'time(2)'                        => { data_type => 'time', size => 2 },
+	'time without time zone'         => { data_type => 'time' },
+	'time(2) without time zone'      => { data_type => 'time', size => 2 },
 	'time with time zone'            => { data_type => 'time with time zone' },
 	'time(2) with time zone'         => { data_type => 'time with time zone', size => 2 },
 	timestamp                        => { data_type => 'timestamp' },

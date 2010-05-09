@@ -150,6 +150,9 @@ sub _columns_info_for {
             if (lc($data_type) eq 'timestamp without time zone') {
                 $info->{data_type} = 'timestamp';
             }
+            elsif (lc($data_type) eq 'time without time zone') {
+                $info->{data_type} = 'time';
+            }
 
             my ($precision) = $self->schema->storage->dbh
                 ->selectrow_array(<<EOF, {}, $table, $col);
@@ -208,7 +211,10 @@ EOF
         elsif (lc($data_type) eq 'character varying') {
             $info->{data_type} = 'varchar';
 
-            $info->{data_type} = 'text' if not $info->{size};
+            if (not $info->{size}) {
+                $info->{data_type}           = 'text';
+                $info->{original}{data_type} = 'varchar';
+            }
         }
         elsif (lc($data_type) eq 'character') {
             $info->{data_type} = 'char';
