@@ -278,6 +278,9 @@ wHERE table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote(
 
             if ((eval { lc ${ $info->{default_value} } }||'') eq 'getdate()') {
                 ${ $info->{default_value} } = 'current_timestamp';
+
+                my $getdate = 'getdate()';
+                $info->{original}{default_value} = \$getdate;
             }
         }
     }

@@ -94,7 +94,8 @@ my $tester = dbixcsl_common_tests->new(
         'timestamp'   => { data_type => 'timestamp' },
         # rewrite 'current timestamp' as 'current_timestamp'
         'timestamp default current timestamp'
-                      => { data_type => 'timestamp', default_value => \'current_timestamp' },
+                      => { data_type => 'timestamp', default_value => \'current_timestamp',
+                           original => { default_value => \'current timestamp' } },
         'time'        => { data_type => 'time' },
 
         # String Types
@@ -138,3 +139,4 @@ if (not ($dbd_sqlanywhere_dsn || $odbc_dsn)) {
 else {
     $tester->run_tests();
 }
+# vim:et sts=4 sw=4 tw=0:

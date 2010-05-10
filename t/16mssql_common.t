@@ -69,7 +69,8 @@ my $tester = dbixcsl_common_tests->new(
         datetime => { data_type => 'datetime' },
         # test rewriting getdate() to current_timestamp
         'datetime default getdate()'
-                 => { data_type => 'datetime', default_value => \'current_timestamp' },
+                 => { data_type => 'datetime', default_value => \'current_timestamp',
+                      original => { default_value => \'getdate()' } },
         smalldatetime  => { data_type => 'smalldatetime' },
         time     => { data_type => 'time' },
         'time(0)'=> { data_type => 'time', size => 0 },

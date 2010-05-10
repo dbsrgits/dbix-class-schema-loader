@@ -133,6 +133,9 @@ sub _columns_info_for {
         if ((eval { lc ${ $info->{default_value} } }||'') eq 'current timestamp') {
             ${ $info->{default_value} } = 'current_timestamp';
             delete $info->{size};
+
+            my $orig_deflt = 'current timestamp';
+            $info->{original}{default_value} = \$orig_deflt;
         }
     }
 

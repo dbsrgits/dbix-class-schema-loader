@@ -231,6 +231,9 @@ EOF
         if ((eval { lc ${ $info->{default_value} } }||'') eq 'now()') {
             # do not use a ref to a constant, that breaks Data::Dump output
             ${$info->{default_value}} = 'current_timestamp';
+
+            my $now = 'now()';
+            $info->{original}{default_value} = \$now;
         }
     }
 

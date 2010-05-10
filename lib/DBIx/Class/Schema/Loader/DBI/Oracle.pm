@@ -232,10 +232,11 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
         } 
 
         if ((eval { lc(${ $info->{default_value} }) }||'') eq 'sysdate') {
-            $info->{original}{default_value} = $info->{default_value};
-
             my $current_timestamp  = 'current_timestamp';
             $info->{default_value} = \$current_timestamp;
+
+            my $sysdate = 'sysdate';
+            $info->{original}{default_value} = \$sysdate;
         }
     }
 
