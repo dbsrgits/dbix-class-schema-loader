@@ -1665,6 +1665,7 @@ sub _custom_column_info {
 
 my %DATA_TYPE_MULTI_TABLE_OVERRIDES = (
     oracle => qr/\blong\b/,
+    mssql  => qr/\b(?:timestamp|rowversion)\b/,
 );
 
 sub setup_data_type_tests {

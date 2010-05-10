@@ -121,6 +121,7 @@ my $tester = dbixcsl_common_tests->new(
 
         # other types
         timestamp        => { data_type => 'timestamp', inflate_datetime => 0 },
+        rowversion       => { data_type => 'rowversion' },
         uniqueidentifier => { data_type => 'uniqueidentifier' },
         hierarchyid      => { data_type => 'hierarchyid' },
         sql_variant      => { data_type => 'sql_variant' },
@@ -214,11 +215,18 @@ my $tester = dbixcsl_common_tests->new(
 
             lives_and {
                 my $five_row = $schema->resultset($monikers->{mssql_loader_test5})->new_result({});
-                $five_row->foocol(1);
-                $five_row->barcol(2);
+
+                if ($schema->_loader->preserve_case) {
+                    $five_row->foo_col(1);
+                    $five_row->bar_col(2);
+                }
+                else {
+                    $five_row->foocol(1);
+                    $five_row->barcol(2);
+                }
                 $five_row->insert;
 
-                my $six_row  = $five_row->create_related('mssql_loader_test6s', {});
+                my $six_row = $five_row->create_related('mssql_loader_test6s', {});
 
                 is $six_row->five->id, 1;
             } 'relationships for mixed-case tables/columns detected';
