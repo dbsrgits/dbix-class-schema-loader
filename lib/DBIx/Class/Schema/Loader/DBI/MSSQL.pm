@@ -91,9 +91,9 @@ sub _tables_list {
     my $sth = $dbh->prepare(<<'EOF');
 SELECT t.table_name
 FROM INFORMATION_SCHEMA.TABLES t
-WHERE lower(t.table_schema) = ?
+WHERE t.table_schema = ?
 EOF
-    $sth->execute(lc $self->db_schema);
+    $sth->execute($self->db_schema);
 
     my @tables = map @$_, @{ $sth->fetchall_arrayref };
 
@@ -154,7 +154,7 @@ SELECT ccu.constraint_name, ccu.column_name
 FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu
 JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc on (ccu.constraint_name = tc.constraint_name)
 JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu on (ccu.constraint_name = kcu.constraint_name and ccu.column_name = kcu.column_name)
-wHERE lower(ccu.table_name) = @{[ $dbh->quote(lc $table) ]} AND constraint_type = 'UNIQUE' ORDER BY kcu.ordinal_position
+wHERE ccu.table_name = @{[ $dbh->quote($table) ]} AND constraint_type = 'UNIQUE' ORDER BY kcu.ordinal_position
     });
     $sth->execute;
     my $constraints;
@@ -181,8 +181,8 @@ sub _columns_info_for {
         my $sth = $dbh->prepare(qq{
 SELECT column_name 
 FROM INFORMATION_SCHEMA.COLUMNS
-WHERE columnproperty(object_id(@{[ $dbh->quote(lc $table) ]}, 'U'), @{[ $dbh->quote(lc $col) ]}, 'IsIdentity') = 1
-AND lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @{[ $dbh->quote(lc $col) ]}
+WHERE columnproperty(object_id(@{[ $dbh->quote($table) ]}, 'U'), @{[ $dbh->quote($col) ]}, 'IsIdentity') = 1
+AND table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($col) ]}
         });
         if (eval { $sth->execute; $sth->fetchrow_array }) {
             $info->{is_auto_increment} = 1;
@@ -201,10 +201,6 @@ AND lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @
             if (ref($info->{size}) && $info->{size}[0] == 18 && $info->{size}[1] == 0) {
                 delete $info->{size};
             }
-        }
-        elsif ($info->{data_type} eq 'real') {
-            $info->{data_type} = 'float';
-            $info->{size}      = 24;
         }
         elsif ($info->{data_type} eq 'float') {
             $info->{data_type} = 'double precision';
@@ -266,7 +262,7 @@ AND lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @
         $sth = $dbh->prepare(qq{
 SELECT column_default
 FROM INFORMATION_SCHEMA.COLUMNS
-wHERE lower(table_name) = @{[ $dbh->quote(lc $table) ]} AND lower(column_name) = @{[ $dbh->quote(lc $col) ]}
+wHERE table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($col) ]}
         });
         my ($default) = eval { $sth->execute; $sth->fetchrow_array };
 

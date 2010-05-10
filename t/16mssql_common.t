@@ -49,9 +49,9 @@ my $tester = dbixcsl_common_tests->new(
         money       => { data_type => 'money' },
         smallmoney  => { data_type => 'smallmoney' },
         bit         => { data_type => 'bit' },
-        real           => { data_type => 'float', size => 24 },
-        'float(14)'    => { data_type => 'float', size => 24 },
-        'float(24)'    => { data_type => 'float', size => 24 },
+        real           => { data_type => 'real' },
+        'float(14)'    => { data_type => 'real' },
+        'float(24)'    => { data_type => 'real' },
         'float(25)'    => { data_type => 'double precision' },
         'float(53)'    => { data_type => 'double precision' },
         float          => { data_type => 'double precision' },
@@ -108,8 +108,9 @@ my $tester = dbixcsl_common_tests->new(
         'nvarchar(2)'  => { data_type => 'nvarchar', size => 2 },
 
         # binary types
-        'binary(2)'      => { data_type => 'binary', size => 2 },
-        'varbinary(2)'   => { data_type => 'varbinary', size => 2 },
+        'binary'       => { data_type => 'binary', size => 1 },
+        'binary(2)'    => { data_type => 'binary', size => 2 },
+        'varbinary(2)' => { data_type => 'varbinary', size => 2 },
 
         # blob types
         'varchar(max)'   => { data_type => 'text' },

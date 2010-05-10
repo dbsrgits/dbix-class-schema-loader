@@ -1,6 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-        - minor Pg type info improvements
+        - minor type info improvements for all DBs
         - fix erroneous default_value for MySQL NOT NULL columns (RT#57225)
         - remove is_deferrable => 1 from default for belongs_to rels
         - better type info for Oracle
