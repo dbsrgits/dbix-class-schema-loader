@@ -105,7 +105,7 @@ EOF
 
         delete $info->{default_value} if ref($info->{default_value}) eq 'SCALAR' && ${ $info->{default_value} } eq 'NULL';
 
-        if (eval { lc ${ $info->{default_value} } }||'' eq 'current timestamp') {
+        if ((eval { lc ${ $info->{default_value} } }||'') eq 'current timestamp') {
             ${ $info->{default_value} } = 'current_timestamp';
         }
     }

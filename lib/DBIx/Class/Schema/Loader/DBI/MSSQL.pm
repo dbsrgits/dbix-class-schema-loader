@@ -276,7 +276,7 @@ wHERE table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote(
                 $default =~ /^['(] (.*) [)']\z/x ? $1 :
                     $default =~ /^\d/ ? $default : \$default;
 
-            if (eval { lc ${ $info->{default_value} } }||'' eq 'getdate()') {
+            if ((eval { lc ${ $info->{default_value} } }||'') eq 'getdate()') {
                 ${ $info->{default_value} } = 'current_timestamp';
             }
         }

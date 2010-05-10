@@ -231,7 +231,7 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
             $info->{original}{data_type} = 'binary_double';
         } 
 
-        if (eval { lc(${ $info->{default_value} }) eq 'sysdate' }) {
+        if ((eval { lc(${ $info->{default_value} }) }||'') eq 'sysdate') {
             $info->{original}{default_value} = $info->{default_value};
 
             my $current_timestamp  = 'current_timestamp';

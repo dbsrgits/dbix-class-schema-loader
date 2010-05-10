@@ -130,7 +130,7 @@ sub _columns_info_for {
             $info->{is_auto_increment} = 1;
         }
 
-        if (eval { lc ${ $info->{default_value} } }||'' eq 'current timestamp') {
+        if ((eval { lc ${ $info->{default_value} } }||'') eq 'current timestamp') {
             ${ $info->{default_value} } = 'current_timestamp';
             delete $info->{size};
         }

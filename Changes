@@ -6,9 +6,10 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - better type info for Oracle
         - preliminary Informix support
         - unregister dropped sources on rescan
-        - added 'preserve_case' option with support for SQLite, mysql, MSSQL and
-          Firebird/InterBase; removed the MSSQL 'case_sensitive_collation' and
-          the Firebird/InterBase 'unquoted_ddl' options in favor of it.
+        - added 'preserve_case' option with support for SQLite, mysql, MSSQL,
+          SQLAnywhere and Firebird/InterBase; removed the MSSQL
+          'case_sensitive_collation' and the Firebird/InterBase 'unquoted_ddl'
+          options in favor of it.
         - support CamelCase table names and column names (in case-preserving
           mode) at the v7 naming level
         - rewrite datetime default functions as \'CURRENT_TIMESTAMP' where
