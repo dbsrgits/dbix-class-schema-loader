@@ -49,11 +49,15 @@ sub rescan {
     $self->next::method($schema);
 }
 
-sub _extra_column_info {
-    my ($self, $table, $col_name, $info, $dbi_info) = @_;
-    my %extra_info;
+sub _columns_info_for {
+    my $self = shift;
+    my ($table) = @_;
+
+    my $result = $self->next::method(@_);
 
     my $dbh = $self->schema->storage->dbh;
+    local $dbh->{FetchHashKeyName} = 'NAME_lc';
+
     my $has_autoinc = eval {
       my $get_seq = $self->{_cache}{sqlite_sequence}
         ||= $dbh->prepare(q{SELECT count(*) FROM sqlite_sequence WHERE name = ?});
@@ -69,12 +73,21 @@ sub _extra_column_info {
         );
         $sth->execute;
         my $cols = $sth->fetchall_hashref('name');
-        if ($cols->{$col_name}{pk}) {
-            $extra_info{is_auto_increment} = 1;
+
+        while (my ($col_name, $info) = each %$result) {
+            if ($cols->{$col_name}{pk}) {
+                $info->{is_auto_increment} = 1;
+            }
         }
     }
 
-    return \%extra_info;
+    while (my ($col, $info) = each %$result) {
+        if (eval { ${ $info->{default_value} } eq 'CURRENT_TIMESTAMP' }) {
+            ${ $info->{default_value} } = 'current_timestamp';
+        }
+    }
+
+    return $result;
 }
 
 sub _table_fk_info {

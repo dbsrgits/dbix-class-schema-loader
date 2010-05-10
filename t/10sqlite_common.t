@@ -51,7 +51,7 @@ my $tester = dbixcsl_common_tests->new(
         # Date and Time Types
         'date'        => { data_type => 'date' },
         'timestamp DEFAULT CURRENT_TIMESTAMP'
-                      => { data_type => 'timestamp', default_value => \'CURRENT_TIMESTAMP' },
+                      => { data_type => 'timestamp', default_value => \'current_timestamp' },
         'time'        => { data_type => 'time' },
 
         # String Types
