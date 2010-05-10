@@ -1629,7 +1629,7 @@ sub drop_tables {
     $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
     $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
 
-    foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || {} }) {
+    foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
         $dbh->do("DROP TABLE $data_type_table");
     }
 
