@@ -163,9 +163,12 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
             $info->{size} = $info->{size} / 2;
         }
         elsif (lc($info->{data_type}) eq 'number') {
-            $info->{data_type} = 'numeric';
+            $info->{original}{data_type} = 'number';
+            $info->{data_type}           = 'numeric';
 
             if (eval { $info->{size}[0] == 38 && $info->{size}[1] == 0 }) {
+                $info->{original}{size} = $info->{size};
+
                 $info->{data_type} = 'integer';
                 delete $info->{size};
             }

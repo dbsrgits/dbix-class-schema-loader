@@ -52,21 +52,21 @@ my $tester = dbixcsl_common_tests->new(
         #
         # integer/decimal/numeric is alised to NUMBER
         #
-        'decimal'      => { data_type => 'integer' },
-        'dec'          => { data_type => 'integer' },
-        'numeric'      => { data_type => 'integer' },
+        'integer'      => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
+        'int'          => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
+        'smallint'     => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
 
-        'decimal(3)'   => { data_type => 'numeric', size => [3,0] },
-        'dec(3)'       => { data_type => 'numeric', size => [3,0] },
-        'numeric(3)'   => { data_type => 'numeric', size => [3,0] },
+        'decimal'      => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
+        'dec'          => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
+        'numeric'      => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
 
-        'decimal(3,3)' => { data_type => 'numeric', size => [3,3] },
-        'dec(3,3)'     => { data_type => 'numeric', size => [3,3] },
-        'numeric(3,3)' => { data_type => 'numeric', size => [3,3] },
+        'decimal(3)'   => { data_type => 'numeric', size => [3,0], original => { data_type => 'number' } },
+        'dec(3)'       => { data_type => 'numeric', size => [3,0], original => { data_type => 'number' } },
+        'numeric(3)'   => { data_type => 'numeric', size => [3,0], original => { data_type => 'number' } },
 
-        'integer'      => { data_type => 'integer' },
-        'int'          => { data_type => 'integer' },
-        'smallint'     => { data_type => 'integer' },
+        'decimal(3,3)' => { data_type => 'numeric', size => [3,3], original => { data_type => 'number' } },
+        'dec(3,3)'     => { data_type => 'numeric', size => [3,3], original => { data_type => 'number' } },
+        'numeric(3,3)' => { data_type => 'numeric', size => [3,3], original => { data_type => 'number' } },
 
         'binary_float'  => { data_type => 'real',             original => { data_type => 'binary_float'  } },
         'binary_double' => { data_type => 'double precision', original => { data_type => 'binary_double' } },
