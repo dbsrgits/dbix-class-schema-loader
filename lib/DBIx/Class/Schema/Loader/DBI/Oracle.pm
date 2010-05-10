@@ -200,6 +200,18 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
                 $info->{size} = [ $day_precision, $second_precision ];
             }
         }
+        elsif (lc($info->{data_type}) eq 'float') {
+            $info->{original}{data_type} = 'float';
+            $info->{original}{size}      = $info->{size};
+
+            if ($info->{size} <= 63) {
+                $info->{data_type} = 'real';
+            }
+            else {
+                $info->{data_type} = 'double precision';
+            }
+            delete $info->{size};
+        }
         elsif (lc($info->{data_type}) eq 'urowid' && $info->{size} == 4000) {
             delete $info->{size};
         }
@@ -207,6 +219,14 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
             $info->{data_type}           = 'datetime';
             $info->{original}{data_type} = 'date';
         }
+        elsif (lc($info->{data_type}) eq 'binary_float') {
+            $info->{data_type}           = 'real';
+            $info->{original}{data_type} = 'binary_float';
+        } 
+        elsif (lc($info->{data_type}) eq 'binary_double') {
+            $info->{data_type}           = 'double precision';
+            $info->{original}{data_type} = 'binary_double';
+        } 
 
         if (eval { lc(${ $info->{default_value} }) eq 'sysdate' }) {
             $info->{original}{default_value} = $info->{default_value};

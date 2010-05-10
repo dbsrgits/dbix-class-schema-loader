@@ -50,7 +50,7 @@ my $tester = dbixcsl_common_tests->new(
 
         # Numeric Types
         #
-        # everything is alised to NUMBER
+        # integer/decimal/numeric is alised to NUMBER
         #
         'decimal'      => { data_type => 'integer' },
         'dec'          => { data_type => 'integer' },
@@ -68,8 +68,15 @@ my $tester = dbixcsl_common_tests->new(
         'int'          => { data_type => 'integer' },
         'smallint'     => { data_type => 'integer' },
 
-        'binary_float'  => { data_type => 'binary_float' },
-        'binary_double' => { data_type => 'binary_double' },
+        'binary_float'  => { data_type => 'real',             original => { data_type => 'binary_float'  } },
+        'binary_double' => { data_type => 'double precision', original => { data_type => 'binary_double' } },
+
+        # these are not mentioned in the summary chart, must be aliased
+	real            => { data_type => 'real',             original => { data_type => 'float', size => 63  } },
+        'float(63)'     => { data_type => 'real',             original => { data_type => 'float', size => 63  } },
+        'float(64)'     => { data_type => 'double precision', original => { data_type => 'float', size => 64  } },
+        'float(126)'    => { data_type => 'double precision', original => { data_type => 'float', size => 126 } },
+        float           => { data_type => 'double precision', original => { data_type => 'float', size => 126 } },
 
         # Blob Types
         'raw(50)'      => { data_type => 'raw', size => 50 },
