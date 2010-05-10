@@ -20,6 +20,8 @@ my $tester = dbixcsl_common_tests->new(
         # Numeric Types
 	boolean     => { data_type => 'boolean' },
 	bool        => { data_type => 'boolean' },
+        'bool default false'
+                    => { data_type => 'boolean', default_value => \'false' },
 
 	bigint      => { data_type => 'bigint' },
 	int8        => { data_type => 'bigint' },
