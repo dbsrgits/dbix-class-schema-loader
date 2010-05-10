@@ -50,8 +50,6 @@ sub _setup {
 
     $self->next::method(@_);
 
-    $self->schema->storage->sql_maker->name_sep('.');
-
     if (not defined $self->preserve_case) {
         warn <<'EOF';
 
@@ -64,6 +62,8 @@ for more information.
 EOF
         $self->preserve_case(1);
     }
+
+    $self->schema->storage->sql_maker->name_sep('.');
 
     if ($self->preserve_case) {
         $self->schema->storage->sql_maker->quote_char('"');
@@ -256,9 +256,6 @@ EOF
         }
         elsif ($info->{data_type} eq 'character') {
             $info->{data_type} = 'char';
-        }
-        elsif ($info->{data_type} eq 'real') {
-            $info->{data_type} = 'float';
         }
         elsif ($info->{data_type} eq 'int64' || $info->{data_type} eq '-9581') {
             # the constant is just in case, the query should pick up the type

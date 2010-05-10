@@ -14,8 +14,6 @@
       then when/if we get there, break it out as a seperate distribution with a
       new name.
     - support for user-defined-types as Schema deploy hooks
-    - normalize float/real/double data types in a most cross-deployment friendly
-      fashion, using float(25) as the double boundary where possible
     - finish data_type tests for all DBs (DB2 and Informix left)
     - generate a schema accessor which stores which SQLT type it was loaded from
     - add a settable 'on-behalf-of' version tag (for catalyst model)
