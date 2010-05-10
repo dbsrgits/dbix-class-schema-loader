@@ -84,9 +84,7 @@ my $tester = dbixcsl_common_tests->new(
         'nclob'        => { data_type => 'nclob' },
         'blob'         => { data_type => 'blob' },
         'bfile'        => { data_type => 'bfile' },
-        # these must be tested one at a time, can't have 2 longs in one table
-        # XXX add overrides to type tester to handle this
-#        'long'         => { data_type => 'long' },
+        'long'         => { data_type => 'long' },
         'long raw'     => { data_type => 'long raw' },
 
         # Datetime Types

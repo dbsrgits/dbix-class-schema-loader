@@ -129,7 +129,7 @@ sub run_only_extra_tests {
 
 
             $dbh->do($_) for @{ $self->{extra}{create} || [] };
-            $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests}{ddl};
+            $dbh->do($_) for @{ $self->{data_type_tests}{ddl} || []};
         }
         $self->{_created} = 1;
 
@@ -158,7 +158,7 @@ sub drop_extra_tables_only {
     $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
     $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
-    if (my $data_type_table = $self->{data_type_tests}{table_name}) {
+    foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
         $dbh->do("DROP TABLE $data_type_table");
     }
 }
@@ -966,30 +966,33 @@ sub test_data_types {
 
     if ($self->{data_type_tests}{test_count}) {
         my $data_type_tests = $self->{data_type_tests};
-        my $columns = $data_type_tests->{columns};
 
-        my $rsrc = $conn->resultset($data_type_tests->{table_moniker})->result_source;
+        foreach my $moniker (@{ $data_type_tests->{table_monikers} }) {
+            my $columns = $data_type_tests->{columns}{$moniker};
 
-        while (my ($col_name, $expected_info) = each %$columns) {
-            my %info = %{ $rsrc->column_info($col_name) };
-            delete @info{qw/is_nullable timezone locale sequence/};
+            my $rsrc = $conn->resultset($moniker)->result_source;
 
-            my $text_col_def = do {
-                my $dd = Dumper;
-                $dd->Indent(0);
-                $dd->Values([\%info]);
-                $dd->Dump;
-            };
+            while (my ($col_name, $expected_info) = each %$columns) {
+                my %info = %{ $rsrc->column_info($col_name) };
+                delete @info{qw/is_nullable timezone locale sequence/};
 
-            my $text_expected_info = do {
-                my $dd = Dumper;
-                $dd->Indent(0);
-                $dd->Values([$expected_info]);
-                $dd->Dump;
-            };
+                my $text_col_def = do {
+                    my $dd = Dumper;
+                    $dd->Indent(0);
+                    $dd->Values([\%info]);
+                    $dd->Dump;
+                };
 
-            is_deeply \%info, $expected_info,
-                "test column $col_name has definition: $text_col_def expecting: $text_expected_info";
+                my $text_expected_info = do {
+                    my $dd = Dumper;
+                    $dd->Indent(0);
+                    $dd->Values([$expected_info]);
+                    $dd->Dump;
+                };
+
+                is_deeply \%info, $expected_info,
+                    "test column $col_name has definition: $text_col_def expecting: $text_expected_info";
+            }
         }
     }
 }
@@ -1499,9 +1502,9 @@ sub create {
         warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
     };
 
-    $dbh->do($_) for (@statements);
+    $dbh->do($_) foreach (@statements);
 
-    $dbh->do($self->{data_type_tests}{ddl}) if $self->{data_type_tests}{ddl};
+    $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || {} });
 
     unless($self->{skip_rels}) {
         # hack for now, since DB2 doesn't like inline comments, and we need
@@ -1625,7 +1628,7 @@ sub drop_tables {
     $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
     $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
 
-    if (my $data_type_table = $self->{data_type_tests}{table_name}) {
+    foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || {} }) {
         $dbh->do("DROP TABLE $data_type_table");
     }
 
@@ -1660,66 +1663,88 @@ sub _custom_column_info {
     return;
 }
 
+my %DATA_TYPE_MULTI_TABLE_OVERRIDES = (
+    oracle => qr/\blong\b/,
+);
+
 sub setup_data_type_tests {
     my $self = shift;
 
     return unless my $types = $self->{data_types};
 
     my $tests = $self->{data_type_tests} = {};
-    my $cols  = $tests->{columns}        = {};
 
-    $tests->{table_name}    = 'loader_test9999';
-    $tests->{table_moniker} = 'LoaderTest9999';
+    # split types into tables based on overrides
+    my @types = keys %$types;
+    my @split_off_types   = grep  /$DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})}/i, @types;
+    my @first_table_types = grep !/$DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})}/i, @types;
 
-    my $ddl = "CREATE TABLE loader_test9999 (\n    id INTEGER NOT NULL PRIMARY KEY,\n";
+    @types = +{ map +($_, $types->{$_}), @first_table_types },
+        map +{ $_, $types->{$_} }, @split_off_types;
 
     my $test_count = 0;
+    my $table_num  = 10000;
 
-    my %seen_col_names;
+    foreach my $types (@types) {
+        my $table_name    = "loader_test$table_num";
+        push @{ $tests->{table_names} }, $table_name;
 
-    while (my ($col_def, $expected_info) = each %$types) {
-        (my $type_alias = $col_def) =~ s/\( ([^)]+) \)//xg;
+        my $table_moniker = "LoaderTest$table_num";
+        push @{ $tests->{table_monikers} }, $table_moniker;
 
-        my $size = $1;
-        $size = '' unless defined $size;
-        $size =~ s/\s+//g;
-        my @size = split /,/, $size;
+        $table_num++;
 
-        # some DBs don't like very long column names
-        if ($self->{vendor} =~ /^(?:firebird|sqlanywhere|oracle)\z/i) {
-            my ($col_def, $default) = $type_alias =~ /^(.*)(default.*)?\z/i;
+        my $cols = $tests->{columns}{$table_moniker} = {};
 
-            $type_alias = substr $col_def, 0, 15;
+        my $ddl = "CREATE TABLE $table_name (\n    id INTEGER NOT NULL PRIMARY KEY,\n";
 
-            $type_alias .= '_with_dflt' if $default;
+        my %seen_col_names;
+
+        while (my ($col_def, $expected_info) = each %$types) {
+            (my $type_alias = $col_def) =~ s/\( ([^)]+) \)//xg;
+
+            my $size = $1;
+            $size = '' unless defined $size;
+            $size =~ s/\s+//g;
+            my @size = split /,/, $size;
+
+            # some DBs don't like very long column names
+            if ($self->{vendor} =~ /^(?:firebird|sqlanywhere|oracle)\z/i) {
+                my ($col_def, $default) = $type_alias =~ /^(.*)(default.*)?\z/i;
+
+                $type_alias = substr $col_def, 0, 15;
+
+                $type_alias .= '_with_dflt' if $default;
+            }
+
+            $type_alias =~ s/\s/_/g;
+            $type_alias =~ s/\W//g;
+
+            my $col_name = 'col_' . $type_alias;
+            
+            if (@size) {
+                my $size_name = join '_', apply { s/\W//g } @size;
+
+                $col_name .= "_sz_$size_name";
+            }
+
+            # XXX would be better to check _loader->preserve_case
+            $col_name = lc $col_name;
+
+            $col_name .= '_' . $seen_col_names{$col_name} if $seen_col_names{$col_name}++;
+
+            $ddl .= "    $col_name $col_def,\n";
+
+            $cols->{$col_name} = $expected_info;
+
+            $test_count++;
         }
 
-        $type_alias =~ s/\s/_/g;
-        $type_alias =~ s/\W//g;
+        $ddl =~ s/,\n\z/\n)/;
 
-        my $col_name = 'col_' . $type_alias;
-        
-        if (@size) {
-            my $size_name = join '_', apply { s/\W//g } @size;
-
-            $col_name .= "_sz_$size_name";
-        }
-
-        # XXX would be better to check _loader->preserve_case
-        $col_name = lc $col_name;
-
-        $col_name .= '_' . $seen_col_names{$col_name} if $seen_col_names{$col_name}++;
-
-        $ddl .= "    $col_name $col_def,\n";
-
-        $cols->{$col_name} = $expected_info;
-
-        $test_count++;
+        push @{ $tests->{ddl} }, $ddl;
     }
 
-    $ddl =~ s/,\n\z/\n)/;
-
-    $tests->{ddl}        = $ddl;
     $tests->{test_count} = $test_count;
 
     return $test_count;
