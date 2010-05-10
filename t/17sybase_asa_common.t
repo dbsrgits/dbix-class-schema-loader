@@ -30,25 +30,25 @@ my $tester = dbixcsl_common_tests->new(
             password    => $odbc_password,
         } : ()),
     ],
+    loader_options => { preserve_case => 1 },
     data_types  => {
         # http://infocenter.sybase.com/help/topic/com.sybase.help.sqlanywhere.11.0.1/dbreference_en11/rf-datatypes.html
         #
         # Numeric types
-        # XXX rewrite low-precision floats to 'real'
         'bit'         => { data_type => 'bit' },
         'tinyint'     => { data_type => 'tinyint' },
         'smallint'    => { data_type => 'smallint' },
         'int'         => { data_type => 'integer' },
         'integer'     => { data_type => 'integer' },
         'bigint'      => { data_type => 'bigint' },
-        'float'       => { data_type => 'float' },
-        'real'        => { data_type => 'float' },
+        'float'       => { data_type => 'real' },
+        'real'        => { data_type => 'real' },
         'double'      => { data_type => 'double precision' },
         'double precision' =>
                          { data_type => 'double precision' },
 
-        'float(2)'    => { data_type => 'float' },
-        'float(24)'   => { data_type => 'float' },
+        'float(2)'    => { data_type => 'real' },
+        'float(24)'   => { data_type => 'real' },
         'float(25)'   => { data_type => 'double precision' },
         'float(53)'   => { data_type => 'double precision' },
 

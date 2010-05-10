@@ -92,7 +92,6 @@
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
-    - preserve_case mode
     - domains
   - Firebird
     - table/column comments

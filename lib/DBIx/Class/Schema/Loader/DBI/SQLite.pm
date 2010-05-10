@@ -82,7 +82,7 @@ sub _columns_info_for {
     }
 
     while (my ($col, $info) = each %$result) {
-        if (eval { ${ $info->{default_value} } eq 'CURRENT_TIMESTAMP' }) {
+        if (eval { ${ $info->{default_value} } }||'' eq 'CURRENT_TIMESTAMP') {
             ${ $info->{default_value} } = 'current_timestamp';
         }
     }

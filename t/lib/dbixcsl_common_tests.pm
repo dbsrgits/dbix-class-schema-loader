@@ -135,7 +135,7 @@ sub run_only_extra_tests {
 
         my $file_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
         $file_count++; # schema
-        $file_count++ if $self->{data_type_tests}{ddl};
+        $file_count++ for @{ $self->{data_type_tests}{table_names} || [] };
 
         my $schema_class = $self->setup_schema($info, $file_count);
         my ($monikers, $classes) = $self->monikers_and_classes($schema_class);
@@ -219,7 +219,8 @@ sub setup_schema {
         my $standard_sources = not defined $expected_count;
 
         if ($standard_sources) {
-            $expected_count = 36 + ($self->{data_type_tests}{test_count} ? 1 : 0);
+            $expected_count = 36;
+            $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
 
             $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
                 @{ $self->{extra}{create} || [] };
@@ -1676,9 +1677,14 @@ sub setup_data_type_tests {
     my $tests = $self->{data_type_tests} = {};
 
     # split types into tables based on overrides
-    my @types = keys %$types;
-    my @split_off_types   = grep  /$DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})}/i, @types;
-    my @first_table_types = grep !/$DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})}/i, @types;
+    my (@types, @split_off_types, @first_table_types);
+    {
+        no warnings 'uninitialized';
+
+        @types = keys %$types;
+        @split_off_types   = grep  /$DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})}/i, @types;
+        @first_table_types = grep !/$DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})}/i, @types;
+    }
 
     @types = +{ map +($_, $types->{$_}), @first_table_types },
         map +{ $_, $types->{$_} }, @split_off_types;
