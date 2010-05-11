@@ -32,6 +32,7 @@ requires 'namespace::autoclean'        => 0;
 requires 'Data::Dumper::Concise'       => '1.200';
 requires 'Scope::Guard'                => 0;
 requires 'List::MoreUtils'             => 0;
+requires 'Exporter'                    => '5.63';
 
 install_script 'script/dbicdump';
 
