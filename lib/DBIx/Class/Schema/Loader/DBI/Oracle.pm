@@ -101,7 +101,7 @@ sub _table_uniq_info {
     $sth->execute($self->_uc($table),$self->{db_schema} );
     my %constr_names;
     while(my $constr = $sth->fetchrow_arrayref) {
-        my $constr_name = $constr->[0];
+        my $constr_name = $self->_lc($constr->[0]);
         my $constr_col  = $self->_lc($constr->[1]);
         $constr_name =~ s/\Q$self->{_quoter}\E//;
         $constr_col  =~ s/\Q$self->{_quoter}\E//;
