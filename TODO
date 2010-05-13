@@ -34,6 +34,7 @@
     - check rel accessors for method conflicts
     - add an option to add extra code to Result classes
     - redo in-memory schema as an @INC coderef rather than temp files
+    - add option to filter out views
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find
