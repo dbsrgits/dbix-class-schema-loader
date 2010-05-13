@@ -1108,6 +1108,9 @@ sub run_v4_tests {
 
     ok (($schema->resultset('Routechange')->find(1)->can('quuxsid')),
         'correct column accessor in 0.04006 mode');
+
+    is $schema->resultset('Routechange')->find(1)->foo2bar, 3,
+        'correct column accessor for column with word ending with digit in v4 mode';
 }
 
 sub run_v5_tests {
@@ -1135,6 +1138,9 @@ sub run_v5_tests {
 
     ok (($schema->resultset('Routechange')->find(1)->can('quuxsid')),
         'correct column accessor in v5 mode');
+
+    is $schema->resultset('Routechange')->find(1)->foo2bar, 3,
+        'correct column accessor for column with word ending with digit in v5 mode';
 }
 
 sub run_v6_tests {
@@ -1167,6 +1173,9 @@ sub run_v6_tests {
 
     ok (($schema->resultset('Routechange')->find(1)->can('quuxsid')),
         'correct column accessor in v6 mode');
+
+    is $schema->resultset('Routechange')->find(1)->foo2bar, 3,
+        'correct column accessor for column with word ending with digit in v6 mode';
 }
 
 sub run_v7_tests {
@@ -1199,6 +1208,9 @@ sub run_v7_tests {
 
     ok (($schema->resultset('RouteChange')->find(1)->can('quuxs_id')),
         'correct column accessor in current mode');
+
+    is $schema->resultset('RouteChange')->find(1)->foo2_bar, 3,
+        'correct column accessor for column with word ending with digit in current mode';
 }
 
 {

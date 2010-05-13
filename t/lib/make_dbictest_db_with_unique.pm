@@ -38,7 +38,8 @@ $dbh->do($_) for (
       )|,
     q|CREATE TABLE RouteChange (
         id INTEGER PRIMARY KEY,
-        QuuxsId INTEGER REFERENCES quuxs (quuxid)
+        QuuxsId INTEGER REFERENCES quuxs (quuxid),
+        Foo2Bar INTEGER
       )|,
     q|CREATE TABLE email (
         id INTEGER PRIMARY KEY,
@@ -58,7 +59,7 @@ $dbh->do($_) for (
     q|INSERT INTO quuxs VALUES (1,20)|,
     q|INSERT INTO quuxs VALUES (2,19)|,
     q|INSERT INTO stations_visited VALUES (1,1)|,
-    q|INSERT INTO RouteChange VALUES (1,1)|,
+    q|INSERT INTO RouteChange VALUES (1,1,3)|,
 );
 
 END { unlink($fn); }
