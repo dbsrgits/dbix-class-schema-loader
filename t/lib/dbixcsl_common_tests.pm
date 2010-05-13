@@ -633,12 +633,14 @@ sub test_schema {
             'might_have does not have is_deferrable');
 
         # find on multi-col pk
-        my $obj5 = 
-	    eval { $rsobj5->find({id1 => 1, iD2 => 1}) } ||
-	    eval { $rsobj5->find({id1 => 1, id2 => 1}) };
-	die $@ if $@;
-
-        is( (eval { $obj5->id2 } || eval { $obj5->i_d2 }), 1, "Find on multi-col PK" );
+        if ($conn->_loader->preserve_case) {
+            my $obj5 = $rsobj5->find({id1 => 1, iD2 => 1});
+            is $obj5->i_d2, 1, 'Find on multi-col PK';
+        }
+        else {
+	    my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});
+            is $obj5->id2, 1, 'Find on multi-col PK';
+        }
 
         # mulit-col fk def
         my $obj6 = $rsobj6->find(1);

@@ -20,7 +20,7 @@ use Class::Inspector ();
 use Data::Dumper::Concise;
 use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
-use DBIx::Class::Schema::Loader::Constants 'BY_CASE_TRANSITION';
+use DBIx::Class::Schema::Loader::Utils 'split_name';
 require DBIx::Class;
 
 our $VERSION = '0.07000';
@@ -1483,7 +1483,7 @@ sub _resolve_col_accessor_collisions {
 sub _make_column_accessor_name {
     my ($self, $column_name) = @_;
 
-    return join '_', map lc, split BY_CASE_TRANSITION, $column_name;
+    return join '_', map lc, split_name $column_name;
 }
 
 # Set up metadata (cols, pks, etc)
@@ -1602,7 +1602,7 @@ sub _default_table2moniker {
         return join '', map ucfirst, split /\W+/, $inflected;
     }
 
-    my @words = map lc, split BY_CASE_TRANSITION, $table;
+    my @words = map lc, split_name $table;
     my $as_phrase = join ' ', @words;
 
     my $inflected = Lingua::EN::Inflect::Phrase::to_S($as_phrase);

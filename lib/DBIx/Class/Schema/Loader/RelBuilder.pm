@@ -5,7 +5,7 @@ use warnings;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Phrase ();
-use DBIx::Class::Schema::Loader::Constants 'BY_CASE_TRANSITION';
+use DBIx::Class::Schema::Loader::Utils 'split_name';
 
 our $VERSION = '0.07000';
 
@@ -216,7 +216,7 @@ sub _remote_attrs {
 sub _normalize_name {
     my ($self, $name) = @_;
 
-    my @words = split BY_CASE_TRANSITION, $name;
+    my @words = split_name $name;
 
     return join '_', map lc, @words;
 }
