@@ -33,6 +33,7 @@
     - add common tests for preserve_case option
     - check rel accessors for method conflicts
     - add an option to add extra code to Result classes
+    - redo in-memory schema as an @INC coderef rather than temp files
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find

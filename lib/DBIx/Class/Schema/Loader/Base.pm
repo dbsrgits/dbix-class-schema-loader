@@ -1507,14 +1507,21 @@ sub _setup_src_meta {
 
     my $cols = $self->_table_columns($table);
     my $col_info = $self->__columns_info_for($table);
+
+    while (my ($col, $info) = each %$col_info) {
+        if ($col =~ /\W/) {
+            ($info->{accessor} = $col) =~ s/\W+/_/g;
+        }
+    }
+
     if ($self->preserve_case) {
-        for my $col (keys %$col_info) {
+        while (my ($col, $info) = each %$col_info) {
             if ($col ne lc($col)) {
                 if ((not exists $self->naming->{column_accessors}) || (($self->naming->{column_accessors} =~ /(\d+)/)[0] >= 7)) {
-                    $col_info->{$col}{accessor} = $self->_make_column_accessor_name($col);
+                    $info->{accessor} = $self->_make_column_accessor_name($info->{accessor} || $col);
                 }
                 else {
-                    $col_info->{$col}{accessor} = lc $col;
+                    $info->{accessor} = lc($info->{accessor} || $col);
                 }
             }
         }
