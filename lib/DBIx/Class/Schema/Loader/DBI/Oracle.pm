@@ -41,8 +41,8 @@ sub _setup {
         $self->preserve_case(0);
     }
     elsif ($self->preserve_case) {
-        $self->schema->storage->quote_char('"');
-        $self->schema->storage->name_sep('.');
+        $self->schema->storage->sql_maker->quote_char('"');
+        $self->schema->storage->sql_maker->name_sep('.');
     }
 }
 

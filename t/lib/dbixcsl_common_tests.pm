@@ -1131,6 +1131,16 @@ sub create {
         },
     );
 
+    # some DBs require mixed case identifiers to be quoted
+    # XXX should get quote_char from the storage of an initialized loader.
+    my ($oqt, $cqt); # open quote, close quote
+    if (ref $self->{quote_char}) {
+        ($oqt, $cqt) = @{ $self->{quote_char} };
+    }
+    else {
+        $oqt = $cqt = $self->{quote_char} || '';
+    }
+
     @statements_reltests = (
         qq{
             CREATE TABLE loader_test3 (
@@ -1158,33 +1168,33 @@ sub create {
         q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(125,3,'ccc') },
         q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(126,4,'ddd') },
 
-        qq{
+        qq|
             CREATE TABLE loader_test5 (
                 id1 INTEGER NOT NULL,
-                iD2 INTEGER NOT NULL,
+                ${oqt}iD2${cqt} INTEGER NOT NULL,
                 dat VARCHAR(8),
                 from_id INTEGER $self->{null},
                 to_id INTEGER $self->{null},
-                PRIMARY KEY (id1,iD2),
+                PRIMARY KEY (id1,${oqt}iD2${cqt}),
                 FOREIGN KEY (from_id) REFERENCES loader_test4 (id),
                 FOREIGN KEY (to_id) REFERENCES loader_test4 (id)
             ) $self->{innodb}
-        },
+        |,
 
-        q{ INSERT INTO loader_test5 (id1,iD2,dat) VALUES (1,1,'aaa') },
+        qq| INSERT INTO loader_test5 (id1,${oqt}iD2${cqt},dat) VALUES (1,1,'aaa') |,
 
-        qq{
+        qq|
             CREATE TABLE loader_test6 (
                 id INTEGER NOT NULL PRIMARY KEY,
-                Id2 INTEGER,
+                ${oqt}Id2${cqt} INTEGER,
                 loader_test2_id INTEGER,
                 dat VARCHAR(8),
                 FOREIGN KEY (loader_test2_id)  REFERENCES loader_test2 (id),
-                FOREIGN KEY(id,Id2) REFERENCES loader_test5 (id1,iD2)
+                FOREIGN KEY(id,${oqt}Id2${cqt}) REFERENCES loader_test5 (id1,${oqt}iD2${cqt})
             ) $self->{innodb}
-        },
+        |,
 
-        (q{ INSERT INTO loader_test6 (id, Id2,loader_test2_id,dat) } .
+        (qq| INSERT INTO loader_test6 (id, ${oqt}Id2${cqt},loader_test2_id,dat) | .
          q{ VALUES (1, 1,1,'aaa') }),
 
         qq{

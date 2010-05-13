@@ -29,6 +29,7 @@ my $tester = dbixcsl_common_tests->new(
         my ($table, $col) = @_;
         return qq{ DROP SEQUENCE ${table}_${col}_seq };
     },
+    quote_char  => '"',
     dsn         => $dsn,
     user        => $user,
     password    => $password,

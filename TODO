@@ -30,11 +30,13 @@
     - add hashref form of generate_pod to control which POD is generated
     - add hashref form of components to control which components are added to
       which classes
-    - add common tests for preserve_case option
+    - add common tests for preserve_case option where it must be exclusive
+      (Oracle, Firebird)
     - check rel accessors for method conflicts
     - add an option to add extra code to Result classes
     - redo in-memory schema as an @INC coderef rather than temp files
     - add option to filter out views
+    - support columns with names like "ro'd p/n"
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find
@@ -56,7 +58,6 @@
   - Pg
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
-    - preserve_case mode
     - domains
   - DB2
     - data_type tests

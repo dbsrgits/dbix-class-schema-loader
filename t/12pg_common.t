@@ -14,6 +14,8 @@ my $tester = dbixcsl_common_tests->new(
     dsn         => $dsn,
     user        => $user,
     password    => $password,
+    loader_options  => { preserve_case => 1 },
+    quote_char  => '"',
     data_types  => {
         # http://www.postgresql.org/docs/7.4/interactive/datatype.html
         #

@@ -252,15 +252,15 @@ sub _table_fk_info {
     my $i = 1; # for unnamed rels, which hopefully have only 1 column ...
     while(my $raw_rel = $sth->fetchrow_arrayref) {
         my $uk_tbl  = $raw_rel->[2];
-        my $uk_col  = lc $raw_rel->[3];
-        my $fk_col  = lc $raw_rel->[7];
+        my $uk_col  = $self->_lc($raw_rel->[3]);
+        my $fk_col  = $self->_lc($raw_rel->[7]);
         my $relid   = ($raw_rel->[11] || ( "__dcsld__" . $i++ ));
         $uk_tbl =~ s/\Q$self->{_quoter}\E//g;
         $uk_col =~ s/\Q$self->{_quoter}\E//g;
         $fk_col =~ s/\Q$self->{_quoter}\E//g;
         $relid  =~ s/\Q$self->{_quoter}\E//g;
         $rels{$relid}->{tbl} = $uk_tbl;
-        $rels{$relid}->{cols}->{$uk_col} = $fk_col;
+        $rels{$relid}->{cols}{$uk_col} = $fk_col;
     }
     $sth->finish;
 

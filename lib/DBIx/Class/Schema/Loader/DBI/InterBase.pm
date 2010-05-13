@@ -63,13 +63,13 @@ EOF
         $self->preserve_case(1);
     }
 
-    $self->schema->storage->sql_maker->name_sep('.');
-
     if ($self->preserve_case) {
         $self->schema->storage->sql_maker->quote_char('"');
+        $self->schema->storage->sql_maker->name_sep('.');
     }
     else {
         $self->schema->storage->sql_maker->quote_char(undef);
+        $self->schema->storage->sql_maker->name_sep(undef);
     }
 }
 

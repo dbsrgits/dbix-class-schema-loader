@@ -41,6 +41,10 @@ sub _setup {
     if (not defined $self->preserve_case) {
         $self->preserve_case(0);
     }
+    elsif ($self->preserve_case) {
+        $self->schema->storage->sql_maker->quote_char('"');
+        $self->schema->storage->sql_maker->name_sep('.');
+    }
 }
 
 sub _table_uniq_info {
