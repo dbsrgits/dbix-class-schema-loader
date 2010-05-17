@@ -21,16 +21,16 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =head1 COLUMN NAME CASE ISSUES
 
-By default column names from unquoted DDL will be generated in uppercase, as
-that is the only way they will work with quoting on.
+By default column names from unquoted DDL will be generated in lowercase, for
+consistency with other backends. 
 
-See the L<preserve_case|DBIx::Class::Schema::Loader::Base/preserve_case> option
-to false if you would like to have lowercase column names.
+Set the L<preserve_case|DBIx::Class::Schema::Loader::Base/preserve_case> option
+to true if you would like to have column names in the internal case, which is
+uppercase for DDL that uses unquoted identifiers.
 
-Setting this option is a good idea if your DDL uses unquoted identifiers and
-you will not use quoting (the
-L<quote_char|DBIx::Class::Storage::DBI/quote_char> option in
-L<connect_info|DBIx::Class::Storage::DBI/connect_info>.)
+Do not use quoting (the L<quote_char|DBIx::Class::Storage::DBI/quote_char>
+option in L<connect_info|DBIx::Class::Storage::DBI/connect_info> when in the
+default C<< preserve_case => 0 >> mode.
 
 Be careful to also not use any SQL reserved words in your DDL.
 
@@ -39,9 +39,6 @@ names) in your Result classes that will only work with quoting off.
 
 Mixed-case table and column names will be ignored when this option is on and
 will not work with quoting turned off.
-
-B<NOTE:> This option used to be called C<unquoted_ddl> but has been removed in
-favor of the more generic option.
 
 =cut
 
@@ -53,14 +50,14 @@ sub _setup {
     if (not defined $self->preserve_case) {
         warn <<'EOF';
 
-WARNING: Assuming mixed-case Firebird DDL, see
+WARNING: Assuming unquoted Firebird DDL, see
 perldoc DBIx::Class::Schema::Loader::DBI::InterBase
 and the 'preserve_case' option in
 perldoc DBIx::Class::Schema::Loader::Base
 for more information.
 
 EOF
-        $self->preserve_case(1);
+        $self->preserve_case(0);
     }
 
     if ($self->preserve_case) {

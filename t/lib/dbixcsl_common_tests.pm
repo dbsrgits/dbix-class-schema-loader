@@ -88,7 +88,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (178 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @connect_info * (179 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -177,7 +177,7 @@ sub setup_schema {
 
     my %loader_opts = (
         constraint              =>
-	    qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)_)?loader_test[0-9]+(?!.*_)/i,
+	    qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)_?)?loader_?test[0-9]+(?!.*_)/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
@@ -245,6 +245,8 @@ sub setup_schema {
         $warn_count++ for grep /renaming \S+ relation/, @loader_warnings;
  
         $warn_count++ for grep /\b(?!loader_test9)\w+ has no primary key/i, @loader_warnings;
+
+        $warn_count++ for grep { my $w = $_; grep $w =~ $_, @{ $self->{warnings} || [] } } @loader_warnings;
 
         if ($standard_sources) {
             if($self->{skip_rels}) {
@@ -885,7 +887,7 @@ sub test_schema {
 
         my $find_cb = sub {
             return if -d;
-            return if $_ eq 'LoaderTest30.pm';
+            return if /^(?:LoaderTest30|LoaderTest1|LoaderTest2X)\.pm\z/;
 
             open my $fh, '<', $_ or die "Could not open $_ for reading: $!";
             binmode $fh;
@@ -893,6 +895,9 @@ sub test_schema {
         };
 
         find $find_cb, $DUMP_DIR;
+
+#        system "rm -f /tmp/before_rescan/* /tmp/after_rescan/*";
+#        system "cp t/_common_dump/DBIXCSL_Test/Schema/*.pm /tmp/before_rescan";
 
         my $before_digest = $digest->digest;
 
@@ -919,6 +924,8 @@ sub test_schema {
             $conn->rescan;
         };
         is_deeply(\@new, [ qw/LoaderTest30/ ], "Rescan");
+
+#        system "cp t/_common_dump/DBIXCSL_Test/Schema/*.pm /tmp/after_rescan";
 
         $digest = Digest::MD5->new;
         find $find_cb, $DUMP_DIR;
@@ -959,6 +966,8 @@ sub test_schema {
     # run extra tests
     $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
 
+    $self->test_preserve_case($conn);
+
     $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 
     $conn->storage->disconnect;
@@ -997,6 +1006,58 @@ sub test_data_types {
                     "test column $col_name has definition: $text_col_def expecting: $text_expected_info";
             }
         }
+    }
+}
+
+sub test_preserve_case {
+    my ($self, $conn) = @_;
+
+    my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1); # open quote, close quote
+
+    my $dbh = $conn->storage->dbh;
+
+    {
+        # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
+        local $SIG{__WARN__} = sub {
+            my $msg = shift;
+            warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
+        };
+
+        $dbh->do($_) for (
+qq|
+    CREATE TABLE ${oqt}LoaderTest40${cqt} (
+        ${oqt}Id${cqt} INTEGER NOT NULL PRIMARY KEY,
+        ${oqt}Foo3Bar${cqt} VARCHAR(100) NOT NULL
+    ) $self->{innodb}
+|,
+qq|
+    CREATE TABLE ${oqt}LoaderTest41${cqt} (
+        ${oqt}Id${cqt} INTEGER NOT NULL PRIMARY KEY,
+        ${oqt}LoaderTest40Id${cqt} INTEGER,
+        FOREIGN KEY (${oqt}LoaderTest40Id${cqt}) REFERENCES ${oqt}LoaderTest40${cqt} (${oqt}Id${cqt})
+    ) $self->{innodb}
+|,
+qq| INSERT INTO ${oqt}LoaderTest40${cqt} VALUES (1, 'foo') |,
+qq| INSERT INTO ${oqt}LoaderTest41${cqt} VALUES (1, 1) |,
+        );
+    }
+    $conn->storage->disconnect;
+
+    local $conn->_loader->{preserve_case} = 1;
+    $conn->_loader->_setup;
+
+    {
+        local $SIG{__WARN__} = sub {};
+        $conn->rescan;
+    }
+
+    if (not $self->{skip_rels}) {
+        is $conn->resultset('LoaderTest41')->find(1)->loader_test40->foo3_bar, 'foo',
+            'rel and accessor for mixed-case column name in mixed case table';
+    }
+    else {
+        is $conn->resultset('LoaderTest40')->find(1)->foo3_bar, 'foo',
+            'accessor for mixed-case column name in mixed case table';
     }
 }
 
@@ -1058,6 +1119,26 @@ sub dbconnect {
     $self->{storage} = $storage; # storage DESTROY disconnects
 
     return $dbh;
+}
+
+sub get_oqt_cqt {
+    my $self = shift;
+    my %opts = @_;
+
+    if ((not $opts{always}) && $self->{preserve_case_mode_is_exclusive}) {
+        return ('', '');
+    }
+
+    # XXX should get quote_char from the storage of an initialized loader.
+    my ($oqt, $cqt); # open quote, close quote
+    if (ref $self->{quote_char}) {
+        ($oqt, $cqt) = @{ $self->{quote_char} };
+    }
+    else {
+        $oqt = $cqt = $self->{quote_char} || '';
+    }
+
+    return ($oqt, $cqt);
 }
 
 sub create {
@@ -1132,14 +1213,7 @@ sub create {
     );
 
     # some DBs require mixed case identifiers to be quoted
-    # XXX should get quote_char from the storage of an initialized loader.
-    my ($oqt, $cqt); # open quote, close quote
-    if (ref $self->{quote_char}) {
-        ($oqt, $cqt) = @{ $self->{quote_char} };
-    }
-    else {
-        $oqt = $cqt = $self->{quote_char} || '';
-    }
+    my ($oqt, $cqt) = $self->get_oqt_cqt;
 
     @statements_reltests = (
         qq{
@@ -1517,7 +1591,7 @@ sub create {
 
     $dbh->do($_) foreach (@statements);
 
-    $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || {} });
+    $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || [] });
 
     unless($self->{skip_rels}) {
         # hack for now, since DB2 doesn't like inline comments, and we need
@@ -1607,6 +1681,8 @@ sub drop_tables {
 
     my @tables_rescan = qw/ loader_test30 /;
 
+    my @tables_preserve_case_tests = qw/ LoaderTest41 LoaderTest40 /;
+
     my $drop_fk_mysql =
         q{ALTER TABLE loader_test10 DROP FOREIGN KEY loader_test11_fk};
 
@@ -1621,6 +1697,7 @@ sub drop_tables {
     my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
 
     unless($self->{skip_rels}) {
+        $dbh->do("DROP TABLE $_") for (@tables_reltests);
         $dbh->do("DROP TABLE $_") for (@tables_reltests);
         if($self->{vendor} =~ /mysql/i) {
             $dbh->do($drop_fk_mysql);
@@ -1644,6 +1721,10 @@ sub drop_tables {
     foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
         $dbh->do("DROP TABLE $data_type_table");
     }
+
+    my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1);
+
+    $dbh->do("DROP TABLE ${oqt}${_}${cqt}") for @tables_preserve_case_tests;
 
     $dbh->disconnect;
 

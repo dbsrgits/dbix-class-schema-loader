@@ -4,7 +4,6 @@
     - introspect views and make proper ResultSource::View classes with defining SQL
     - encode loader options in Schema.pm
     - introspect on_update/on_delete/is_deferrable
-    - preserve_case mode for remaining backends
   - Low Priority
     - support multiple/all schemas, instead of just one
     - support pk/uk/fk info on views, possibly (materialized views?)
@@ -30,8 +29,6 @@
     - add hashref form of generate_pod to control which POD is generated
     - add hashref form of components to control which components are added to
       which classes
-    - add common tests for preserve_case option where it must be exclusive
-      (Oracle, Firebird)
     - check rel accessors for method conflicts
     - add an option to add extra code to Result classes
     - redo in-memory schema as an @INC coderef rather than temp files
@@ -64,13 +61,11 @@
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
-    - preserve_case mode
     - domains
   - Oracle
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
-    - preserve_case mode
     - domains
   - Sybase ASE
     - table/column comments
@@ -98,7 +93,6 @@
     - domains
   - Informix
     - data_type tests
-    - preserve_case mode
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL

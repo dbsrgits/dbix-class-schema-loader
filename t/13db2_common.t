@@ -13,6 +13,8 @@ my $tester = dbixcsl_common_tests->new(
     user           => $user,
     password       => $password,
     null           => '',
+    preserve_case_mode_is_exclusive => 1,
+    quote_char                      => '"',
     data_types => {
         'timestamp DEFAULT CURRENT TIMESTAMP' => { data_type => 'timestamp', default_value => \'current_timestamp',
                                                    original => { default_value => \'current timestamp' } },

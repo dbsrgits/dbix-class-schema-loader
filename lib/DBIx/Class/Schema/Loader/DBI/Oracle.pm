@@ -81,7 +81,7 @@ sub _table_columns {
 
     my $sth = $dbh->column_info(undef, $self->db_schema, $self->_uc($table), '%');
 
-    return [ map lc($_->{COLUMN_NAME}), @{ $sth->fetchall_arrayref({ COLUMN_NAME => 1 }) || [] } ];
+    return [ map $self->_lc($_->{COLUMN_NAME}), @{ $sth->fetchall_arrayref({ COLUMN_NAME => 1 }) || [] } ];
 }
 
 sub _table_uniq_info {

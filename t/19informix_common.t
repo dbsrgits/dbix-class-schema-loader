@@ -2,6 +2,9 @@ use strict;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
+# to support " quoted identifiers
+BEGIN { $ENV{DELIMIDENT} = 'y' }
+
 # This test doesn't run over a shared memory connection, because of the single connection limit.
 
 my $dsn      = $ENV{DBICTEST_INFORMIX_DSN} || '';
@@ -17,6 +20,8 @@ my $tester = dbixcsl_common_tests->new(
     dsn            => $dsn,
     user           => $user,
     password       => $password,
+    loader_options => { preserve_case => 1 },
+    quote_char     => '"',
 );
 
 if( !$dsn ) {

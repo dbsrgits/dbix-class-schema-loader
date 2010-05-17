@@ -41,7 +41,9 @@ my $tester = dbixcsl_common_tests->new(
         );
     },
     null        => '',
-    loader_options => { preserve_case => 0 },
+    preserve_case_mode_is_exclusive => 1,
+    quote_char                      => '"',
+    warnings => [ qr/'preserve_case' option/ ],
     connect_info => [ ($dbd_interbase_dsn ? {
             dsn         => $dbd_interbase_dsn,
             user        => $dbd_interbase_user,
@@ -109,7 +111,7 @@ my $tester = dbixcsl_common_tests->new(
                       => { data_type => 'blob sub_type text' },
     },
     extra => {
-        count  => 7,
+        count  => 6,
         run    => sub {
             $schema = shift;
 
@@ -141,15 +143,8 @@ q{
 
             my $guard = Scope::Guard->new(\&cleanup_extra);
 
-            delete $schema->_loader->{preserve_case};
-
-            my $warning;
-            {
-                local $SIG{__WARN__} = sub { $warning = shift };
-                $schema->_loader->_setup;
-            }
-            like $warning, qr/'preserve_case' option/,
-                'warning mentions preserve_case option';
+            local $schema->_loader->{preserve_case} = 1;
+            $schema->_loader->_setup;
 
             {
                 local $SIG{__WARN__} = sub {};

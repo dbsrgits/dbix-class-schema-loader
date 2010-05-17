@@ -852,8 +852,8 @@ sub _load_external {
     }
 
     if ($old_real_inc_path) {
-        open(my $fh, '<', $old_real_inc_path)
-            or croak "Failed to open '$old_real_inc_path' for reading: $!";
+        my $code = slurp $old_real_inc_path;
+
         $self->_ext_stmt($class, <<"EOF");
 
 # These lines were loaded from '$old_real_inc_path',
@@ -862,7 +862,6 @@ sub _load_external {
 # upgrade. See skip_load_external to disable this feature.
 EOF
 
-        my $code = slurp $old_real_inc_path;
         $code = $self->_rewrite_old_classnames($code);
 
         if ($self->dynamic) {
@@ -910,14 +909,11 @@ sub load {
 
 Arguments: schema
 
-Rescan the database for newly added tables.  Does
-not process drops or changes.  Returns a list of
-the newly added table monikers.
+Rescan the database for changes. Returns a list of the newly added table
+monikers.
 
-The schema argument should be the schema class
-or object to be affected.  It should probably
-be derived from the original schema_class used
-during L</load>.
+The schema argument should be the schema class or object to be affected.  It
+should probably be derived from the original schema_class used during L</load>.
 
 =cut
 
@@ -944,9 +940,12 @@ sub rescan {
         }
     }
 
-    my $loaded = $self->_load_tables(@created);
+    delete $self->{_dump_storage};
+    delete $self->{_relations_started};
 
-    return map { $self->monikers->{$_} } @$loaded;
+    my $loaded = $self->_load_tables(@current);
+
+    return map { $self->monikers->{$_} } @created;
 }
 
 sub _relbuilder {

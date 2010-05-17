@@ -41,6 +41,10 @@ sub _setup {
     if (not defined $self->preserve_case) {
         $self->preserve_case(0);
     }
+    elsif ($self->preserve_case) {
+        $self->schema->storage->sql_maker->quote_char('"');
+        $self->schema->storage->sql_maker->name_sep('.');
+    }
 }
 
 sub _table_uniq_info {
@@ -58,12 +62,12 @@ sub _table_uniq_info {
         WHERE tc.TABSCHEMA = ? and tc.TABNAME = ? and tc.TYPE = 'U'}
     ) or die $DBI::errstr;
 
-    $sth->execute($self->db_schema, uc $table) or die $DBI::errstr;
+    $sth->execute($self->db_schema, $self->_uc($table)) or die $DBI::errstr;
 
     my %keydata;
     while(my $row = $sth->fetchrow_arrayref) {
         my ($col, $constname, $seq) = @$row;
-        push(@{$keydata{$constname}}, [ $seq, lc $col ]);
+        push(@{$keydata{$constname}}, [ $seq, $self->_lc($col) ]);
     }
     foreach my $keyname (keys %keydata) {
         my @ordered_cols = map { $_->[1] } sort { $a->[0] <=> $b->[0] }
@@ -81,7 +85,7 @@ sub _tables_list {
     my ($self, $opts) = @_;
     
     my $dbh = $self->schema->storage->dbh;
-    my @tables = map { lc } $dbh->tables(
+    my @tables = map $self->_lc($_), $dbh->tables(
         $self->db_schema ? { TABLE_SCHEM => $self->db_schema } : undef
     );
     s/\Q$self->{_quoter}\E//g for @tables;
@@ -92,16 +96,16 @@ sub _tables_list {
 
 sub _table_pk_info {
     my ($self, $table) = @_;
-    return $self->next::method(uc $table);
+    return $self->next::method($self->_uc($table));
 }
 
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my $rels = $self->next::method(uc $table);
+    my $rels = $self->next::method($self->_uc($table));
 
     foreach my $rel (@$rels) {
-        $rel->{remote_table} = lc $rel->{remote_table};
+        $rel->{remote_table} = $self->_lc($rel->{remote_table});
     }
 
     return $rels;
@@ -111,7 +115,7 @@ sub _columns_info_for {
     my $self = shift;
     my ($table) = @_;
 
-    my $result = $self->next::method(uc $table);
+    my $result = $self->next::method($self->_uc($table));
 
     my $dbh = $self->schema->storage->dbh;
 
@@ -125,7 +129,7 @@ sub _columns_info_for {
                 AND identity = 'Y' AND generated != ''
             },
             {}, 1);
-        $sth->execute($self->db_schema, uc $table, uc $col);
+        $sth->execute($self->db_schema, $self->_uc($table), $self->_uc($col));
         if ($sth->fetchrow_array) {
             $info->{is_auto_increment} = 1;
         }
