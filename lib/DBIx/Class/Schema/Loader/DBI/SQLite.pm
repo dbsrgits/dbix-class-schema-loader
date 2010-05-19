@@ -58,27 +58,16 @@ sub _columns_info_for {
     my $dbh = $self->schema->storage->dbh;
     local $dbh->{FetchHashKeyName} = 'NAME_lc';
 
-    my $has_autoinc = eval {
-      my $get_seq = $self->{_cache}{sqlite_sequence}
-        ||= $dbh->prepare(q{SELECT count(*) FROM sqlite_sequence WHERE name = ?});
-      $get_seq->execute($table);
-      my ($ret) = $get_seq->fetchrow_array;
-      $get_seq->finish;
-      $ret;
-    };
+    my $sth = $dbh->prepare(
+      "pragma table_info(" . $dbh->quote_identifier($table) . ")"
+    );
+    $sth->execute;
+    my $cols = $sth->fetchall_hashref('name');
 
-    if (!$@ && $has_autoinc) {
-        my $sth = $dbh->prepare(
-            "pragma table_info(" . $dbh->quote_identifier($table) . ")"
-        );
-        $sth->execute;
-        my $cols = $sth->fetchall_hashref('name');
-
-        while (my ($col_name, $info) = each %$result) {
-            if ($cols->{$col_name}{pk}) {
-                $info->{is_auto_increment} = 1;
-            }
-        }
+    while (my ($col_name, $info) = each %$result) {
+      if ($cols->{$col_name}{pk} && lc($cols->{$col_name}{type}) eq 'integer') {
+        $info->{is_auto_increment} = 1;
+      }
     }
 
     while (my ($col, $info) = each %$result) {
