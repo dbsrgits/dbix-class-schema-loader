@@ -899,7 +899,7 @@ sub test_schema {
 #        system "rm -f /tmp/before_rescan/* /tmp/after_rescan/*";
 #        system "cp t/_common_dump/DBIXCSL_Test/Schema/*.pm /tmp/before_rescan";
 
-        my $before_digest = $digest->digest;
+        my $before_digest = $digest->b64digest;
 
         $conn->storage->disconnect; # needed for Firebird and Informix
         my $dbh = $self->dbconnect(1);
@@ -929,7 +929,7 @@ sub test_schema {
 
         $digest = Digest::MD5->new;
         find $find_cb, $DUMP_DIR;
-        my $after_digest = $digest->digest;
+        my $after_digest = $digest->b64digest;
 
         is $before_digest, $after_digest,
             'dumped files are not rewritten when there is no modification';
