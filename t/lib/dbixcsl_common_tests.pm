@@ -88,7 +88,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (179 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @connect_info * (181 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -434,9 +434,19 @@ sub test_schema {
         'constant integer default',
     );
 
+    is(
+        $class35->column_info('a_negative_int')->{default_value}, -42,
+        'constant negative integer default',
+    );
+
     cmp_ok(
         $class35->column_info('a_double')->{default_value}, '==', 10.555,
         'constant numeric default',
+    );
+
+    cmp_ok(
+        $class35->column_info('a_negative_double')->{default_value}, '==', -10.555,
+        'constant negative numeric default',
     );
 
     my $function_default = $class35->column_info('a_function')->{default_value};
@@ -1197,7 +1207,9 @@ sub create {
                 id INTEGER NOT NULL PRIMARY KEY,
                 a_varchar VARCHAR(100) DEFAULT 'foo',
                 an_int INTEGER DEFAULT 42,
+                a_negative_int INTEGER DEFAULT -42,
                 a_double DOUBLE PRECISION DEFAULT 10.555,
+                a_negative_double DOUBLE PRECISION DEFAULT -10.555,
                 a_function $self->{default_function_def}
             ) $self->{innodb}
         },

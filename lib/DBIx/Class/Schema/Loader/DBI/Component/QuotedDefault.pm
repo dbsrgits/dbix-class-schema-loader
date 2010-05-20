@@ -35,7 +35,8 @@ sub _columns_info_for {
                 $info->{default_value} = $1;
             }
             else {
-                $info->{default_value} = $def =~ /^\d/ ? $def : \$def;
+                # Some DBs (eg. Pg) put brackets around negative number defaults
+                $info->{default_value} = $def =~ /^\(?(-?\d.*?)\)?$/ ? $1 : \$def;
             }
         }
     }

@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix for negative numeric default values
         - sequence is detected for Oracle
         - fix for SQLite is_auto_increment detection when table is empty (hobbs)
         - rescan now reloads all tables
