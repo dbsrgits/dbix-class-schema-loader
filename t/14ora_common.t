@@ -124,6 +124,23 @@ my $tester = dbixcsl_common_tests->new(
         'urowid'       => { data_type => 'urowid' },
         'urowid(3333)' => { data_type => 'urowid', size => 3333 },
     },
+    extra => {
+        count => 1,
+        run   => sub {
+            my ($schema, $monikers, $classes) = @_;
+
+            SKIP: {
+                if (my $source = $monikers->{loader_test1s}) {
+                    is $schema->source($source)->column_info('id')->{sequence},
+                        'loader_test1s_id_seq',
+                        'Oracle sequence detection';
+                }
+                else {
+                    skip 1, 'not running common tests';
+                }
+            }
+        },
+    },
 );
 
 if( !$dsn || !$user ) {

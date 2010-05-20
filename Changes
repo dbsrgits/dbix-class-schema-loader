@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - sequence is detected for Oracle
+        - fix for SQLite is_auto_increment detection when table is empty (hobbs)
         - rescan now reloads all tables
         - minor type info improvements for all DBs
         - fix erroneous default_value for MySQL NOT NULL columns (RT#57225)

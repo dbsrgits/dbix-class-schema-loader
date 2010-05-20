@@ -137,8 +137,11 @@ sub _columns_info_for {
 
     my $dbh = $self->schema->storage->dbh;
 
+    local $dbh->{LongReadLen} = 100000;
+    local $dbh->{LongTruncOk} = 1;
+
     my $sth = $dbh->prepare_cached(q{
-SELECT atc.column_name
+SELECT atc.column_name, ut.trigger_body
 FROM all_triggers ut
 JOIN all_trigger_cols atc USING (trigger_name)
 WHERE atc.table_name = ?
@@ -148,8 +151,16 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
 
     $sth->execute($self->_uc($table));
 
-    while (my ($col_name) = $sth->fetchrow_array) {
-        $result->{$self->_lc($col_name)}{is_auto_increment} = 1;
+    while (my ($col_name, $trigger_body) = $sth->fetchrow_array) {
+        $col_name = $self->_lc($col_name);
+
+        $result->{$col_name}{is_auto_increment} = 1;
+
+        if (my ($seq_name) = $trigger_body =~ /"?(\w+)"?\.nextval/i) {
+            $seq_name = $self->_lc($seq_name);
+
+            $result->{$col_name}{sequence} = $seq_name;
+        }
     }
 
     while (my ($col, $info) = each %$result) {
