@@ -284,7 +284,7 @@ EOF
                 $info->{default_value} = $quoted;
             }
             else {
-                $info->{default_value} = $def =~ /^\d/ ? $def : \$def;
+                $info->{default_value} = $def =~ /^-?\d/ ? $def : \$def;
             }
         }
 

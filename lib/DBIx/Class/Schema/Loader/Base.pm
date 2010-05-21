@@ -129,7 +129,7 @@ overwriting a dump made with an earlier version.
 
 The option also takes a hashref:
 
-    naming => { relationships => 'v6', monikers => 'v6' }
+    naming => { relationships => 'v7', monikers => 'v7' }
 
 The keys are:
 
