@@ -49,6 +49,22 @@ sub rescan {
     $self->next::method($schema);
 }
 
+# A hack so that qualify_objects can be tested on SQLite, SQLite does not
+# actually have schemas.
+{
+    sub _table_as_sql {
+        my $self = shift;
+        local $self->{db_schema};
+        return $self->next::method(@_);
+    }
+
+    sub _table_pk_info {
+        my $self = shift;
+        local $self->{db_schema};
+        return $self->next::method(@_);
+    }
+}
+
 sub _columns_info_for {
     my $self = shift;
     my ($table) = @_;

@@ -360,6 +360,22 @@ rmtree($DUMP_PATH, 1, 1);
 
 do_dump_test(
     classname => 'DBICTest::DumpMore::1',
+    options => { db_schema => 'foo_schema', qualify_objects => 1, use_namespaces => 1 },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        'Result/Foo' => [
+            qr/^\Q__PACKAGE__->table("foo_schema.foo");\E/m,
+        ],
+    },
+);
+
+rmtree($DUMP_PATH, 1, 1);
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
     options => { use_namespaces => 1 },
     warnings => [
         qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
@@ -470,3 +486,4 @@ do_dump_test(
 done_testing;
 
 END { rmtree($DUMP_PATH, 1, 1) unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} }
+# vim:et sts=4 sw=4 tw=0:

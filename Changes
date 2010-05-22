@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - added 'qualify_objects' option to prepend db_schema to table names
         - fix for negative numeric default values
         - sequence is detected for Oracle
         - fix for SQLite is_auto_increment detection when table is empty (hobbs)
@@ -15,7 +16,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           Firebird/InterBase 'unquoted_ddl' options in favor of it.
         - support CamelCase table names and column names (in case-preserving
           mode) at the v7 naming level
-        - rewrite datetime default functions as \'CURRENT_TIMESTAMP' where
+        - rewrite datetime default functions as \'current_timestamp' where
           possible (except for Sybase ASE) to ease cross-deployment
         - use column_info instead of select to get Oracle column list (RT#42281)
         - match quotes in MySQL parser in more places (RT#42101)

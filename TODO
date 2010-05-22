@@ -30,7 +30,7 @@
     - add hashref form of components to control which components are added to
       which classes
     - check rel accessors for method conflicts
-    - add an option to add extra code to Result classes
+    - add an option to add extra code to Result classes (maybe...)
     - redo in-memory schema as an @INC coderef rather than temp files
     - add option to filter out views
     - support columns with names like "ro'd p/n"

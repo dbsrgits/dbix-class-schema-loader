@@ -156,10 +156,11 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
 
         $result->{$col_name}{is_auto_increment} = 1;
 
-        if (my ($seq_name) = $trigger_body =~ /"?(\w+)"?\.nextval/i) {
-            $seq_name = $self->_lc($seq_name);
+        if (my ($seq_schema, $seq_name) = $trigger_body =~ /(?:\."?(\w+)"?)?"?(\w+)"?\.nextval/i) {
+            $seq_schema = $self->_lc($seq_schema) || $self->db_schema;
+            $seq_name   = $self->_lc($seq_name);
 
-            $result->{$col_name}{sequence} = $seq_name;
+            $result->{$col_name}{sequence} = ($self->qualify_objects ? ($seq_schema . '.') : '') . $seq_name;
         }
     }
 

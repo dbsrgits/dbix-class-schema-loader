@@ -65,6 +65,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 datetime_locale
                                 config_file
                                 loader_class
+                                qualify_objects
 /);
 
 
@@ -465,6 +466,11 @@ case-sensitive collation will turn this option on unconditionally.
 
 Currently the drivers for SQLite, mysql, MSSQL and Firebird/InterBase support
 setting this option.
+
+=head1 qualify_objects
+
+Set to true to prepend the L</db_schema> to table names for C<<
+__PACKAGE__->table >> calls, and to some other things like Oracle sequences.
 
 =head1 METHODS
 
@@ -1502,7 +1508,7 @@ sub _setup_src_meta {
         $table_name = \ $self->_quote_table_name($table_name);
     }
 
-    $self->_dbic_stmt($table_class,'table',$table_name);
+    $self->_dbic_stmt($table_class, 'table', ($self->qualify_objects ? ($self->db_schema . '.') : '') . $table_name);
 
     my $cols = $self->_table_columns($table);
     my $col_info = $self->__columns_info_for($table);
