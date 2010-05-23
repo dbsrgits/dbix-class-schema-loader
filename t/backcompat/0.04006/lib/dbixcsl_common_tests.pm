@@ -553,7 +553,10 @@ sub run_tests {
             $dbh->disconnect;
         }
 
-        my @new = $conn->rescan;
+        my @new = do {
+            local $SIG{__WARN__} = sub {};
+            $conn->rescan;
+        };
         is(scalar(@new), 1);
         is($new[0], 'LoaderTest30');
 
