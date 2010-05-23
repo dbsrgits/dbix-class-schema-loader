@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-        - added 'qualify_objects' option to prepend db_schema to table names
+0.07000  2010-05-22 23:40:15
+        - added qualify_objects option to prepend db_schema to table names
         - fix for negative numeric default values
         - sequence is detected for Oracle
         - fix for SQLite is_auto_increment detection when table is empty (hobbs)

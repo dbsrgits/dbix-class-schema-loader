@@ -36,6 +36,8 @@ my $tester = dbixcsl_common_tests->new(
             password    => $odbc_password,
         } : ()),
     ],
+    preserve_case_mode_is_exclusive => 1,
+    quote_char => [ qw/[ ]/ ],
     data_types => {
         # http://msdn.microsoft.com/en-us/library/ms187752.aspx
 

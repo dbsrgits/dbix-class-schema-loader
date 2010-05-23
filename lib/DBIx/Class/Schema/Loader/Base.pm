@@ -1508,7 +1508,12 @@ sub _setup_src_meta {
         $table_name = \ $self->_quote_table_name($table_name);
     }
 
-    $self->_dbic_stmt($table_class, 'table', ($self->qualify_objects ? ($self->db_schema . '.') : '') . $table_name);
+    my $full_table_name = ($self->qualify_objects ? ($self->db_schema . '.') : '') . (ref $table_name ? $$table_name : $table_name);
+
+    # be careful to not create refs Data::Dump can "optimize"
+    $full_table_name    = \do {"".$full_table_name} if ref $table_name;
+
+    $self->_dbic_stmt($table_class, 'table', $full_table_name);
 
     my $cols = $self->_table_columns($table);
     my $col_info = $self->__columns_info_for($table);
