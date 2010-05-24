@@ -136,7 +136,7 @@ my $tester = dbixcsl_common_tests->new(
                         'Oracle sequence detection';
                 }
                 else {
-                    skip 1, 'not running common tests';
+                    skip 'not running common tests', 1;
                 }
             }
         },

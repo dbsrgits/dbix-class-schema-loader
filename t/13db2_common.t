@@ -16,8 +16,65 @@ my $tester = dbixcsl_common_tests->new(
     preserve_case_mode_is_exclusive => 1,
     quote_char                      => '"',
     data_types => {
-        'timestamp DEFAULT CURRENT TIMESTAMP' => { data_type => 'timestamp', default_value => \'current_timestamp',
-                                                   original => { default_value => \'current timestamp' } },
+        # http://publib.boulder.ibm.com/infocenter/db2luw/v8/index.jsp?topic=/com.ibm.db2.udb.doc/admin/r0008483.htm
+        #
+        # Numeric Types
+        smallint           => { data_type => 'smallint' },
+        integer            => { data_type => 'integer' },
+        'int'              => { data_type => 'integer' },
+        real               => { data_type => 'real' },
+        'double precision' => { data_type => 'double precision' },
+        double             => { data_type => 'double precision' },
+        float              => { data_type => 'double precision' },
+        'float(24)'        => { data_type => 'real' },
+        'float(25)'        => { data_type => 'double precision' },
+        'float(53)'        => { data_type => 'double precision' },
+        numeric            => { data_type => 'numeric' },
+        decimal            => { data_type => 'numeric' },
+	'numeric(6,3)'     => { data_type => 'numeric', size => [6,3] },
+	'decimal(6,3)'     => { data_type => 'numeric', size => [6,3] },
+
+        # Character String Types
+        char               => { data_type => 'char', size => 1 },
+        'char(3)'          => { data_type => 'char', size => 3 },
+        'varchar(3)'       => { data_type => 'varchar', size => 3 },
+        'long varchar'     => { data_type => 'long varchar' },
+        'clob'             => { data_type => 'clob' },
+
+        # Graphic String Types (double-byte strings)
+        graphic            => { data_type => 'graphic', size => 1 },
+        'graphic(3)'       => { data_type => 'graphic', size => 3 },
+        'vargraphic(3)'    => { data_type => 'vargraphic', size => 3 },
+        'long vargraphic'  => { data_type => 'long vargraphic' },
+        'dbclob'           => { data_type => 'dbclob' },
+
+        # Binary String Types
+        'char for bit data'=> { data_type => 'binary', size => 1, original => { data_type => 'char for bit data' } },
+        'char(3) for bit data'
+                           => { data_type => 'binary', size => 3, original => { data_type => 'char for bit data' } },
+        'varchar(3) for bit data'
+                           => { data_type => 'varbinary', size => 3, original => { data_type => 'varchar for bit data' } },
+        'long varchar for bit data'
+                           => { data_type => 'blob', original => { data_type => 'long varchar for bit data' } },
+        blob               => { data_type => 'blob' },
+
+        # DateTime Types
+        'date'             => { data_type => 'date' },
+        'date default current date'
+                           => { data_type => 'date', default_value => \'current_timestamp',
+                                original => { default_value => \'current date' } },
+        'time'             => { data_type => 'time' },
+        'time default current time'
+                           => { data_type => 'time', default_value => \'current_timestamp',
+                                original => { default_value => \'current time' } },
+        timestamp          => { data_type => 'timestamp' },
+        'timestamp default current timestamp'
+                           => { data_type => 'timestamp', default_value => \'current_timestamp',
+                                original => { default_value => \'current timestamp' } },
+
+        # DATALINK Type
+        # XXX I don't know how to make these
+#        datalink           => { data_type => 'datalink' },
     },
 );
 

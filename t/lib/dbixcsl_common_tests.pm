@@ -1770,8 +1770,8 @@ sub _custom_column_info {
 }
 
 my %DATA_TYPE_MULTI_TABLE_OVERRIDES = (
-    oracle => qr/\blong\b/,
-    mssql  => qr/\b(?:timestamp|rowversion)\b/,
+    oracle => qr/\blong\b/i,
+    mssql  => qr/\b(?:timestamp|rowversion)\b/i,
 );
 
 sub setup_data_type_tests {
@@ -1784,11 +1784,11 @@ sub setup_data_type_tests {
     # split types into tables based on overrides
     my (@types, @split_off_types, @first_table_types);
     {
-        no warnings 'uninitialized';
+        my $split_off_re = $DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})} || qr/(?!)/;
 
         @types = keys %$types;
-        @split_off_types   = grep  /$DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})}/i, @types;
-        @first_table_types = grep !/$DATA_TYPE_MULTI_TABLE_OVERRIDES{lc($self->{vendor})}/i, @types;
+        @split_off_types   = grep  /$split_off_re/, @types;
+        @first_table_types = grep !/$split_off_re/, @types;
     }
 
     @types = +{ map +($_, $types->{$_}), @first_table_types },

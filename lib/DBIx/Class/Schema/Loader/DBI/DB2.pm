@@ -134,11 +134,60 @@ sub _columns_info_for {
             $info->{is_auto_increment} = 1;
         }
 
-        if ((eval { lc ${ $info->{default_value} } }||'') eq 'current timestamp') {
-            ${ $info->{default_value} } = 'current_timestamp';
-            delete $info->{size};
+        my $data_type = $info->{data_type};
 
-            my $orig_deflt = 'current timestamp';
+        if ($data_type !~ /^(?:(?:var)?(?:char|graphic)|decimal)\z/i) {
+            delete $info->{size};
+        }
+
+        if ($data_type eq 'double') {
+            $info->{data_type} = 'double precision';
+        }
+        elsif ($data_type eq 'decimal') {
+            no warnings 'uninitialized';
+
+            $info->{data_type} = 'numeric';
+
+            my @size = @{ $info->{size} || [] };
+
+            if ($size[0] == 5 && $size[1] == 0) {
+                delete $info->{size};
+            }
+        }
+        elsif ($data_type =~ /^(?:((?:var)?char) \(\) for bit data|(long varchar) for bit data)\z/i) {
+            my $base_type = lc($1 || $2);
+
+            (my $original_type = $data_type) =~ s/[()]+ //;
+
+            $info->{original}{data_type} = $original_type;
+
+            if ($base_type eq 'long varchar') {
+                $info->{data_type} = 'blob';
+            }
+            else {
+                if ($base_type eq 'char') {
+                    $info->{data_type} = 'binary';
+                }
+                elsif ($base_type eq 'varchar') {
+                    $info->{data_type} = 'varbinary';
+                }
+
+                my ($size) = $dbh->selectrow_array(<<'EOF', {}, $self->db_schema, $self->_uc($table), $self->_uc($col));
+SELECT length
+FROM syscat.columns
+WHERE tabschema = ? AND tabname = ? AND colname = ?
+EOF
+
+                $info->{size} = $size if $size;
+            }
+        }
+
+        if ((eval { lc ${ $info->{default_value} } }||'') =~ /^current (date|time(?:stamp)?)\z/i) {
+            my $type = lc($1);
+
+            ${ $info->{default_value} } = 'current_timestamp';
+
+            my $orig_deflt = "current $type";
             $info->{original}{default_value} = \$orig_deflt;
         }
     }

@@ -145,6 +145,7 @@ sub _columns_info_for {
         my $data_type = $info->{data_type};
 
         # these types are fixed size
+        # XXX should this be a negative match?
         if ($data_type =~
 /^(?:bigint|int8|bigserial|serial8|boolean|bool|box|bytea|cidr|circle|date|double precision|float8|inet|integer|int|int4|line|lseg|macaddr|money|path|point|polygon|real|float4|smallint|int2|serial|serial4|text)\z/i) {
             delete $info->{size};
