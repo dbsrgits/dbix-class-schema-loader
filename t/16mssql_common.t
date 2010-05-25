@@ -105,6 +105,8 @@ my $tester = dbixcsl_common_tests->new(
         # string types
         char           => { data_type => 'char', size => 1 },
         'char(2)'      => { data_type => 'char', size => 2 },
+        character      => { data_type => 'char', size => 1 },
+        'character(2)' => { data_type => 'char', size => 2 },
         'varchar(2)'   => { data_type => 'varchar', size => 2 },
         nchar          => { data_type => 'nchar', size => 1 },
         'nchar(2)'     => { data_type => 'nchar', size => 2 },

@@ -1772,6 +1772,7 @@ sub _custom_column_info {
 my %DATA_TYPE_MULTI_TABLE_OVERRIDES = (
     oracle => qr/\blong\b/i,
     mssql  => qr/\b(?:timestamp|rowversion)\b/i,
+    informix => qr/\b(?:bigserial|serial8)\b/i,
 );
 
 sub setup_data_type_tests {
