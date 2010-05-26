@@ -23,7 +23,7 @@ use File::Slurp 'slurp';
 use DBIx::Class::Schema::Loader::Utils 'split_name';
 require DBIx::Class;
 
-our $VERSION = '0.07000';
+our $VERSION = '0.07001';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema

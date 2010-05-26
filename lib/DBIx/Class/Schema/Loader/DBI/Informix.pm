@@ -8,7 +8,7 @@ use namespace::autoclean;
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'looks_like_number';
 
-our $VERSION = '0.07000';
+our $VERSION = '0.07001';
 
 =head1 NAME
 
