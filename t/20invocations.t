@@ -124,6 +124,15 @@ my @invocations = (
         );
         DBICTest::Schema::14->clone;
     },
+    'moose' => sub {
+        package DBICTest::Schema::8;
+        use base qw/ DBIx::Class::Schema::Loader /;
+        __PACKAGE__->naming('current');
+        __PACKAGE__->connect(
+            $make_dbictest_db::dsn,
+            { loader_options => { use_moose => 1 } }
+        );
+    },
 );
 
 # 4 tests per k/v pair
