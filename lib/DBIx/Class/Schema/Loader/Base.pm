@@ -50,6 +50,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 default_resultset_class
                                 schema_base_class
                                 result_base_class
+                                use_moose
 				overwrite_modifications
 
                                 relationship_attrs
@@ -1163,8 +1164,13 @@ sub _dump_to_dir {
           qq|package $schema_class;\n\n|
         . qq|# Created by DBIx::Class::Schema::Loader\n|
         . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
-        . qq|use strict;\nuse warnings;\n\n|
-        . qq|use base '$schema_base_class';\n\n|;
+        . qq|use strict;\nuse warnings;\n\n|;
+    if ($self->use_moose) {
+        $schema_text.= qq|use Moose;\nuse MooseX::NonMoose;\nextends '$schema_base_class';\n\n|;
+    }
+    else {
+        $schema_text .= qq|use base '$schema_base_class';\n\n|;
+    }
 
     if ($self->use_namespaces) {
         $schema_text .= qq|__PACKAGE__->load_namespaces|;
@@ -1198,9 +1204,13 @@ sub _dump_to_dir {
               qq|package $src_class;\n\n|
             . qq|# Created by DBIx::Class::Schema::Loader\n|
             . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
-            . qq|use strict;\nuse warnings;\n\n|
-            . qq|use base '$result_base_class';\n\n|;
-
+            . qq|use strict;\nuse warnings;\n\n|;
+        if ($self->use_moose) {
+            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nextends '$result_base_class';\n\n|;
+        }
+        else {
+             $src_text .= qq|use base '$result_base_class';\n\n|;
+        }
         $self->_write_classfile($src_class, $src_text);
     }
 
@@ -1304,9 +1314,14 @@ sub _write_classfile {
 }
 
 sub _default_custom_content {
-    return qq|\n\n# You can replace this text with custom|
-         . qq| content, and it will be preserved on regeneration|
-         . qq|\n1;\n|;
+    my $self = shift;
+    my $default = qq|\n\n# You can replace this text with custom|
+         . qq| content, and it will be preserved on regeneration|;
+    if ($self->use_moose) {
+        $default .= qq|\nno Moose;\n__PACKAGE__->meta->make_immutable( inline_constructor => 0 );\n1;\n|;
+    }
+    $default .= qq|\n1;\n|;
+    return $default;
 }
 
 sub _get_custom_content {
