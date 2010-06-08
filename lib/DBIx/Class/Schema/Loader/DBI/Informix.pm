@@ -154,6 +154,31 @@ EOF
     return \@rels;
 }
 
+# This is directly from http://www.ibm.com/developerworks/data/zones/informix/library/techarticle/0305parker/0305parker.html
+# it doesn't work at all
+sub _informix_datetime_precision {
+    my @date_type = qw/DUMMY year  month day   hour   minute  second  fraction(1) fraction(2) fraction(3) fraction(4) fraction(5)/;
+    my @start_end = (  [],   [1,5],[5,7],[7,9],[9,11],[11,13],[13,15],[15,16],    [16,17],    [17,18],    [18,19],    [19,20]    );
+
+    my ($self, $collength) = @_;
+
+    my $i = ($collength % 16) + 1;
+    my $j = int(($collength % 256) / 16) + 1;
+    my $k = int($collength / 256);
+
+    my $len = $start_end[$i][1] - $start_end[$j][0];
+    $len = $k - $len;
+
+    if ($len == 0 || $j > 11) {
+        return $date_type[$j] . ' to ' . $date_type[$i];
+    }
+
+    $k  = $start_end[$j][1] - $start_end[$j][0];
+    $k += $len;
+
+    return $date_type[$j] . "($k) to " . $date_type[$i];
+}
+
 sub _columns_info_for {
     my $self = shift;
     my ($table) = @_;
@@ -191,6 +216,8 @@ EOF
             }
             elsif ($type == 10) {
                 $result->{$col}{data_type} = 'datetime year to fraction(5)';
+                # this doesn't work yet
+#                $result->{$col}{data_type} = 'datetime ' . $self->_informix_datetime_precision($info->{collength});
             }
             elsif ($type == 17 || $type == 52) {
                 $result->{$col}{data_type} = 'bigint';
