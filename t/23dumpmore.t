@@ -368,6 +368,8 @@ do_dump_test(
     regexes => {
         'Result/Foo' => [
             qr/^\Q__PACKAGE__->table("foo_schema.foo");\E/m,
+            # the has_many relname should not have the schema in it!
+            qr/^__PACKAGE__->has_many\(\n  "bars"/m,
         ],
     },
 );

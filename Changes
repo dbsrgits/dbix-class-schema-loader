@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix bug in qualify_objects that would add schema to relnames
+        - better type info for Informix, except for DATETIME precision and
+          INTERVAL support
         - better type info for DB2
         - fix some newly-introduced test bugs
 

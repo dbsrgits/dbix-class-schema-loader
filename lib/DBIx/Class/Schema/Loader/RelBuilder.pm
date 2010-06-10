@@ -213,8 +213,25 @@ sub _remote_attrs {
     return $attrs;
 }
 
+sub _sanitize_name {
+    my ($self, $name) = @_;
+
+    if (ref $name) {
+        # scalar ref for weird table name (like one containing a '.')
+        ($name = $$name) =~ s/\W+/_/g;
+    }
+    else {
+        # remove 'schema.' prefix if any
+        $name =~ s/^[^.]+\.//;
+    }
+
+    return $name;
+}
+
 sub _normalize_name {
     my ($self, $name) = @_;
+
+    $name = $self->_sanitize_name($name);
 
     my @words = split_name $name;
 

@@ -12,6 +12,8 @@ our $VERSION = '0.07001';
 sub _normalize_name {
     my ($self, $name) = @_;
 
+    $name = $self->_sanitize_name($name);
+
     return lc $name;
 }
 
