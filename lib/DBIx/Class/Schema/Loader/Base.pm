@@ -1560,11 +1560,18 @@ sub _setup_src_meta {
 
     my $fks = $self->_table_fk_info($table);
 
-    for my $fkdef (@$fks) {
+    foreach my $fkdef (@$fks) {
         for my $col (@{ $fkdef->{local_columns} }) {
             $col_info->{$col}{is_foreign_key} = 1;
         }
     }
+
+    my $pks = $self->_table_pk_info($table) || [];
+
+    foreach my $pkcol (@$pks) {
+        $col_info->{$pkcol}{is_nullable} = 0;
+    }
+
     $self->_dbic_stmt(
         $table_class,
         'add_columns',
@@ -1573,7 +1580,6 @@ sub _setup_src_meta {
 
     my %uniq_tag; # used to eliminate duplicate uniqs
 
-    my $pks = $self->_table_pk_info($table) || [];
     @$pks ? $self->_dbic_stmt($table_class,'set_primary_key',@$pks)
           : carp("$table has no primary key");
     $uniq_tag{ join("\0", @$pks) }++ if @$pks; # pk is a uniq
