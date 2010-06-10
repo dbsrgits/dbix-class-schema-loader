@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix unique constraint names for SQLite (actual names break ->deploy)
         - fix bug in qualify_objects that would add schema to relnames
         - better type info for Informix, except for DATETIME precision and
           INTERVAL support
