@@ -451,12 +451,12 @@ columns with the DATE/DATETIME/TIMESTAMP data_types.
 Sets the locale attribute for L<DBIx::Class::InflateColumn::DateTime> for all
 columns with the DATE/DATETIME/TIMESTAMP data_types.
 
-=head1 config_file
+=head2 config_file
 
 File in Perl format, which should return a HASH reference, from which to read
 loader options.
 
-=head1 preserve_case
+=head2 preserve_case
 
 Usually column names are lowercased, to make them easier to work with in
 L<DBIx::Class>. This option lets you turn this behavior off, if the driver
@@ -468,7 +468,7 @@ case-sensitive collation will turn this option on unconditionally.
 Currently the drivers for SQLite, mysql, MSSQL and Firebird/InterBase support
 setting this option.
 
-=head1 qualify_objects
+=head2 qualify_objects
 
 Set to true to prepend the L</db_schema> to table names for C<<
 __PACKAGE__->table >> calls, and to some other things like Oracle sequences.
