@@ -7,6 +7,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           INTERVAL support
         - better type info for DB2
         - fix some newly-introduced test bugs
+        - fix composite PKs getting marked is_auto_increment on SQLite
 
 0.07000  2010-05-22 23:40:15
         - added qualify_objects option to prepend db_schema to table names
