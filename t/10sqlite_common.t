@@ -93,11 +93,29 @@ my $tester = dbixcsl_common_tests->new(
             # make sure views are picked up
             q{
                 CREATE VIEW extra_loader_test5 AS SELECT * FROM extra_loader_test4
-            }
+            },
+            # Compound primary keys can't be autoinc in the DBIC sense
+            q{
+                CREATE TABLE extra_loader_test6 (
+                  id1 INTEGER,
+                  id2 INTEGER,
+                  value INTEGER,
+                  PRIMARY KEY (id1, id2)
+                )
+            },
+            q{
+                CREATE TABLE extra_loader_test7 (
+                  id1 INTEGER,
+                  id2 TEXT,
+                  value DECIMAL,
+                  PRIMARY KEY (id1, id2)
+                )
+            },
         ],
         pre_drop_ddl => [ 'DROP VIEW extra_loader_test5' ],
-        drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3 extra_loader_test4 / ],
-        count => 9,
+        drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3 
+                      extra_loader_test4 extra_loader_test6 extra_loader_test7/ ],
+        count => 11,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -127,6 +145,12 @@ my $tester = dbixcsl_common_tests->new(
             # test that columns for views are picked up
             is $schema->resultset($monikers->{extra_loader_test5})->result_source->column_info('person_id')->{data_type}, 'integer',
                 'columns for views are introspected';
+
+            isnt $schema->resultset($monikers->{extra_loader_test6})->result_source->column_info('id1')->{is_auto_increment}, 1,
+                q{two integer PKs don't get marked autoinc};
+
+            isnt $schema->resultset($monikers->{extra_loader_test7})->result_source->column_info('id1')->{is_auto_increment}, 1,
+                q{composite integer PK with non-integer PK doesn't get marked autoinc};
         },
     },
 );
