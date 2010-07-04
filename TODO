@@ -33,6 +33,7 @@
     - redo in-memory schema as an @INC coderef rather than temp files
     - add option to filter out views
     - support columns with names like "ro'd p/n" in MSSQL
+    - automatic preserve_case detection
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find
