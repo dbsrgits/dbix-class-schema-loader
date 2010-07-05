@@ -473,6 +473,14 @@ setting this option.
 Set to true to prepend the L</db_schema> to table names for C<<
 __PACKAGE__->table >> calls, and to some other things like Oracle sequences.
 
+=head2 use_moose
+
+Creates Schema and Result classes that use L<Moose>, L<MooseX::NonMoose> and
+L<namespace::autoclean>. The default custom content also makes the classes
+immutable.
+
+It is safe to upgrade your existing Schema to this option.
+
 =head1 METHODS
 
 None of these methods are intended for direct invocation by regular
