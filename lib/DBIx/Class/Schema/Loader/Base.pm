@@ -476,8 +476,8 @@ __PACKAGE__->table >> calls, and to some other things like Oracle sequences.
 =head2 use_moose
 
 Creates Schema and Result classes that use L<Moose>, L<MooseX::NonMoose> and
-L<namespace::autoclean>. The default custom content also makes the classes
-immutable.
+L<namespace::autoclean>. The default content after the md5 sum also makes the
+classes immutable.
 
 It is safe to upgrade your existing Schema to this option.
 
