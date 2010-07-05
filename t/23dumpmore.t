@@ -89,7 +89,12 @@ sub get_dsn {
 sub check_error {
     my ($got, $expected) = @_;
 
-    return unless $got && $expected;
+    return unless $got;
+
+    if (not $expected) {
+        fail "Unexpected error in " . ((caller(1))[3]) . ": $got";
+        return;
+    }
 
     if (ref $expected eq 'Regexp') {
         like $got, $expected, 'error matches expected pattern';
@@ -147,8 +152,7 @@ sub dump_file_like {
     open(my $dumpfh, '<', $path) or die "Failed to open '$path': $!";
     my $contents = do { local $/; <$dumpfh>; };
     close($dumpfh);
-    my $num = 1;
-    like($contents, $_, "like $path " . $num++) for @_;
+    like($contents, $_, "$path matches $_") for @_;
 }
 
 sub dump_file_not_like {
@@ -156,8 +160,7 @@ sub dump_file_not_like {
     open(my $dumpfh, '<', $path) or die "Failed to open '$path': $!";
     my $contents = do { local $/; <$dumpfh>; };
     close($dumpfh);
-    my $num = 1;
-    unlike($contents, $_, "unlike $path ". $num++) for @_;
+    unlike($contents, $_, "$path does not match $_") for @_;
 }
 
 sub append_to_class {
@@ -229,6 +232,166 @@ unlink $config_file;
 
 rmtree($DUMP_PATH, 1, 1);
 
+eval "use Moose; use MooseX::NonMoose; use namespace::autoclean;";
+if (not $@) {
+
+# first dump a fresh use_moose=1 schema
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => {
+        use_moose => 1,
+        result_base_class => 'My::ResultBaseClass',
+        schema_base_class => 'My::SchemaBaseClass',
+    },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        schema => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+        Foo => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+        Bar => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+    },
+);
+
+# now upgrade a non-moose schema to use_moose=1
+
+rmtree($DUMP_PATH, 1, 1);
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => {
+        result_base_class => 'My::ResultBaseClass',
+        schema_base_class => 'My::SchemaBaseClass',
+    },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        schema => [
+            qr/\nuse base 'My::SchemaBaseClass';\n/,
+        ],
+        Foo => [
+            qr/\nuse base 'My::ResultBaseClass';\n/,
+        ],
+        Bar => [
+            qr/\nuse base 'My::ResultBaseClass';\n/,
+        ],
+    },
+);
+
+# check that changed custom content is upgraded for Moose bits
+append_to_class('DBICTest::DumpMore::1::Foo', q{# XXX This is my custom content XXX});
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => {
+        use_moose => 1,
+        result_base_class => 'My::ResultBaseClass',
+        schema_base_class => 'My::SchemaBaseClass',
+    },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        schema => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+        Foo => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+        Bar => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+    },
+);
+
+# now add the Moose custom content to unapgraded schema, and make sure it is not repeated
+
+rmtree($DUMP_PATH, 1, 1);
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => {
+        result_base_class => 'My::ResultBaseClass',
+        schema_base_class => 'My::SchemaBaseClass',
+    },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        schema => [
+            qr/\nuse base 'My::SchemaBaseClass';\n/,
+        ],
+        Foo => [
+            qr/\nuse base 'My::ResultBaseClass';\n/,
+        ],
+        Bar => [
+            qr/\nuse base 'My::ResultBaseClass';\n/,
+        ],
+    },
+);
+
+# add Moose custom content then check it is not repeated
+
+append_to_class('DBICTest::DumpMore::1::Foo', qq{__PACKAGE__->meta->make_immutable;\n1;\n});
+
+do_dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => {
+        use_moose => 1,
+        result_base_class => 'My::ResultBaseClass',
+        schema_base_class => 'My::SchemaBaseClass',
+    },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        schema => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+        Foo => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+        Bar => [
+qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        ],
+    },
+    neg_regexes => {
+        Foo => [
+qr/\n__PACKAGE__->meta->make_immutable;\n.*\n__PACKAGE__->meta->make_immutable;/s,
+        ],
+    },
+);
+
+
+}
+else {
+    SKIP: { skip 'use_moose=1 deps not installed', 1 };
+}
+
+rmtree($DUMP_PATH, 1, 1);
+
 do_dump_test(
     classname => 'DBICTest::Schema::14',
     test_db_class => 'make_dbictest_db_clashing_monikers',
@@ -260,7 +423,7 @@ do_dump_test(
 qr/package DBICTest::DumpMore::1::Foo;/,
 qr/=head1 NAME\n\nDBICTest::DumpMore::1::Foo\n\n=cut\n\n/,
 qr/=head1 ACCESSORS\n\n/,
-qr/=head2 fooid\n\n  data_type: 'integer'\n  is_auto_increment: 1\n  is_nullable: 1\n\n/,
+qr/=head2 fooid\n\n  data_type: 'integer'\n  is_auto_increment: 1\n  is_nullable: 0\n\n/,
 qr/=head2 footext\n\n  data_type: 'text'\n  default_value: 'footext'\n  extra: {is_footext => 1}\n  is_nullable: 1\n\n/,
 qr/->set_primary_key/,
 qr/=head1 RELATIONS\n\n/,
@@ -271,7 +434,7 @@ qr/1;\n$/,
 qr/package DBICTest::DumpMore::1::Bar;/,
 qr/=head1 NAME\n\nDBICTest::DumpMore::1::Bar\n\n=cut\n\n/,
 qr/=head1 ACCESSORS\n\n/,
-qr/=head2 barid\n\n  data_type: 'integer'\n  is_auto_increment: 1\n  is_nullable: 1\n\n/,
+qr/=head2 barid\n\n  data_type: 'integer'\n  is_auto_increment: 1\n  is_nullable: 0\n\n/,
 qr/=head2 fooref\n\n  data_type: 'integer'\n  is_foreign_key: 1\n  is_nullable: 1\n\n/,
 qr/->set_primary_key/,
 qr/=head1 RELATIONS\n\n/,

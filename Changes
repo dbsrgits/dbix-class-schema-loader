@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - added use_moose option
         - always mark pk columns is_nullable=0
         - fix unique constraint names for SQLite (actual names break ->deploy)
         - fix bug in qualify_objects that would add schema to relnames

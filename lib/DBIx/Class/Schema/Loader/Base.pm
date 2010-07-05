@@ -201,10 +201,10 @@ and singularization put this in your C<Schema.pm> file:
 
     __PACKAGE__->naming('current');
 
-Or if you prefer to use 0.05XXX features but insure that nothing breaks in the
+Or if you prefer to use 0.07XXX features but insure that nothing breaks in the
 next major version upgrade:
 
-    __PACKAGE__->naming('v5');
+    __PACKAGE__->naming('v7');
 
 =head2 generate_pod
 
@@ -534,6 +534,19 @@ sub new {
                               /);
 
     $self->_validate_class_args;
+
+    if ($self->use_moose) {
+        eval <<'EOF';
+package __DBICSL__DUMMY;
+use Moose;
+use MooseX::NonMoose;
+use namespace::autoclean;
+EOF
+        if ($@) {
+            die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\n",
+                "Moose, MooseX::NonMoose and namespace::autoclean";
+        }
+    }
 
     push(@{$self->{components}}, 'ResultSetManager')
         if @{$self->{resultset_components}};
@@ -1087,6 +1100,9 @@ sub _reload_classes {
             local *Class::C3::reinitialize = sub {};
             use warnings;
 
+            if ($class->can('meta')) {
+                $class->meta->make_mutable;
+            }
             Class::Unload->unload($class) if $unload;
             my ($source, $resultset_class);
             if (
@@ -1095,6 +1111,9 @@ sub _reload_classes {
                 && ($resultset_class ne 'DBIx::Class::ResultSet')
             ) {
                 my $has_file = Class::Inspector->loaded_filename($resultset_class);
+                if ($resultset_class->can('meta')) {
+                    $resultset_class->meta->make_mutable;
+                }
                 Class::Unload->unload($resultset_class) if $unload;
                 $self->_reload_class($resultset_class) if $has_file;
             }
@@ -1124,6 +1143,7 @@ sub _reload_class {
             unless $_[0] =~ /^Subroutine \S+ redefined/;
     };
     eval "require $class;";
+    die "Failed to reload class $class: $@" if $@;
 }
 
 sub _get_dump_filename {
@@ -1166,7 +1186,7 @@ sub _dump_to_dir {
         . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
         . qq|use strict;\nuse warnings;\n\n|;
     if ($self->use_moose) {
-        $schema_text.= qq|use Moose;\nuse MooseX::NonMoose;\nextends '$schema_base_class';\n\n|;
+        $schema_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends '$schema_base_class';\n\n|;
     }
     else {
         $schema_text .= qq|use base '$schema_base_class';\n\n|;
@@ -1206,7 +1226,7 @@ sub _dump_to_dir {
             . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
             . qq|use strict;\nuse warnings;\n\n|;
         if ($self->use_moose) {
-            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nextends '$result_base_class';\n\n|;
+            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends '$result_base_class';\n\n|;
         }
         else {
              $src_text .= qq|use base '$result_base_class';\n\n|;
@@ -1256,6 +1276,25 @@ sub _write_classfile {
     }    
 
     my ($custom_content, $old_md5, $old_ver, $old_ts) = $self->_get_custom_content($class, $filename);
+
+    # If upgrading to use_moose=1 replace default custom content with default Moose custom content.
+    # If there is already custom content, which does not have the Moose content, add it.
+    if ($self->use_moose) {
+        local $self->{use_moose} = 0;
+
+        if ($custom_content eq $self->_default_custom_content) {
+            local $self->{use_moose} = 1;
+
+            $custom_content = $self->_default_custom_content;
+        }
+        else {
+            local $self->{use_moose} = 1;
+
+            if ($custom_content !~ /\Q@{[$self->_default_moose_custom_content]}\E/) {
+                $custom_content .= $self->_default_custom_content;
+            }
+        }
+    }
 
     if (my $old_class = $self->_upgrading_classes->{$class}) {
         my $old_filename = $self->_get_dump_filename($old_class);
@@ -1313,12 +1352,16 @@ sub _write_classfile {
         or croak "Error closing '$filename': $!";
 }
 
+sub _default_moose_custom_content {
+    return qq|\n__PACKAGE__->meta->make_immutable;|;
+}
+
 sub _default_custom_content {
     my $self = shift;
     my $default = qq|\n\n# You can replace this text with custom|
          . qq| content, and it will be preserved on regeneration|;
     if ($self->use_moose) {
-        $default .= qq|\nno Moose;\n__PACKAGE__->meta->make_immutable( inline_constructor => 0 );\n1;\n|;
+        $default .= $self->_default_moose_custom_content;
     }
     $default .= qq|\n1;\n|;
     return $default;
