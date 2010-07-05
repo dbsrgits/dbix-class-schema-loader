@@ -2,6 +2,7 @@
   - High Priority
     - clean out RT queue
     - introspect views and make proper ResultSource::View classes with defining SQL
+    - better avoidance of column and relationship accessor collisions
     - encode loader options in Schema.pm
     - introspect on_update/on_delete/is_deferrable
   - Low Priority
