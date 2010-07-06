@@ -88,7 +88,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (181 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @connect_info * (182 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -175,6 +175,13 @@ sub setup_schema {
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
+    eval <<'EOF';
+require Moose;
+require MooseX::NonMoose;
+require namespace::autoclean;
+EOF
+    my $use_moose = $@ ? 0 : 1;
+
     my %loader_opts = (
         constraint              =>
 	    qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)_?)?loader_?test[0-9]+(?!.*_)/i,
@@ -193,6 +200,7 @@ sub setup_schema {
         dump_directory          => $DUMP_DIR,
         datetime_timezone       => 'Europe/Berlin',
         datetime_locale         => 'de_DE',
+        use_moose               => $use_moose,
         %{ $self->{loader_options} || {} },
     );
 
@@ -317,13 +325,16 @@ sub test_schema {
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key dbix_class_testcomponent/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key dbix_class_testcomponent meta/ ], "Column Ordering" );
 
     is $class2->column_info('set_primary_key')->{accessor}, undef,
         'accessor for column name that conflicts with a result base class method removed';
 
     is $class2->column_info('dbix_class_testcomponent')->{accessor}, undef,
         'accessor for column name that conflicts with a component class method removed';
+
+    is $class2->column_info('meta')->{accessor}, undef,
+        'accessor for column name that conflicts with Moose removed';
 
     my %uniq1 = $class1->unique_constraints;
     my $uniq1_test = 0;
@@ -1178,6 +1189,7 @@ sub create {
                 dat2 VARCHAR(32) NOT NULL,
                 set_primary_key INTEGER $self->{null},
                 dbix_class_testcomponent INTEGER $self->{null},
+                meta $self->{null},
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },

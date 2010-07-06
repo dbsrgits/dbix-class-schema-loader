@@ -545,10 +545,9 @@ sub new {
 
     if ($self->use_moose) {
         eval <<'EOF';
-package __DBICSL__DUMMY;
-use Moose;
-use MooseX::NonMoose;
-use namespace::autoclean;
+require Moose;
+require MooseX::NonMoose;
+require namespace::autoclean;
 EOF
         if ($@) {
             die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\n",
@@ -1108,7 +1107,7 @@ sub _reload_classes {
             local *Class::C3::reinitialize = sub {};
             use warnings;
 
-            if ($class->can('meta')) {
+            if ($class->can('meta') && (ref $class->meta)->isa('Moose::Meta::Class')) {
                 $class->meta->make_mutable;
             }
             Class::Unload->unload($class) if $unload;
@@ -1119,7 +1118,7 @@ sub _reload_classes {
                 && ($resultset_class ne 'DBIx::Class::ResultSet')
             ) {
                 my $has_file = Class::Inspector->loaded_filename($resultset_class);
-                if ($resultset_class->can('meta')) {
+                if ($resultset_class->can('meta') && (ref $resultset_class->meta)->isa('Moose::Meta::Class')) {
                     $resultset_class->meta->make_mutable;
                 }
                 Class::Unload->unload($resultset_class) if $unload;
@@ -1234,7 +1233,15 @@ sub _dump_to_dir {
             . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
             . qq|use strict;\nuse warnings;\n\n|;
         if ($self->use_moose) {
-            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends '$result_base_class';\n\n|;
+            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;|;
+
+            # these options 'use base' which is compile time
+            if ($self->left_base_classes || $self->additional_base_classes) {
+                $src_text .= qq|\nBEGIN { extends '$result_base_class' }\n\n|;
+            }
+            else {
+                $src_text .= qq|\nextends '$result_base_class';\n\n|;
+            }
         }
         else {
              $src_text .= qq|use base '$result_base_class';\n\n|;
@@ -1432,11 +1439,13 @@ sub _use {
 sub _inject {
     my $self = shift;
     my $target = shift;
-    my $schema_class = $self->schema_class;
 
     my $blist = join(q{ }, @_);
-    warn "$target: use base qw/ $blist /;" if $self->debug && @_;
-    $self->_raw_stmt($target, "use base qw/ $blist /;") if @_;
+
+    return unless $blist;
+
+    warn "$target: use base qw/$blist/;" if $self->debug;
+    $self->_raw_stmt($target, "use base qw/$blist/;");
 }
 
 sub _result_namespace {
@@ -1530,7 +1539,7 @@ sub _resolve_col_accessor_collisions {
 
     my @methods;
 
-    for my $class ($base, @components) {
+    for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
         eval "require ${class};";
         die $@ if $@;
 
@@ -1539,6 +1548,9 @@ sub _resolve_col_accessor_collisions {
 
     my %methods;
     @methods{@methods} = ();
+
+    # futureproof meta
+    $methods{meta} = undef;
 
     while (my ($col, $info) = each %$col_info) {
         my $accessor = $info->{accessor} || $col;
