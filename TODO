@@ -35,6 +35,11 @@
     - add option to filter out views
     - support columns with names like "ro'd p/n" in MSSQL
     - automatic preserve_case detection
+    - reduce chances of relname/colname collisions
+    - strip _no, _num, _number, _code etc. from relnames
+    - write a Manual::Intro with info on +column, inflect_singular, config_file,
+      catalyst helper, etc.
+    - add result_roles and schema_roles for use with use_moose=1
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find
