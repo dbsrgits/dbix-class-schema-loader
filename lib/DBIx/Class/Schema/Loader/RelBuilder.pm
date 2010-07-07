@@ -268,6 +268,14 @@ sub _relationship_attrs {
     return \%composite;
 }
 
+sub _strip_id_postfix {
+    my ($self, $name) = @_;
+
+    $name =~ s/_?(?:id|ref|cd|code|num)\z//i;
+
+    return $name;
+}
+
 sub _array_eq {
     my ($self, $a, $b) = @_;
 
@@ -319,8 +327,7 @@ sub _remote_relname {
     # name, to make filter accessors work, but strip trailing _id
     if(scalar keys %{$cond} == 1) {
         my ($col) = values %{$cond};
-        $col = $self->_normalize_name($col);
-        $col =~ s/_id$//;
+        $col = $self->_strip_id_postfix($self->_normalize_name($col));
         ($remote_relname) = $self->_inflect_singular($col);
     }
     else {
@@ -715,8 +722,7 @@ sub _relnames_and_method {
             my $colnames = q{_} . $self->_normalize_name(join '_', @$local_cols);
             $remote_relname .= $colnames if keys %$cond > 1;
 
-            $local_relname = $self->_normalize_name($local_table . $colnames);
-            $local_relname =~ s/_id$//;
+            $local_relname = $self->_strip_id_postfix($self->_normalize_name($local_table . $colnames));
 
             $local_relname_uninflected = $local_relname;
             ($local_relname) = $self->_inflect_plural($local_relname);

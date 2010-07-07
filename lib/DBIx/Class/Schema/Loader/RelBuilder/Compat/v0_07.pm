@@ -1,29 +1,31 @@
-package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06;
+package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07;
 
 use strict;
 use warnings;
-use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07';
+use base 'DBIx::Class::Schema::Loader::RelBuilder';
 use mro 'c3';
-
-our $VERSION = '0.07010';
-
-sub _normalize_name {
-    my ($self, $name) = @_;
-
-    $name = $self->_sanitize_name($name);
-
-    return lc $name;
-}
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06 - RelBuilder for
-compatibility with DBIx::Class::Schema::Loader version 0.06000
+DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07 - RelBuilder for
+compatibility with DBIx::Class::Schema::Loader version 0.07000
 
 =head1 DESCRIPTION
 
 See L<DBIx::Class::Schema::Loader::Base/naming> and
 L<DBIx::Class::Schema::Loader::RelBuilder>.
+
+=cut
+
+our $VERSION = '0.07010';
+
+sub _strip_id_postfix {
+    my ($self, $name) = @_;
+
+    $name =~ s/_id\z//;
+
+    return $name;
+}
 
 =head1 AUTHOR
 

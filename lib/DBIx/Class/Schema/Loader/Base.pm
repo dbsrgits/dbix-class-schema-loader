@@ -168,7 +168,7 @@ overwriting a dump made with an earlier version.
 
 The option also takes a hashref:
 
-    naming => { relationships => 'v7', monikers => 'v7' }
+    naming => { relationships => 'v8', monikers => 'v8' }
 
 The keys are:
 
@@ -245,7 +245,11 @@ L</naming> explictly until C<0.08> comes out.
 
 L</monikers> are created using L<String::ToIdentifier::EN::Unicode> or
 L<String::ToIdentifier::EN> if L</force_ascii> is set; this is only significant
-for table names with non C<\w> characters such as C<.>.
+for table names with non-C<\w> characters such as C<.>.
+
+For relationships, belongs_to accessors are made from column names by stripping
+postfixes other than C<_id> as well, just C<id>, C<_?ref>, C<_?cd>, C<_?code>
+and C<_num>.
 
 =item preserve
 
@@ -1398,20 +1402,18 @@ sub _relbuilder {
     return if $self->{skip_relationships};
 
     return $self->{relbuilder} ||= do {
-
-        no warnings 'uninitialized';
         my $relbuilder_suff =
             {qw{
                 v4  ::Compat::v0_040
                 v5  ::Compat::v0_05
                 v6  ::Compat::v0_06
+                v7  ::Compat::v0_07
             }}
-            ->{ $self->naming->{relationships}};
+            ->{$self->naming->{relationships}||$CURRENT_V} || '';
 
         my $relbuilder_class = 'DBIx::Class::Schema::Loader::RelBuilder'.$relbuilder_suff;
         $self->ensure_class_loaded($relbuilder_class);
-        $relbuilder_class->new( $self );
-
+        $relbuilder_class->new($self);
     };
 }
 
