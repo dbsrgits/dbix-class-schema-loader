@@ -1189,7 +1189,7 @@ sub create {
                 dat2 VARCHAR(32) NOT NULL,
                 set_primary_key INTEGER $self->{null},
                 dbix_class_testcomponent INTEGER $self->{null},
-                meta $self->{null},
+                meta INTEGER $self->{null},
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },

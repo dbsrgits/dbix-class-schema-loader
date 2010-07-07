@@ -2,11 +2,11 @@ package DBIx::Class::Schema::Loader::DBI::InterBase;
 
 use strict;
 use warnings;
-use namespace::autoclean;
 use Class::C3;
 use base qw/DBIx::Class::Schema::Loader::DBI/;
 use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
+use namespace::clean;
 
 our $VERSION = '0.07001';
 

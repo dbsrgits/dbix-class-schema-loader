@@ -4,9 +4,9 @@ use strict;
 use warnings;
 use Class::C3;
 use base qw/DBIx::Class::Schema::Loader::DBI/;
-use namespace::autoclean;
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'looks_like_number';
+use namespace::clean;
 
 our $VERSION = '0.07001';
 

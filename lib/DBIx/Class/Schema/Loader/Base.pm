@@ -3,7 +3,6 @@ package DBIx::Class::Schema::Loader::Base;
 use strict;
 use warnings;
 use base qw/Class::Accessor::Grouped Class::C3::Componentised/;
-use namespace::autoclean;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
 use DBIx::Class::Schema::Loader::RelBuilder;
@@ -22,6 +21,7 @@ use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
 use DBIx::Class::Schema::Loader::Utils 'split_name';
 require DBIx::Class;
+use namespace::clean;
 
 our $VERSION = '0.07001';
 
@@ -1236,7 +1236,7 @@ sub _dump_to_dir {
             $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;|;
 
             # these options 'use base' which is compile time
-            if ($self->left_base_classes || $self->additional_base_classes) {
+            if (@{ $self->left_base_classes } || @{ $self->additional_base_classes }) {
                 $src_text .= qq|\nBEGIN { extends '$result_base_class' }\n\n|;
             }
             else {
