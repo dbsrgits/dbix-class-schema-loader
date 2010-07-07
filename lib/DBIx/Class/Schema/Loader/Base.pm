@@ -23,7 +23,7 @@ use DBIx::Class::Schema::Loader::Utils 'split_name';
 require DBIx::Class;
 use namespace::clean;
 
-our $VERSION = '0.07001';
+our $VERSION = '0.08000';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
@@ -131,7 +131,7 @@ overwriting a dump made with an earlier version.
 
 The option also takes a hashref:
 
-    naming => { relationships => 'v7', monikers => 'v7' }
+    naming => { relationships => 'v8', monikers => 'v8' }
 
 The keys are:
 
@@ -193,6 +193,11 @@ transition instead of just being lowercased, so C<FooId> becomes C<foo_id>.
 If you don't have any CamelCase table or column names, you can upgrade without
 breaking any of your code.
 
+=item v8
+
+This mode tries harder to not have collisions between column accessors and
+belongs_to relationship accessors.
+
 =back
 
 Dynamic schemas will always default to the 0.04XXX relationship names and won't
@@ -201,10 +206,10 @@ and singularization put this in your C<Schema.pm> file:
 
     __PACKAGE__->naming('current');
 
-Or if you prefer to use 0.07XXX features but insure that nothing breaks in the
+Or if you prefer to use 0.08XXX features but insure that nothing breaks in the
 next major version upgrade:
 
-    __PACKAGE__->naming('v7');
+    __PACKAGE__->naming('v8');
 
 =head2 generate_pod
 
@@ -489,7 +494,7 @@ L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-my $CURRENT_V = 'v7';
+my $CURRENT_V = 'v8';
 
 my @CLASS_ARGS = qw(
     schema_base_class result_base_class additional_base_classes
@@ -1003,6 +1008,15 @@ sub _relbuilder {
     elsif ($self->naming->{relationships} eq 'v6') {
         require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06;
         return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06->new (
+             $self->schema,
+             $self->inflect_plural,
+             $self->inflect_singular,
+             $self->relationship_attrs,
+        );
+    }
+    elsif ($self->naming->{relationships} eq 'v6') {
+        require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07;
+        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07->new (
              $self->schema,
              $self->inflect_plural,
              $self->inflect_singular,

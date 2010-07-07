@@ -6,7 +6,7 @@ use base 'DBIx::Class::Schema::Loader::DBI::MSSQL';
 use Carp::Clan qw/^DBIx::Class/;
 use Class::C3;
 
-our $VERSION = '0.07001';
+our $VERSION = '0.08000';
 
 =head1 NAME
 

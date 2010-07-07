@@ -1,25 +1,25 @@
-package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06;
+package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07;
 
 use strict;
 use warnings;
 use Class::C3;
-use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07';
+use base 'DBIx::Class::Schema::Loader::RelBuilder';
 use Carp::Clan qw/^DBIx::Class/;
 
 our $VERSION = '0.08000';
 
-sub _normalize_name {
+sub _strip__id {
     my ($self, $name) = @_;
 
-    $name = $self->_sanitize_name($name);
+    $name =~ s/_id\z//;
 
-    return lc $name;
+    return $name;
 }
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06 - RelBuilder for
-compatibility with DBIx::Class::Schema::Loader version 0.06000
+DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07 - RelBuilder for
+compatibility with DBIx::Class::Schema::Loader version 0.07000
 
 =head1 DESCRIPTION
 

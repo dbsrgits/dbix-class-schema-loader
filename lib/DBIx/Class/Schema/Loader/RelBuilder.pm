@@ -7,7 +7,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Phrase ();
 use DBIx::Class::Schema::Loader::Utils 'split_name';
 
-our $VERSION = '0.07001';
+our $VERSION = '0.08000';
 
 =head1 NAME
 
@@ -188,6 +188,14 @@ sub _relationship_attrs {
     return \%composite;
 }
 
+sub _strip__id {
+    my ($self, $name) = @_;
+
+    $name =~ s/_(?:id|ref)\z//;
+
+    return $name;
+}
+
 sub _array_eq {
     my ($self, $a, $b) = @_;
 
@@ -247,7 +255,7 @@ sub _remote_relname {
     if(scalar keys %{$cond} == 1) {
         my ($col) = values %{$cond};
         $col = $self->_normalize_name($col);
-        $col =~ s/_id$//;
+        $col = $self->_strip__id($col);
         $remote_relname = $self->_inflect_singular($col);
     }
     else {
@@ -342,7 +350,7 @@ sub _relnames_and_method {
         $remote_relname .= $colnames if keys %$cond > 1;
 
         $local_relname = $self->_normalize_name($local_table . $colnames);
-        $local_relname =~ s/_id$//;
+        $local_relname = $self->_strip__id($local_relname);
 
         $local_relname_uninflected = $local_relname;
         $local_relname = $self->_inflect_plural($local_relname);
