@@ -254,6 +254,9 @@ EOF
         elsif ($info->{data_type} eq 'character') {
             $info->{data_type} = 'char';
         }
+        elsif ($info->{data_type} eq 'float') {
+            $info->{data_type} = 'real';
+        }
         elsif ($info->{data_type} eq 'int64' || $info->{data_type} eq '-9581') {
             # the constant is just in case, the query should pick up the type
             $info->{data_type} = 'bigint';
