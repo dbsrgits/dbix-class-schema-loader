@@ -118,11 +118,11 @@ my $tester = dbixcsl_common_tests->new(
                     value VARCHAR(100)
                 )
             },
-            q{
-                COMMENT ON TABLE pg_loader_test1 IS 'The Table'
+            qq{
+                COMMENT ON TABLE pg_loader_test1 IS 'The\15\12Table'
             },
-            q{
-                COMMENT ON COLUMN pg_loader_test1.value IS 'The Column'
+            qq{
+                COMMENT ON COLUMN pg_loader_test1.value IS 'The\15\12Column'
             },
             q{
                 CREATE TABLE pg_loader_test2 (
@@ -144,10 +144,10 @@ my $tester = dbixcsl_common_tests->new(
 
             my $code = slurp $filename;
 
-            like $code, qr/^=head1 NAME\n\n^$class - The Table\n\n^=cut\n/m,
+            like $code, qr/^=head1 NAME\n\n^$class - The\nTable\n\n^=cut\n/m,
                 'table comment';
 
-            like $code, qr/^=head2 value\n\n(.+:.+\n)+\nThe Column\n\n/m,
+            like $code, qr/^=head2 value\n\n(.+:.+\n)+\nThe\nColumn\n\n/m,
                 'column comment and attrs';
 
             $class    = $classes->{pg_loader_test2};

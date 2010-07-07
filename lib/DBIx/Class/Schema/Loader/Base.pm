@@ -1797,12 +1797,10 @@ sub _make_pod {
         my ($table) = @_;
         my $pcm = $self->pod_comment_mode;
         my ($comment, $comment_overflows, $comment_in_name, $comment_in_desc);
-        if ( $self->can('_table_comment') ) {
-            $comment = $self->_table_comment($table);
-            $comment_overflows = ($comment and length $comment > $self->pod_comment_spillover_length);
-            $comment_in_name   = ($pcm eq 'name' or ($pcm eq 'auto' and !$comment_overflows));
-            $comment_in_desc   = ($pcm eq 'description' or ($pcm eq 'auto' and $comment_overflows));
-        }
+        $comment = $self->__table_comment($table);
+        $comment_overflows = ($comment and length $comment > $self->pod_comment_spillover_length);
+        $comment_in_name   = ($pcm eq 'name' or ($pcm eq 'auto' and !$comment_overflows));
+        $comment_in_desc   = ($pcm eq 'description' or ($pcm eq 'auto' and $comment_overflows));
         $self->_pod( $class, "=head1 NAME" );
         my $table_descr = $class;
         $table_descr .= " - " . $comment if $comment and $comment_in_name;
@@ -1840,9 +1838,7 @@ sub _make_pod {
 			 } sort keys %$attrs,
 		       );
 
-	    if( $self->can('_column_comment')
-		and my $comment = $self->_column_comment( $self->{_class2table}{$class}, $col_counter)
-	      ) {
+	    if (my $comment = $self->__column_comment($self->{_class2table}{$class}, $col_counter)) {
 		$self->_pod( $class, $comment );
 	    }
         }
@@ -1856,6 +1852,36 @@ sub _make_pod {
         $self->_pod_cut( $class );
         $self->{_relations_started} { $class } = 1;
     }
+}
+
+sub _filter_comment {
+    my ($self, $txt) = @_;
+
+    $txt = '' if not defined $txt;
+
+    $txt =~ s/(?:\015?\012|\015\012?)/\n/g;
+
+    return $txt;
+}
+
+sub __table_comment {
+    my $self = shift;
+
+    if (my $code = $self->can('_table_comment')) {
+        return $self->_filter_comment($self->$code(@_));
+    }
+    
+    return '';
+}
+
+sub __column_comment {
+    my $self = shift;
+
+    if (my $code = $self->can('_column_comment')) {
+        return $self->_filter_comment($self->$code(@_));
+    }
+
+    return '';
 }
 
 # Stores a POD documentation
