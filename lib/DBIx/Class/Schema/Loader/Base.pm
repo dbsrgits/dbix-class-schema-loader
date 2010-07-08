@@ -49,7 +49,9 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 resultset_namespace
                                 default_resultset_class
                                 schema_base_class
+                                schema_roles
                                 result_base_class
+                                result_roles
                                 use_moose
 				overwrite_modifications
 
@@ -319,10 +321,18 @@ Default behavior is to utilize L<Lingua::EN::Inflect::Number/to_S>.
 
 Base class for your schema classes. Defaults to 'DBIx::Class::Schema'.
 
+=head2 schema_roles
+
+Roles your schema class will consume, implies L</use_moose>.
+
 =head2 result_base_class
 
 Base class for your table classes (aka result classes). Defaults to
 'DBIx::Class::Core'.
+
+=head2 result_roles
+
+Roles your Result classes will consume, implies L</use_moose>.
 
 =head2 additional_base_classes
 
@@ -494,6 +504,7 @@ my $CURRENT_V = 'v7';
 my @CLASS_ARGS = qw(
     schema_base_class result_base_class additional_base_classes
     left_base_classes additional_classes components resultset_components
+    schema_roles result_roles
 );
 
 # ensure that a peice of object data is a valid arrayref, creating
@@ -539,6 +550,8 @@ sub new {
                                left_base_classes
                                components
                                resultset_components
+                               schema_roles
+                               result_roles
                               /);
 
     $self->_validate_class_args;
