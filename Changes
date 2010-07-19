@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix Postgres sequence detection for qualified sequences
         - detect DOS line ends in table/column comments and convert to \n
         - added use_moose option
         - always mark pk columns is_nullable=0

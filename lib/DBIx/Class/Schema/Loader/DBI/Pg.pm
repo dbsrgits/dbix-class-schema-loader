@@ -226,7 +226,7 @@ EOF
         }
 
 # process SERIAL columns
-        if (ref($info->{default_value}) eq 'SCALAR' && ${ $info->{default_value} } =~ /\bnextval\(['"](\w+)/i) {
+        if (ref($info->{default_value}) eq 'SCALAR' && ${ $info->{default_value} } =~ /\bnextval\(['"]([.\w]+)/i) {
             $info->{is_auto_increment} = 1;
             $info->{sequence}          = $1;
             delete $info->{default_value};
