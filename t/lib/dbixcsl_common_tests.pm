@@ -155,7 +155,12 @@ sub drop_extra_tables_only {
     my $self = shift;
 
     my $dbh = $self->dbconnect(0);
-    $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+
+    {
+        local $SIG{__WARN__} = sub {}; # postgres notices
+        $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+    }
+
     $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
     foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
@@ -1715,7 +1720,11 @@ sub drop_tables {
 
     my $dbh = $self->dbconnect(0);
 
-    $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+    {
+        local $SIG{__WARN__} = sub {}; # postgres notices
+        $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+    }
+
     $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
     my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
