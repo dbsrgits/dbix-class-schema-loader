@@ -40,6 +40,7 @@
     - write a Manual::Intro with info on +column, inflect_singular, config_file,
       catalyst helper, etc.
     - add result_roles and schema_roles for use with use_moose=1
+    - generate Schema/ResultBase.pm and Schema/ResultSetBase.pm
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find
