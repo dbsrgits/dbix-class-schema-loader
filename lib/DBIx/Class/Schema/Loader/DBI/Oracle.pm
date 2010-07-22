@@ -71,7 +71,16 @@ sub _tables_list {
           if $table =~ /\A(\w+)\z/;
     }
 
-    return $self->_filter_tables(\@tables, $opts);
+    {
+        # silence a warning from older DBD::Oracles in tests
+        my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+        local $SIG{__WARN__} = sub {
+            $warn_handler->(@_)
+            unless $_[0] =~ /^Field \d+ has an Oracle type \(\d+\) which is not explicitly supported/;
+        };
+
+        return $self->_filter_tables(\@tables, $opts);
+    }
 }
 
 sub _table_columns {
