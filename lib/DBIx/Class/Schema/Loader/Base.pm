@@ -20,8 +20,9 @@ use Data::Dumper::Concise;
 use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
 use DBIx::Class::Schema::Loader::Utils 'split_name';
+use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
-require DBIx::Class;
+use DBIx::Class ();
 use namespace::clean;
 
 our $VERSION = '0.07001';
@@ -545,14 +546,10 @@ sub new {
     $self->_validate_class_args;
 
     if ($self->use_moose) {
-        eval <<'EOF';
-require Moose;
-require MooseX::NonMoose;
-require namespace::autoclean;
-EOF
-        if ($@) {
-            die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\n",
-                "Moose, MooseX::NonMoose and namespace::autoclean";
+        if (not DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')) {
+            die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\nYou are missing: %s.\n",
+                "Moose, MooseX::NonMoose and namespace::autoclean",
+                DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose');
         }
     }
 

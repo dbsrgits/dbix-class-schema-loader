@@ -14,6 +14,8 @@ use File::Find 'find';
 use Class::Unload ();
 use Data::Dumper::Concise;
 use List::MoreUtils 'apply';
+use DBIx::Class::Schema::Loader::Optional::Dependencies ();
+use namespace::clean;
 
 my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
@@ -180,12 +182,7 @@ sub setup_schema {
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
-    eval <<'EOF';
-require Moose;
-require MooseX::NonMoose;
-require namespace::autoclean;
-EOF
-    my $use_moose = $@ ? 0 : 1;
+    my $use_moose = DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose');
 
     my %loader_opts = (
         constraint              =>

@@ -1,5 +1,12 @@
 use inc::Module::Install 0.91;
 
+require Module::Install::ReadmeFromPod;
+
+use 5.008001;
+
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
 name           'DBIx-Class-Schema-Loader';
 all_from       'lib/DBIx/Class/Schema/Loader.pm';
 
@@ -29,22 +36,28 @@ requires 'Class::Unload'               => 0;
 requires 'File::Slurp'                 => '9999.13';
 requires 'List::MoreUtils'             => 0;
 requires 'namespace::clean'            => 0;
-requires 'Data::Dumper::Concise'       => '1.200';
+requires 'Data::Dumper::Concise'       => '2.002';
 requires 'Scope::Guard'                => 0;
 requires 'List::MoreUtils'             => 0;
 requires 'Exporter'                    => '5.63';
 requires 'Try::Tiny'                   => 0;
 
-install_script 'script/dbicdump';
+if ($Module::Install::AUTHOR) {
+    warn "\n*** AUTHOR MODE: some optional dependencies converted to hard dependencies.\n\n";
+
+    require DBIx::Class::Schema::Loader::Optional::Dependencies;
+
+    test_requires map %$_, values %{ DBIx::Class::Schema::Loader::Optional::Dependencies->req_group_list };
+
+    DBIx::Class::Schema::Loader::Optional::Dependencies->_gen_pod;
+}
 
 tests_recursive;
 
-# Rebuild README for maintainers
-if ($Module::Install::AUTHOR) {
-    system("pod2text lib/DBIx/Class/Schema/Loader.pm > README");
-}
+install_script 'script/dbicdump';
 
-realclean_files 'README';
+readme_from 'lib/DBIx/Class/Schema/Loader.pm';
+realclean_files qw[README MANIFEST lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod];
 
 resources 'IRC'         => 'irc://irc.perl.org/#dbix-class';
 resources 'license'     => 'http://dev.perl.org/licenses/';
@@ -54,3 +67,5 @@ resources 'MailingList' => 'http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/db
 auto_provides;
 auto_install;
 WriteAll;
+
+# vim:et sts=4 sw=4 tw=0:
