@@ -260,10 +260,10 @@ relationship types override those set in 'all'.
 For example:
 
   relationship_attrs => {
-    belongs_to => { is_deferrable => 1 },
+    belongs_to => { is_deferrable => 0 },
   },
 
-use this to make your foreign key constraints DEFERRABLE.
+use this to turn off DEFERRABLE on your foreign key constraints.
 
 =head2 debug
 
