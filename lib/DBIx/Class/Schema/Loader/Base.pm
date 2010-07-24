@@ -1105,7 +1105,7 @@ sub _reload_classes {
             local *Class::C3::reinitialize = sub {};
             use warnings;
 
-            if ($class->can('meta') && try { (ref $class->meta)->isa('Moose::Meta::Class') }) {
+            if ($class->can('meta') && try { $class->meta->isa('Moose::Meta::Class') }) {
                 $class->meta->make_mutable;
             }
             Class::Unload->unload($class) if $unload;
@@ -1116,7 +1116,7 @@ sub _reload_classes {
                 && ($resultset_class ne 'DBIx::Class::ResultSet')
             ) {
                 my $has_file = Class::Inspector->loaded_filename($resultset_class);
-                if ($resultset_class->can('meta') && try { (ref $resultset_class->meta)->isa('Moose::Meta::Class') }) {
+                if ($resultset_class->can('meta') && try { $resultset_class->meta->isa('Moose::Meta::Class') }) {
                     $resultset_class->meta->make_mutable;
                 }
                 Class::Unload->unload($resultset_class) if $unload;
