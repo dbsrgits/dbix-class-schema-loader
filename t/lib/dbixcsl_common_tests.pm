@@ -12,7 +12,7 @@ use DBI;
 use Digest::MD5;
 use File::Find 'find';
 use Class::Unload ();
-use Data::Dumper::Concise;
+use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use List::MoreUtils 'apply';
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use namespace::clean;
@@ -1011,19 +1011,9 @@ sub test_data_types {
                 my %info = %{ $rsrc->column_info($col_name) };
                 delete @info{qw/is_nullable timezone locale sequence/};
 
-                my $text_col_def = do {
-                    my $dd = Dumper;
-                    $dd->Indent(0);
-                    $dd->Values([\%info]);
-                    $dd->Dump;
-                };
+                my $text_col_def = dumper_squashed \%info;
 
-                my $text_expected_info = do {
-                    my $dd = Dumper;
-                    $dd->Indent(0);
-                    $dd->Values([$expected_info]);
-                    $dd->Dump;
-                };
+                my $text_expected_info = dumper_squashed $expected_info;
 
                 is_deeply \%info, $expected_info,
                     "test column $col_name has definition: $text_col_def expecting: $text_expected_info";

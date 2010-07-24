@@ -16,10 +16,9 @@ use Lingua::EN::Inflect::Phrase qw//;
 use File::Temp qw//;
 use Class::Unload;
 use Class::Inspector ();
-use Data::Dumper::Concise;
 use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
-use DBIx::Class::Schema::Loader::Utils 'split_name';
+use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed/;
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
@@ -1822,12 +1821,7 @@ sub _make_pod {
 			     $s = !defined $s         ? 'undef'          :
                                   length($s) == 0     ? '(empty string)' :
                                   ref($s) eq 'SCALAR' ? $$s :
-                                  ref($s)             ? do {
-                                                        my $dd = Dumper;
-                                                        $dd->Indent(0);
-                                                        $dd->Values([$s]);
-                                                        $dd->Dump;
-                                                      } :
+                                  ref($s)             ? dumper_squashed $s :
                                   looks_like_number($s) ? $s :
                                                         qq{'$s'}
                                   ;

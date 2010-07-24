@@ -36,7 +36,6 @@ requires 'Class::Unload'               => 0;
 requires 'File::Slurp'                 => '9999.13';
 requires 'List::MoreUtils'             => 0;
 requires 'namespace::clean'            => 0;
-requires 'Data::Dumper::Concise'       => '2.002';
 requires 'Scope::Guard'                => 0;
 requires 'List::MoreUtils'             => 0;
 requires 'Exporter'                    => '5.63';
