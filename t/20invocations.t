@@ -1,5 +1,6 @@
 use strict;
 use Test::More;
+use DBIx::Class::Schema::Loader::Optional::Dependencies;
 use lib qw(t/lib);
 use make_dbictest_db;
 
@@ -124,15 +125,18 @@ my @invocations = (
         );
         DBICTest::Schema::14->clone;
     },
-    'moose' => sub {
-        package DBICTest::Schema::8;
-        use base qw/ DBIx::Class::Schema::Loader /;
-        __PACKAGE__->naming('current');
-        __PACKAGE__->connect(
-            $make_dbictest_db::dsn,
-            { loader_options => { use_moose => 1 } }
-        );
-    },
+    (DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose') ?
+        ('moose' => sub {
+            package DBICTest::Schema::8;
+            use base qw/ DBIx::Class::Schema::Loader /;
+            __PACKAGE__->naming('current');
+            __PACKAGE__->connect(
+                $make_dbictest_db::dsn,
+                { loader_options => { use_moose =>  1 } }
+            );
+        })
+        : ()
+    ),
 );
 
 # 4 tests per k/v pair

@@ -164,7 +164,7 @@ sub _default_relationship_attrs { +{
     belongs_to => {
         on_delete => 'CASCADE',
         on_update => 'CASCADE',
-#        is_deferrable => 1,
+        is_deferrable => 1,
     },
 } }
 

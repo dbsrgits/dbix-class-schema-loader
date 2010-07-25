@@ -2,8 +2,9 @@ use strict;
 use Test::More;
 use File::Path;
 use IPC::Open3;
-use Data::Dumper::Concise;
+use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use DBIx::Class::Schema::Loader ();
+use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use File::Temp 'tempfile';
 use lib qw(t/lib);
 
@@ -41,7 +42,7 @@ sub dump_dbicdump {
     my @cmd = ($^X, qw(./script/dbicdump));
 
     while (my ($opt, $val) = each(%{ $tdata{options} })) {
-        $val = Dumper($val) if ref $val;
+        $val = dumper_squashed $val if ref $val;
         push @cmd, '-o', "$opt=$val";
     }
 
@@ -232,8 +233,7 @@ unlink $config_file;
 
 rmtree($DUMP_PATH, 1, 1);
 
-eval "use Moose; use MooseX::NonMoose; use namespace::autoclean;";
-if (not $@) {
+if (DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')) {
 
 # first dump a fresh use_moose=1 schema
 

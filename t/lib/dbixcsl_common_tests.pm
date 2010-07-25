@@ -12,8 +12,10 @@ use DBI;
 use Digest::MD5;
 use File::Find 'find';
 use Class::Unload ();
-use Data::Dumper::Concise;
+use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use List::MoreUtils 'apply';
+use DBIx::Class::Schema::Loader::Optional::Dependencies ();
+use namespace::clean;
 
 my $DUMP_DIR = './t/_common_dump';
 rmtree $DUMP_DIR;
@@ -155,7 +157,12 @@ sub drop_extra_tables_only {
     my $self = shift;
 
     my $dbh = $self->dbconnect(0);
-    $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+
+    {
+        local $SIG{__WARN__} = sub {}; # postgres notices
+        $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+    }
+
     $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
     foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
@@ -175,12 +182,7 @@ sub setup_schema {
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
-    eval <<'EOF';
-require Moose;
-require MooseX::NonMoose;
-require namespace::autoclean;
-EOF
-    my $use_moose = $@ ? 0 : 1;
+    my $use_moose = DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose');
 
     my %loader_opts = (
         constraint              =>
@@ -631,8 +633,8 @@ sub test_schema {
         is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update}, 'CASCADE',
             "on_update => 'CASCADE' on belongs_to by default";
 
-        ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable}),
-            "is_deferrable => 1 not on belongs_to by default");
+        is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable}, 1,
+            "is_deferrable => 1 on belongs_to by default";
 
         ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete}),
             'belongs_to does not have cascade_delete');
@@ -1009,19 +1011,9 @@ sub test_data_types {
                 my %info = %{ $rsrc->column_info($col_name) };
                 delete @info{qw/is_nullable timezone locale sequence/};
 
-                my $text_col_def = do {
-                    my $dd = Dumper;
-                    $dd->Indent(0);
-                    $dd->Values([\%info]);
-                    $dd->Dump;
-                };
+                my $text_col_def = dumper_squashed \%info;
 
-                my $text_expected_info = do {
-                    my $dd = Dumper;
-                    $dd->Indent(0);
-                    $dd->Values([$expected_info]);
-                    $dd->Dump;
-                };
+                my $text_expected_info = dumper_squashed $expected_info;
 
                 is_deeply \%info, $expected_info,
                     "test column $col_name has definition: $text_col_def expecting: $text_expected_info";
@@ -1715,7 +1707,11 @@ sub drop_tables {
 
     my $dbh = $self->dbconnect(0);
 
-    $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+    {
+        local $SIG{__WARN__} = sub {}; # postgres notices
+        $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+    }
+
     $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
     my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};

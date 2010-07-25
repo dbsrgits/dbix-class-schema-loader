@@ -113,8 +113,14 @@ my $tester = dbixcsl_common_tests->new(
     extra       => {
         create => [
             q{
+                CREATE SCHEMA dbicsl_test
+            },
+            q{
+                CREATE SEQUENCE dbicsl_test.myseq
+            },
+            q{
                 CREATE TABLE pg_loader_test1 (
-                    id SERIAL NOT NULL PRIMARY KEY,
+                    id INTEGER NOT NULL DEFAULT nextval('dbicsl_test.myseq') PRIMARY KEY,
                     value VARCHAR(100)
                 )
             },
@@ -134,10 +140,17 @@ my $tester = dbixcsl_common_tests->new(
                 COMMENT ON TABLE pg_loader_test2 IS 'very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long comment'
             },
         ],
+        pre_drop_ddl => [
+            'DROP SCHEMA dbicsl_test CASCADE',
+        ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 3,
+        count => 4,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
+
+            is $schema->source($monikers->{pg_loader_test1})->column_info('id')->{sequence},
+                'dbicsl_test.myseq',
+                'qualified sequence detected';
 
             my $class    = $classes->{pg_loader_test1};
             my $filename = $schema->_loader->_get_dump_filename($class);

@@ -16,11 +16,12 @@ use Lingua::EN::Inflect::Phrase qw//;
 use File::Temp qw//;
 use Class::Unload;
 use Class::Inspector ();
-use Data::Dumper::Concise;
 use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
-use DBIx::Class::Schema::Loader::Utils 'split_name';
-require DBIx::Class;
+use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed/;
+use DBIx::Class::Schema::Loader::Optional::Dependencies ();
+use Try::Tiny;
+use DBIx::Class ();
 use namespace::clean;
 
 our $VERSION = '0.08000';
@@ -263,10 +264,10 @@ relationship types override those set in 'all'.
 For example:
 
   relationship_attrs => {
-    belongs_to => { is_deferrable => 1 },
+    belongs_to => { is_deferrable => 0 },
   },
 
-use this to make your foreign key constraints DEFERRABLE.
+use this to turn off DEFERRABLE on your foreign key constraints.
 
 =head2 debug
 
@@ -549,14 +550,10 @@ sub new {
     $self->_validate_class_args;
 
     if ($self->use_moose) {
-        eval <<'EOF';
-require Moose;
-require MooseX::NonMoose;
-require namespace::autoclean;
-EOF
-        if ($@) {
-            die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\n",
-                "Moose, MooseX::NonMoose and namespace::autoclean";
+        if (not DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')) {
+            die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\nYou are missing: %s.\n",
+                "Moose, MooseX::NonMoose and namespace::autoclean",
+                DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose');
         }
     }
 
@@ -1121,7 +1118,7 @@ sub _reload_classes {
             local *Class::C3::reinitialize = sub {};
             use warnings;
 
-            if ($class->can('meta') && (ref $class->meta)->isa('Moose::Meta::Class')) {
+            if ($class->can('meta') && try { $class->meta->isa('Moose::Meta::Class') }) {
                 $class->meta->make_mutable;
             }
             Class::Unload->unload($class) if $unload;
@@ -1132,7 +1129,7 @@ sub _reload_classes {
                 && ($resultset_class ne 'DBIx::Class::ResultSet')
             ) {
                 my $has_file = Class::Inspector->loaded_filename($resultset_class);
-                if ($resultset_class->can('meta') && (ref $resultset_class->meta)->isa('Moose::Meta::Class')) {
+                if ($resultset_class->can('meta') && try { $resultset_class->meta->isa('Moose::Meta::Class') }) {
                     $resultset_class->meta->make_mutable;
                 }
                 Class::Unload->unload($resultset_class) if $unload;
@@ -1838,12 +1835,7 @@ sub _make_pod {
 			     $s = !defined $s         ? 'undef'          :
                                   length($s) == 0     ? '(empty string)' :
                                   ref($s) eq 'SCALAR' ? $$s :
-                                  ref($s)             ? do {
-                                                        my $dd = Dumper;
-                                                        $dd->Indent(0);
-                                                        $dd->Values([$s]);
-                                                        $dd->Dump;
-                                                      } :
+                                  ref($s)             ? dumper_squashed $s :
                                   looks_like_number($s) ? $s :
                                                         qq{'$s'}
                                   ;
