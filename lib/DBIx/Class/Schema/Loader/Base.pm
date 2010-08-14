@@ -981,38 +981,18 @@ sub _relbuilder {
     if ($self->naming->{relationships} eq 'v4') {
         require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
         return $self->{relbuilder} ||=
-            DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040->new(
-                $self->schema,
-                $self->inflect_plural,
-                $self->inflect_singular,
-                $self->relationship_attrs,
-            );
+            DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040->new( $self );
     }
     elsif ($self->naming->{relationships} eq 'v5') {
         require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05;
-        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05->new (
-             $self->schema,
-             $self->inflect_plural,
-             $self->inflect_singular,
-             $self->relationship_attrs,
-        );
+        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05->new( $self );
     }
     elsif ($self->naming->{relationships} eq 'v6') {
         require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06;
-        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06->new (
-             $self->schema,
-             $self->inflect_plural,
-             $self->inflect_singular,
-             $self->relationship_attrs,
-        );
+        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06->new( $self );
     }
 
-    return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new (
-             $self->schema,
-             $self->inflect_plural,
-             $self->inflect_singular,
-             $self->relationship_attrs,
-    );
+    return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new ( $self );
 }
 
 sub _load_tables {
