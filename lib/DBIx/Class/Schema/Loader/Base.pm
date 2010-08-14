@@ -973,26 +973,26 @@ sub rescan {
 }
 
 sub _relbuilder {
-    no warnings 'uninitialized';
     my ($self) = @_;
 
     return if $self->{skip_relationships};
 
-    if ($self->naming->{relationships} eq 'v4') {
-        require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
-        return $self->{relbuilder} ||=
-            DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040->new( $self );
-    }
-    elsif ($self->naming->{relationships} eq 'v5') {
-        require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05;
-        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05->new( $self );
-    }
-    elsif ($self->naming->{relationships} eq 'v6') {
-        require DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06;
-        return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06->new( $self );
-    }
+    return $self->{relbuilder} ||= do {
 
-    return $self->{relbuilder} ||= DBIx::Class::Schema::Loader::RelBuilder->new ( $self );
+        no warnings 'uninitialized';
+        my $relbuilder_suff =
+            {qw{
+                v4  ::Compat::v0_040
+                v5  ::Compat::v0_05
+                v6  ::Compat::v0_06
+            }}
+            ->{ $self->naming->{relationships}};
+
+        my $relbuilder_class = 'DBIx::Class::Schema::Loader::RelBuilder'.$relbuilder_suff;
+        eval "require $relbuilder_class"; die $@ if $@;
+        $relbuilder_class->new( $self );
+
+    };
 }
 
 sub _load_tables {

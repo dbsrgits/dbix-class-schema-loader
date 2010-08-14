@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Class::C3;
 use Carp::Clan qw/^DBIx::Class/;
+use Scalar::Util ();
+
 use Lingua::EN::Inflect::Phrase ();
 use DBIx::Class::Schema::Loader::Utils 'split_name';
 
