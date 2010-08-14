@@ -94,7 +94,12 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (181 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    my $column_accessor_map_tests = 5;
+    my $num_rescans = 5;
+    $num_rescans-- if $self->{vendor} eq 'sybase';
+
+    plan tests => @connect_info *
+        (182 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -203,6 +208,7 @@ sub setup_schema {
         datetime_locale         => 'de_DE',
         use_moose               => $ENV{SCHEMA_LOADER_TESTS_USE_MOOSE},
         col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
+        column_accessor_map     => \&test_column_accessor_map,
         %{ $self->{loader_options} || {} },
     );
 
@@ -593,6 +599,9 @@ sub test_schema {
         my $obj3 = $rsobj3->find(1);
         my $rs_rel4 = $obj3->search_related('loader_test4zes');
         isa_ok( $rs_rel4->first, $class4);
+
+        is( $class4->column_info('crumb_crisp_coating')->{accessor},  'trivet',
+            'column_accessor_map is being run' );
 
         # check rel naming with prepositions
         ok ($rsobj4->result_source->has_relationship('loader_test5s_to'),
@@ -1238,6 +1247,7 @@ sub create {
                 id INTEGER NOT NULL PRIMARY KEY,
                 fkid INTEGER NOT NULL,
                 dat VARCHAR(32),
+                crumb_crisp_coating VARCHAR(32) $self->{null},
                 FOREIGN KEY( fkid ) REFERENCES loader_test3 (id)
             ) $self->{innodb}
         },
@@ -1857,6 +1867,20 @@ sub rescan_without_warnings {
 
     local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ RESCAN_WARNINGS };
     return $conn->rescan;
+}
+
+sub test_column_accessor_map {
+    my ( $column_name, $default_name, $context ) = @_;
+    if( $column_name eq 'crumb_crisp_coating' ) {
+
+        is( $default_name, 'crumb_crisp_coating', 'column_accessor_map was passed the default name' );
+        ok( $context->{$_}, "column_accessor_map func was passed the $_" )
+            for qw( table_name table_class table_moniker schema_class );
+
+        return 'trivet';
+    } else {
+        return $default_name;
+    }
 }
 
 sub DESTROY {

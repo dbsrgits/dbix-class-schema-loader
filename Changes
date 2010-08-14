@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - added column_accessor_map option
         - Preserve relationship names when redumping and another FK is added
           (RT#62424)
         - Remove resultset_components as ResultSetManager is deprecated

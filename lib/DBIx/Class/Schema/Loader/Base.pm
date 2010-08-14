@@ -39,6 +39,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 skip_relationships
                                 skip_load_external
                                 moniker_map
+                                column_accessor_map
                                 custom_column_info
                                 inflect_singular
                                 inflect_plural
@@ -304,6 +305,22 @@ together. Examples:
     luser-opts       | LuserOpt
     stations_visited | StationVisited
     routeChange      | RouteChange
+
+=head2 column_accessor_map
+
+Same as moniker_map, but for column accessor names.  If a coderef is
+passed, the code is called with arguments of
+
+   the name of the column in the underlying database,
+   default accessor name that DBICSL would ordinarily give this column,
+   {
+      table_class     => name of the DBIC class we are building,
+      table_moniker   => calculated moniker for this table (after moniker_map if present),
+      table_name      => name of the database table,
+      full_table_name => schema-qualified name of the database table (RDBMS specific),
+      schema_class    => name of the schema class we are building,
+      column_info     => hashref of column info (data_type, is_nullable, etc),
+    }
 
 =head2 inflect_plural
 
@@ -1582,12 +1599,57 @@ EOF
             }
         }
     }
+
+    # FIXME: it appears that this method should also check that the
+    # default accessor (i.e. the column name itself) is not colliding
+    # with any of these methods
 }
 
-sub _make_column_accessor_name {
-    my ($self, $column_name) = @_;
+# use the same logic to run moniker_map, column_accessor_map, and
+# relationship_name_map
+sub _run_user_map {
+    my ( $self, $map, $default_code, $ident, @extra ) = @_;
+
+    my $default_ident = $default_code->( $ident, @extra );
+    my $new_ident;
+    if( $map && ref $map eq 'HASH' ) {
+        $new_ident = $map->{ $ident };
+    }
+    elsif( $map && ref $map eq 'CODE' ) {
+        $new_ident = $map->( $ident, $default_ident, @extra );
+    }
+
+    $new_ident ||= $default_ident;
+
+    return $new_ident;
+}
+
+sub _default_column_accessor_name {
+    my ( $self, $column_name ) = @_;
+
+    my $accessor_name = $column_name;
+    $accessor_name =~ s/\W+/_/g;
+
+    # for backcompat
+    if( ($self->naming->{column_accessors}||'') =~ /(\d+)/ && $1 < 7 ) {
+        # older naming just lc'd the col accessor and that's all.
+        return lc $accessor_name;
+    }
 
     return join '_', map lc, split_name $column_name;
+
+}
+sub _make_column_accessor_name {
+    my ($self, $column_name, $column_context_info ) = @_;
+
+    my $accessor = $self->_run_user_map(
+        $self->column_accessor_map,
+        sub { $self->_default_column_accessor_name( shift ) },
+        $column_name,
+        $column_context_info,
+       );
+
+    return $accessor;
 }
 
 # Set up metadata (cols, pks, etc)
@@ -1614,33 +1676,32 @@ sub _setup_src_meta {
 
     $self->_dbic_stmt($table_class, 'table', $full_table_name);
 
-    my $cols = $self->_table_columns($table);
+    my $cols     = $self->_table_columns($table);
     my $col_info = $self->__columns_info_for($table);
 
+    ### generate all the column accessor names
     while (my ($col, $info) = each %$col_info) {
-        if ($col =~ /\W/) {
-            ($info->{accessor} = $col) =~ s/\W+/_/g;
-        }
-    }
+        # hashref of other info that could be used by
+        # user-defined accessor map functions
+        my $context = {
+            table_class     => $table_class,
+            table_moniker   => $table_moniker,
+            table_name      => $table_name,
+            full_table_name => $full_table_name,
+            schema_class    => $schema_class,
+            column_info     => $info,
+        };
 
-    if ($self->preserve_case) {
-        while (my ($col, $info) = each %$col_info) {
-            if ($col ne lc($col)) {
-                if ((not exists $self->naming->{column_accessors}) || (($self->naming->{column_accessors} =~ /(\d+)/)[0] >= 7)) {
-                    $info->{accessor} = $self->_make_column_accessor_name($info->{accessor} || $col);
-                }
-                else {
-                    $info->{accessor} = lc($info->{accessor} || $col);
-                }
-            }
-        }
-    }
-    else {
-        # XXX this needs to go away
-        $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
+        $info->{accessor} = $self->_make_column_accessor_name( $col, $context );
     }
 
     $self->_resolve_col_accessor_collisions($full_table_name, $col_info);
+
+    # prune any redundant accessor names
+    while (my ($col, $info) = each %$col_info) {
+        no warnings 'uninitialized';
+        delete $info->{accessor} if $info->{accessor} eq $col;
+    }
 
     my $fks = $self->_table_fk_info($table);
 
@@ -1735,18 +1796,11 @@ sub _default_table2moniker {
 sub _table2moniker {
     my ( $self, $table ) = @_;
 
-    my $moniker;
-
-    if( ref $self->moniker_map eq 'HASH' ) {
-        $moniker = $self->moniker_map->{$table};
-    }
-    elsif( ref $self->moniker_map eq 'CODE' ) {
-        $moniker = $self->moniker_map->($table);
-    }
-
-    $moniker ||= $self->_default_table2moniker($table);
-
-    return $moniker;
+    $self->_run_user_map(
+        $self->moniker_map,
+        sub { $self->_default_table2moniker( shift ) },
+        $table
+       );
 }
 
 sub _load_relationships {
