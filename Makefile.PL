@@ -1,12 +1,13 @@
-use inc::Module::Install 0.91;
-
-require Module::Install::ReadmeFromPod;
+use warnings;
+use strict;
 
 use 5.008001;
+use inc::Module::Install 1.00;
 
 use FindBin;
 use lib "$FindBin::Bin/lib";
 
+perl_version '5.008001';
 name           'DBIx-Class-Schema-Loader';
 all_from       'lib/DBIx/Class/Schema/Loader.pm';
 
@@ -42,21 +43,24 @@ requires 'Exporter'                    => '5.63';
 requires 'Try::Tiny'                   => 0;
 
 if ($Module::Install::AUTHOR) {
-    warn "\n*** AUTHOR MODE: some optional dependencies converted to hard dependencies.\n\n";
+    eval { require Module::Install::ReadmeFromPod }
+      or die "\nYou need Module::Install::ReadmeFromPod installed to run this Makefile.PL in author mode:\n\n$@\n";
+
+    warn "\n*** AUTHOR MODE: some optional dependencies converted to hard requires.\n\n";
 
     require DBIx::Class::Schema::Loader::Optional::Dependencies;
 
     test_requires map %$_, values %{ DBIx::Class::Schema::Loader::Optional::Dependencies->req_group_list };
 
     DBIx::Class::Schema::Loader::Optional::Dependencies->_gen_pod;
+
+    readme_from( 'lib/DBIx/Class/Schema/Loader.pm' );
+    realclean_files( qw[README MANIFEST lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod] );
 }
 
 tests_recursive;
 
 install_script 'script/dbicdump';
-
-readme_from 'lib/DBIx/Class/Schema/Loader.pm';
-realclean_files qw[README MANIFEST lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod];
 
 resources 'IRC'         => 'irc://irc.perl.org/#dbix-class';
 resources 'license'     => 'http://dev.perl.org/licenses/';
