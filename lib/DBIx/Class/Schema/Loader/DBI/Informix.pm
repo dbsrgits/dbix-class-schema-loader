@@ -2,7 +2,7 @@ package DBIx::Class::Schema::Loader::DBI::Informix;
 
 use strict;
 use warnings;
-use Class::C3;
+use mro 'c3';
 use base qw/DBIx::Class::Schema::Loader::DBI/;
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'looks_like_number';

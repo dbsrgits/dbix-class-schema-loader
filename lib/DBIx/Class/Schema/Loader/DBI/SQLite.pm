@@ -8,7 +8,7 @@ use base qw/
 /;
 use Carp::Clan qw/^DBIx::Class/;
 use Text::Balanced qw( extract_bracketed );
-use Class::C3;
+use mro 'c3';
 
 our $VERSION = '0.07001';
 

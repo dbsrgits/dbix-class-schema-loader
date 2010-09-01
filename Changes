@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Switch to MRO::Compat
+
 0.07001  2010-07-24 21:28:08
         - put is_deferrable => 1 back into default attributes for belongs_to
         - fix Postgres sequence detection for qualified sequences

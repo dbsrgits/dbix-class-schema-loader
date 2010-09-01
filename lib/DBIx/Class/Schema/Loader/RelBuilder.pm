@@ -2,7 +2,7 @@ package DBIx::Class::Schema::Loader::RelBuilder;
 
 use strict;
 use warnings;
-use Class::C3;
+use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util ();
 

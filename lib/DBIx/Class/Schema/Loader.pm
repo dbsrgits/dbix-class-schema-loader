@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base qw/DBIx::Class::Schema Class::Accessor::Grouped/;
 use Carp::Clan qw/^DBIx::Class/;
-use Class::C3;
+use mro 'c3';
 use Scalar::Util qw/ weaken /;
 
 # Always remember to do all digits for the version even if they're 0

@@ -2,7 +2,7 @@ package DBIx::Class::Schema::Loader::DBI::SQLAnywhere;
 
 use strict;
 use warnings;
-use Class::C3;
+use mro 'c3';
 use base qw/
     DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
     DBIx::Class::Schema::Loader::DBI

@@ -3,7 +3,7 @@ package DBIx::Class::Schema::Loader::DBI;
 use strict;
 use warnings;
 use base qw/DBIx::Class::Schema::Loader::Base/;
-use Class::C3;
+use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 
 our $VERSION = '0.07001';

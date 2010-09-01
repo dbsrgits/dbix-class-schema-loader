@@ -3,7 +3,7 @@ package DBIx::Class::Schema::Loader::Base;
 use strict;
 use warnings;
 use base qw/Class::Accessor::Grouped Class::C3::Componentised/;
-use Class::C3;
+use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use DBIx::Class::Schema::Loader::RelBuilder;
 use Data::Dump qw/ dump /;
@@ -1081,7 +1081,7 @@ sub _reload_classes {
         
         {
             no warnings 'redefine';
-            local *Class::C3::reinitialize = sub {};
+            local *Class::C3::reinitialize = sub {};  # to speed things up, reinitialized below
             use warnings;
 
             if ($class->can('meta') && try { $class->meta->isa('Moose::Meta::Class') }) {

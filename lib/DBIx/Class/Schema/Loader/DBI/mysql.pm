@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI';
 use Carp::Clan qw/^DBIx::Class/;
-use Class::C3;
+use mro 'c3';
 
 our $VERSION = '0.07001';
 

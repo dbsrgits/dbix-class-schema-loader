@@ -19,7 +19,7 @@ DBIx::Class::Schema::Loader::DBI::Writing - Loader subclass writing guide for DB
   use warnings;
   use base 'DBIx::Class::Schema::Loader::DBI';
   use Carp::Clan qw/^DBIx::Class/;
-  use Class::C3;
+  use mro 'c3';
 
   sub _table_uniq_info {
       my ($self, $table) = @_;
