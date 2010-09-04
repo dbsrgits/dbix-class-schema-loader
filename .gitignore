@@ -10,3 +10,8 @@
 /MANIFEST
 /META.yml
 /README
+t/_dump
+t/sqlite_test
+t/sqlite_test-journal
+lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod
+
