@@ -20,9 +20,9 @@ my $reqs = {
 
   use_moose => {
     req => {
-      'Moose' => 0,
-      'MooseX::NonMoose' => 0,
-      'namespace::autoclean' => 0,
+      'Moose' => '1.12',
+      'MooseX::NonMoose' => '0.15',
+      'namespace::autoclean' => '0.09',
     },
     pod => {
       title => 'use_moose',
