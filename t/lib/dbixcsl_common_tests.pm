@@ -182,11 +182,19 @@ sub setup_schema {
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
-    my $use_moose = DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose');
+    if (
+      $ENV{SCHEMA_LOADER_TESTS_USE_MOOSE}
+        &&
+      ! DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')
+    ) {
+      die sprintf ("Missing dependencies for SCHEMA_LOADER_TESTS_USE_MOOSE: %s\n",
+        DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose')
+      );
+    }
 
     my %loader_opts = (
         constraint              =>
-	    qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)_?)?loader_?test[0-9]+(?!.*_)/i,
+          qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)_?)?loader_?test[0-9]+(?!.*_)/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
@@ -202,7 +210,7 @@ sub setup_schema {
         dump_directory          => $DUMP_DIR,
         datetime_timezone       => 'Europe/Berlin',
         datetime_locale         => 'de_DE',
-        use_moose               => $use_moose,
+        use_moose               => $ENV{SCHEMA_LOADER_TESTS_USE_MOOSE},
         %{ $self->{loader_options} || {} },
     );
 
