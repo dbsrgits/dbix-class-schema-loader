@@ -12,6 +12,7 @@ my $fn = './t/dbictest.db';
 unlink($fn);
 our $dsn = "dbi:$class:dbname=$fn";
 my $dbh = DBI->connect($dsn);
+$dbh->do ('PRAGMA SYNCHRONOUS = OFF');
 
 $dbh->do($_) for (
     q|CREATE TABLE foo (

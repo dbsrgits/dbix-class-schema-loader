@@ -13,7 +13,7 @@ my $tester = dbixcsl_common_tests->new(
     user            => '',
     password        => '',
     connect_info_opts => {
-        on_connect_do => 'PRAGMA foreign_keys = ON',
+        on_connect_do => [ 'PRAGMA foreign_keys = ON', 'PRAGMA synchronous = OFF', ]
     },
     loader_options  => { preserve_case => 1 },
     data_types  => {

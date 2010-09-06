@@ -579,6 +579,9 @@ sub dbconnect {
              AutoCommit => 1,
          }
     );
+    if ($self->{dsn} =~ /^[^:]+:SQLite:/) {
+      $dbh->do ('PRAGMA synchronous = OFF');
+    }
 
     die "Failed to connect to database: $DBI::errstr" if !$dbh;
 
