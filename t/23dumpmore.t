@@ -177,29 +177,29 @@ rmtree($DUMP_PATH, 1, 1);
 
 # test loading external content
 do_dump_test(
-    classname => 'DBICTest::Schema::13',
+    classname => 'DBICTest::Schema::_no_skip_load_external',
     warnings => [
-        qr/Dumping manual schema for DBICTest::Schema::13 to directory /,
+        qr/Dumping manual schema for DBICTest::Schema::_no_skip_load_external to directory /,
         qr/Schema dump completed/,
     ],
     regexes => {
         Foo => [
-qr/package DBICTest::Schema::13::Foo;\nour \$skip_me = "bad mojo";\n1;/
+qr/package DBICTest::Schema::_no_skip_load_external::Foo;\nour \$skip_me = "bad mojo";\n1;/
         ],
     },
 );
 
 # test skipping external content
 do_dump_test(
-    classname => 'DBICTest::Schema::14',
+    classname => 'DBICTest::Schema::_skip_load_external',
     options => { skip_load_external => 1 },
     warnings => [
-        qr/Dumping manual schema for DBICTest::Schema::14 to directory /,
+        qr/Dumping manual schema for DBICTest::Schema::_skip_load_external to directory /,
         qr/Schema dump completed/,
     ],
     neg_regexes => {
         Foo => [
-qr/package DBICTest::Schema::14::Foo;\nour \$skip_me = "bad mojo";\n1;/
+qr/package DBICTest::Schema::_skip_load_external::Foo;\nour \$skip_me = "bad mojo";\n1;/
         ],
     },
 );
@@ -216,10 +216,10 @@ EOF
 close $fh;
 
 do_dump_test(
-    classname => 'DBICTest::Schema::14',
+    classname => 'DBICTest::Schema::_skip_load_external',
     options => { config_file => $config_file },
     warnings => [
-        qr/Dumping manual schema for DBICTest::Schema::14 to directory /,
+        qr/Dumping manual schema for DBICTest::Schema::_skip_load_external to directory /,
         qr/Schema dump completed/,
     ],
     neg_regexes => {
@@ -393,7 +393,7 @@ else {
 rmtree($DUMP_PATH, 1, 1);
 
 do_dump_test(
-    classname => 'DBICTest::Schema::14',
+    classname => 'DBICTest::Schema::_skip_load_external',
     test_db_class => 'make_dbictest_db_clashing_monikers',
     error => qr/tables 'bar', 'bars' reduced to the same source moniker 'Bar'/,
 );
