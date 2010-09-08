@@ -49,6 +49,7 @@ $t->cleanup;
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
   options => {
+    use_moose => 0,
     result_base_class => 'My::ResultBaseClass',
     schema_base_class => 'My::SchemaBaseClass',
   },
@@ -101,7 +102,7 @@ $t->dump_test(
 
 $t->cleanup;
 
-# now add the Moose custom content to unapgraded schema, and make sure it is not repeated
+# check with a fresh non-moose schema that Moose custom content added to unapgraded schema, and make sure it is not repeated
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
   options => {
@@ -163,5 +164,20 @@ for my $supply_use_moose (1, 0) {
     },
   );
 }
+
+# check that a moose schema can *not* be downgraded
+
+$t->dump_test (
+  classname => 'DBICTest::DumpMore::1',
+  options => {
+    use_moose => 0,
+    result_base_class => 'My::ResultBaseClass',
+    schema_base_class => 'My::SchemaBaseClass',
+  },
+  warnings => [
+    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+  ],
+  error => qr/\QIt is not possible to "downgrade" a schema that was loaded with use_moose => 1\E/,
+);
 
 done_testing;

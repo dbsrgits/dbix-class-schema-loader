@@ -1316,6 +1316,10 @@ sub _write_classfile {
             $custom_content .= $self->_default_custom_content;
         }
     }
+    elsif (defined $self->use_moose && $old_gen) {
+        croak 'It is not possible to "downgrade" a schema that was loaded with use_moose => 1 to use_moose => 0, due to differing custom content'
+            if $old_gen =~ /use \s+ MooseX?\b/x;
+    }
 
     $custom_content = $self->_rewrite_old_classnames($custom_content);
 
