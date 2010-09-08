@@ -1167,6 +1167,8 @@ sub create {
 
     $self->{_created} = 1;
 
+    $self->drop_tables;
+
     my $make_auto_inc = $self->{auto_inc_cb} || sub {};
     @statements = (
         qq{
@@ -1603,7 +1605,6 @@ sub create {
     );
 
     $self->drop_tables;
-    $self->drop_tables; # twice for good measure
 
     my $dbh = $self->dbconnect(1);
 
@@ -1644,6 +1645,7 @@ sub drop_tables {
     my $self = shift;
 
     my @tables = qw/
+        loader_test1
         loader_test1s
         loader_test2
         LOADER_test23
@@ -1713,18 +1715,21 @@ sub drop_tables {
     my $drop_fk =
         q{ALTER TABLE loader_test10 DROP CONSTRAINT loader_test11_fk};
 
-    my $dbh = $self->dbconnect(0);
+    # For some reason some tests do this twice (I guess dependency issues?)
+    # do it twice for all drops
+    for (1,2) {
+      my $dbh = $self->dbconnect(0);
 
-    {
+      {
         local $SIG{__WARN__} = sub {}; # postgres notices
         $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
-    }
+      }
 
-    $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
+      $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
-    my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
+      my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
 
-    unless($self->{skip_rels}) {
+      unless($self->{skip_rels}) {
         $dbh->do("DROP TABLE $_") for (@tables_reltests);
         $dbh->do("DROP TABLE $_") for (@tables_reltests);
         if($self->{vendor} =~ /mysql/i) {
@@ -1742,24 +1747,20 @@ sub drop_tables {
         unless($self->{no_implicit_rels}) {
             $dbh->do("DROP TABLE $_") for (@tables_implicit_rels);
         }
-    }
-    $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
-    $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
+      }
+      $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
+      $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
 
-    foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
+      foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
         $dbh->do("DROP TABLE $data_type_table");
+      }
+
+      my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1);
+
+      $dbh->do("DROP TABLE ${oqt}${_}${cqt}") for @tables_preserve_case_tests;
+
+      $dbh->disconnect;
     }
-
-    my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1);
-
-    $dbh->do("DROP TABLE ${oqt}${_}${cqt}") for @tables_preserve_case_tests;
-
-    $dbh->disconnect;
-
-# fixup for Firebird
-    $dbh = $self->dbconnect(0);
-    $dbh->do('DROP TABLE loader_test2');
-    $dbh->disconnect;
 }
 
 sub _custom_column_info {
@@ -1882,8 +1883,8 @@ sub setup_data_type_tests {
 sub DESTROY {
     my $self = shift;
     unless ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
-	$self->drop_tables if $self->{_created};
-	rmtree $DUMP_DIR
+      $self->drop_tables if $self->{_created};
+      rmtree $DUMP_DIR
     }
 }
 
