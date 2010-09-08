@@ -80,7 +80,6 @@ resources 'license'     => 'http://dev.perl.org/licenses/';
 resources 'repository'  => 'git://git.shadowcat.co.uk/dbsrgits/DBIx-Class-Schema-Loader.git';
 resources 'MailingList' => 'http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/dbix-class';
 
-auto_provides;
 auto_install;
 WriteAll;
 
