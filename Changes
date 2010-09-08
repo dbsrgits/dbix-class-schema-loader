@@ -4,6 +4,8 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Fix oracle common tests failure / lc(undef) warnings
         - Bump Moose/Moosex::NonMoose optional dependencies to fixed-up
           versions
+        - Fix mssql common tests failures with MSSQL 2005 (skip test of
+          datatypes found only on MSSQL 2008)
 
 0.07001  2010-07-24 21:28:08
         - put is_deferrable => 1 back into default attributes for belongs_to

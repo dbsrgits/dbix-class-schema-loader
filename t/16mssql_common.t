@@ -10,34 +10,76 @@ BEGIN {
   }
 }
 
+my ($dsns, $common_version);
+for (qw/MSSQL MSSQL_ODBC/) {
+  next unless $ENV{"DBICTEST_${_}_DSN"};
+
+  $dsns->{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
+  $dsns->{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
+  $dsns->{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
+
+  require DBI;
+  my $dbh = DBI->connect (@{$dsns->{$_}}{qw/dsn user password/}, { RaiseError => 1, PrintError => 0} );
+  my $srv_ver = eval {
+    $dbh->get_info(18)
+      ||
+    $dbh->selectrow_hashref('master.dbo.xp_msver ProductVersion')->{Character_Value}
+  } || 0;
+
+  my ($maj_srv_ver) = $srv_ver =~ /^(\d+)/;
+
+  if (! defined $common_version or $common_version > $maj_srv_ver ) {
+    $common_version = $maj_srv_ver;
+  }
+}
+
+plan skip_all => 'You need to set the DBICTEST_MSSQL_DSN, _USER and _PASS and/or the DBICTEST_MSSQL_ODBC_DSN, _USER and _PASS environment variables'
+  unless $dsns;
+
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
-my $dbd_sybase_dsn      = $ENV{DBICTEST_MSSQL_DSN} || '';
-my $dbd_sybase_user     = $ENV{DBICTEST_MSSQL_USER} || '';
-my $dbd_sybase_password = $ENV{DBICTEST_MSSQL_PASS} || '';
+my $mssql_2008_new_data_types = {
+  date     => { data_type => 'date' },
+  time     => { data_type => 'time' },
+  'time(0)'=> { data_type => 'time', size => 0 },
+  'time(1)'=> { data_type => 'time', size => 1 },
+  'time(2)'=> { data_type => 'time', size => 2 },
+  'time(3)'=> { data_type => 'time', size => 3 },
+  'time(4)'=> { data_type => 'time', size => 4 },
+  'time(5)'=> { data_type => 'time', size => 5 },
+  'time(6)'=> { data_type => 'time', size => 6 },
+  'time(7)'=> { data_type => 'time' },
+  datetimeoffset => { data_type => 'datetimeoffset' },
+  'datetimeoffset(0)' => { data_type => 'datetimeoffset', size => 0 },
+  'datetimeoffset(1)' => { data_type => 'datetimeoffset', size => 1 },
+  'datetimeoffset(2)' => { data_type => 'datetimeoffset', size => 2 },
+  'datetimeoffset(3)' => { data_type => 'datetimeoffset', size => 3 },
+  'datetimeoffset(4)' => { data_type => 'datetimeoffset', size => 4 },
+  'datetimeoffset(5)' => { data_type => 'datetimeoffset', size => 5 },
+  'datetimeoffset(6)' => { data_type => 'datetimeoffset', size => 6 },
+  'datetimeoffset(7)' => { data_type => 'datetimeoffset' },
+  datetime2      => { data_type => 'datetime2' },
+  'datetime2(0)' => { data_type => 'datetime2', size => 0 },
+  'datetime2(1)' => { data_type => 'datetime2', size => 1 },
+  'datetime2(2)' => { data_type => 'datetime2', size => 2 },
+  'datetime2(3)' => { data_type => 'datetime2', size => 3 },
+  'datetime2(4)' => { data_type => 'datetime2', size => 4 },
+  'datetime2(5)' => { data_type => 'datetime2', size => 5 },
+  'datetime2(6)' => { data_type => 'datetime2', size => 6 },
+  'datetime2(7)' => { data_type => 'datetime2' },
 
-my $odbc_dsn      = $ENV{DBICTEST_MSSQL_ODBC_DSN} || '';
-my $odbc_user     = $ENV{DBICTEST_MSSQL_ODBC_USER} || '';
-my $odbc_password = $ENV{DBICTEST_MSSQL_ODBC_PASS} || '';
+  hierarchyid      => { data_type => 'hierarchyid' },
+};
 
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'mssql',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
     default_function_def => 'DATETIME DEFAULT getdate()',
-    connect_info => [ ($dbd_sybase_dsn ? {
-            dsn         => $dbd_sybase_dsn,
-            user        => $dbd_sybase_user,
-            password    => $dbd_sybase_password,
-        } : ()),
-        ($odbc_dsn ? {
-            dsn         => $odbc_dsn,
-            user        => $odbc_user,
-            password    => $odbc_password,
-        } : ()),
-    ],
+    connect_info => [values %$dsns],
     preserve_case_mode_is_exclusive => 1,
     quote_char => [ qw/[ ]/ ],
+    basic_date_datatype => ($common_version >= 10) ? 'DATE' : 'SMALLDATETIME',
     data_types => {
         # http://msdn.microsoft.com/en-us/library/ms187752.aspx
 
@@ -67,40 +109,14 @@ my $tester = dbixcsl_common_tests->new(
         dec            => { data_type => 'decimal' },
 
         # datetime types
-        date     => { data_type => 'date' },
         datetime => { data_type => 'datetime' },
         # test rewriting getdate() to current_timestamp
         'datetime default getdate()'
                  => { data_type => 'datetime', default_value => \'current_timestamp',
                       original => { default_value => \'getdate()' } },
         smalldatetime  => { data_type => 'smalldatetime' },
-        time     => { data_type => 'time' },
-        'time(0)'=> { data_type => 'time', size => 0 },
-        'time(1)'=> { data_type => 'time', size => 1 },
-        'time(2)'=> { data_type => 'time', size => 2 },
-        'time(3)'=> { data_type => 'time', size => 3 },
-        'time(4)'=> { data_type => 'time', size => 4 },
-        'time(5)'=> { data_type => 'time', size => 5 },
-        'time(6)'=> { data_type => 'time', size => 6 },
-        'time(7)'=> { data_type => 'time' },
-        datetimeoffset => { data_type => 'datetimeoffset' },
-        'datetimeoffset(0)' => { data_type => 'datetimeoffset', size => 0 },
-        'datetimeoffset(1)' => { data_type => 'datetimeoffset', size => 1 },
-        'datetimeoffset(2)' => { data_type => 'datetimeoffset', size => 2 },
-        'datetimeoffset(3)' => { data_type => 'datetimeoffset', size => 3 },
-        'datetimeoffset(4)' => { data_type => 'datetimeoffset', size => 4 },
-        'datetimeoffset(5)' => { data_type => 'datetimeoffset', size => 5 },
-        'datetimeoffset(6)' => { data_type => 'datetimeoffset', size => 6 },
-        'datetimeoffset(7)' => { data_type => 'datetimeoffset' },
-        datetime2      => { data_type => 'datetime2' },
-        'datetime2(0)' => { data_type => 'datetime2', size => 0 },
-        'datetime2(1)' => { data_type => 'datetime2', size => 1 },
-        'datetime2(2)' => { data_type => 'datetime2', size => 2 },
-        'datetime2(3)' => { data_type => 'datetime2', size => 3 },
-        'datetime2(4)' => { data_type => 'datetime2', size => 4 },
-        'datetime2(5)' => { data_type => 'datetime2', size => 5 },
-        'datetime2(6)' => { data_type => 'datetime2', size => 6 },
-        'datetime2(7)' => { data_type => 'datetime2' },
+
+        ($common_version >= 10) ? %$mssql_2008_new_data_types : (),
 
         # string types
         char           => { data_type => 'char', size => 1 },
@@ -129,7 +145,6 @@ my $tester = dbixcsl_common_tests->new(
         timestamp        => { data_type => 'timestamp', inflate_datetime => 0 },
         rowversion       => { data_type => 'rowversion' },
         uniqueidentifier => { data_type => 'uniqueidentifier' },
-        hierarchyid      => { data_type => 'hierarchyid' },
         sql_variant      => { data_type => 'sql_variant' },
         xml              => { data_type => 'xml' },
     },
@@ -257,10 +272,6 @@ my $tester = dbixcsl_common_tests->new(
     },
 );
 
-if(not ($dbd_sybase_dsn || $odbc_dsn)) {
-    $tester->skip_tests('You need to set the DBICTEST_MSSQL_DSN, _USER and _PASS and/or the DBICTEST_MSSQL_ODBC_DSN, _USER and _PASS environment variables');
-}
-else {
-    $tester->run_tests();
-}
+$tester->run_tests();
+
 # vim:et sts=4 sw=4 tw=0:

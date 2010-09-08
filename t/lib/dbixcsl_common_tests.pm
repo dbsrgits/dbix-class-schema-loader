@@ -44,7 +44,7 @@ sub new {
     # Optional extra tables and tests
     $self->{extra} ||= {};
 
-    $self->{date_datatype} ||= 'DATE';
+    $self->{basic_date_datatype} ||= 'DATE';
 
     # Not all DBS do SQL-standard CURRENT_TIMESTAMP
     $self->{default_function} ||= "current_timestamp";
@@ -1229,7 +1229,7 @@ sub create {
         qq{
             CREATE TABLE loader_test36 (
                 id INTEGER NOT NULL PRIMARY KEY,
-                a_date $self->{date_datatype},
+                a_date $self->{basic_date_datatype},
                 b_char_as_data VARCHAR(100),
                 c_char_as_data VARCHAR(100)
             ) $self->{innodb}
