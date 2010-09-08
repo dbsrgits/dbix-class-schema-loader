@@ -51,6 +51,7 @@ sub _dump_directly {
         $schema_class->connect(_get_dsn(\%tdata));
     };
     my $err = $@;
+
     $schema_class->storage->disconnect if !$err && $schema_class->storage;
     undef *{$schema_class};
 
@@ -63,7 +64,7 @@ sub _dump_dbicdump {
     my %tdata = @_;
 
     # use $^X so we execute ./script/dbicdump with the same perl binary that the tests were executed with
-    my @cmd = ($^X, qw(./script/dbicdump));
+    my @cmd = ($^X, qw(script/dbicdump));
 
     while (my ($opt, $val) = each(%{ $tdata{options} })) {
         $val = dumper_squashed $val if ref $val;
@@ -82,17 +83,12 @@ sub _dump_dbicdump {
     my @out = <$out>;
     waitpid($pid, 0);
 
-    my ($error, @warns);
-
     if ($? >> 8 != 0) {
-        $error = $out[0];
+        my $error = pop @out;
         _check_error($error, $tdata{error});
     }
-    else {
-        @warns = @out;
-    }
 
-    return @warns;
+    return @out;
 }
 
 sub _get_dsn {
