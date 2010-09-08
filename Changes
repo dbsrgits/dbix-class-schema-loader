@@ -6,6 +6,8 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           versions
         - Fix mssql common tests failures with MSSQL 2005 (skip test of
           datatypes found only on MSSQL 2008)
+        - Fix dangerous invocation of ->meta on classes during upgrade
+          (may be *non* moosified and contain a user-defined meta() )
 
 0.07001  2010-07-24 21:28:08
         - put is_deferrable => 1 back into default attributes for belongs_to

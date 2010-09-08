@@ -1084,8 +1084,8 @@ sub _reload_classes {
             local *Class::C3::reinitialize = sub {};  # to speed things up, reinitialized below
             use warnings;
 
-            if ($class->can('meta') && try { $class->meta->isa('Moose::Meta::Class') }) {
-                $class->meta->make_mutable;
+            if (my $mc = $self->_moose_metaclass($class)) {
+                $mc->make_mutable;
             }
             Class::Unload->unload($class) if $unload;
             my ($source, $resultset_class);
@@ -1095,8 +1095,8 @@ sub _reload_classes {
                 && ($resultset_class ne 'DBIx::Class::ResultSet')
             ) {
                 my $has_file = Class::Inspector->loaded_filename($resultset_class);
-                if ($resultset_class->can('meta') && try { $resultset_class->meta->isa('Moose::Meta::Class') }) {
-                    $resultset_class->meta->make_mutable;
+                if (my $mc = $self->_moose_metaclass($resultset_class)) {
+                    $mc->make_mutable;
                 }
                 Class::Unload->unload($resultset_class) if $unload;
                 $self->_reload_class($resultset_class) if $has_file;
@@ -1110,6 +1110,15 @@ sub _reload_classes {
     for (@to_register) {
         $self->schema->register_class(@$_);
     }
+}
+
+sub _moose_metaclass {
+  return undef unless $INC{'Class/MOP.pm'};   # if CMOP is not loaded the class could not have loaded in the 1st place
+
+  my $mc = Class::MOP::class_of($_[1])
+    or return undef;
+
+  return $mc->isa('Moose::Meta::Class') ? $mc : undef;
 }
 
 # We use this instead of ensure_class_loaded when there are package symbols we
