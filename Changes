@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Properly detect a schema loaded with use_moose on subsequent
+          reloads
         - Switch to MRO::Compat
         - Fix oracle common tests failure / lc(undef) warnings
         - Bump Moose/Moosex::NonMoose optional dependencies to fixed-up

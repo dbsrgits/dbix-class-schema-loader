@@ -52,7 +52,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema_base_class
                                 result_base_class
                                 use_moose
-				overwrite_modifications
+                                overwrite_modifications
 
                                 relationship_attrs
 
@@ -521,6 +521,11 @@ sub new {
 
     my $self = { %args };
 
+    # don't lose undef options
+    for (values %$self) {
+        $_ = 0 unless defined $_;
+    }
+
     bless $self => $class;
 
     if (my $config_file = $self->config_file) {
@@ -650,22 +655,21 @@ EOF
     my $filename = $self->_get_dump_filename($self->schema_class);
     return unless -e $filename;
 
-    open(my $fh, '<', $filename)
-        or croak "Cannot open '$filename' for reading: $!";
+    my ($old_gen, $old_md5, $old_ver, $old_ts, $old_custom) =
+      $self->_parse_generated_file($filename);
 
-    my $load_classes     = 0;
-    my $result_namespace = '';
+    return unless $old_ver;
 
-    while (<$fh>) {
-        if (/^__PACKAGE__->load_classes;/) {
-            $load_classes = 1;
-        } elsif (/result_namespace => '([^']+)'/) {
-            $result_namespace = $1;
-        } elsif (my ($real_ver) =
-                /^# Created by DBIx::Class::Schema::Loader v(\d+\.\d+)/) {
+    # determine if the existing schema was dumped with use_moose => 1
+    if (! defined $self->use_moose) {
+        $self->use_moose(1) if $old_gen =~ /^ (?!\s*\#) use \s+ Moose/xm;
+    }
 
-            if ($load_classes && (not defined $self->use_namespaces)) {
-                warn <<"EOF"  unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
+    my $load_classes = ($old_gen =~ /^__PACKAGE__->load_classes;/m) ? 1 : 0;
+    my $result_namespace = do { ($old_gen =~ /result_namespace => '([^']+)'/) ? $1 : '' };
+
+    if ($load_classes && (not defined $self->use_namespaces)) {
+        warn <<"EOF"  unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
 
 'load_classes;' static schema detected, turning off 'use_namespaces'.
 
@@ -675,39 +679,37 @@ variable to disable this warning.
 See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
 details.
 EOF
-                $self->use_namespaces(0);
-            }
-            elsif ($load_classes && $self->use_namespaces) {
-                $self->_upgrading_from_load_classes(1);
-            }
-            elsif ((not $load_classes) && defined $self->use_namespaces
-                                       && (not $self->use_namespaces)) {
-                $self->_downgrading_to_load_classes(
-                    $result_namespace || 'Result'
-                );
-            }
-            elsif ((not defined $self->use_namespaces)
-                   || $self->use_namespaces) {
-                if (not $self->result_namespace) {
-                    $self->result_namespace($result_namespace || 'Result');
-                }
-                elsif ($result_namespace ne $self->result_namespace) {
-                    $self->_rewriting_result_namespace(
-                        $result_namespace || 'Result'
-                    );
-                }
-            }
+        $self->use_namespaces(0);
+    }
+    elsif ($load_classes && $self->use_namespaces) {
+        $self->_upgrading_from_load_classes(1);
+    }
+    elsif ((not $load_classes) && defined $self->use_namespaces && ! $self->use_namespaces) {
+        $self->_downgrading_to_load_classes(
+            $result_namespace || 'Result'
+        );
+    }
+    elsif ((not defined $self->use_namespaces) || $self->use_namespaces) {
+        if (not $self->result_namespace) {
+            $self->result_namespace($result_namespace || 'Result');
+        }
+        elsif ($result_namespace ne $self->result_namespace) {
+            $self->_rewriting_result_namespace(
+                $result_namespace || 'Result'
+            );
+        }
+    }
 
-            # XXX when we go past .0 this will need fixing
-            my ($v) = $real_ver =~ /([1-9])/;
-            $v = "v$v";
+    # XXX when we go past .0 this will need fixing
+    my ($v) = $old_ver =~ /([1-9])/;
+    $v = "v$v";
 
-            last if $v eq $CURRENT_V || $real_ver =~ /^0\.\d\d999/;
+    return if ($v eq $CURRENT_V || $old_ver =~ /^0\.\d\d999/);
 
-            if (not %{ $self->naming }) {
-                warn <<"EOF" unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
+    if (not %{ $self->naming }) {
+        warn <<"EOF" unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
 
-Version $real_ver static schema detected, turning on backcompat mode.
+Version $old_ver static schema detected, turning on backcompat mode.
 
 Set the 'naming' attribute or the SCHEMA_LOADER_BACKCOMPAT environment variable
 to disable this warning.
@@ -717,28 +719,22 @@ See: 'naming' in perldoc DBIx::Class::Schema::Loader::Base .
 See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 if upgrading
 from version 0.04006.
 EOF
-            }
-            else {
-                $self->_upgrading_from($v);
-                last;
-            }
 
-            $self->naming->{relationships}    ||= $v;
-            $self->naming->{monikers}         ||= $v;
-            $self->naming->{column_accessors} ||= $v;
+        $self->naming->{relationships}    ||= $v;
+        $self->naming->{monikers}         ||= $v;
+        $self->naming->{column_accessors} ||= $v;
 
-            $self->schema_version_to_dump($real_ver);
-
-            last;
-        }
+        $self->schema_version_to_dump($old_ver);
     }
-    close $fh;
+    else {
+        $self->_upgrading_from($v);
+    }
 }
 
 sub _validate_class_args {
     my $self = shift;
     my $args = shift;
-    
+
     foreach my $k (@CLASS_ARGS) {
         next unless $self->$k;
 
@@ -1274,44 +1270,51 @@ sub _write_classfile {
         warn "Deleting existing file '$filename' due to "
             . "'really_erase_my_files' setting\n" unless $self->{quiet};
         unlink($filename);
-    }    
+    }
 
-    my ($custom_content, $old_md5, $old_ver, $old_ts) = $self->_get_custom_content($class, $filename);
+    my ($old_gen, $old_md5, $old_ver, $old_ts, $old_custom)
+        = $self->_parse_generated_file($filename);
+
+    if (! $old_gen && -f $filename) {
+        croak "Cannot overwrite '$filename' without 'really_erase_my_files',"
+            . " it does not appear to have been generated by Loader"
+    }
+
+    my $custom_content = $old_custom || '';
+
+    # prepend extra custom content from a *renamed* class (singularization effect)
+    if (my $renamed_class = $self->_upgrading_classes->{$class}) {
+        my $old_filename = $self->_get_dump_filename($renamed_class);
+
+        if (-f $old_filename) {
+            my $extra_custom = ($self->_parse_generated_file ($old_filename))[4];
+
+            $extra_custom =~ s/\n\n# You can replace.*\n1;\n//;
+
+            $custom_content = join ("\n", '', $extra_custom, $custom_content)
+                if $extra_custom;
+
+            unlink $old_filename;
+        }
+    }
+
+    $custom_content ||= $self->_default_custom_content;
 
     # If upgrading to use_moose=1 replace default custom content with default Moose custom content.
     # If there is already custom content, which does not have the Moose content, add it.
     if ($self->use_moose) {
-        local $self->{use_moose} = 0;
 
-        if ($custom_content eq $self->_default_custom_content) {
-            local $self->{use_moose} = 1;
+        my $non_moose_custom_content = do {
+            local $self->{use_moose} = 0;
+            $self->_default_custom_content;
+        };
 
+        if ($custom_content eq $non_moose_custom_content) {
             $custom_content = $self->_default_custom_content;
         }
-        else {
-            local $self->{use_moose} = 1;
-
-            if ($custom_content !~ /\Q@{[$self->_default_moose_custom_content]}\E/) {
-                $custom_content .= $self->_default_custom_content;
-            }
+        elsif ($custom_content !~ /\Q@{[$self->_default_moose_custom_content]}\E/) {
+            $custom_content .= $self->_default_custom_content;
         }
-    }
-
-    if (my $old_class = $self->_upgrading_classes->{$class}) {
-        my $old_filename = $self->_get_dump_filename($old_class);
-
-        my ($old_custom_content) = $self->_get_custom_content(
-            $old_class, $old_filename, 0 # do not add default comment
-        );
-
-        $old_custom_content =~ s/\n\n# You can replace.*\n1;\n//;
-
-        if ($old_custom_content) {
-            $custom_content =
-                "\n" . $old_custom_content . "\n" . $custom_content;
-        }
-
-        unlink $old_filename;
     }
 
     $custom_content = $self->_rewrite_old_classnames($custom_content);
@@ -1324,8 +1327,6 @@ sub _write_classfile {
     my $compare_to;
     if ($old_md5) {
       $compare_to = $text . $self->_sig_comment($old_ver, $old_ts);
-      
-
       if (Digest::MD5::md5_base64($compare_to) eq $old_md5) {
         return unless $self->_upgrading_from && $is_schema;
       }
@@ -1368,48 +1369,43 @@ sub _default_custom_content {
     return $default;
 }
 
-sub _get_custom_content {
-    my ($self, $class, $filename, $add_default) = @_;
+sub _parse_generated_file {
+    my ($self, $fn) = @_;
 
-    $add_default = 1 unless defined $add_default;
+    return unless -f $fn;
 
-    return ($self->_default_custom_content) if ! -f $filename;
+    open(my $fh, '<', $fn)
+        or croak "Cannot open '$fn' for reading: $!";
 
-    open(my $fh, '<', $filename)
-        or croak "Cannot open '$filename' for reading: $!";
-
-    my $mark_re = 
+    my $mark_re =
         qr{^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\n};
 
-    my $buffer = '';
-    my ($md5, $ts, $ver);
+    my ($md5, $ts, $ver, $gen);
     while(<$fh>) {
-        if(!$md5 && /$mark_re/) {
+        if(/$mark_re/) {
+            my $pre_md5 = $1;
             $md5 = $2;
-            my $line = $1;
 
-            # Pull out the previous version and timestamp
-            ($ver, $ts) = $buffer =~ m/# Created by DBIx::Class::Schema::Loader v(.*?) @ (.*?)$/s;
+            # Pull out the version and timestamp from the line above
+            ($ver, $ts) = $gen =~ m/^# Created by DBIx::Class::Schema::Loader v(.*?) @ (.*?)\Z/m;
 
-            $buffer .= $line;
-            croak "Checksum mismatch in '$filename', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n"
-                if !$self->overwrite_modifications && Digest::MD5::md5_base64($buffer) ne $md5;
+            $gen .= $pre_md5;
+            croak "Checksum mismatch in '$fn', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n"
+                if !$self->overwrite_modifications && Digest::MD5::md5_base64($gen) ne $md5;
 
-            $buffer = '';
+            last;
         }
         else {
-            $buffer .= $_;
+            $gen .= $_;
         }
     }
 
-    croak "Cannot not overwrite '$filename' without 'really_erase_my_files',"
-        . " it does not appear to have been generated by Loader"
-            if !$md5;
+    my $custom = do { local $/; <$fh> }
+        if $md5;
 
-    # Default custom content:
-    $buffer ||= $self->_default_custom_content if $add_default;
+    close ($fh);
 
-    return ($buffer, $md5, $ver, $ts);
+    return ($gen, $md5, $ver, $ts, $custom);
 }
 
 sub _use {

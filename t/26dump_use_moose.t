@@ -126,39 +126,42 @@ $t->dump_test(
 );
 
 # add Moose custom content then check it is not repeated
-
+# after that regen again *without* the use_moose flag, make
+# sure moose isn't stripped away
 $t->append_to_class('DBICTest::DumpMore::1::Foo', qq{__PACKAGE__->meta->make_immutable;\n1;\n});
 
-$t->dump_test(
-  classname => 'DBICTest::DumpMore::1',
-  options => {
-    use_moose => 1,
-    result_base_class => 'My::ResultBaseClass',
-    schema_base_class => 'My::SchemaBaseClass',
-  },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
-  regexes => {
-    schema => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
-      qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+for my $supply_use_moose (1, 0) {
+  $t->dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => {
+      $supply_use_moose ? (use_moose => 1) : (),
+      result_base_class => 'My::ResultBaseClass',
+      schema_base_class => 'My::SchemaBaseClass',
+    },
+    warnings => [
+      qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+      qr/Schema dump completed/,
     ],
-    Foo => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
-      qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
-    ],
-    Bar => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
-      qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
-    ],
-  },
-  neg_regexes => {
-    Foo => [
-      qr/\n__PACKAGE__->meta->make_immutable;\n.*\n__PACKAGE__->meta->make_immutable;/s,
-    ],
-  },
-);
+    regexes => {
+      schema => [
+        qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+        qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+      ],
+      Foo => [
+        qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+        qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+      ],
+      Bar => [
+        qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+        qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+      ],
+    },
+    neg_regexes => {
+      Foo => [
+        qr/\n__PACKAGE__->meta->make_immutable;\n.*\n__PACKAGE__->meta->make_immutable;/s,
+      ],
+    },
+  );
+}
 
 done_testing;
