@@ -3,11 +3,12 @@ use Test::More;
 use lib qw(t/backcompat/0.04006/lib);
 use File::Path;
 use make_dbictest_db;
+use dbixcsl_test_dir qw/$tdir/;
 
 plan skip_all => 'set SCHEMA_LOADER_TESTS_BACKCOMPAT to enable these tests'
     unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 
-my $dump_path = './t/_dump';
+my $dump_path = "$tdir/dump";
 
 local $SIG{__WARN__} = sub {
     warn @_ unless $_[0] =~

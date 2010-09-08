@@ -108,7 +108,7 @@ my @invocations = (
         DBICTest::Schema::_make_schema_at_explicit->clone;
     },
     'no_skip_load_external' => sub {
-        # By default we should pull in t/lib/DBICTest/Schema/13/Foo.pm $skip_me since t/lib is in @INC
+        # By default we should pull in t/lib/DBICTest/Schema/_no_skip_load_external/Foo.pm $skip_me since t/lib is in @INC
         use DBIx::Class::Schema::Loader;
         DBIx::Class::Schema::Loader::make_schema_at(
             'DBICTest::Schema::_no_skip_load_external',
@@ -118,7 +118,7 @@ my @invocations = (
         DBICTest::Schema::_no_skip_load_external->clone;
     },
     'skip_load_external' => sub {
-        # When we explicitly skip_load_external t/lib/DBICTest/Schema/14/Foo.pm should be ignored
+        # When we explicitly skip_load_external t/lib/DBICTest/Schema/_skip_load_external/Foo.pm should be ignored
         use DBIx::Class::Schema::Loader;
         DBIx::Class::Schema::Loader::make_schema_at(
             'DBICTest::Schema::_skip_load_external',

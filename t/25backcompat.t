@@ -11,8 +11,9 @@ use DBIx::Class::Schema::Loader ();
 use Lingua::EN::Inflect::Number ();
 use lib qw(t/lib);
 use make_dbictest_db_with_unique;
+use dbixcsl_test_dir qw/$tdir/;
 
-my $DUMP_DIR = './t/_common_dump';
+my $DUMP_DIR = "$tdir/common_dump";
 rmtree $DUMP_DIR;
 my $SCHEMA_CLASS = 'DBIXCSL_Test::Schema';
 

@@ -2,6 +2,7 @@ use strict;
 use Test::More;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
+use dbixcsl_test_dir qw/$tdir/;
 
 eval { require DBD::SQLite };
 my $class = $@ ? 'SQLite2' : 'SQLite';
@@ -9,7 +10,7 @@ my $class = $@ ? 'SQLite2' : 'SQLite';
 my $tester = dbixcsl_common_tests->new(
     vendor          => 'SQLite',
     auto_inc_pk     => 'INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT',
-    dsn             => "dbi:$class:dbname=./t/sqlite_test",
+    dsn             => "dbi:$class:dbname=$tdir/sqlite_test",
     user            => '',
     password        => '',
     connect_info_opts => {
@@ -158,5 +159,5 @@ my $tester = dbixcsl_common_tests->new(
 $tester->run_tests();
 
 END {
-    unlink './t/sqlite_test';
+    unlink "$tdir/sqlite_test";
 }

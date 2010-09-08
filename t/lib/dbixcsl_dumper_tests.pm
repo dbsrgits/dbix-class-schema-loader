@@ -7,7 +7,9 @@ use IPC::Open3;
 use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use DBIx::Class::Schema::Loader ();
 
-my $DUMP_PATH = 't/_dump';
+use dbixcsl_test_dir qw/$tdir/;
+
+my $DUMP_PATH = "$tdir/dump";
 sub cleanup {
     rmtree($DUMP_PATH, 1, 1);
 }

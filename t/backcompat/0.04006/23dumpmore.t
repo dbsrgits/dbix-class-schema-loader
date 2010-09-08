@@ -3,12 +3,14 @@ use Test::More;
 use lib qw(t/backcompat/0.04006/lib);
 use File::Path;
 use make_dbictest_db;
+use dbixcsl_test_dir qw/$tdir/;
+
 require DBIx::Class::Schema::Loader;
 
 plan skip_all => 'set SCHEMA_LOADER_TESTS_BACKCOMPAT to enable these tests'
     unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 
-my $DUMP_PATH = './t/_dump';
+my $DUMP_PATH = "$tdir/dump";
 
 sub do_dump_test {
     my %tdata = @_;

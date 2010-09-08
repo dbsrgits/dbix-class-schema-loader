@@ -3,8 +3,9 @@ use Test::More;
 use lib qw(t/lib);
 use File::Path;
 use make_dbictest_db;
+use dbixcsl_test_dir qw/$tdir/;
 
-my $dump_path = './t/_dump';
+my $dump_path = "$tdir/dump";
 
 local $SIG{__WARN__} = sub {
     warn $_[0] unless $_[0] =~

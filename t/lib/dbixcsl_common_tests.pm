@@ -17,7 +17,9 @@ use List::MoreUtils 'apply';
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use namespace::clean;
 
-my $DUMP_DIR = './t/_common_dump';
+use dbixcsl_test_dir qw/$tdir/;
+
+my $DUMP_DIR = "$tdir/common_dump";
 rmtree $DUMP_DIR;
 
 sub new {
@@ -928,7 +930,7 @@ sub test_schema {
         find $find_cb, $DUMP_DIR;
 
 #        system "rm -f /tmp/before_rescan/* /tmp/after_rescan/*";
-#        system "cp t/_common_dump/DBIXCSL_Test/Schema/*.pm /tmp/before_rescan";
+#        system "cp $tdir/common_dump/DBIXCSL_Test/Schema/*.pm /tmp/before_rescan";
 
         my $before_digest = $digest->b64digest;
 

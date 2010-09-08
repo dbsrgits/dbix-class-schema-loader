@@ -3,11 +3,13 @@ package make_dbictest_db_with_unique;
 use strict;
 use warnings;
 use DBI;
+use dbixcsl_test_dir qw/$tdir/;
+
 
 eval { require DBD::SQLite };
 my $class = $@ ? 'SQLite2' : 'SQLite';
 
-my $fn = './t/dbictest_with_unique.db';
+my $fn = "$tdir/dbictest_with_unique.db";
 
 unlink($fn);
 our $dsn = "dbi:$class:dbname=$fn";
