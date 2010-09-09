@@ -4,6 +4,7 @@ use strict;
 use Test::More;
 use File::Path;
 use IPC::Open3;
+use IO::Handle;
 use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use DBIx::Class::Schema::Loader ();
 
@@ -77,18 +78,21 @@ sub _dump_dbicdump {
     use Config;
     local $ENV{PERL5LIB} = join $Config{path_sep}, @INC, ($ENV{PERL5LIB} || '');
 
-    my ($in, $out, $err);
-    my $pid = open3($in, $out, $err, @cmd);
+    my $std = { map { $_ => IO::Handle->new } (qw/in out err/) };
+    my $pid = open3(@{$std}{qw/in out err/}, @cmd);
 
-    my @out = <$out>;
     waitpid($pid, 0);
 
+    my @stdout = $std->{out}->getlines;
+    ok (!scalar @stdout, 'Silence on STDOUT');
+
+    my @warnings = $std->{err}->getlines;
     if ($? >> 8 != 0) {
-        my $error = pop @out;
-        _check_error($error, $tdata{error});
+        my $exception = pop @warnings;
+        _check_error($exception, $tdata{error});
     }
 
-    return @out;
+    return @warnings;
 }
 
 sub _get_dsn {
