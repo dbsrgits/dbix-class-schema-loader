@@ -10,6 +10,8 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           versions
         - Fix mssql common tests failures with MSSQL 2005 (skip test of
           datatypes found only on MSSQL 2008)
+        - Fix DB2 v8 test failures (skip tests of graphics types found
+          only on DB2 v9)
         - Fix dangerous invocation of ->meta on classes during upgrade
           (may be *non* moosified and contain a user-defined meta() )
 

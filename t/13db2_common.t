@@ -1,10 +1,31 @@
 use strict;
-use lib qw(t/lib);
-use dbixcsl_common_tests;
+
+use Test::More;
 
 my $dsn      = $ENV{DBICTEST_DB2_DSN} || '';
 my $user     = $ENV{DBICTEST_DB2_USER} || '';
 my $password = $ENV{DBICTEST_DB2_PASS} || '';
+
+plan skip_all => 'You need to set the DBICTEST_DB2_DSN, _USER, and _PASS environment variables'
+    unless ($dsn && $user);
+
+my $srv_ver = do {
+    require DBI;
+    my $dbh = DBI->connect ($dsn, $user, $password, { RaiseError => 1, PrintError => 0} );
+    eval { $dbh->get_info(18) } || 0;
+};
+my ($maj_srv_ver) = $srv_ver =~ /^(\d+)/;
+
+use lib qw(t/lib);
+use dbixcsl_common_tests;
+
+my $extra_graphics_data_types = {
+    graphic            => { data_type => 'graphic', size => 1 },
+    'graphic(3)'       => { data_type => 'graphic', size => 3 },
+    'vargraphic(3)'    => { data_type => 'vargraphic', size => 3 },
+    'long vargraphic'  => { data_type => 'long vargraphic' },
+    'dbclob'           => { data_type => 'dbclob' },
+};
 
 my $tester = dbixcsl_common_tests->new(
     vendor         => 'DB2',
@@ -31,8 +52,8 @@ my $tester = dbixcsl_common_tests->new(
         'float(53)'        => { data_type => 'double precision' },
         numeric            => { data_type => 'numeric' },
         decimal            => { data_type => 'numeric' },
-	'numeric(6,3)'     => { data_type => 'numeric', size => [6,3] },
-	'decimal(6,3)'     => { data_type => 'numeric', size => [6,3] },
+        'numeric(6,3)'     => { data_type => 'numeric', size => [6,3] },
+        'decimal(6,3)'     => { data_type => 'numeric', size => [6,3] },
 
         # Character String Types
         char               => { data_type => 'char', size => 1 },
@@ -42,11 +63,7 @@ my $tester = dbixcsl_common_tests->new(
         'clob'             => { data_type => 'clob' },
 
         # Graphic String Types (double-byte strings)
-        graphic            => { data_type => 'graphic', size => 1 },
-        'graphic(3)'       => { data_type => 'graphic', size => 3 },
-        'vargraphic(3)'    => { data_type => 'vargraphic', size => 3 },
-        'long vargraphic'  => { data_type => 'long vargraphic' },
-        'dbclob'           => { data_type => 'dbclob' },
+        ($maj_srv_ver >= 9) ? (%$extra_graphics_data_types) : (),
 
         # Binary String Types
         'char for bit data'=> { data_type => 'binary', size => 1, original => { data_type => 'char for bit data' } },
@@ -78,10 +95,6 @@ my $tester = dbixcsl_common_tests->new(
     },
 );
 
-if( !$dsn || !$user ) {
-    $tester->skip_tests('You need to set the DBICTEST_DB2_DSN, _USER, and _PASS environment variables');
-}
-else {
-    $tester->run_tests();
-}
+$tester->run_tests();
+
 # vim:et sts=4 sw=4 tw=0:
