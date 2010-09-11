@@ -551,8 +551,7 @@ sub new {
 
     if ($self->use_moose) {
         if (not DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')) {
-            die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\nYou are missing: %s.\n",
-                "Moose, MooseX::NonMoose and namespace::autoclean",
+            die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\n",
                 DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose');
         }
     }
@@ -662,7 +661,7 @@ EOF
 
     # determine if the existing schema was dumped with use_moose => 1
     if (! defined $self->use_moose) {
-        $self->use_moose(1) if $old_gen =~ /^ (?!\s*\#) use \s+ Moose/xm;
+        $self->{use_moose} = 1 if $old_gen =~ /^ (?!\s*\#) use \s+ Moose/xm;
     }
 
     my $load_classes = ($old_gen =~ /^__PACKAGE__->load_classes;/m) ? 1 : 0;
