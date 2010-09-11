@@ -150,7 +150,7 @@ while(@invocations) {
 
     my $schema = do {
       local $SIG{__WARN__} = sub {
-        warn $_[0] unless $_[0] =~ /really_erase_my_files/
+        warn $_[0] unless $_[0] =~ /Deleting existing file .+ due to 'really_erase_my_files' setting/
       };
       $cref->();
     };

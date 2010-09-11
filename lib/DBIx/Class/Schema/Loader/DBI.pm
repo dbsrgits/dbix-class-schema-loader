@@ -285,7 +285,12 @@ sub _columns_info_for {
     if ($dbh->can('column_info')) {
         my %result;
         eval {
-            my $sth = eval { local $SIG{__WARN__} = sub {}; $dbh->column_info( undef, $self->db_schema, $table, '%' ); };
+            my $sth = do {
+                # FIXME - seems to only warn on MySQL, and even then the output is valuable
+                # need to figure out how no to mask it away (and still have tests pass)
+                local $SIG{__WARN__} = sub {};
+                $dbh->column_info( undef, $self->db_schema, $table, '%' );
+            };
             while ( my $info = $sth->fetchrow_hashref() ){
                 my $column_info = {};
                 $column_info->{data_type}     = lc $info->{TYPE_NAME};
@@ -313,7 +318,8 @@ sub _columns_info_for {
             }
             $sth->finish;
         };
-      return \%result if !$@ && scalar keys %result;
+
+        return \%result if !$@ && scalar keys %result;
     }
 
     my %result;

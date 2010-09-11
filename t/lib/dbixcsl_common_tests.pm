@@ -124,17 +124,8 @@ sub run_only_extra_tests {
         $self->drop_extra_tables_only;
 
         my $dbh = $self->dbconnect(1);
-        {
-            # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
-            local $SIG{__WARN__} = sub {
-                my $msg = shift;
-                warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
-            };
-
-
-            $dbh->do($_) for @{ $self->{extra}{create} || [] };
-            $dbh->do($_) for @{ $self->{data_type_tests}{ddl} || []};
-        }
+        $dbh->do($_) for @{ $self->{extra}{create} || [] };
+        $dbh->do($_) for @{ $self->{data_type_tests}{ddl} || []};
         $self->{_created} = 1;
 
         my $file_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
@@ -160,11 +151,7 @@ sub drop_extra_tables_only {
 
     my $dbh = $self->dbconnect(0);
 
-    {
-        local $SIG{__WARN__} = sub {}; # postgres notices
-        $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
-    }
-
+    $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
     $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
     foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
@@ -223,7 +210,7 @@ sub setup_schema {
     my $file_count;
     {
         my @loader_warnings;
-        local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
+        local $SIG{__WARN__} = sub { push(@loader_warnings, @_); };
          eval qq{
              package $schema_class;
              use base qw/DBIx::Class::Schema::Loader/;
@@ -936,24 +923,15 @@ sub test_schema {
 
         $conn->storage->disconnect; # needed for Firebird and Informix
         my $dbh = $self->dbconnect(1);
-
-        {
-            # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
-            local $SIG{__WARN__} = sub {
-                my $msg = shift;
-                warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
-            };
-
-            $dbh->do($_) for @statements_rescan;
-        }
-
+        $dbh->do($_) for @statements_rescan;
         $dbh->disconnect;
 
         sleep 1;
 
         my @new = do {
-            # kill the 'Dumping manual schema' warnings
-            local $SIG{__WARN__} = sub {};
+            local $SIG{__WARN__} = sub { warn @_
+                unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed/
+            };
             $conn->rescan;
         };
         is_deeply(\@new, [ qw/LoaderTest30/ ], "Rescan");
@@ -984,7 +962,9 @@ sub test_schema {
         $conn->storage->dbh->do("DROP TABLE loader_test30");
 
         @new = do {
-            local $SIG{__WARN__} = sub {};
+            local $SIG{__WARN__} = sub { warn @_
+                unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed/
+            };
             $conn->rescan;
         };
         is_deeply(\@new, [], 'no new tables on rescan');
@@ -1037,16 +1017,9 @@ sub test_preserve_case {
 
     my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1); # open quote, close quote
 
-    my $dbh = $conn->storage->dbh;
+    my $dbh = $self->dbconnect;
 
-    {
-        # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
-        local $SIG{__WARN__} = sub {
-            my $msg = shift;
-            warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
-        };
-
-        $dbh->do($_) for (
+    $dbh->do($_) for (
 qq|
     CREATE TABLE ${oqt}LoaderTest40${cqt} (
         ${oqt}Id${cqt} INTEGER NOT NULL PRIMARY KEY,
@@ -1062,17 +1035,19 @@ qq|
 |,
 qq| INSERT INTO ${oqt}LoaderTest40${cqt} VALUES (1, 'foo') |,
 qq| INSERT INTO ${oqt}LoaderTest41${cqt} VALUES (1, 1) |,
-        );
-    }
+    );
     $conn->storage->disconnect;
 
     local $conn->_loader->{preserve_case} = 1;
     $conn->_loader->_setup;
 
+
     {
-        local $SIG{__WARN__} = sub {};
+        local $SIG{__WARN__} = sub { warn @_
+            unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed/
+        };
         $conn->rescan;
-    }
+    };
 
     if (not $self->{skip_rels}) {
         is $conn->resultset('LoaderTest41')->find(1)->loader_test40->foo3_bar, 'foo',
@@ -1610,12 +1585,6 @@ sub create {
 
     my $dbh = $self->dbconnect(1);
 
-    # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
-    local $SIG{__WARN__} = sub {
-        my $msg = shift;
-        warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
-    };
-
     $dbh->do($_) foreach (@statements);
 
     $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || [] });
@@ -1722,10 +1691,7 @@ sub drop_tables {
     for (1,2) {
       my $dbh = $self->dbconnect(0);
 
-      {
-        local $SIG{__WARN__} = sub {}; # postgres notices
-        $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
-      }
+      $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
 
       $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 

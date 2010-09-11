@@ -18,7 +18,7 @@ use Class::Unload;
 use Class::Inspector ();
 use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
-use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed/;
+use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_without_redefine_warnings/;
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
@@ -844,14 +844,7 @@ sub _load_external {
         $code = $self->_rewrite_old_classnames($code);
 
         if ($self->dynamic) { # load the class too
-            # kill redefined warnings
-            my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-            local $SIG{__WARN__} = sub {
-                $warn_handler->(@_)
-                    unless $_[0] =~ /^Subroutine \S+ redefined/;
-            };
-            eval $code;
-            die $@ if $@;
+            eval_without_redefine_warnings($code);
         }
 
         $self->_ext_stmt($class,
@@ -892,14 +885,7 @@ been used by an older version of the Loader.
 * PLEASE RENAME THIS CLASS: from '$old_class' to '$class', as that is the
 new name of the Result.
 EOF
-            # kill redefined warnings
-            my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-            local $SIG{__WARN__} = sub {
-                $warn_handler->(@_)
-                    unless $_[0] =~ /^Subroutine \S+ redefined/;
-            };
-            eval $code;
-            die $@ if $@;
+            eval_without_redefine_warnings($code);
         }
 
         chomp $code;
@@ -1125,12 +1111,9 @@ sub _reload_class {
     delete $INC{ $class_path };
 
 # kill redefined warnings
-    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-    local $SIG{__WARN__} = sub {
-        $warn_handler->(@_)
-            unless $_[0] =~ /^Subroutine \S+ redefined/;
+    eval {
+        eval_without_redefine_warnings ("require $class");
     };
-    eval "require $class;";
     die "Failed to reload class $class: $@" if $@;
 }
 

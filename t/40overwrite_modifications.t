@@ -1,6 +1,7 @@
 use strict;
-use Test::More tests => 3;
+use Test::More tests => 5;
 use Test::Exception;
+use Test::Warn;
 use lib qw(t/lib);
 use make_dbictest_db;
 
@@ -23,8 +24,8 @@ ok( -f $foopm, 'looks like it dumped' );
     open my $in, '<', $foopm or die "$! reading $foopm";
     my ($tfh,$temp) = tempfile( UNLINK => 1);
     while(<$in>) {
-	s/"bars"/"somethingelse"/;
-	print $tfh $_;
+        s/"bars"/"somethingelse"/;
+        print $tfh $_;
     }
     close $tfh;
     copy( $temp, $foopm );
@@ -45,16 +46,14 @@ sub dump_schema {
     # need to poke _loader_invoked in order to be able to rerun the
     # loader multiple times.
     DBICTest::Schema::Overwrite_modifications->_loader_invoked(0)
-	  if @DBICTest::Schema::Overwrite_modifications::ISA;
+        if @DBICTest::Schema::Overwrite_modifications::ISA;
 
-    local $SIG{__WARN__} = sub {
-        warn @_
-            unless $_[0] =~ /^Dumping manual schema|^Schema dump completed/;
-    };
-    DBIx::Class::Schema::Loader::make_schema_at( 'DBICTest::Schema::Overwrite_modifications',
-						 { dump_directory => $tempdir,
-						   @_,
-						 },
-						 [ $make_dbictest_db::dsn ],
-					       );
+    my $args = \@_;
+
+    warnings_exist {
+        DBIx::Class::Schema::Loader::make_schema_at( 'DBICTest::Schema::Overwrite_modifications',
+            { dump_directory => $tempdir, @$args },
+            [ $make_dbictest_db::dsn ],
+        );
+    } [qr/^Dumping manual schema/, qr/^Schema dump completed/ ];
 }

@@ -189,6 +189,7 @@ sub _table_fk_info_builder {
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
+    # FIXME - remove blind mask (can't test sybase yet)
     local $SIG{__WARN__} = sub {};
 
     my $dbh = $self->schema->storage->dbh;

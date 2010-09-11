@@ -892,7 +892,7 @@ sub run_loader {
 
     my @connect_info = $make_dbictest_db_with_unique::dsn;
     my @loader_warnings;
-    local $SIG{__WARN__} = sub { push(@loader_warnings, $_[0]); };
+    local $SIG{__WARN__} = sub { push(@loader_warnings, @_); };
     eval qq{
         package $SCHEMA_CLASS;
         use base qw/DBIx::Class::Schema::Loader/;

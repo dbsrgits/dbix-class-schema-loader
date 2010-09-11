@@ -15,6 +15,9 @@ my $tester = dbixcsl_common_tests->new(
     user        => $user,
     password    => $password,
     loader_options  => { preserve_case => 1 },
+    connect_info_opts => {
+        on_connect_do => [ 'SET client_min_messages=WARNING' ],
+    },
     quote_char  => '"',
     data_types  => {
         # http://www.postgresql.org/docs/7.4/interactive/datatype.html

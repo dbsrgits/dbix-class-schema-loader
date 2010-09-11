@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
+use Test::Warn;
 
 # use this if you keep a copy of DBD::Sybase linked to FreeTDS somewhere else
 BEGIN {
@@ -256,13 +257,8 @@ my $tester = dbixcsl_common_tests->new(
             my $dbh = $schema->storage->dbh;
             $dbh->do("DROP TABLE mssql_loader_test3");
 
-            my @warnings;
-            {
-                local $SIG{__WARN__} = sub { push @warnings, $_[0] };
-                $schema->rescan;
-            }
-            ok ((grep /^Bad table or view 'mssql_loader_test4'/, @warnings),
-                'bad view ignored');
+            warnings_exist { $schema->rescan }
+              qr/^Bad table or view 'mssql_loader_test4'/, 'bad view ignored';
 
             throws_ok {
                 $schema->resultset($monikers->{mssql_loader_test4})

@@ -147,6 +147,7 @@ q{
             $schema->_loader->_setup;
 
             {
+                # FIXME - need to remove blind trap (can not test firebird yet)
                 local $SIG{__WARN__} = sub {};
                 $schema->rescan;
             }
@@ -174,6 +175,7 @@ if (not ($dbd_interbase_dsn || $odbc_dsn)) {
 else {
     # get rid of stupid warning from InterBase/GetInfo.pm
     if ($dbd_interbase_dsn) {
+        # FIXME - need to remove blind trap (can not test firebird yet)
         local $SIG{__WARN__} = sub {};
         require DBD::InterBase;
         require DBD::InterBase::GetInfo;

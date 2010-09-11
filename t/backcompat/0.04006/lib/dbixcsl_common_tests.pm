@@ -542,12 +542,6 @@ sub run_tests {
         );
 
         {
-            # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
-            local $SIG{__WARN__} = sub {
-                my $msg = shift;
-                warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
-            };
-
             my $dbh = $self->dbconnect(1);
             $dbh->do($_) for @statements_rescan;
             $dbh->disconnect;
@@ -581,6 +575,9 @@ sub dbconnect {
     );
     if ($self->{dsn} =~ /^[^:]+:SQLite:/) {
       $dbh->do ('PRAGMA synchronous = OFF');
+    }
+    elsif ($self->{dsn} =~ /^[^:]+:Pg:/) {
+      $dbh->do ('SET client_min_messages=WARNING');
     }
 
     die "Failed to connect to database: $DBI::errstr" if !$dbh;
@@ -907,12 +904,6 @@ sub create {
     $self->drop_tables;
 
     my $dbh = $self->dbconnect(1);
-
-    # Silence annoying but harmless postgres "NOTICE:  CREATE TABLE..."
-    local $SIG{__WARN__} = sub {
-        my $msg = shift;
-        warn $msg unless $msg =~ m{^NOTICE:\s+CREATE TABLE};
-    };
 
     $dbh->do($_) for (@statements);
     unless($self->{skip_rels}) {
