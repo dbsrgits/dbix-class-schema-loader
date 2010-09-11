@@ -6,7 +6,7 @@ use base qw/DBIx::Class::Schema::Loader::Base/;
 use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 
-our $VERSION = '0.07001';
+our $VERSION = '0.07002';
 
 =head1 NAME
 

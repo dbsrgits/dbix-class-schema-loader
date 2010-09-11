@@ -9,7 +9,7 @@ use Scalar::Util ();
 use Lingua::EN::Inflect::Phrase ();
 use DBIx::Class::Schema::Loader::Utils 'split_name';
 
-our $VERSION = '0.07001';
+our $VERSION = '0.07002';
 
 =head1 NAME
 

@@ -24,7 +24,7 @@ use Try::Tiny;
 use DBIx::Class ();
 use namespace::clean;
 
-our $VERSION = '0.07001';
+our $VERSION = '0.07002';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema

@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07002  2010-09-11 01:48:00
         - Properly detect a schema loaded with use_moose on subsequent
           reloads
         - Die with a sensible message when a schema loaded with
@@ -14,6 +15,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           only on DB2 v9)
         - Fix dangerous invocation of ->meta on classes during upgrade
           (may be *non* moosified and contain a user-defined meta() )
+        - Multiple test cleanups and refactorings
 
 0.07001  2010-07-24 21:28:08
         - put is_deferrable => 1 back into default attributes for belongs_to
