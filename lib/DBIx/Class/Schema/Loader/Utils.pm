@@ -3,6 +3,7 @@ package # hide from PAUSE
 
 use strict;
 use warnings;
+use Data::Dumper ();
 use Exporter 'import';
 
 our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_without_redefine_warnings/;
@@ -18,8 +19,6 @@ sub split_name($) {
 
     split $name =~ /[[:upper:]]/ && $name =~ /[[:lower:]]/ ? BY_CASE_TRANSITION : BY_NON_ALPHANUM, $name;
 }
-
-# Stolen from Data::Dumper::Concise
 
 sub dumper($) {
     my $val = shift;

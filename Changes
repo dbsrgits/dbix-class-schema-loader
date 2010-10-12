@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Fix missing require (RT#62072)
+
 0.07002  2010-09-11 01:48:00
         - Properly detect a schema loaded with use_moose on subsequent
           reloads
