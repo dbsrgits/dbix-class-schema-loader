@@ -1798,7 +1798,7 @@ sub _make_pod {
                     "  $_: $s"
                  } sort keys %$attrs,
             );
-            if (my $comment = $self->__column_comment($self->{_class2table}{$class}, $col_counter)) {
+            if (my $comment = $self->__column_comment($self->{_class2table}{$class}, $col_counter, $name)) {
                 $self->_pod( $class, $comment );
             }
         }

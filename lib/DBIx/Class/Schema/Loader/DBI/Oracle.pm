@@ -121,6 +121,33 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
+sub _table_comment {
+    my ( $self, $table ) = @_;
+     my ($table_comment) = $self->schema->storage->dbh->selectrow_array(
+        q{
+            SELECT comments FROM all_tab_comments
+            WHERE owner = ? 
+              AND table_name = ?
+              AND table_type = 'TABLE'
+        }, undef, $self->db_schema, $self->_uc($table)
+    );
+
+    return $table_comment
+}
+
+sub _column_comment {
+    my ( $self, $table, $column_number, $column_name ) = @_;
+    my ($column_comment) = $self->schema->storage->dbh->selectrow_array(
+        q{
+            SELECT comments FROM all_col_comments
+            WHERE owner = ? 
+              AND table_name = ?
+              AND column_name = ?
+        }, undef, $self->db_schema, $self->_uc( $table ), $self->_uc( $column_name )
+    );
+    return $column_comment
+}
+
 sub _table_pk_info {
     my ($self, $table) = (shift, shift);
 

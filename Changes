@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Added table/column comment support for Oracle
         - Fix missing require (RT#62072)
 
 0.07002  2010-09-11 01:48:00

@@ -3,6 +3,7 @@ use lib qw(t/lib);
 use dbixcsl_common_tests;
 use Test::More;
 use Test::Exception;
+use File::Slurp ();
 
 my $dsn      = $ENV{DBICTEST_ORA_DSN} || '';
 my $user     = $ENV{DBICTEST_ORA_USER} || '';
@@ -125,7 +126,18 @@ my $tester = dbixcsl_common_tests->new(
         'urowid(3333)' => { data_type => 'urowid', size => 3333 },
     },
     extra => {
-        count => 1,
+        create => [
+            q{ 
+                CREATE TABLE oracle_loader_test1 (
+                    id NUMBER(11),
+                    value VARCHAR2(100)
+                )
+            },
+            q{ COMMENT ON TABLE oracle_loader_test1 IS 'oracle_loader_test1 table comment' },
+            q{ COMMENT ON COLUMN oracle_loader_test1.value IS 'oracle_loader_test1.value column comment' },
+        ],
+        drop  => [qw/oracle_loader_test1/],
+        count => 3,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -138,6 +150,18 @@ my $tester = dbixcsl_common_tests->new(
                 else {
                     skip 'not running common tests', 1;
                 }
+            }
+
+            SKIP: {
+                skip 'not running comment tests', 1 unless (my $class = $classes->{oracle_loader_test1});
+                my $filename = $schema->_loader->_get_dump_filename($class);
+                my $code = File::Slurp::slurp $filename;
+
+                like $code, qr/^=head1 NAME\n\n^$class - oracle_loader_test1 table comment\n\n^=cut\n/m,
+                    'table comment';
+
+                like $code, qr/^=head2 value\n\n(.+:.+\n)+\noracle_loader_test1\.value column comment\n\n/m,
+                    'column comment and attrs';
             }
         },
     },
