@@ -74,7 +74,7 @@ my $tester = dbixcsl_common_tests->new(
         'binary_double' => { data_type => 'double precision', original => { data_type => 'binary_double' } },
 
         # these are not mentioned in the summary chart, must be aliased
-	real            => { data_type => 'real',             original => { data_type => 'float', size => 63  } },
+        real            => { data_type => 'real',             original => { data_type => 'float', size => 63  } },
         'float(63)'     => { data_type => 'real',             original => { data_type => 'float', size => 63  } },
         'float(64)'     => { data_type => 'double precision', original => { data_type => 'float', size => 64  } },
         'float(126)'    => { data_type => 'double precision', original => { data_type => 'float', size => 126 } },

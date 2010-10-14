@@ -1782,28 +1782,25 @@ sub _make_pod {
     } elsif ( $method eq 'add_columns' ) {
         $self->_pod( $class, "=head1 ACCESSORS" );
         my $col_counter = 0;
-	my @cols = @_;
+        my @cols = @_;
         while( my ($name,$attrs) = splice @cols,0,2 ) {
-	    $col_counter++;
+            $col_counter++;
             $self->_pod( $class, '=head2 ' . $name  );
-	    $self->_pod( $class,
-			 join "\n", map {
-			     my $s = $attrs->{$_};
-			     $s = !defined $s         ? 'undef'          :
-                                  length($s) == 0     ? '(empty string)' :
-                                  ref($s) eq 'SCALAR' ? $$s :
-                                  ref($s)             ? dumper_squashed $s :
-                                  looks_like_number($s) ? $s :
-                                                        qq{'$s'}
-                                  ;
+            $self->_pod( $class,
+                join "\n", map {
+                    my $s = $attrs->{$_};
+                    $s = !defined $s          ? 'undef'             :
+                        length($s) == 0       ? '(empty string)'    :
+                        ref($s) eq 'SCALAR'   ? $$s                 :
+                        ref($s)               ? dumper_squashed $s  :
+                        looks_like_number($s) ? $s                  : qq{'$s'};
 
-			     "  $_: $s"
-			 } sort keys %$attrs,
-		       );
-
-	    if (my $comment = $self->__column_comment($self->{_class2table}{$class}, $col_counter)) {
-		$self->_pod( $class, $comment );
-	    }
+                    "  $_: $s"
+                 } sort keys %$attrs,
+            );
+            if (my $comment = $self->__column_comment($self->{_class2table}{$class}, $col_counter)) {
+                $self->_pod( $class, $comment );
+            }
         }
         $self->_pod_cut( $class );
     } elsif ( $method =~ /^(belongs_to|has_many|might_have)$/ ) {
