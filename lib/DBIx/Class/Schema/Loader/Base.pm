@@ -1347,7 +1347,7 @@ sub _default_moose_custom_content {
 sub _default_custom_content {
     my $self = shift;
     my $default = qq|\n\n# You can replace this text with custom|
-         . qq| content, and it will be preserved on regeneration|;
+         . qq| code or comments, and it will be preserved on regeneration|;
     if ($self->use_moose) {
         $default .= $self->_default_moose_custom_content;
     }
