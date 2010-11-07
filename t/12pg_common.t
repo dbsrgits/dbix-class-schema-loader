@@ -112,7 +112,17 @@ my $tester = dbixcsl_common_tests->new(
 
         # Blob Types
 	bytea => { data_type => 'bytea' },
+
+        # Enum Types
+        pg_loader_test_enum => { data_type => 'enum', extra => { list => [ qw/foo bar baz/] }, size => 4 },
     },
+    pre_create => [
+        q{
+            CREATE TYPE pg_loader_test_enum AS ENUM (
+                'foo', 'bar', 'baz'
+            )
+        },
+    ],
     extra       => {
         create => [
             q{
@@ -145,6 +155,7 @@ my $tester = dbixcsl_common_tests->new(
         ],
         pre_drop_ddl => [
             'DROP SCHEMA dbicsl_test CASCADE',
+            'DROP TYPE pg_loader_test_enum',
         ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
         count => 4,

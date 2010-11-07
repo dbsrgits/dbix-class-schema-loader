@@ -518,6 +518,8 @@ hobbs: Andrew Rodland <arodland@cpan.org>
 
 domm: Thomas Klausner <domm@plix.at>
 
+spb: Stephen Bennett <spb@exherbo.org>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 

@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Added support for PostgreSQL enum types
         - Added table/column comment support for Oracle
         - Fix missing require (RT#62072)
 

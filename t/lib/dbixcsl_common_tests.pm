@@ -1585,6 +1585,8 @@ sub create {
 
     my $dbh = $self->dbconnect(1);
 
+    $dbh->do($_) for @{ $self->{pre_create} || [] };
+
     $dbh->do($_) foreach (@statements);
 
     $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || [] });
