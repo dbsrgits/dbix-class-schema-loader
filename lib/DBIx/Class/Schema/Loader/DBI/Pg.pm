@@ -272,7 +272,9 @@ WHERE t.typname = ?
 EOF
 
     if (@$typevalues) {
+        # This is an enum type. Store its original name in extra for SQLT to pick up.
         $extra_info{extra}{list} = [ map { $_->[0] } @$typevalues ];
+        $extra_info{extra}{custom_type_name} = $info->{data_type};
     }
 
     return \%extra_info;

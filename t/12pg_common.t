@@ -114,7 +114,8 @@ my $tester = dbixcsl_common_tests->new(
 	bytea => { data_type => 'bytea' },
 
         # Enum Types
-        pg_loader_test_enum => { data_type => 'enum', extra => { list => [ qw/foo bar baz/] }, size => 4 },
+        pg_loader_test_enum => { data_type => 'enum', extra => { custom_type_name => 'pg_loader_test_enum',
+                                                                 list => [ qw/foo bar baz/] }, size => 4 },
     },
     pre_create => [
         q{
