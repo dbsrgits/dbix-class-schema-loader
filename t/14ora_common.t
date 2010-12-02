@@ -46,10 +46,16 @@ my $tester = dbixcsl_common_tests->new(
         'char'         => { data_type => 'char',      size => 1  },
         'char(11)'     => { data_type => 'char',      size => 11 },
         'nchar'        => { data_type => 'nchar',     size => 1  },
+        'national character'
+                       => { data_type => 'nchar',     size => 1  },
         'nchar(11)'    => { data_type => 'nchar',     size => 11 },
+        'national character(11)'
+                       => { data_type => 'nchar',     size => 11 },
         'varchar(20)'  => { data_type => 'varchar2',  size => 20 },
         'varchar2(20)' => { data_type => 'varchar2',  size => 20 },
         'nvarchar2(20)'=> { data_type => 'nvarchar2', size => 20 },
+        'national character varying(20)'
+                       => { data_type => 'nvarchar2', size => 20 },
 
         # Numeric Types
         #
