@@ -1512,6 +1512,7 @@ sub _resolve_col_accessor_collisions {
         die $@ if $@;
 
         push @methods, @{ Class::Inspector->methods($class) || [] };
+        push @methods, @{ Class::Inspector->methods('UNIVERSAL') || [] };
     }
 
     my %methods;

@@ -92,7 +92,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (182 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @connect_info * (183 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -324,7 +324,10 @@ sub test_schema {
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key dbix_class_testcomponent meta/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent meta/ ], "Column Ordering" );
+
+    is $class2->column_info('can')->{accessor}, undef,
+        'accessor for column name that conflicts with a UNIVERSAL method removed';
 
     is $class2->column_info('set_primary_key')->{accessor}, undef,
         'accessor for column name that conflicts with a result base class method removed';
@@ -1167,6 +1170,7 @@ sub create {
                 dat VARCHAR(32) NOT NULL,
                 dat2 VARCHAR(32) NOT NULL,
                 set_primary_key INTEGER $self->{null},
+                can INTEGER $self->{null},
                 dbix_class_testcomponent INTEGER $self->{null},
                 meta INTEGER $self->{null},
                 UNIQUE (dat2, dat)
