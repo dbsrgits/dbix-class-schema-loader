@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Handle column accessor collisions with UNIVERSAL methods
         - Generate custom_type_name hint for PostgreSQL enums, as used
           by very recent SQL::Translator
         - Added support for PostgreSQL enum types
