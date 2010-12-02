@@ -8,13 +8,13 @@ use dbixcsl_common_tests;
 #
 # Setting them to zero is preferred.
 
-my $dbd_sqlanywhere_dsn      = $ENV{DBICTEST_SYBASE_ASA_DSN} || '';
-my $dbd_sqlanywhere_user     = $ENV{DBICTEST_SYBASE_ASA_USER} || '';
-my $dbd_sqlanywhere_password = $ENV{DBICTEST_SYBASE_ASA_PASS} || '';
+my $dbd_sqlanywhere_dsn      = $ENV{DBICTEST_SQLANYWHERE_DSN} || '';
+my $dbd_sqlanywhere_user     = $ENV{DBICTEST_SQLANYWHERE_USER} || '';
+my $dbd_sqlanywhere_password = $ENV{DBICTEST_SQLANYWHERE_PASS} || '';
 
-my $odbc_dsn      = $ENV{DBICTEST_SYBASE_ASA_ODBC_DSN} || '';
-my $odbc_user     = $ENV{DBICTEST_SYBASE_ASA_ODBC_USER} || '';
-my $odbc_password = $ENV{DBICTEST_SYBASE_ASA_ODBC_PASS} || '';
+my $odbc_dsn      = $ENV{DBICTEST_SQLANYWHERE_ODBC_DSN} || '';
+my $odbc_user     = $ENV{DBICTEST_SQLANYWHERE_ODBC_USER} || '';
+my $odbc_password = $ENV{DBICTEST_SQLANYWHERE_ODBC_PASS} || '';
 
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'SQLAnywhere',
@@ -134,7 +134,7 @@ my $tester = dbixcsl_common_tests->new(
 );
 
 if (not ($dbd_sqlanywhere_dsn || $odbc_dsn)) {
-    $tester->skip_tests('You need to set the DBICTEST_SYBASE_ASA_DSN, _USER and _PASS and/or the DBICTEST_SYBASE_ASA_ODBC_DSN, _USER and _PASS environment variables');
+    $tester->skip_tests('You need to set the DBICTEST_SQLANYWHERE_DSN, _USER and _PASS and/or the DBICTEST_SQLANYWHERE_ODBC_DSN, _USER and _PASS environment variables');
 }
 else {
     $tester->run_tests();
