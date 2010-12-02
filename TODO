@@ -69,7 +69,6 @@
     - introspect view SQL
     - domains
   - Oracle
-    - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
     - domains
@@ -98,7 +97,8 @@
     - introspect view SQL
     - domains
   - Informix
-    - data_type tests
+    - support opaque types
+    - datetime/interval precision detection
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
     - introspect view SQL
