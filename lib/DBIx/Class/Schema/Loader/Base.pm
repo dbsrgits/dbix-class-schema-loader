@@ -488,9 +488,9 @@ It is safe to upgrade your existing Schema to this option.
 This option controls how accessors for column names which collide with perl
 methods are named. See L</COLUMN ACCESSOR COLLISIONS> for more information.
 
-This option takes either a single L<perlfunc/sprintf> format or a hashref of
+This option takes either a single L<sprintf|perlfunc/sprintf> format or a hashref of
 strings which are compiled to regular expressions that map to
-L<perlfunc/sprintf> formats.
+L<sprintf|perlfunc/sprintf> formats.
 
 Examples:
 
