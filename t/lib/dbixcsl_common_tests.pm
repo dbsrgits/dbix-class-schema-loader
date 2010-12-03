@@ -200,6 +200,7 @@ sub setup_schema {
         datetime_timezone       => 'Europe/Berlin',
         datetime_locale         => 'de_DE',
         use_moose               => $ENV{SCHEMA_LOADER_TESTS_USE_MOOSE},
+        col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
         %{ $self->{loader_options} || {} },
     );
 
@@ -252,6 +253,8 @@ sub setup_schema {
         $warn_count++ for grep /renaming \S+ relation/, @loader_warnings;
  
         $warn_count++ for grep /\b(?!loader_test9)\w+ has no primary key/i, @loader_warnings;
+
+        $warn_count++ for grep /^Column \w+ in table \w+ collides with an inherited method\./, @loader_warnings;
 
         $warn_count++ for grep { my $w = $_; grep $w =~ $_, @{ $self->{warnings} || [] } } @loader_warnings;
 
@@ -326,8 +329,8 @@ sub test_schema {
     my @columns_lt2 = $class2->columns;
     is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent meta/ ], "Column Ordering" );
 
-    is $class2->column_info('can')->{accessor}, undef,
-        'accessor for column name that conflicts with a UNIVERSAL method removed';
+    is $class2->column_info('can')->{accessor}, 'caught_collision_can',
+        'accessor for column name that conflicts with a UNIVERSAL method renamed based on col_collision_map';
 
     is $class2->column_info('set_primary_key')->{accessor}, undef,
         'accessor for column name that conflicts with a result base class method removed';
@@ -933,7 +936,7 @@ sub test_schema {
 
         my @new = do {
             local $SIG{__WARN__} = sub { warn @_
-                unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed/
+                unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method/
             };
             $conn->rescan;
         };
@@ -966,7 +969,7 @@ sub test_schema {
 
         @new = do {
             local $SIG{__WARN__} = sub { warn @_
-                unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed/
+                unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method/
             };
             $conn->rescan;
         };
@@ -1047,7 +1050,7 @@ qq| INSERT INTO ${oqt}LoaderTest41${cqt} VALUES (1, 1) |,
 
     {
         local $SIG{__WARN__} = sub { warn @_
-            unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed/
+            unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method/
         };
         $conn->rescan;
     };

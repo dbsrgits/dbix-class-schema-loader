@@ -84,6 +84,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 pod_comment_mode
                                 pod_comment_spillover_length
                                 preserve_case
+                                col_collision_map
 /);
 
 =head1 NAME
@@ -482,6 +483,23 @@ classes immutable.
 
 It is safe to upgrade your existing Schema to this option.
 
+=head2 col_collision_map
+
+This option controls how accessors for column names which collide with perl
+methods are named. See L</COLUMN ACCESSOR COLLISIONS> for more information.
+
+This option takes either a single L<perlfunc/sprintf> format or a hashref of
+strings which are compiled to regular expressions that map to
+L<perlfunc/sprintf> formats.
+
+Examples:
+
+    col_collision_map => 'column_%s'
+
+    col_collision_map => { '(.*)' => 'column_%s' }
+
+    col_collision_map => { '(foo).*(bar)' => 'column_%s_%s' }
+
 =head1 METHODS
 
 None of these methods are intended for direct invocation by regular
@@ -607,6 +625,17 @@ sub new {
     $self->generate_pod(1)   unless defined $self->generate_pod;
     $self->pod_comment_mode('auto')         unless defined $self->pod_comment_mode;
     $self->pod_comment_spillover_length(60) unless defined $self->pod_comment_spillover_length;
+
+    if (my $col_collision_map = $self->col_collision_map) {
+        if (my $reftype = ref $col_collision_map) {
+            if ($reftype ne 'HASH') {
+                croak "Invalid type $reftype for option 'col_collision_map'";
+            }
+        }
+        else {
+            $self->col_collision_map({ '(.*)' => $col_collision_map });
+        }
+    }
 
     $self;
 }
@@ -1500,10 +1529,12 @@ sub _make_src_class {
 }
 
 sub _resolve_col_accessor_collisions {
-    my ($self, $col_info) = @_;
+    my ($self, $table, $col_info) = @_;
 
     my $base       = $self->result_base_class || 'DBIx::Class::Core';
     my @components = map "DBIx::Class::$_", @{ $self->components || [] };
+
+    my $table_name = ref $table ? $$table : $table;
 
     my @methods;
 
@@ -1527,7 +1558,24 @@ sub _resolve_col_accessor_collisions {
         next if $accessor eq 'id'; # special case (very common column)
 
         if (exists $methods{$accessor}) {
-            $info->{accessor} = undef;
+            my $mapped = 0;
+
+            if (my $map = $self->col_collision_map) {
+                for my $re (keys %$map) {
+                    if (my @matches = $col =~ /$re/) {
+                        $info->{accessor} = sprintf $map->{$re}, @matches;
+                        $mapped = 1;
+                    }
+                }
+            }
+
+            if (not $mapped) {
+                warn <<"EOF";
+Column $col in table $table_name collides with an inherited method.
+See "COLUMN ACCESSOR COLLISIONS" in perldoc DBIx::Class::Schema::Loader::Base .
+EOF
+                $info->{accessor} = undef;
+            }
         }
     }
 }
@@ -1588,7 +1636,7 @@ sub _setup_src_meta {
         $col_info = { map { lc($_), $col_info->{$_} } keys %$col_info };
     }
 
-    $self->_resolve_col_accessor_collisions($col_info);
+    $self->_resolve_col_accessor_collisions($full_table_name, $col_info);
 
     my $fks = $self->_table_fk_info($table);
 
@@ -1951,6 +1999,19 @@ definitions, or what-have-you).
 Returns a hashref of table to class mappings.  In some cases it will
 contain multiple entries per table for the original and normalized table
 names, as above in L</monikers>.
+
+=head1 COLUMN ACCESSOR COLLISIONS
+
+Occasionally you may have a column name that collides with a perl method, such
+as C<can>. In such cases, the default action is to set the C<accessor> of the
+column spec to C<undef>.
+
+You can then name the accessor yourself by placing code such as the following
+below the md5:
+
+    __PACKAGE__->add_column('+can' => { accessor => 'my_can' });
+
+Another option is to use the L</col_collision_map> option.
 
 =head1 SEE ALSO
 

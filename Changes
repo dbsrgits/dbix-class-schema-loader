@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Added warning for column-accessor collisions, doc section in ::Base
+          ("COLUMN ACCESSOR COLLISIONS") and the col_collision_map option.
         - Handle column accessor collisions with UNIVERSAL methods
         - Generate custom_type_name hint for PostgreSQL enums, as used
           by very recent SQL::Translator
