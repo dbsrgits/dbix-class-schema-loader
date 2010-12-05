@@ -232,10 +232,26 @@ FROM pg_catalog.pg_type
 WHERE typname = ?
 EOF
             if ($typetype eq 'e') {
+                # The following will extract a list of allowed values for the
+                # enum.
+                my $typevalues = $self->schema->storage->dbh
+                    ->selectall_arrayref(<<EOF, {}, $info->{data_type});
+SELECT e.enumlabel
+FROM pg_catalog.pg_enum e
+JOIN pg_catalog.pg_type t ON t.oid = e.enumtypid
+WHERE t.typname = ?
+EOF
+
+                $info->{extra}{list} = [ map { $_->[0] } @$typevalues ];
+
+                # Store its original name in extra for SQLT to pick up.
+                $info->{extra}{custom_type_name} = $info->{data_type};
+
                 $info->{data_type} = 'enum';
+                
+                delete $info->{size};
             }
         }
-
 
 # process SERIAL columns
         if (ref($info->{default_value}) eq 'SCALAR' && ${ $info->{default_value} } =~ /\bnextval\(['"]([.\w]+)/i) {
@@ -256,30 +272,6 @@ EOF
 
     return $result;
 }
-
-sub _extra_column_info {
-    my ($self, $table, $col, $info, $dbi_info) = @_;
-    my %extra_info;
-
-    # The following will extract a list of allowed values if this
-    # is an enumerated type. Otherwise, no results and we do nothing.
-    my $typevalues = $self->schema->storage->dbh
-        ->selectall_arrayref(<<EOF, {}, $info->{data_type});
-SELECT e.enumlabel
-FROM pg_catalog.pg_enum e
-JOIN pg_catalog.pg_type t ON t.oid = e.enumtypid
-WHERE t.typname = ?
-EOF
-
-    if (@$typevalues) {
-        # This is an enum type. Store its original name in extra for SQLT to pick up.
-        $extra_info{extra}{list} = [ map { $_->[0] } @$typevalues ];
-        $extra_info{extra}{custom_type_name} = $info->{data_type};
-    }
-
-    return \%extra_info;
-}
-
 
 =head1 SEE ALSO
 
