@@ -50,10 +50,10 @@ $t->cleanup;
   close $config_file;
 
   $t->dump_test(
-    classname => 'DBICTest::Schema::_skip_load_external',
+    classname => 'DBICTest::Schema::_config_file',
     options => { config_file => "$config_file" },
     warnings => [
-      qr/Dumping manual schema for DBICTest::Schema::_skip_load_external to directory /,
+      qr/Dumping manual schema for DBICTest::Schema::_config_file to directory /,
       qr/Schema dump completed/,
     ],
     neg_regexes => {
@@ -66,7 +66,7 @@ $t->cleanup;
 
 # proper exception
 $t->dump_test(
-  classname => 'DBICTest::Schema::_skip_load_external',
+  classname => 'DBICTest::Schema::_clashing_monikers',
   test_db_class => 'make_dbictest_db_clashing_monikers',
   error => qr/tables 'bar', 'bars' reduced to the same source moniker 'Bar'/,
 );

@@ -92,6 +92,7 @@ $t->dump_test(
     Foo => [
       qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+      qr/# XXX This is my custom content XXX/,
     ],
     Bar => [
       qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
@@ -102,7 +103,7 @@ $t->dump_test(
 
 $t->cleanup;
 
-# check with a fresh non-moose schema that Moose custom content added to unapgraded schema, and make sure it is not repeated
+# check with a fresh non-moose schema that Moose custom content added to a use_moose=0 schema is not repeated
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
   options => {
@@ -129,7 +130,7 @@ $t->dump_test(
 # add Moose custom content then check it is not repeated
 # after that regen again *without* the use_moose flag, make
 # sure moose isn't stripped away
-$t->append_to_class('DBICTest::DumpMore::1::Foo', qq{__PACKAGE__->meta->make_immutable;\n1;\n});
+$t->append_to_class('DBICTest::DumpMore::1::Foo', qq{use Moose;\n__PACKAGE__->meta->make_immutable;\n1;\n});
 
 for my $supply_use_moose (1, 0) {
   $t->dump_test(
@@ -159,6 +160,7 @@ for my $supply_use_moose (1, 0) {
     },
     neg_regexes => {
       Foo => [
+#        qr/\nuse Moose;\n.*\nuse Moose;/s, # TODO
         qr/\n__PACKAGE__->meta->make_immutable;\n.*\n__PACKAGE__->meta->make_immutable;/s,
       ],
     },

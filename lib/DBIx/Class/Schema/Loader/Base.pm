@@ -396,7 +396,7 @@ files before creating the new ones from scratch when dumping a schema to disk.
 
 The default behavior is instead to only replace the top portion of the
 file, up to and including the final stanza which contains
-C<# DO NOT MODIFY THIS OR ANYTHING ABOVE!>
+C<# DO NOT MODIFY THE FIRST PART OF THIS FILE>
 leaving any customizations you placed after that as they were.
 
 When C<really_erase_my_files> is not set, if the output file already exists,
