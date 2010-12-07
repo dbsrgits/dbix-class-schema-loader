@@ -310,12 +310,12 @@ together. Examples:
 Just like L</moniker_map> above (can be hash/code-ref, falls back to default
 if hash key does not exist or coderef returns false), but acts as a map
 for pluralizing relationship names.  The default behavior is to utilize
-L<Lingua::EN::Inflect::Number/to_PL>.
+L<Lingua::EN::Inflect::Phrase/to_PL>.
 
 =head2 inflect_singular
 
 As L</inflect_plural> above, but for singularizing relationship names.
-Default behavior is to utilize L<Lingua::EN::Inflect::Number/to_S>.
+Default behavior is to utilize L<Lingua::EN::Inflect::Phrase/to_S>.
 
 =head2 schema_base_class
 
