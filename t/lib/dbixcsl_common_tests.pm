@@ -124,6 +124,7 @@ sub run_only_extra_tests {
         $self->drop_extra_tables_only;
 
         my $dbh = $self->dbconnect(1);
+        $dbh->do($_) for @{ $self->{pre_create} || [] };
         $dbh->do($_) for @{ $self->{extra}{create} || [] };
         $dbh->do($_) for @{ $self->{data_type_tests}{ddl} || []};
         $self->{_created} = 1;
