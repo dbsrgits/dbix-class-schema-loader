@@ -92,7 +92,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (183 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @connect_info * (185 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -828,7 +828,7 @@ sub test_schema {
         }
 
         SKIP: {
-            skip 'This vendor cannot do inline relationship definitions', 9
+            skip 'This vendor cannot do inline relationship definitions', 11
                 if $self->{no_inline_rels};
 
             my $moniker12 = $monikers->{loader_test12};
@@ -853,6 +853,21 @@ sub test_schema {
 
             my $obj12 = $rsobj12->find(1);
             isa_ok( $obj12->loader_test13, $class13 );
+
+            # relname is preserved when another fk is added
+
+            isa_ok $rsobj3->find(1)->loader_test4zes, 'DBIx::Class::ResultSet';
+
+            $conn->storage->dbh->do('ALTER TABLE loader_test4 ADD COLUMN fkid2 INTEGER REFERENCES loader_test3 (id)');
+            {
+                local $SIG{__WARN__} = sub { warn @_
+                    unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method|invalidates \d+ active statement/
+                };
+                $conn->rescan;
+            }
+
+            isa_ok eval { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet',
+                'relationship name preserved when another foreign key is added in remote table';
         }
 
         SKIP: {
