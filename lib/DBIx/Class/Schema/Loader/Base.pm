@@ -865,12 +865,7 @@ sub _load_external {
         warn qq/# Loaded external class definition for '$class'\n/
             if $self->debug;
 
-        open(my $fh, '<', $real_inc_path)
-            or croak "Failed to open '$real_inc_path' for reading: $!";
-        my $code = do { local $/; <$fh> };
-        close($fh)
-            or croak "Failed to close $real_inc_path: $!";
-        $code = $self->_rewrite_old_classnames($code);
+        my $code = $self->_rewrite_old_classnames(scalar slurp $real_inc_path);
 
         if ($self->dynamic) { # load the class too
             eval_without_redefine_warnings($code);
@@ -1125,7 +1120,9 @@ sub _reload_classes {
 sub _moose_metaclass {
   return undef unless $INC{'Class/MOP.pm'};   # if CMOP is not loaded the class could not have loaded in the 1st place
 
-  my $mc = Class::MOP::class_of($_[1])
+  my $class = $_[1];
+
+  my $mc = try { Class::MOP::class_of($class) }
     or return undef;
 
   return $mc->isa('Moose::Meta::Class') ? $mc : undef;

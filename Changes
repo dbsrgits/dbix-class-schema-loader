@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Fix a fail when very old Moose/CMOP is installed
         - Added warning for column-accessor collisions, doc section in ::Base
           ("COLUMN ACCESSOR COLLISIONS") and the col_collision_map option.
         - Handle column accessor collisions with UNIVERSAL methods
