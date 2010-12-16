@@ -734,7 +734,7 @@ sub class_content_like;
     my $res = run_loader(static => 1, naming => 'current');
     my $schema = $res->{schema};
 
-    my $file = $schema->_loader->_get_dump_filename($SCHEMA_CLASS);
+    my $file = $schema->_loader->get_dump_filename($SCHEMA_CLASS);
     my $code = slurp $file;
 
     my ($dumped_ver) =
@@ -1301,7 +1301,7 @@ sub _rel_condition {
 sub class_content_like {
     my ($schema, $class, $re, $test_name) = @_;
 
-    my $file = $schema->_loader->_get_dump_filename($class);
+    my $file = $schema->_loader->get_dump_filename($class);
     my $code = slurp $file;
 
     like $code, $re, $test_name;
@@ -1333,7 +1333,7 @@ EOF
 sub _write_custom_content {
     my ($schema, $class, $content) = @_;
 
-    my $pm = $schema->_loader->_get_dump_filename($class);
+    my $pm = $schema->_loader->get_dump_filename($class);
     {
         local ($^I, @ARGV) = ('.bak', $pm);
         while (<>) {

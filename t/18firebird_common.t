@@ -114,6 +114,7 @@ my $tester = dbixcsl_common_tests->new(
         count  => 6,
         run    => sub {
             $schema = shift;
+            my ($monikers, $classes, $self) = @_;
 
             cleanup_extra();
 
@@ -146,11 +147,7 @@ q{
             local $schema->_loader->{preserve_case} = 1;
             $schema->_loader->_setup;
 
-            {
-                # FIXME - need to remove blind trap (can not test firebird yet)
-                local $SIG{__WARN__} = sub {};
-                $schema->rescan;
-            }
+            $self->rescan_without_warnings($schema);
 
             ok ((my $rsrc = eval { $schema->resultset('FirebirdLoaderTest1')->result_source }),
                 'got rsrc for mixed case table');

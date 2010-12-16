@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Preserve relationship names when redumping and another FK is added
+          (RT#62424)
+        - Remove resultset_components as ResultSetManager is deprecated
         - Fix a fail when very old Moose/CMOP is installed
         - Added warning for column-accessor collisions, doc section in ::Base
           ("COLUMN ACCESSOR COLLISIONS") and the col_collision_map option.

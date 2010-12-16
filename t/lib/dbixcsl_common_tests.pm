@@ -22,6 +22,8 @@ use dbixcsl_test_dir qw/$tdir/;
 my $DUMP_DIR = "$tdir/common_dump";
 rmtree $DUMP_DIR;
 
+use constant RESCAN_WARNINGS => qr/(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method|invalidates \d+ active statement|^Bad table or view/;
+
 sub new {
     my $class = shift;
 
@@ -92,7 +94,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    plan tests => @connect_info * (185 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @connect_info * (181 + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -138,7 +140,7 @@ sub run_only_extra_tests {
         my $conn = $schema_class->clone;
 
         $self->test_data_types($conn);
-        $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
+        $self->{extra}{run}->($conn, $monikers, $classes, $self) if $self->{extra}{run};
 
         if (not ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#$connect_info)) {
             $self->drop_extra_tables_only;
@@ -190,7 +192,6 @@ sub setup_schema {
         additional_base_classes => 'TestAdditionalBase',
         left_base_classes       => [ qw/TestLeftBase/ ],
         components              => [ qw/TestComponent/ ],
-        resultset_components    => [ qw/TestRSComponent/ ],
         inflect_plural          => { loader_test4 => 'loader_test4zes' },
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
@@ -247,7 +248,6 @@ sub setup_schema {
         is $file_count, $expected_count, 'correct number of files generated';
  
         my $warn_count = 2;
-        $warn_count++ if grep /ResultSetManager/, @loader_warnings;
  
         $warn_count++ for grep /^Bad table or view/, @loader_warnings;
  
@@ -401,25 +401,11 @@ sub test_schema {
     }
 
     SKIP: {
-        can_ok($rsobj1, 'dbix_class_testrscomponent')
-            or skip "Pre-requisite test failed", 1;
-        is( $rsobj1->dbix_class_testrscomponent,
-            'dbix_class_testrscomponent works',
-            'ResultSet component' );
-    }
-
-    SKIP: {
         can_ok( $class1, 'loader_test1_classmeth' )
             or skip "Pre-requisite test failed", 1;
         is( $class1->loader_test1_classmeth, 'all is well', 'Class method' );
     }
 
-    SKIP: {
-        can_ok( $rsobj1, 'loader_test1_rsmeth' )
-            or skip "Pre-requisite test failed";
-        is( $rsobj1->loader_test1_rsmeth, 'all is still well', 'Result set method' );
-    }
-    
     ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_increment detection' );
 
     my $obj    = $rsobj1->find(1);
@@ -856,15 +842,21 @@ sub test_schema {
 
             # relname is preserved when another fk is added
 
+            skip 'Sybase cannot add FKs via ALTER TABLE', 2
+                if $self->{vendor} eq 'sybase';
+
+            {
+                local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ /invalidates \d+ active statement/ };
+                $conn->storage->disconnect; # for mssql
+            }
+
             isa_ok $rsobj3->find(1)->loader_test4zes, 'DBIx::Class::ResultSet';
 
-            $conn->storage->dbh->do('ALTER TABLE loader_test4 ADD COLUMN fkid2 INTEGER REFERENCES loader_test3 (id)');
-            {
-                local $SIG{__WARN__} = sub { warn @_
-                    unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method|invalidates \d+ active statement/
-                };
-                $conn->rescan;
-            }
+            $conn->storage->dbh->do('ALTER TABLE loader_test4 ADD fkid2 INTEGER REFERENCES loader_test3 (id)');
+
+            $conn->storage->disconnect; # for firebird
+
+            $self->rescan_without_warnings($conn);
 
             isa_ok eval { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet',
                 'relationship name preserved when another foreign key is added in remote table';
@@ -950,12 +942,8 @@ sub test_schema {
 
         sleep 1;
 
-        my @new = do {
-            local $SIG{__WARN__} = sub { warn @_
-                unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method/
-            };
-            $conn->rescan;
-        };
+        my @new = $self->rescan_without_warnings($conn);
+
         is_deeply(\@new, [ qw/LoaderTest30/ ], "Rescan");
 
 #        system "cp t/_common_dump/DBIXCSL_Test/Schema/*.pm /tmp/after_rescan";
@@ -983,12 +971,8 @@ sub test_schema {
         $conn->storage->disconnect; # for Firebird
         $conn->storage->dbh->do("DROP TABLE loader_test30");
 
-        @new = do {
-            local $SIG{__WARN__} = sub { warn @_
-                unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method/
-            };
-            $conn->rescan;
-        };
+        @new = $self->rescan_without_warnings($conn);
+
         is_deeply(\@new, [], 'no new tables on rescan');
 
         throws_ok { $conn->resultset('LoaderTest30') }
@@ -999,7 +983,7 @@ sub test_schema {
     $self->test_data_types($conn);
 
     # run extra tests
-    $self->{extra}{run}->($conn, $monikers, $classes) if $self->{extra}{run};
+    $self->{extra}{run}->($conn, $monikers, $classes, $self) if $self->{extra}{run};
 
     $self->test_preserve_case($conn);
 
@@ -1064,12 +1048,7 @@ qq| INSERT INTO ${oqt}LoaderTest41${cqt} VALUES (1, 1) |,
     $conn->_loader->_setup;
 
 
-    {
-        local $SIG{__WARN__} = sub { warn @_
-            unless $_[0] =~ /(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method/
-        };
-        $conn->rescan;
-    };
+    $self->rescan_without_warnings($conn);
 
     if (not $self->{skip_rels}) {
         is $conn->resultset('LoaderTest41')->find(1)->loader_test40->foo3_bar, 'foo',
@@ -1871,6 +1850,13 @@ sub setup_data_type_tests {
     $tests->{test_count} = $test_count;
 
     return $test_count;
+}
+
+sub rescan_without_warnings {
+    my ($self, $conn) = @_;
+
+    local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ RESCAN_WARNINGS };
+    return $conn->rescan;
 }
 
 sub DESTROY {

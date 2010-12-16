@@ -36,7 +36,6 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 additional_base_classes
                                 left_base_classes
                                 components
-                                resultset_components
                                 skip_relationships
                                 skip_load_external
                                 moniker_map
@@ -85,6 +84,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 pod_comment_spillover_length
                                 preserve_case
                                 col_collision_map
+                                real_dump_directory
 /);
 
 =head1 NAME
@@ -345,13 +345,6 @@ List of additional components to be loaded into all of your table
 classes.  A good example would be
 L<InflateColumn::DateTime|DBIx::Class::InflateColumn::DateTime>
 
-=head2 resultset_components
-
-List of additional ResultSet components to be loaded into your table
-classes.  A good example would be C<AlwaysRS>.  Component
-C<ResultSetManager> will be automatically added to the above
-C<components> list if this option is set.
-
 =head2 use_namespaces
 
 This is now the default, to go back to L<DBIx::Class::Schema/load_classes> pass
@@ -366,13 +359,9 @@ to the call (and the generated result class names adjusted appropriately).
 
 =head2 dump_directory
 
-This option is designed to be a tool to help you transition from this
-loader to a manually-defined schema when you decide it's time to do so.
-
 The value of this option is a perl libdir pathname.  Within
 that directory this module will create a baseline manual
-L<DBIx::Class::Schema> module set, based on what it creates at runtime
-in memory.
+L<DBIx::Class::Schema> module set, based on what it creates at runtime.
 
 The created schema class will have the same classname as the one on
 which you are setting this option (and the ResultSource classes will be
@@ -512,7 +501,7 @@ my $CURRENT_V = 'v7';
 
 my @CLASS_ARGS = qw(
     schema_base_class result_base_class additional_base_classes
-    left_base_classes additional_classes components resultset_components
+    left_base_classes additional_classes components
 );
 
 # ensure that a peice of object data is a valid arrayref, creating
@@ -562,7 +551,6 @@ sub new {
                                additional_base_classes
                                left_base_classes
                                components
-                               resultset_components
                               /);
 
     $self->_validate_class_args;
@@ -573,9 +561,6 @@ sub new {
                 DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose');
         }
     }
-
-    push(@{$self->{components}}, 'ResultSetManager')
-        if @{$self->{resultset_components}};
 
     $self->{monikers} = {};
     $self->{classes} = {};
@@ -595,6 +580,8 @@ sub new {
                                                    );
 
     $self->{dump_directory} ||= $self->{temp_directory};
+
+    $self->real_dump_directory($self->{dump_directory});
 
     $self->version_to_dump($DBIx::Class::Schema::Loader::VERSION);
     $self->schema_version_to_dump($DBIx::Class::Schema::Loader::VERSION);
@@ -794,8 +781,8 @@ sub _find_file_in_inc {
         my $fullpath = File::Spec->catfile($prefix, $file);
         return $fullpath if -f $fullpath
             # abs_path throws on Windows for nonexistant files
-            and eval { Cwd::abs_path($fullpath) } ne
-               (eval { Cwd::abs_path(File::Spec->catfile($self->dump_directory, $file)) } || '');
+            and (try { Cwd::abs_path($fullpath) }) ne
+               ((try { Cwd::abs_path(File::Spec->catfile($self->dump_directory, $file)) }) || '');
     }
 
     return;
@@ -1044,6 +1031,7 @@ sub _load_tables {
         local $self->{dump_directory} = $self->{temp_directory};
         $self->_reload_classes(\@tables);
         $self->_load_relationships($_) for @tables;
+        $self->_relbuilder->cleanup;
         $self->{quiet} = 0;
 
         # Remove that temp dir from INC so it doesn't get reloaded
@@ -1055,7 +1043,7 @@ sub _load_tables {
 
     # Reload without unloading first to preserve any symbols from external
     # packages.
-    $self->_reload_classes(\@tables, 0);
+    $self->_reload_classes(\@tables, { unload => 0 });
 
     # Drop temporary cache
     delete $self->{_cache};
@@ -1064,9 +1052,11 @@ sub _load_tables {
 }
 
 sub _reload_classes {
-    my ($self, $tables, $unload) = @_;
+    my ($self, $tables, $opts) = @_;
 
     my @tables = @$tables;
+
+    my $unload = $opts->{unload};
     $unload = 1 unless defined $unload;
 
     # so that we don't repeat custom sections
@@ -1137,10 +1127,12 @@ sub _reload_class {
     delete $INC{ $class_path };
 
 # kill redefined warnings
-    eval {
+    try {
         eval_without_redefine_warnings ("require $class");
+    }
+    catch {
+        die "Failed to reload class $class: $_";
     };
-    die "Failed to reload class $class: $@" if $@;
 }
 
 sub _get_dump_filename {
@@ -1148,6 +1140,23 @@ sub _get_dump_filename {
 
     $class =~ s{::}{/}g;
     return $self->dump_directory . q{/} . $class . q{.pm};
+}
+
+=head2 get_dump_filename
+
+Arguments: class
+
+Returns the full path to the file for a class that the class has been or will
+be dumped to. This is a file in a temp dir for a dynamic schema.
+
+=cut
+
+sub get_dump_filename {
+    my ($self, $class) = (@_);
+
+    local $self->{dump_directory} = $self->real_dump_directory;
+
+    return $self->_get_dump_filename($class);
 }
 
 sub _ensure_dump_subdirs {
@@ -1180,13 +1189,13 @@ sub _dump_to_dir {
     my $schema_text =
           qq|package $schema_class;\n\n|
         . qq|# Created by DBIx::Class::Schema::Loader\n|
-        . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
-        . qq|use strict;\nuse warnings;\n\n|;
+        . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|;
+
     if ($self->use_moose) {
         $schema_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends '$schema_base_class';\n\n|;
     }
     else {
-        $schema_text .= qq|use base '$schema_base_class';\n\n|;
+        $schema_text .= qq|use strict;\nuse warnings;\n\nuse base '$schema_base_class';\n\n|;
     }
 
     if ($self->use_namespaces) {
@@ -1520,8 +1529,6 @@ sub _make_src_class {
         $self->_dbic_stmt($table_class, 'load_components', @components);
     }
 
-    $self->_dbic_stmt($table_class, 'load_resultset_components', @{$self->resultset_components})
-        if @{$self->resultset_components};
     $self->_inject($table_class, @{$self->additional_base_classes});
 }
 
@@ -1963,7 +1970,7 @@ sub _uc {
 sub _unregister_source_for_table {
     my ($self, $table) = @_;
 
-    eval {
+    try {
         local $@;
         my $schema = $self->schema;
         # in older DBIC it's a private method

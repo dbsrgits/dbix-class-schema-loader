@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 101;
+    plan tests => 98;
 
     $self->create();
 
@@ -66,13 +66,6 @@ sub run_tests {
     );
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
-    eval { require Class::Inspector };
-    if($@) {
-        $self->{_no_rs_components} = 1;
-    }
-    else {
-        $loader_opts{resultset_components} = [ qw/TestRSComponent/ ];
-    }
 
     {
        my @loader_warnings;
@@ -176,15 +169,13 @@ sub run_tests {
 
     {
         my ($skip_tab, $skip_tabo, $skip_taba, $skip_cmeth,
-            $skip_rsmeth, $skip_tcomp, $skip_trscomp);
+            $skip_tcomp, $skip_trscomp);
 
         can_ok( $class1, 'test_additional_base' ) or $skip_tab = 1;
         can_ok( $class1, 'test_additional_base_override' ) or $skip_tabo = 1;
         can_ok( $class1, 'test_additional_base_additional' ) or $skip_taba = 1;
         can_ok( $class1, 'dbix_class_testcomponent' ) or $skip_tcomp = 1;
         can_ok( $class1, 'loader_test1_classmeth' ) or $skip_cmeth = 1;
-
-        can_ok( $rsobj1, 'loader_test1_rsmeth' ) or $skip_rsmeth = 1;
 
         SKIP: {
             skip "Pre-requisite test failed", 1 if $skip_tab;
@@ -212,26 +203,9 @@ sub run_tests {
         }
 
         SKIP: {
-            skip "These two tests need Class::Inspector installed", 2
-                     if $self->{_no_rs_components};
-            can_ok($rsobj1, 'dbix_class_testrscomponent') or $skip_trscomp = 1;
-            SKIP: {
-                skip "Pre-requisite test failed", 1 if $skip_trscomp;
-                is( $rsobj1->dbix_class_testrscomponent,
-                    'dbix_class_testrscomponent works' );
-            }
-        }
-
-        SKIP: {
             skip "Pre-requisite test failed", 1 if $skip_cmeth;
             is( $class1->loader_test1_classmeth, 'all is well' );
         }
-
-        # XXX put this back in when the TODO above works...
-        #SKIP: {
-        #    skip "Pre-requisite test failed", 1 if $skip_rsmeth;
-        #    is( $rsobj1->loader_test1_rsmeth, 'all is still well' );
-        #}
     }
 
 
