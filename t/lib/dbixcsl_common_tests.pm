@@ -290,7 +290,7 @@ sub setup_schema {
         }
     }
 
-    exit if $file_count != $expected_count;
+    exit if ($file_count||0) != $expected_count;
    
     return $schema_class;
 }

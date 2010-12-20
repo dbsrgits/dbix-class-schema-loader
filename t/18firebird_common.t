@@ -172,8 +172,8 @@ if (not ($dbd_interbase_dsn || $odbc_dsn)) {
 else {
     # get rid of stupid warning from InterBase/GetInfo.pm
     if ($dbd_interbase_dsn) {
-        # FIXME - need to remove blind trap (can not test firebird yet)
-        local $SIG{__WARN__} = sub {};
+        local $SIG{__WARN__} = sub { warn @_
+            unless $_[0] =~ m|^Use of uninitialized value in sprintf at \S+DBD/InterBase/GetInfo\.pm line \d+\.$| };
         require DBD::InterBase;
         require DBD::InterBase::GetInfo;
     }
@@ -192,3 +192,4 @@ sub cleanup_extra {
         eval { $dbh->do($stmt) };
     }
 }
+# vim:et sts=4 sw=4 tw=0:
