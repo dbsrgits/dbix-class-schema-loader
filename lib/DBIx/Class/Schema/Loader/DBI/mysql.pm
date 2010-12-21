@@ -218,6 +218,15 @@ sub _extra_column_info {
     return \%extra_info;
 }
 
+sub _dbh_column_info {
+    my $self = shift;
+
+    local $SIG{__WARN__} = sub { warn @_
+        unless $_[0] =~ /^column_info: unrecognized column type/ };
+
+    $self->next::method(@_);
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,

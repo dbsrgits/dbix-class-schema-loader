@@ -187,10 +187,11 @@ sub _table_fk_info_builder {
 }
 
 sub _table_uniq_info {
+    no warnings 'uninitialized'; # for presumably XS weirdness with null operations
     my ($self, $table) = @_;
 
-    # FIXME - remove blind mask (can't test sybase yet)
-    local $SIG{__WARN__} = sub {};
+    local $SIG{__WARN__} = sub { warn @_
+        unless $_[0] =~ /^Formula for Calculation:|^(?:--?|\+|=) Number of (?:self )?references|^Total Number of Referential Constraints|^Details:|^\s*$/ };
 
     my $dbh = $self->schema->storage->dbh;
     local $dbh->{FetchHashKeyName} = 'NAME_lc';
@@ -335,3 +336,4 @@ the same terms as Perl itself.
 =cut
 
 1;
+# vim:et sts=4 sw=4 tw=0:

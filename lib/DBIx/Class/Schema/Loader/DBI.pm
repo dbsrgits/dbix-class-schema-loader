@@ -285,12 +285,7 @@ sub _columns_info_for {
     if ($dbh->can('column_info')) {
         my %result;
         eval {
-            my $sth = do {
-                # FIXME - seems to only warn on MySQL, and even then the output is valuable
-                # need to figure out how no to mask it away (and still have tests pass)
-                local $SIG{__WARN__} = sub {};
-                $dbh->column_info( undef, $self->db_schema, $table, '%' );
-            };
+            my $sth = $self->_dbh_column_info($dbh, undef, $self->db_schema, $table, '%' );
             while ( my $info = $sth->fetchrow_hashref() ){
                 my $column_info = {};
                 $column_info->{data_type}     = lc $info->{TYPE_NAME};
@@ -367,9 +362,15 @@ sub _columns_info_for {
     return \%result;
 }
 
-# Override this in vendor class to return any additional column
-# attributes
+# do not use this, override _columns_info_for instead
 sub _extra_column_info {}
+
+# override to mask warnings if needed (see mysql)
+sub _dbh_column_info {
+    my ($self, $dbh) = (shift, shift);
+
+    return $dbh->column_info(@_);
+}
 
 =head1 SEE ALSO
 

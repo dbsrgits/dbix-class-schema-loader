@@ -96,7 +96,7 @@ sub run_tests {
 
     my $column_accessor_map_tests = 5;
     my $num_rescans = 5;
-    $num_rescans-- if $self->{vendor} eq 'sybase';
+    $num_rescans-- if $self->{vendor} =~ /^(?:sybase|mysql)\z/i;
 
     plan tests => @connect_info *
         (182 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
