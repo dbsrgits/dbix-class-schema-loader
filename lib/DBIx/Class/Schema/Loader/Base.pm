@@ -1148,7 +1148,8 @@ sub _reload_class {
         eval_without_redefine_warnings ("require $class");
     }
     catch {
-        die "Failed to reload class $class: $_";
+        my $source = slurp $self->_get_dump_filename($class);
+        die "Failed to reload class $class: $_.\n\nCLASS SOURCE:\n\n$source";
     };
 }
 
@@ -1564,8 +1565,9 @@ sub _resolve_col_accessor_collisions {
         die $@ if $@;
 
         push @methods, @{ Class::Inspector->methods($class) || [] };
-        push @methods, @{ Class::Inspector->methods('UNIVERSAL') || [] };
     }
+
+    push @methods, @{ Class::Inspector->methods('UNIVERSAL') };
 
     my %methods;
     @methods{@methods} = ();
@@ -1599,10 +1601,6 @@ EOF
             }
         }
     }
-
-    # FIXME: it appears that this method should also check that the
-    # default accessor (i.e. the column name itself) is not colliding
-    # with any of these methods
 }
 
 # use the same logic to run moniker_map, column_accessor_map, and
@@ -1630,8 +1628,7 @@ sub _default_column_accessor_name {
     my $accessor_name = $column_name;
     $accessor_name =~ s/\W+/_/g;
 
-    # for backcompat
-    if( ($self->naming->{column_accessors}||'') =~ /(\d+)/ && $1 < 7 ) {
+    if ((($self->naming->{column_accessors}||'') =~ /(\d+)/ && $1 < 7) || (not $self->preserve_case)) {
         # older naming just lc'd the col accessor and that's all.
         return lc $accessor_name;
     }
@@ -1639,6 +1636,7 @@ sub _default_column_accessor_name {
     return join '_', map lc, split_name $column_name;
 
 }
+
 sub _make_column_accessor_name {
     my ($self, $column_name, $column_context_info ) = @_;
 

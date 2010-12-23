@@ -158,17 +158,15 @@ my $tester = dbixcsl_common_tests->new(
                 }
             }
 
-            SKIP: {
-                skip 'not running comment tests', 1 unless (my $class = $classes->{oracle_loader_test1});
-                my $filename = $schema->_loader->get_dump_filename($class);
-                my $code = File::Slurp::slurp $filename;
+            my $class = $classes->{oracle_loader_test1};
+            my $filename = $schema->_loader->get_dump_filename($class);
+            my $code = File::Slurp::slurp $filename;
 
-                like $code, qr/^=head1 NAME\n\n^$class - oracle_loader_test1 table comment\n\n^=cut\n/m,
-                    'table comment';
+            like $code, qr/^=head1 NAME\n\n^$class - oracle_loader_test1 table comment\n\n^=cut\n/m,
+                'table comment';
 
-                like $code, qr/^=head2 value\n\n(.+:.+\n)+\noracle_loader_test1\.value column comment\n\n/m,
-                    'column comment and attrs';
-            }
+            like $code, qr/^=head2 value\n\n(.+:.+\n)+\noracle_loader_test1\.value column comment\n\n/m,
+                'column comment and attrs';
         },
     },
 );

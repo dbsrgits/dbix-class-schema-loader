@@ -1056,7 +1056,6 @@ qq| INSERT INTO ${oqt}LoaderTest41${cqt} VALUES (1, 1) |,
     local $conn->_loader->{preserve_case} = 1;
     $conn->_loader->_setup;
 
-
     $self->rescan_without_warnings($conn);
 
     if (not $self->{skip_rels}) {
@@ -1871,7 +1870,7 @@ sub rescan_without_warnings {
 
 sub test_column_accessor_map {
     my ( $column_name, $default_name, $context ) = @_;
-    if( $column_name eq 'crumb_crisp_coating' ) {
+    if( lc($column_name) eq 'crumb_crisp_coating' ) {
 
         is( $default_name, 'crumb_crisp_coating', 'column_accessor_map was passed the default name' );
         ok( $context->{$_}, "column_accessor_map func was passed the $_" )
