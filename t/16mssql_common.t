@@ -126,6 +126,7 @@ my $tester = dbixcsl_common_tests->new(
         character      => { data_type => 'char', size => 1 },
         'character(2)' => { data_type => 'char', size => 2 },
         'varchar(2)'   => { data_type => 'varchar', size => 2 },
+
         nchar          => { data_type => 'nchar', size => 1 },
         'nchar(2)'     => { data_type => 'nchar', size => 2 },
         'nvarchar(2)'  => { data_type => 'nvarchar', size => 2 },
@@ -138,8 +139,10 @@ my $tester = dbixcsl_common_tests->new(
         # blob types
         'varchar(max)'   => { data_type => 'text' },
         text             => { data_type => 'text' },
+
         'nvarchar(max)'  => { data_type => 'ntext' },
         ntext            => { data_type => 'ntext' },
+
         'varbinary(max)' => { data_type => 'image' },
         image            => { data_type => 'image' },
 

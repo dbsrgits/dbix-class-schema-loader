@@ -124,7 +124,7 @@ sub _filter_tables {
     @tables = grep { /$constraint/ } @$tables if defined $constraint;
     @tables = grep { ! /$exclude/  } @$tables if defined $exclude;
 
-    for my $table (@tables) {
+    LOOP: for my $table (@tables) {
         try {
             my $sth = $self->_sth_for($table, undef, \'1 = 0');
             $sth->execute;
@@ -132,6 +132,8 @@ sub _filter_tables {
         catch {
             warn "Bad table or view '$table', ignoring: $_\n";
             $self->_unregister_source_for_table($table);
+            no warnings 'exiting';
+            next LOOP;
         };
 
         push @filtered_tables, $table;

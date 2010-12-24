@@ -97,6 +97,7 @@ sub run_tests {
     my $column_accessor_map_tests = 5;
     my $num_rescans = 5;
     $num_rescans-- if $self->{vendor} =~ /^(?:sybase|mysql)\z/i;
+    $num_rescans++ if $self->{vendor} eq 'mssql';
 
     plan tests => @connect_info *
         (182 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
@@ -133,12 +134,19 @@ sub run_only_extra_tests {
         my $dbh = $self->dbconnect(1);
         $dbh->do($_) for @{ $self->{pre_create} || [] };
         $dbh->do($_) for @{ $self->{extra}{create} || [] };
-        $dbh->do($_) for @{ $self->{data_type_tests}{ddl} || []};
+
+        if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
+            $dbh->do($_) for @{ $self->{data_type_tests}{ddl} || []};
+        }
+
         $self->{_created} = 1;
 
         my $file_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
         $file_count++; # schema
-        $file_count++ for @{ $self->{data_type_tests}{table_names} || [] };
+        
+        if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
+            $file_count++ for @{ $self->{data_type_tests}{table_names} || [] };
+        }
 
         my $schema_class = $self->setup_schema($info, $file_count);
         my ($monikers, $classes) = $self->monikers_and_classes($schema_class);
@@ -162,8 +170,10 @@ sub drop_extra_tables_only {
     $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
     $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
-    foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
-        $dbh->do("DROP TABLE $data_type_table");
+    if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
+        foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
+            $dbh->do("DROP TABLE $data_type_table");
+        }
     }
 }
 
@@ -236,7 +246,10 @@ sub setup_schema {
 
         if ($standard_sources) {
             $expected_count = 36;
-            $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
+
+            if (not ($self->{vendor} eq 'mssql' && $connect_info->[0] =~ /Sybase/)) {
+                $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
+            }
 
             $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
                 @{ $self->{extra}{create} || [] };
@@ -1004,24 +1017,30 @@ sub test_schema {
 sub test_data_types {
     my ($self, $conn) = @_;
 
-    if ($self->{data_type_tests}{test_count}) {
-        my $data_type_tests = $self->{data_type_tests};
+    SKIP: {
+        if (my $test_count = $self->{data_type_tests}{test_count}) {
+            if ($self->{vendor} eq 'mssql' && $conn->storage->dbh->{Driver}{Name} eq 'Sybase') {
+                skip 'DBD::Sybase does not work with the data_type tests on latest SQL Server', $test_count;
+            }
 
-        foreach my $moniker (@{ $data_type_tests->{table_monikers} }) {
-            my $columns = $data_type_tests->{columns}{$moniker};
+            my $data_type_tests = $self->{data_type_tests};
 
-            my $rsrc = $conn->resultset($moniker)->result_source;
+            foreach my $moniker (@{ $data_type_tests->{table_monikers} }) {
+                my $columns = $data_type_tests->{columns}{$moniker};
 
-            while (my ($col_name, $expected_info) = each %$columns) {
-                my %info = %{ $rsrc->column_info($col_name) };
-                delete @info{qw/is_nullable timezone locale sequence/};
+                my $rsrc = $conn->resultset($moniker)->result_source;
 
-                my $text_col_def = dumper_squashed \%info;
+                while (my ($col_name, $expected_info) = each %$columns) {
+                    my %info = %{ $rsrc->column_info($col_name) };
+                    delete @info{qw/is_nullable timezone locale sequence/};
 
-                my $text_expected_info = dumper_squashed $expected_info;
+                    my $text_col_def = dumper_squashed \%info;
 
-                is_deeply \%info, $expected_info,
-                    "test column $col_name has definition: $text_col_def expecting: $text_expected_info";
+                    my $text_expected_info = dumper_squashed $expected_info;
+
+                    is_deeply \%info, $expected_info,
+                        "test column $col_name has definition: $text_col_def expecting: $text_expected_info";
+                }
             }
         }
     }
@@ -1600,7 +1619,9 @@ sub create {
 
     $dbh->do($_) foreach (@statements);
 
-    $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || [] });
+    if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
+        $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || [] });
+    }
 
     unless($self->{skip_rels}) {
         # hack for now, since DB2 doesn't like inline comments, and we need
@@ -1702,45 +1723,47 @@ sub drop_tables {
     # For some reason some tests do this twice (I guess dependency issues?)
     # do it twice for all drops
     for (1,2) {
-      my $dbh = $self->dbconnect(0);
+        my $dbh = $self->dbconnect(0);
 
-      $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+        $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
 
-      $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
+        $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
 
-      my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
+        my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
 
-      unless($self->{skip_rels}) {
-        $dbh->do("DROP TABLE $_") for (@tables_reltests);
-        $dbh->do("DROP TABLE $_") for (@tables_reltests);
-        if($self->{vendor} =~ /mysql/i) {
-            $dbh->do($drop_fk_mysql);
+        unless($self->{skip_rels}) {
+            $dbh->do("DROP TABLE $_") for (@tables_reltests);
+            $dbh->do("DROP TABLE $_") for (@tables_reltests);
+            if($self->{vendor} =~ /mysql/i) {
+                $dbh->do($drop_fk_mysql);
+            }
+            else {
+                $dbh->do($drop_fk);
+            }
+            $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
+            $dbh->do("DROP TABLE $_") for (@tables_advanced);
+
+            unless($self->{no_inline_rels}) {
+                $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
+            }
+            unless($self->{no_implicit_rels}) {
+                $dbh->do("DROP TABLE $_") for (@tables_implicit_rels);
+            }
         }
-        else {
-            $dbh->do($drop_fk);
+        $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
+        $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
+
+        if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
+            foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
+                $dbh->do("DROP TABLE $data_type_table");
+            }
         }
-        $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
-        $dbh->do("DROP TABLE $_") for (@tables_advanced);
 
-        unless($self->{no_inline_rels}) {
-            $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
-        }
-        unless($self->{no_implicit_rels}) {
-            $dbh->do("DROP TABLE $_") for (@tables_implicit_rels);
-        }
-      }
-      $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
-      $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
+        my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1);
 
-      foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
-        $dbh->do("DROP TABLE $data_type_table");
-      }
+        $dbh->do("DROP TABLE ${oqt}${_}${cqt}") for @tables_preserve_case_tests;
 
-      my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1);
-
-      $dbh->do("DROP TABLE ${oqt}${_}${cqt}") for @tables_preserve_case_tests;
-
-      $dbh->disconnect;
+        $dbh->disconnect;
     }
 }
 
