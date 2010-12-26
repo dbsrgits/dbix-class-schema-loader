@@ -324,7 +324,7 @@ sub _columns_info_for {
     my $sth = $self->_sth_for($table, undef, \'1 = 0');
     $sth->execute;
 
-    my @columns = $sth->{NAME};
+    my @columns = @{ $sth->{NAME} };
 
     for my $i (0 .. $#columns) {
         my $column_info = {};

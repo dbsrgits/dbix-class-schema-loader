@@ -186,7 +186,6 @@ sub _columns_info_for {
     my $result = $self->next::method(@_);
 
     my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
 
     my $sth = $dbh->prepare(<<'EOF');
 select c.colname, c.coltype, c.collength, c.colmin, d.type deflt_type, d.default deflt

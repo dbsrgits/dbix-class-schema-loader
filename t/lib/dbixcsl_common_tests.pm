@@ -98,6 +98,7 @@ sub run_tests {
     my $num_rescans = 5;
     $num_rescans-- if $self->{vendor} =~ /^(?:sybase|mysql)\z/i;
     $num_rescans++ if $self->{vendor} eq 'mssql';
+    $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
         (182 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
