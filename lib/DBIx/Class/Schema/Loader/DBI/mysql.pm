@@ -176,6 +176,9 @@ EOF
                 delete $info->{size};
             }
         }
+        elsif ($info->{data_type} =~ /^(?:date(?:time)?|timestamp)\z/) {
+            $info->{datetime_undef_if_invalid} = 1;
+        }
 
         # Sometimes apparently there's a bug where default_value gets set to ''
         # for things that don't actually have or support that default (like ints.)

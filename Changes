@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - add datetime_undef_if_invalid => 1 for MySQL date data types
+          (RT#64820)
         - added column_accessor_map option
         - Preserve relationship names when redumping and another FK is added
           (RT#62424)
