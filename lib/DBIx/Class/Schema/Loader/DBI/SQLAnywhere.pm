@@ -102,6 +102,9 @@ EOF
         elsif ($info->{data_type} eq 'float') {
             $info->{data_type} = 'real';
         }
+        elsif ($info->{data_type} =~ /^uniqueidentifier(?:str)?\z/) {
+            $info->{auto_nextval} = 1;
+        }
 
         delete $info->{default_value} if ref($info->{default_value}) eq 'SCALAR' && ${ $info->{default_value} } eq 'NULL';
 

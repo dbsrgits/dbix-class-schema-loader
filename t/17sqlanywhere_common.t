@@ -112,7 +112,7 @@ my $tester = dbixcsl_common_tests->new(
         'nvarchar(20)' => { data_type => 'nvarchar',  size => 20 },
         'xml'          => { data_type => 'xml' },
         'uniqueidentifierstr'
-                       => { data_type => 'uniqueidentifierstr' },
+                       => { data_type => 'uniqueidentifierstr', auto_nextval => 1 },
 
         # Binary types
         'binary'       => { data_type => 'binary', size => 1 },
@@ -120,7 +120,7 @@ my $tester = dbixcsl_common_tests->new(
         'varbinary'    => { data_type => 'varbinary', size => 1 },
         'varbinary(20)'=> { data_type => 'varbinary', size => 20 },
         'uniqueidentifier'
-                       => { data_type => 'uniqueidentifier' },
+                       => { data_type => 'uniqueidentifier', auto_nextval => 1 },
 
         # Blob types
         'long binary'  => { data_type => 'long binary' },

@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - add auto_nextval => 1 to uniqueidentifier columns on MSSQL and to
+          uniqueidentifier and uniqueidentifierstr columns on SQLAnywhere
         - add datetime_undef_if_invalid => 1 for MySQL datetime data types
           (RT#64820)
         - added column_accessor_map option
