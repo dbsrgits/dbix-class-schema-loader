@@ -86,6 +86,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 preserve_case
                                 col_collision_map
                                 real_dump_directory
+                                datetime_undef_if_invalid
 /);
 
 =head1 NAME
@@ -458,6 +459,15 @@ columns with the DATE/DATETIME/TIMESTAMP data_types.
 
 Sets the locale attribute for L<DBIx::Class::InflateColumn::DateTime> for all
 columns with the DATE/DATETIME/TIMESTAMP data_types.
+
+=head2 datetime_undef_if_invalid
+
+Pass a C<0> for this option when using MySQL if you B<DON'T> want C<<
+datetime_undef_if_invalid => 1 >> in your column info for DATE, DATETIME and
+TIMESTAMP columns.
+
+The default is recommended to deal with data such as C<00/00/00> which
+sometimes ends up in such columns in MySQL.
 
 =head2 config_file
 

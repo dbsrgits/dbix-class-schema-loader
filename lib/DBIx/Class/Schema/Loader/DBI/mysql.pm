@@ -177,7 +177,9 @@ EOF
             }
         }
         elsif ($info->{data_type} =~ /^(?:date(?:time)?|timestamp)\z/) {
-            $info->{datetime_undef_if_invalid} = 1;
+            if (not (defined $self->datetime_undef_if_invalid && $self->datetime_undef_if_invalid == 0)) {
+                $info->{datetime_undef_if_invalid} = 1;
+            }
         }
 
         # Sometimes apparently there's a bug where default_value gets set to ''

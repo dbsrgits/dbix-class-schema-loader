@@ -328,7 +328,7 @@ sub _columns_info_for {
 
     for my $i (0 .. $#columns) {
         my $column_info = {};
-        $column_info->{data_type} = lc $sth->{TYPE}->[$i];
+        $column_info->{data_type} = lc $sth->{TYPE}[$i];
 
         my $size = $sth->{PRECISION}[$i];
 
@@ -339,7 +339,7 @@ sub _columns_info_for {
             $column_info->{size} = $size;
         }
 
-        $column_info->{is_nullable} = $sth->{NULLABLE}->[$i] ? 1 : 0;
+        $column_info->{is_nullable} = $sth->{NULLABLE}[$i] ? 1 : 0;
 
         if ($column_info->{data_type} =~ m/^(.*?)\((.*?)\)$/) {
             $column_info->{data_type} = $1;
