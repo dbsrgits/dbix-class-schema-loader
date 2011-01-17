@@ -76,7 +76,8 @@ my $tester = dbixcsl_common_tests->new(
         'binary(2)'    => { data_type => 'binary', size => 2 },
         'varbinary(2)' => { data_type => 'varbinary', size => 2 },
     },
-    # test that named constraints aren't picked up as tables
+    # test that named constraints aren't picked up as tables (I can't reproduce this on my machine)
+    failtrigger_warnings => [ qr/^Bad table or view 'sybase_loader_test2_ref_slt1'/ ],
     extra => {
         create => [
             q{

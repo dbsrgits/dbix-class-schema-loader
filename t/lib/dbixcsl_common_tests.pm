@@ -279,6 +279,8 @@ sub setup_schema {
 
         $warn_count++ for grep { my $w = $_; grep $w =~ $_, @{ $self->{warnings} || [] } } @loader_warnings;
 
+        $warn_count-- for grep { my $w = $_; grep $w =~ $_, @{ $self->{failtrigger_warnings} || [] } } @loader_warnings;
+
         if ($standard_sources) {
             if($self->{skip_rels}) {
                 SKIP: {

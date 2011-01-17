@@ -27,6 +27,9 @@ sub _setup {
     if (not defined $self->preserve_case) {
         $self->preserve_case(1);
     }
+
+    $self->{db_schema} ||=
+        ($self->schema->storage->dbh->selectrow_array('select user_name()'))[0];
 }
 
 sub _rebless {
@@ -42,6 +45,19 @@ sub _rebless {
             $self->_rebless;
       }
     }
+}
+
+sub _tables_list {
+    my ($self, $opts) = @_;
+
+    my $dbh = $self->schema->storage->dbh;
+
+    my $sth = $dbh->table_info(undef, $self->db_schema, undef, "'TABLE','VIEW'");
+
+    my @tables = grep $_ ne 'sysquerymetrics',
+              map $_->{table_name}, @{ $sth->fetchall_arrayref({ table_name => 1 }) };
+
+    return $self->_filter_tables(\@tables, $opts);
 }
 
 sub _table_columns {
