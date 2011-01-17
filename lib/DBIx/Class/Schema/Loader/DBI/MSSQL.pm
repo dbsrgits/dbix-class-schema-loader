@@ -253,9 +253,6 @@ AND table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($c
 
             delete $info->{size} if $info->{size} == 7;
         }
-        elsif ($info->{data_type} eq 'uniqueidentifier') {
-            $info->{auto_nextval} = 1;
-        }
 
         if ($info->{data_type} !~ /^(?:n?char|n?varchar|binary|varbinary|numeric|decimal|float|datetime(?:2|offset)|time)\z/) {
             delete $info->{size};

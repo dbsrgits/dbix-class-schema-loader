@@ -149,7 +149,7 @@ my $tester = dbixcsl_common_tests->new(
         # other types
         timestamp        => { data_type => 'timestamp', inflate_datetime => 0 },
         rowversion       => { data_type => 'rowversion' },
-        uniqueidentifier => { data_type => 'uniqueidentifier', auto_nextval => 1 },
+        uniqueidentifier => { data_type => 'uniqueidentifier' },
         sql_variant      => { data_type => 'sql_variant' },
         xml              => { data_type => 'xml' },
     },
