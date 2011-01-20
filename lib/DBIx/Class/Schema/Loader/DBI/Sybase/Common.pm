@@ -37,29 +37,7 @@ sub _build_db_schema {
     my $self = shift;
     my $dbh  = $self->schema->storage->dbh;
 
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
-    
-    my $test_table = "_loader_test_$$";
-
-    my $db_schema = 'dbo'; # default
-
-    eval {
-        $dbh->do("create table $test_table (id integer)");
-        my $sth = $dbh->prepare('sp_tables');
-        $sth->execute;
-        while (my $row = $sth->fetchrow_hashref) {
-            next unless $row->{table_name} eq $test_table;
-
-            $db_schema = $row->{table_owner};
-            last;
-        }
-        $sth->finish;
-        $dbh->do("drop table $test_table");
-    };
-    my $exception = $@;
-    eval { $dbh->do("drop table $test_table") };
-    carp "Could not determine db_schema, defaulting to $db_schema : $exception"
-        if $exception;
+    my ($db_schema) = $dbh->selectrow_array('select user_name()');
 
     return $db_schema;
 }

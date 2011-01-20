@@ -27,9 +27,6 @@ sub _setup {
     if (not defined $self->preserve_case) {
         $self->preserve_case(1);
     }
-
-    $self->{db_schema} ||=
-        ($self->schema->storage->dbh->selectrow_array('select user_name()'))[0];
 }
 
 sub _rebless {

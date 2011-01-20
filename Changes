@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - improve sybase/mssql db_schema detection
         - remove MooseX::NonMoose from Schema files under use_moose=1
         - better _tables_list for Sybase ASE
         - add datetime_undef_if_invalid => 1 for MySQL datetime data types
