@@ -29,8 +29,8 @@ $t->dump_test(
   ],
   regexes => {
     schema => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
-      qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+      qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+      qr/\n__PACKAGE__->meta->make_immutable\(inline_constructor => 0\);\n1;(?!\n1;\n)\n.*/,
     ],
     Foo => [
       qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
@@ -86,8 +86,8 @@ $t->dump_test(
   ],
   regexes => {
     schema => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
-      qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+      qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+      qr/\n__PACKAGE__->meta->make_immutable\(inline_constructor => 0\);\n1;(?!\n1;\n)\n.*/,
     ],
     Foo => [
       qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
@@ -146,8 +146,8 @@ for my $supply_use_moose (1, 0) {
     ],
     regexes => {
       schema => [
-        qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
-        qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+        qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+        qr/\n__PACKAGE__->meta->make_immutable\(inline_constructor => 0\);\n1;(?!\n1;\n)\n.*/,
       ],
       Foo => [
         qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,

@@ -1220,7 +1220,7 @@ sub _dump_to_dir {
         . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|;
 
     if ($self->use_moose) {
-        $schema_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends '$schema_base_class';\n\n|;
+        $schema_text.= qq|use Moose;\nuse namespace::autoclean;\nextends '$schema_base_class';\n\n|;
     }
     else {
         $schema_text .= qq|use strict;\nuse warnings;\n\nuse base '$schema_base_class';\n\n|;
@@ -1343,7 +1343,7 @@ sub _write_classfile {
         }
     }
 
-    $custom_content ||= $self->_default_custom_content;
+    $custom_content ||= $self->_default_custom_content($is_schema);
 
     # If upgrading to use_moose=1 replace default custom content with default Moose custom content.
     # If there is already custom content, which does not have the Moose content, add it.
@@ -1355,10 +1355,10 @@ sub _write_classfile {
         };
 
         if ($custom_content eq $non_moose_custom_content) {
-            $custom_content = $self->_default_custom_content;
+            $custom_content = $self->_default_custom_content($is_schema);
         }
-        elsif ($custom_content !~ /\Q@{[$self->_default_moose_custom_content]}\E/) {
-            $custom_content .= $self->_default_custom_content;
+        elsif ($custom_content !~ /\Q@{[$self->_default_moose_custom_content($is_schema)]}\E/) {
+            $custom_content .= $self->_default_custom_content($is_schema);
         }
     }
     elsif (defined $self->use_moose && $old_gen) {
@@ -1404,15 +1404,21 @@ sub _write_classfile {
 }
 
 sub _default_moose_custom_content {
-    return qq|\n__PACKAGE__->meta->make_immutable;|;
+    my ($self, $is_schema) = @_;
+
+    if (not $is_schema) {
+        return qq|\n__PACKAGE__->meta->make_immutable;|;
+    }
+    
+    return qq|\n__PACKAGE__->meta->make_immutable(inline_constructor => 0);|;
 }
 
 sub _default_custom_content {
-    my $self = shift;
+    my ($self, $is_schema) = @_;
     my $default = qq|\n\n# You can replace this text with custom|
          . qq| code or comments, and it will be preserved on regeneration|;
     if ($self->use_moose) {
-        $default .= $self->_default_moose_custom_content;
+        $default .= $self->_default_moose_custom_content($is_schema);
     }
     $default .= qq|\n1;\n|;
     return $default;
