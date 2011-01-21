@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07003  2011-01-21 06:43:05
         - fix relname/method collisions (RT#62648)
         - fix fully qualified component classes (RT#62624)
         - improve sybase/mssql db_schema detection

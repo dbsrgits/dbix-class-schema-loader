@@ -8,7 +8,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
 use namespace::clean;
 
-our $VERSION = '0.07002';
+our $VERSION = '0.07003';
 
 =head1 NAME
 
