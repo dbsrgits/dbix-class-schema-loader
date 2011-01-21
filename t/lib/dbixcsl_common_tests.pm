@@ -102,7 +102,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (183 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (184 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -351,7 +351,7 @@ sub test_schema {
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent meta/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent testcomponent_fqn meta/ ], "Column Ordering" );
 
     is $class2->column_info('can')->{accessor}, 'caught_collision_can',
         'accessor for column name that conflicts with a UNIVERSAL method renamed based on col_collision_map';
@@ -361,6 +361,9 @@ sub test_schema {
 
     is $class2->column_info('dbix_class_testcomponent')->{accessor}, undef,
         'accessor for column name that conflicts with a component class method removed';
+
+    is $class2->column_info('testcomponent_fqn')->{accessor}, undef,
+        'accessor for column name that conflicts with a fully qualified component class method removed';
 
     is $class2->column_info('meta')->{accessor}, undef,
         'accessor for column name that conflicts with Moose removed';
@@ -1204,6 +1207,7 @@ sub create {
                 set_primary_key INTEGER $self->{null},
                 can INTEGER $self->{null},
                 dbix_class_testcomponent INTEGER $self->{null},
+                testcomponent_fqn INTEGER $self->{null},
                 meta INTEGER $self->{null},
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
