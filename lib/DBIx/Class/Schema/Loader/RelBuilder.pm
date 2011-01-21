@@ -16,6 +16,12 @@ use namespace::clean;
 
 our $VERSION = '0.07002';
 
+# Glossary:
+#
+# remote_relname -- name of relationship from the local table referring to the remote table
+# local_relname  -- name of relationship from the remote table referring to the local table
+# remote_method  -- relationship type from remote table to local table, usually has_many
+
 =head1 NAME
 
 DBIx::Class::Schema::Loader::RelBuilder - Builds relationships for DBIx::Class::Schema::Loader
@@ -376,7 +382,7 @@ sub _relnames_and_method {
     if ($counters->{$remote_moniker} > 1) {
         my $relationship_exists = 0;
 
-        if (-f (my $existing_remote_file = $self->{base}->get_dump_filename($remote_class))) {
+        if (-f (my $existing_remote_file = $self->base->get_dump_filename($remote_class))) {
             my $class = "${remote_class}Temporary";
 
             if (not do { no strict 'refs'; %{$class . '::'} }) {
@@ -384,7 +390,7 @@ sub _relnames_and_method {
 
                 $code =~ s/(?<=package $remote_class)/Temporary/g;
 
-                $code =~ s/__PACKAGE__->meta->make_immutable;//g;
+                $code =~ s/__PACKAGE__->meta->make_immutable[^;]*;//g;
 
                 eval $code;
                 die $@ if $@;
