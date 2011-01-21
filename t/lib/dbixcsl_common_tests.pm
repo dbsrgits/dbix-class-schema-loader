@@ -15,6 +15,7 @@ use Class::Unload ();
 use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use List::MoreUtils 'apply';
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
+use Try::Tiny;
 use namespace::clean;
 
 use dbixcsl_test_dir qw/$tdir/;
@@ -101,7 +102,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (182 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (183 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -207,7 +208,7 @@ sub setup_schema {
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
         left_base_classes       => [ qw/TestLeftBase/ ],
-        components              => [ qw/TestComponent/ ],
+        components              => [ qw/TestComponent +TestComponentFQN/ ],
         inflect_plural          => { loader_test4 => 'loader_test4zes' },
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
@@ -421,6 +422,9 @@ sub test_schema {
             'dbix_class_testcomponent works',
             'Additional Component' );
     }
+
+    is ((try { $class1->testcomponent_fqn }), 'TestComponentFQN works',
+        'fully qualified component class');
 
     SKIP: {
         can_ok( $class1, 'loader_test1_classmeth' )

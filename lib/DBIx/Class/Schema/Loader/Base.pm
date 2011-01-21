@@ -1570,7 +1570,7 @@ sub _resolve_col_accessor_collisions {
     my ($self, $table, $col_info) = @_;
 
     my $base       = $self->result_base_class || 'DBIx::Class::Core';
-    my @components = map "DBIx::Class::$_", @{ $self->components || [] };
+    my @components = map { /^\+/ ? substr($_,1) : "DBIx::Class::$_" } @{ $self->components || [] };
 
     my $table_name = ref $table ? $$table : $table;
 
