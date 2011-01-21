@@ -87,6 +87,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
     inflect_plural
     inflect_singular
     relationship_attrs
+    rel_collision_map
     _temp_classes
 /);
 
@@ -108,6 +109,7 @@ sub new {
         inflect_plural     => $base->inflect_plural,
         inflect_singular   => $base->inflect_singular,
         relationship_attrs => $base->relationship_attrs,
+        rel_collision_map  => $base->rel_collision_map,
         _temp_classes      => [],
     };
 
@@ -286,6 +288,37 @@ sub _remote_relname {
     return $remote_relname;
 }
 
+sub _resolve_relname_collision {
+    my ($self, $moniker, $cols, $relname) = @_;
+
+    return $relname if $relname eq 'id'; # this shouldn't happen, but just in case
+
+    if ($self->base->_is_result_class_method($relname)) {
+        if (my $map = $self->rel_collision_map) {
+            for my $re (keys %$map) {
+                if (my @matches = $relname =~ /$re/) {
+                    return sprintf $map->{$re}, @matches;
+                }
+            }
+        }
+
+        my $new_relname = $relname;
+        while ($self->base->_is_result_class_method($new_relname)) {
+            $new_relname .= '_rel'
+        }
+
+        warn <<"EOF";
+Relationship '$relname' in source '$moniker' for columns '@{[ join ',', @$cols ]}' collides with an inherited method.
+Renaming to '$new_relname'.
+See "RELATIONSHIP NAME COLLISIONS" in perldoc DBIx::Class::Schema::Loader::Base .
+EOF
+
+        return $new_relname;
+    }
+
+    return $relname;
+}
+
 sub generate_code {
     my ($self, $local_moniker, $rels, $uniqs) = @_;
 
@@ -321,6 +354,9 @@ sub generate_code {
 
         my ( $local_relname, $remote_relname, $remote_method ) =
             $self->_relnames_and_method( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
+
+        $remote_relname = $self->_resolve_relname_collision($local_moniker,  $local_cols,  $remote_relname);
+        $local_relname  = $self->_resolve_relname_collision($remote_moniker, $remote_cols, $local_relname);
 
         push(@{$all_code->{$local_class}},
             { method => 'belongs_to',

@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix relname/method collisions (RT#62648)
         - fix fully qualified component classes (RT#62624)
         - improve sybase/mssql db_schema detection
         - remove MooseX::NonMoose from Schema files under use_moose=1

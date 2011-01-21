@@ -102,7 +102,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (184 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (188 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -209,7 +209,7 @@ sub setup_schema {
         additional_base_classes => 'TestAdditionalBase',
         left_base_classes       => [ qw/TestLeftBase/ ],
         components              => [ qw/TestComponent +TestComponentFQN/ ],
-        inflect_plural          => { loader_test4 => 'loader_test4zes' },
+        inflect_plural          => { loader_test4_fkid => 'loader_test4zes' },
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
         custom_column_info      => \&_custom_column_info,
@@ -220,6 +220,7 @@ sub setup_schema {
         datetime_locale         => 'de_DE',
         use_moose               => $ENV{SCHEMA_LOADER_TESTS_USE_MOOSE},
         col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
+        rel_collision_map       => { '^(set_primary_key)\z' => 'caught_rel_collision_%s' },
         column_accessor_map     => \&test_column_accessor_map,
         %{ $self->{loader_options} || {} },
     );
@@ -276,7 +277,9 @@ sub setup_schema {
  
         $warn_count++ for grep /\b(?!loader_test9)\w+ has no primary key/i, @loader_warnings;
 
-        $warn_count++ for grep /^Column \w+ in table \w+ collides with an inherited method\./, @loader_warnings;
+        $warn_count++ for grep /^Column '\w+' in table '\w+' collides with an inherited method\./, @loader_warnings;
+
+        $warn_count++ for grep /^Relationship '\w+' in source '\w+' for columns '[^']+' collides with an inherited method\./, @loader_warnings;
 
         $warn_count++ for grep { my $w = $_; grep $w =~ $_, @{ $self->{warnings} || [] } } @loader_warnings;
 
@@ -490,7 +493,7 @@ sub test_schema {
     );
 
     SKIP: {
-        skip $self->{skip_rels}, 116 if $self->{skip_rels};
+        skip $self->{skip_rels}, 120 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -616,6 +619,14 @@ sub test_schema {
         # basic rel test
         my $obj4 = $rsobj4->find(123);
         isa_ok( $obj4->fkid_singular, $class3);
+
+        # test renaming rel that conflicts with a class method
+        ok ($obj4->has_relationship('belongs_to_rel'), 'relationship name that conflicts with a method renamed');
+        isa_ok( $obj4->belongs_to_rel, $class3);
+
+        ok ($obj4->has_relationship('caught_rel_collision_set_primary_key'),
+            'relationship name that conflicts with a method renamed based on rel_collision_map');
+        isa_ok( $obj4->caught_rel_collision_set_primary_key, $class3);
 
         ok($class4->column_info('fkid')->{is_foreign_key}, 'Foreign key detected');
 
@@ -1277,14 +1288,18 @@ sub create {
                 fkid INTEGER NOT NULL,
                 dat VARCHAR(32),
                 crumb_crisp_coating VARCHAR(32) $self->{null},
-                FOREIGN KEY( fkid ) REFERENCES loader_test3 (id)
+                belongs_to INTEGER $self->{null},
+                set_primary_key INTEGER $self->{null},
+                FOREIGN KEY( fkid ) REFERENCES loader_test3 (id),
+                FOREIGN KEY( belongs_to ) REFERENCES loader_test3 (id),
+                FOREIGN KEY( set_primary_key ) REFERENCES loader_test3 (id)
             ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(123,1,'aaa') },
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(124,2,'bbb') }, 
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(125,3,'ccc') },
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(126,4,'ddd') },
+        q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(123,1,'aaa',1,1) },
+        q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(124,2,'bbb',2,2) }, 
+        q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(125,3,'ccc',3,3) },
+        q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(126,4,'ddd',4,4) },
 
         qq|
             CREATE TABLE loader_test5 (

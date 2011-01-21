@@ -86,6 +86,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 pod_comment_spillover_length
                                 preserve_case
                                 col_collision_map
+                                rel_collision_map
                                 real_dump_directory
                                 datetime_undef_if_invalid
 /);
@@ -516,6 +517,14 @@ Examples:
     col_collision_map => { '(.*)' => 'column_%s' }
 
     col_collision_map => { '(foo).*(bar)' => 'column_%s_%s' }
+
+=head2 rel_collision_map
+
+Works just like L</col_collision_map>, but for relationship names/accessors
+rather than column names/accessors.
+
+The default is to just append C<_rel> to the relationship name, see
+L</RELATIONSHIP NAME COLLISIONS>.
 
 =head1 METHODS
 
@@ -1567,36 +1576,46 @@ sub _make_src_class {
     $self->_inject($table_class, @{$self->additional_base_classes});
 }
 
+{
+    my %result_methods;
+
+    sub _is_result_class_method {
+        my ($self, $name) = @_;
+
+        %result_methods || do {
+            my @methods;
+            my $base       = $self->result_base_class || 'DBIx::Class::Core';
+            my @components = map { /^\+/ ? substr($_,1) : "DBIx::Class::$_" } @{ $self->components || [] };
+
+            for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
+                load_class $class;
+
+                push @methods, @{ Class::Inspector->methods($class) || [] };
+            }
+
+            push @methods, @{ Class::Inspector->methods('UNIVERSAL') };
+
+            @result_methods{@methods} = ();
+
+            # futureproof meta
+            $result_methods{meta} = undef;
+        };
+
+        return exists $result_methods{$name};
+    }
+}
+
 sub _resolve_col_accessor_collisions {
     my ($self, $table, $col_info) = @_;
 
-    my $base       = $self->result_base_class || 'DBIx::Class::Core';
-    my @components = map { /^\+/ ? substr($_,1) : "DBIx::Class::$_" } @{ $self->components || [] };
-
     my $table_name = ref $table ? $$table : $table;
-
-    my @methods;
-
-    for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
-        load_class $class;
-
-        push @methods, @{ Class::Inspector->methods($class) || [] };
-    }
-
-    push @methods, @{ Class::Inspector->methods('UNIVERSAL') };
-
-    my %methods;
-    @methods{@methods} = ();
-
-    # futureproof meta
-    $methods{meta} = undef;
 
     while (my ($col, $info) = each %$col_info) {
         my $accessor = $info->{accessor} || $col;
 
         next if $accessor eq 'id'; # special case (very common column)
 
-        if (exists $methods{$accessor}) {
+        if ($self->_is_result_class_method($accessor)) {
             my $mapped = 0;
 
             if (my $map = $self->col_collision_map) {
@@ -1610,7 +1629,7 @@ sub _resolve_col_accessor_collisions {
 
             if (not $mapped) {
                 warn <<"EOF";
-Column $col in table $table_name collides with an inherited method.
+Column '$col' in table '$table_name' collides with an inherited method.
 See "COLUMN ACCESSOR COLLISIONS" in perldoc DBIx::Class::Schema::Loader::Base .
 EOF
                 $info->{accessor} = undef;
@@ -2084,6 +2103,20 @@ below the md5:
     __PACKAGE__->add_column('+can' => { accessor => 'my_can' });
 
 Another option is to use the L</col_collision_map> option.
+
+=head1 RELATIONSHIP NAME COLLISIONS
+
+In very rare cases, you may get a collision between a generated relationship
+name and a method in your Result class, for example if you have a foreign key
+called C<belongs_to>.
+
+This is a problem because relationship names are also relationship accessor
+methods in L<DBIx::Class>.
+
+The default behavior is to append C<_rel> to the relationship name and print
+out a warning that refers to this text.
+
+You can also control the renaming with the L</rel_collision_map> option.
 
 =head1 SEE ALSO
 
