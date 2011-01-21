@@ -22,6 +22,7 @@ use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_withou
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
+use Class::Load 'load_class';
 use namespace::clean;
 
 our $VERSION = '0.07002';
@@ -1008,7 +1009,7 @@ sub _relbuilder {
             ->{ $self->naming->{relationships}};
 
         my $relbuilder_class = 'DBIx::Class::Schema::Loader::RelBuilder'.$relbuilder_suff;
-        eval "require $relbuilder_class"; die $@ if $@;
+        load_class $relbuilder_class;
         $relbuilder_class->new( $self );
 
     };
@@ -1577,8 +1578,7 @@ sub _resolve_col_accessor_collisions {
     my @methods;
 
     for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
-        eval "require ${class};";
-        die $@ if $@;
+        load_class $class;
 
         push @methods, @{ Class::Inspector->methods($class) || [] };
     }
