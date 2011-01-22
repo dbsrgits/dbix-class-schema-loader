@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix bug with result class methods being cached on in a closure instead
+          of the object, which breaks for multiple dynamic schemas in a single
+          perl instance
+
 0.07003  2011-01-21 06:43:05
         - fix relname/method collisions (RT#62648)
         - fix fully qualified component classes (RT#62624)

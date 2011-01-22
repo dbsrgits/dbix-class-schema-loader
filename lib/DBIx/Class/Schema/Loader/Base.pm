@@ -89,6 +89,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 rel_collision_map
                                 real_dump_directory
                                 datetime_undef_if_invalid
+                                _result_class_methods
 /);
 
 =head1 NAME
@@ -1576,33 +1577,32 @@ sub _make_src_class {
     $self->_inject($table_class, @{$self->additional_base_classes});
 }
 
-{
-    my %result_methods;
+sub _is_result_class_method {
+    my ($self, $name) = @_;
 
-    sub _is_result_class_method {
-        my ($self, $name) = @_;
+    if (not $self->_result_class_methods) {
+        my (@methods, %methods);
+        my $base       = $self->result_base_class || 'DBIx::Class::Core';
+        my @components = map { /^\+/ ? substr($_,1) : "DBIx::Class::$_" } @{ $self->components || [] };
 
-        %result_methods || do {
-            my @methods;
-            my $base       = $self->result_base_class || 'DBIx::Class::Core';
-            my @components = map { /^\+/ ? substr($_,1) : "DBIx::Class::$_" } @{ $self->components || [] };
+        for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
+            load_class $class;
 
-            for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
-                load_class $class;
+            push @methods, @{ Class::Inspector->methods($class) || [] };
+        }
 
-                push @methods, @{ Class::Inspector->methods($class) || [] };
-            }
+        push @methods, @{ Class::Inspector->methods('UNIVERSAL') };
 
-            push @methods, @{ Class::Inspector->methods('UNIVERSAL') };
+        @methods{@methods} = ();
 
-            @result_methods{@methods} = ();
+        # futureproof meta
+        $methods{meta} = undef;
 
-            # futureproof meta
-            $result_methods{meta} = undef;
-        };
-
-        return exists $result_methods{$name};
+        $self->_result_class_methods(\%methods);
     }
+    my $result_methods = $self->_result_class_methods;
+
+    return exists $result_methods->{$name};
 }
 
 sub _resolve_col_accessor_collisions {
