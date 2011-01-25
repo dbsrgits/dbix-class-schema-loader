@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix breakage on perl 5.8.x related to unloading temporary classes
+
 0.07004  2011-01-24 03:43:05
         - fix bug with result class methods being cached on in a closure instead
           of the object, which breaks for multiple dynamic schemas in a single
