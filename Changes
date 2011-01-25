@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07005  2011-01-25 23:07:55
         - support extra connect_info options like quote_char for dbicdump
         - fix breakage on perl 5.8.x related to unloading temporary classes
 

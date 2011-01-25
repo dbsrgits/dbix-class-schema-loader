@@ -14,7 +14,7 @@ use Class::Unload ();
 use List::MoreUtils 'apply';
 use namespace::clean;
 
-our $VERSION = '0.07004';
+our $VERSION = '0.07005';
 
 # Glossary:
 #

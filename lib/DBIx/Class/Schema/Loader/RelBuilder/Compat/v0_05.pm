@@ -7,7 +7,7 @@ use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06';
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Number ();
 
-our $VERSION = '0.07004';
+our $VERSION = '0.07005';
 
 sub _to_PL {
     my ($self, $name) = @_;
