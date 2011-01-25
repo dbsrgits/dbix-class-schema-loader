@@ -333,4 +333,18 @@ $t->dump_test(
   error => qr/My::MissingResultBaseClass.*is not installed/,
 );
 
+# test quote_char in connect_info for dbicdump
+$t->dump_test(
+  classname => 'DBICTest::DumpMore::1',
+  extra_connect_info => [
+    '',
+    '',
+    { quote_char => '"' },
+  ],
+  warnings => [
+    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
+    qr/Schema dump completed/,
+  ],
+);
+
 done_testing;

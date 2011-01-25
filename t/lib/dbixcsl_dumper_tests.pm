@@ -49,7 +49,7 @@ sub _dump_directly {
     my @warns;
     eval {
         local $SIG{__WARN__} = sub { push(@warns, @_) };
-        $schema_class->connect(_get_dsn(\%tdata));
+        $schema_class->connect(_get_connect_info(\%tdata));
     };
     my $err = $@;
 
@@ -72,7 +72,13 @@ sub _dump_dbicdump {
         push @cmd, '-o', "$opt=$val";
     }
 
-    push @cmd, $tdata{classname}, _get_dsn(\%tdata);
+    my @connect_info = _get_connect_info(\%tdata);
+
+    for my $info (@connect_info) {
+        $info = dumper_squashed $info if ref $info;
+    }
+
+    push @cmd, $tdata{classname}, @connect_info;
 
     # make sure our current @INC gets used by dbicdump
     use Config;
@@ -95,7 +101,7 @@ sub _dump_dbicdump {
     return @warnings;
 }
 
-sub _get_dsn {
+sub _get_connect_info {
     my $opts = shift;
 
     my $test_db_class = $opts->{test_db_class} || 'make_dbictest_db';
@@ -108,7 +114,7 @@ sub _get_dsn {
         ${$test_db_class . '::dsn'};
     };
 
-    return $dsn;
+    return ($dsn, @{ $opts->{extra_connect_info} || [] });
 }
 
 sub _check_error {
