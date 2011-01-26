@@ -11,6 +11,7 @@ use DBIx::Class::Schema::Loader::Utils 'split_name';
 use File::Slurp 'slurp';
 use Try::Tiny;
 use Class::Unload ();
+use Class::Inspector ();
 use List::MoreUtils 'apply';
 use namespace::clean;
 
@@ -421,7 +422,7 @@ sub _relnames_and_method {
         if (-f (my $existing_remote_file = $self->base->get_dump_filename($remote_class))) {
             my $class = "${remote_class}Temporary";
 
-            if (not do { no strict 'refs'; %{$class . '::'} }) {
+            if (not Class::Inspector->loaded($class)) {
                 my $code = slurp $existing_remote_file;
 
                 $code =~ s/(?<=package $remote_class)/Temporary/g;

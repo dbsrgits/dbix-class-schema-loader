@@ -1069,7 +1069,7 @@ sub _load_tables {
         local $self->{dump_directory} = $self->{temp_directory};
         $self->_reload_classes(\@tables);
         $self->_load_relationships($_) for @tables;
-#        $self->_relbuilder->cleanup; # this breaks perl 5.8.x
+        $self->_relbuilder->cleanup;
         $self->{quiet} = 0;
 
         # Remove that temp dir from INC so it doesn't get reloaded
