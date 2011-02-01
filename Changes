@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07006  2011-02-01 02:18:32
         - turn unloading of RelBuilder temp classes back on, now with proper
           check for class existance using Class::Inspector->loaded
         - bump up dep on namespace::clean to avoid breakage with earlier
