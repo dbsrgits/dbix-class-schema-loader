@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07007  2011-02-15 10:00:07
+        - bump DBIx::Class dep to 0.08127
         - fix MSSQL data types for native client and EasySoft driver
 
 0.07006  2011-02-01 02:18:32
