@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix MSSQL data types for native client and EasySoft driver
+
 0.07006  2011-02-01 02:18:32
         - turn unloading of RelBuilder temp classes back on, now with proper
           check for class existance using Class::Inspector->loaded

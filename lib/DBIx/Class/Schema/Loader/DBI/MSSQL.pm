@@ -190,6 +190,15 @@ AND table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($c
             delete $info->{size};
         }
 
+# get datetime precision
+        $sth = $dbh->prepare(qq{
+SELECT datetime_precision
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($col) ]}
+        });
+        $sth->execute;
+        my ($datetime_precision) = $sth->fetchrow_array;
+
 # fix types
         if ($info->{data_type} eq 'int') {
             $info->{data_type} = 'integer';
@@ -211,47 +220,22 @@ AND table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($c
                 delete $info->{default_value};
             }
         }
-        elsif ($info->{data_type} eq 'datetimeoffset') {
-            $info->{size} = {
-                26 => 0,
-                28 => 1,
-                29 => 2,
-                30 => 3,
-                31 => 4,
-                32 => 5,
-                33 => 6,
-                34 => 7,
-            }->{$info->{size}};
+        elsif ($info->{data_type} =~ /^(?:datetime(?:2|offset)|time)\z/) {
+            $info->{size} = $datetime_precision;
 
             delete $info->{size} if $info->{size} == 7;
         }
-        elsif ($info->{data_type} eq 'datetime2') {
-            $info->{size} = {
-                19 => 0,
-                21 => 1,
-                22 => 2,
-                23 => 3,
-                24 => 4,
-                25 => 5,
-                26 => 6,
-                27 => 7,
-            }->{$info->{size}};
-
-            delete $info->{size} if $info->{size} == 7;
+        elsif ($info->{data_type} eq 'varchar'   && $info->{size} == 0) {
+            $info->{data_type} = 'text';
+            delete $info->{size};
         }
-        elsif ($info->{data_type} eq 'time') {
-            $info->{size} = {
-                 8 => 0,
-                10 => 1,
-                11 => 2,
-                12 => 3,
-                13 => 4,
-                14 => 5,
-                15 => 6,
-                16 => 7,
-            }->{$info->{size}};
-
-            delete $info->{size} if $info->{size} == 7;
+        elsif ($info->{data_type} eq 'nvarchar'  && $info->{size} == 0) {
+            $info->{data_type} = 'ntext';
+            delete $info->{size};
+        }
+        elsif ($info->{data_type} eq 'varbinary' && $info->{size} == 0) {
+            $info->{data_type} = 'image';
+            delete $info->{size};
         }
 
         if ($info->{data_type} !~ /^(?:n?char|n?varchar|binary|varbinary|numeric|decimal|float|datetime(?:2|offset)|time)\z/) {
