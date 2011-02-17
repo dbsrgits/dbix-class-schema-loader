@@ -23,7 +23,7 @@ use dbixcsl_test_dir qw/$tdir/;
 my $DUMP_DIR = "$tdir/common_dump";
 rmtree $DUMP_DIR;
 
-use constant RESCAN_WARNINGS => qr/(?i:loader_test)\d+ has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method|invalidates \d+ active statement|^Bad table or view/;
+use constant RESCAN_WARNINGS => qr/(?i:loader_test|LoaderTest)\d+s? has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method|invalidates \d+ active statement|^Bad table or view/;
 
 sub new {
     my $class = shift;
@@ -168,6 +168,8 @@ sub drop_extra_tables_only {
     my $self = shift;
 
     my $dbh = $self->dbconnect(0);
+
+    local $^W = 0; # for ADO
 
     $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
     $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
@@ -440,9 +442,10 @@ sub test_schema {
 
     ok( $class1->column_info('id')->{is_auto_increment}, 'is_auto_increment detection' );
 
-    my $obj    = $rsobj1->find(1);
-    is( $obj->id,  1, "Find got the right row" );
-    is( $obj->dat, "foo", "Column value" );
+    my $obj = try { $rsobj1->find(1) };
+
+    is( try { $obj->id },  1, "Find got the right row" );
+    is( try { $obj->dat }, "foo", "Column value" );
     is( $rsobj2->count, 4, "Count" );
     my $saved_id;
     eval {
@@ -459,38 +462,42 @@ sub test_schema {
     my ($obj2) = $rsobj2->search({ dat => 'bbb' })->first;
     is( $obj2->id, 2 );
 
-    is(
-        $class35->column_info('a_varchar')->{default_value}, 'foo',
-        'constant character default',
-    );
+    SKIP: {
+        skip 'no DEFAULT on Access', 7 if $self->{vendor} eq 'Access';
 
-    is(
-        $class35->column_info('an_int')->{default_value}, 42,
-        'constant integer default',
-    );
+        is(
+            $class35->column_info('a_varchar')->{default_value}, 'foo',
+            'constant character default',
+        );
 
-    is(
-        $class35->column_info('a_negative_int')->{default_value}, -42,
-        'constant negative integer default',
-    );
+        is(
+            $class35->column_info('an_int')->{default_value}, 42,
+            'constant integer default',
+        );
 
-    cmp_ok(
-        $class35->column_info('a_double')->{default_value}, '==', 10.555,
-        'constant numeric default',
-    );
+        is(
+            $class35->column_info('a_negative_int')->{default_value}, -42,
+            'constant negative integer default',
+        );
 
-    cmp_ok(
-        $class35->column_info('a_negative_double')->{default_value}, '==', -10.555,
-        'constant negative numeric default',
-    );
+        cmp_ok(
+            $class35->column_info('a_double')->{default_value}, '==', 10.555,
+            'constant numeric default',
+        );
 
-    my $function_default = $class35->column_info('a_function')->{default_value};
+        cmp_ok(
+            $class35->column_info('a_negative_double')->{default_value}, '==', -10.555,
+            'constant negative numeric default',
+        );
 
-    isa_ok( $function_default, 'SCALAR', 'default_value for function default' );
-    is_deeply(
-        $function_default, \$self->{default_function},
-        'default_value for function default is correct'
-    );
+        my $function_default = $class35->column_info('a_function')->{default_value};
+
+        isa_ok( $function_default, 'SCALAR', 'default_value for function default' );
+        is_deeply(
+            $function_default, \$self->{default_function},
+            'default_value for function default is correct'
+        );
+    }
 
     SKIP: {
         skip $self->{skip_rels}, 120 if $self->{skip_rels};
@@ -617,22 +624,23 @@ sub test_schema {
         isa_ok( $rsobj36, "DBIx::Class::ResultSet" );
 
         # basic rel test
-        my $obj4 = $rsobj4->find(123);
-        isa_ok( $obj4->fkid_singular, $class3);
+        my $obj4 = try { $rsobj4->find(123) } || $rsobj4->search({ id => 123 })->first;
+        isa_ok( try { $obj4->fkid_singular }, $class3);
 
         # test renaming rel that conflicts with a class method
         ok ($obj4->has_relationship('belongs_to_rel'), 'relationship name that conflicts with a method renamed');
-        isa_ok( $obj4->belongs_to_rel, $class3);
+
+        isa_ok( try { $obj4->belongs_to_rel }, $class3);
 
         ok ($obj4->has_relationship('caught_rel_collision_set_primary_key'),
             'relationship name that conflicts with a method renamed based on rel_collision_map');
-        isa_ok( $obj4->caught_rel_collision_set_primary_key, $class3);
+        isa_ok( try { $obj4->caught_rel_collision_set_primary_key }, $class3);
 
         ok($class4->column_info('fkid')->{is_foreign_key}, 'Foreign key detected');
 
-        my $obj3 = $rsobj3->find(1);
-        my $rs_rel4 = $obj3->search_related('loader_test4zes');
-        isa_ok( $rs_rel4->first, $class4);
+        my $obj3 = try { $rsobj3->find(1) } || $rsobj3->search({ id => 1 })->first;
+        my $rs_rel4 = try { $obj3->search_related('loader_test4zes') };
+        isa_ok( try { $rs_rel4->first }, $class4);
 
         is( $class4->column_info('crumb_crisp_coating')->{accessor},  'trivet',
             'col_accessor_map is being run' );
@@ -645,49 +653,49 @@ sub test_schema {
             "rel with preposition 'from' pluralized correctly");
 
         # check default relationship attributes
-        is $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_delete}, 0,
+        is try { $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_delete} }, 0,
             'cascade_delete => 0 on has_many by default';
 
-        is $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_copy}, 0,
+        is try { $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_copy} }, 0,
             'cascade_copy => 0 on has_many by default';
 
-        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_delete}),
+        ok ((not try { exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_delete} }),
             'has_many does not have on_delete');
 
-        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_update}),
+        ok ((not try { exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_update} }),
             'has_many does not have on_update');
 
-        ok ((not exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{is_deferrable}),
+        ok ((not try { exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{is_deferrable} }),
             'has_many does not have is_deferrable');
 
-        is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete}, 'CASCADE',
+        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete} }, 'CASCADE',
             "on_delete => 'CASCADE' on belongs_to by default";
 
-        is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update}, 'CASCADE',
+        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update} }, 'CASCADE',
             "on_update => 'CASCADE' on belongs_to by default";
 
-        is $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable}, 1,
+        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable} }, 1,
             "is_deferrable => 1 on belongs_to by default";
 
-        ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete}),
+        ok ((not try { exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete} }),
             'belongs_to does not have cascade_delete');
 
-        ok ((not exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_copy}),
+        ok ((not try { exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_copy} }),
             'belongs_to does not have cascade_copy');
 
-        is $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_delete}, 0,
+        is try { $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_delete} }, 0,
             'cascade_delete => 0 on might_have by default';
 
-        is $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_copy}, 0,
+        is try { $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_copy} }, 0,
             'cascade_copy => 0 on might_have by default';
 
-        ok ((not exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{on_delete}),
+        ok ((not try { exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{on_delete} }),
             'might_have does not have on_delete');
 
-        ok ((not exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{on_update}),
+        ok ((not try { exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{on_update} }),
             'might_have does not have on_update');
 
-        ok ((not exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{is_deferrable}),
+        ok ((not try { exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{is_deferrable} }),
             'might_have does not have is_deferrable');
 
         # find on multi-col pk
@@ -701,9 +709,9 @@ sub test_schema {
         }
 
         # mulit-col fk def
-        my $obj6 = $rsobj6->find(1);
-        isa_ok( $obj6->loader_test2, $class2);
-        isa_ok( $obj6->loader_test5, $class5);
+        my $obj6 = try { $rsobj6->find(1) } || $rsobj6->search({ id => 1 })->first;
+        isa_ok( try { $obj6->loader_test2 }, $class2);
+        isa_ok( try { $obj6->loader_test5 }, $class5);
 
         ok($class6->column_info('loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
         ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
@@ -713,30 +721,30 @@ sub test_schema {
         ok($id2_info->{is_foreign_key}, 'Foreign key detected');
 
         # fk that references a non-pk key (UNIQUE)
-        my $obj8 = $rsobj8->find(1);
-        isa_ok( $obj8->loader_test7, $class7);
+        my $obj8 = try { $rsobj8->find(1) } || $rsobj8->search({ id => 1 })->first;
+        isa_ok( try { $obj8->loader_test7 }, $class7);
 
         ok($class8->column_info('loader_test7')->{is_foreign_key}, 'Foreign key detected');
 
         # test double-fk 17 ->-> 16
-        my $obj17 = $rsobj17->find(33);
+        my $obj17 = try { $rsobj17->find(33) } || $rsobj17->search({ id => 33 })->first;
 
-        my $rs_rel16_one = $obj17->loader16_one;
+        my $rs_rel16_one = try { $obj17->loader16_one };
         isa_ok($rs_rel16_one, $class16);
-        is($rs_rel16_one->dat, 'y16', "Multiple FKs to same table");
+        is(try { $rs_rel16_one->dat }, 'y16', "Multiple FKs to same table");
 
         ok($class17->column_info('loader16_one')->{is_foreign_key}, 'Foreign key detected');
 
-        my $rs_rel16_two = $obj17->loader16_two;
+        my $rs_rel16_two = try { $obj17->loader16_two };
         isa_ok($rs_rel16_two, $class16);
-        is($rs_rel16_two->dat, 'z16', "Multiple FKs to same table");
+        is(try { $rs_rel16_two->dat }, 'z16', "Multiple FKs to same table");
 
         ok($class17->column_info('loader16_two')->{is_foreign_key}, 'Foreign key detected');
 
-        my $obj16 = $rsobj16->find(2);
-        my $rs_rel17 = $obj16->search_related('loader_test17_loader16_ones');
-        isa_ok($rs_rel17->first, $class17);
-        is($rs_rel17->first->id, 3, "search_related with multiple FKs from same table");
+        my $obj16 = try { $rsobj16->find(2) } || $rsobj16->search({ id => 2 })->first;
+        my $rs_rel17 = try { $obj16->search_related('loader_test17_loader16_ones') };
+        isa_ok(try { $rs_rel17->first }, $class17);
+        is(try { $rs_rel17->first->id }, 3, "search_related with multiple FKs from same table");
         
         # XXX test m:m 18 <- 20 -> 19
         ok($class20->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
@@ -747,42 +755,42 @@ sub test_schema {
         ok($class22->column_info('child')->{is_foreign_key}, 'Foreign key detected');
 
         # test double multi-col fk 26 -> 25
-        my $obj26 = $rsobj26->find(33);
+        my $obj26 = try { $rsobj26->find(33) } || $rsobj26->search({ id => 33 })->first;
 
-        my $rs_rel25_one = $obj26->loader_test25_id_rel1;
+        my $rs_rel25_one = try { $obj26->loader_test25_id_rel1 };
         isa_ok($rs_rel25_one, $class25);
-        is($rs_rel25_one->dat, 'x25', "Multiple multi-col FKs to same table");
+        is(try { $rs_rel25_one->dat }, 'x25', "Multiple multi-col FKs to same table");
 
         ok($class26->column_info('id')->{is_foreign_key}, 'Foreign key detected');
         ok($class26->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
         ok($class26->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
 
-        my $rs_rel25_two = $obj26->loader_test25_id_rel2;
+        my $rs_rel25_two = try { $obj26->loader_test25_id_rel2 };
         isa_ok($rs_rel25_two, $class25);
-        is($rs_rel25_two->dat, 'y25', "Multiple multi-col FKs to same table");
+        is(try { $rs_rel25_two->dat }, 'y25', "Multiple multi-col FKs to same table");
 
-        my $obj25 = $rsobj25->find(3,42);
-        my $rs_rel26 = $obj25->search_related('loader_test26_id_rel1s');
-        isa_ok($rs_rel26->first, $class26);
-        is($rs_rel26->first->id, 3, "search_related with multiple multi-col FKs from same table");
+        my $obj25 = try { $rsobj25->find(3,42) } || $rsobj25->search({ id1 => 3, id2 => 42 })->first;
+        my $rs_rel26 = try { $obj25->search_related('loader_test26_id_rel1s') };
+        isa_ok(try { $rs_rel26->first }, $class26);
+        is(try { $rs_rel26->first->id }, 3, "search_related with multiple multi-col FKs from same table");
 
         # test one-to-one rels
-        my $obj27 = $rsobj27->find(1);
-        my $obj28 = $obj27->loader_test28;
+        my $obj27 = try { $rsobj27->find(1) } || $rsobj27->search({ id => 1 })->first;
+        my $obj28 = try { $obj27->loader_test28 };
         isa_ok($obj28, $class28);
-        is($obj28->get_column('id'), 1, "One-to-one relationship with PRIMARY FK");
+        is(try { $obj28->get_column('id') }, 1, "One-to-one relationship with PRIMARY FK");
 
         ok($class28->column_info('id')->{is_foreign_key}, 'Foreign key detected');
 
-        my $obj29 = $obj27->loader_test29;
+        my $obj29 = try { $obj27->loader_test29 };
         isa_ok($obj29, $class29);
-        is($obj29->id, 1, "One-to-one relationship with UNIQUE FK");
+        is(try { $obj29->id }, 1, "One-to-one relationship with UNIQUE FK");
 
         ok($class29->column_info('fk')->{is_foreign_key}, 'Foreign key detected');
 
-        $obj27 = $rsobj27->find(2);
-        is($obj27->loader_test28, undef, "Undef for missing one-to-one row");
-        is($obj27->loader_test29, undef, "Undef for missing one-to-one row");
+        $obj27 = try { $rsobj27->find(2) } || $rsobj27->search({ id => 2 })->first;
+        is(try { $obj27->loader_test28 }, undef, "Undef for missing one-to-one row");
+        is(try { $obj27->loader_test29 }, undef, "Undef for missing one-to-one row");
 
         # test outer join for nullable referring columns:
         is $class32->column_info('rel2')->{is_nullable}, 1,
@@ -791,10 +799,15 @@ sub test_schema {
         ok($class32->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
         ok($class32->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
         
-        my $obj32 = $rsobj32->find(1,{prefetch=>[qw/rel1 rel2/]});
-        my $obj34 = $rsobj34->find(
-          1,{prefetch=>[qw/loader_test33_id_rel1 loader_test33_id_rel2/]}
-        );
+        my $obj32 = try { $rsobj32->find(1, { prefetch => [qw/rel1 rel2/] }) }
+            || try { $rsobj32->search({ id => 1 }, { prefetch => [qw/rel1 rel2/] })->first }
+            || $rsobj32->search({ id => 1 })->first;
+
+        my $obj34 = eval { $rsobj34->find(1, { prefetch => [qw/loader_test33_id_rel1 loader_test33_id_rel2/] }) }
+            || eval { $rsobj34->search({ id => 1 }, { prefetch => [qw/loader_test33_id_rel1 loader_test33_id_rel2/] })->first }
+            || $rsobj34->search({ id => 1 })->first;
+        diag $@ if $@;
+
         isa_ok($obj32,$class32);
         isa_ok($obj34,$class34);
 
@@ -802,16 +815,16 @@ sub test_schema {
         ok($class34->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
         ok($class34->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
 
-        my $rs_rel31_one = $obj32->rel1;
-        my $rs_rel31_two = $obj32->rel2;
+        my $rs_rel31_one = try { $obj32->rel1 };
+        my $rs_rel31_two = try { $obj32->rel2 };
         isa_ok($rs_rel31_one, $class31);
         is($rs_rel31_two, undef);
 
-        my $rs_rel33_one = $obj34->loader_test33_id_rel1;
-        my $rs_rel33_two = $obj34->loader_test33_id_rel2;
+        my $rs_rel33_one = try { $obj34->loader_test33_id_rel1 };
+        my $rs_rel33_two = try { $obj34->loader_test33_id_rel2 };
 
-        isa_ok($rs_rel33_one,$class33);
-        is($rs_rel33_two, undef);
+        isa_ok($rs_rel33_one, $class33);
+        isa_ok($rs_rel33_two, $class33);
 
         # from Chisel's tests...
         my $moniker10 = $monikers->{loader_test10};
@@ -833,7 +846,7 @@ sub test_schema {
         $obj10->update();
         ok( defined $obj10, 'Create row' );
 
-        my $obj11 = $rsobj11->create({ loader_test10 => $obj10->id() });
+        my $obj11 = $rsobj11->create({ loader_test10 => (try { $obj10->id() } || $obj10->id10) });
         $obj11->update();
         ok( defined $obj11, 'Create related row' );
 
@@ -875,13 +888,13 @@ sub test_schema {
             ok($class13->column_info('loader_test12')->{is_foreign_key}, 'Foreign key detected');
             ok($class13->column_info('dat')->{is_foreign_key}, 'Foreign key detected');
 
-            my $obj13 = $rsobj13->find(1);
+            my $obj13 = try { $rsobj13->find(1) } || $rsobj13->search({ id => 1 })->first;
             isa_ok( $obj13->id, $class12 );
             isa_ok( $obj13->loader_test12, $class12);
             isa_ok( $obj13->dat, $class12);
 
-            my $obj12 = $rsobj12->find(1);
-            isa_ok( $obj12->loader_test13, $class13 );
+            my $obj12 = try { $rsobj12->find(1) } || $rsobj12->search({ id => 1 })->first;
+            isa_ok( try { $obj12->loader_test13 }, $class13 );
 
             # relname is preserved when another fk is added
 
@@ -890,10 +903,12 @@ sub test_schema {
 
             {
                 local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ /invalidates \d+ active statement/ };
-                $conn->storage->disconnect; # for mssql
+                $conn->storage->disconnect; # for mssql and access
             }
 
-            isa_ok $rsobj3->find(1)->loader_test4zes, 'DBIx::Class::ResultSet';
+            isa_ok try { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet';
+
+            $conn->storage->disconnect; # for access
 
             $conn->storage->dbh->do('ALTER TABLE loader_test4 ADD fkid2 INTEGER REFERENCES loader_test3 (id)');
 
@@ -901,7 +916,7 @@ sub test_schema {
 
             $self->rescan_without_warnings($conn);
 
-            isa_ok eval { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet',
+            isa_ok try { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet',
                 'relationship name preserved when another foreign key is added in remote table';
         }
 
@@ -921,7 +936,7 @@ sub test_schema {
 
             ok($class15->column_info('loader_test14')->{is_foreign_key}, 'Foreign key detected');
 
-            my $obj15 = $rsobj15->find(1);
+            my $obj15 = try { $rsobj15->find(1) } || $rsobj15->search({ id => 1 })->first;
             isa_ok( $obj15->loader_test14, $class14 );
         }
     }
@@ -1004,7 +1019,7 @@ sub test_schema {
         SKIP: {
             skip 'no rels', 2 if $self->{skip_rels};
 
-            my $obj30 = $rsobj30->find(123);
+            my $obj30 = try { $rsobj30->find(123) } || $rsobj30->search({ id => 123 })->first;
             isa_ok( $obj30->loader_test2, $class2);
 
             ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key},
@@ -1099,11 +1114,11 @@ qq| INSERT INTO ${oqt}LoaderTest41${cqt} VALUES (1, 1) |,
     $self->rescan_without_warnings($conn);
 
     if (not $self->{skip_rels}) {
-        is $conn->resultset('LoaderTest41')->find(1)->loader_test40->foo3_bar, 'foo',
+        is try { $conn->resultset('LoaderTest41')->find(1)->loader_test40->foo3_bar }, 'foo',
             'rel and accessor for mixed-case column name in mixed case table';
     }
     else {
-        is $conn->resultset('LoaderTest40')->find(1)->foo3_bar, 'foo',
+        is try { $conn->resultset('LoaderTest40')->find(1)->foo3_bar }, 'foo',
             'accessor for mixed-case column name in mixed case table';
     }
 }
@@ -1160,7 +1175,7 @@ sub dbconnect {
         },
     ]);
 
-    my $dbh = eval { $storage->dbh };
+    my $dbh = $storage->dbh;
     die "Failed to connect to database: $@" if !$dbh;
 
     $self->{storage} = $storage; # storage DESTROY disconnects
@@ -1244,7 +1259,8 @@ sub create {
             ) $self->{innodb}
         },
 
-        qq{
+# Access does not support DEFAULT
+        $self->{vendor} ne 'Access' ? qq{
             CREATE TABLE loader_test35 (
                 id INTEGER NOT NULL PRIMARY KEY,
                 a_varchar VARCHAR(100) DEFAULT 'foo',
@@ -1254,6 +1270,16 @@ sub create {
                 a_negative_double DOUBLE PRECISION DEFAULT -10.555,
                 a_function $self->{default_function_def}
             ) $self->{innodb}
+        } : qq{
+            CREATE TABLE loader_test35 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                a_varchar VARCHAR(100),
+                an_int INTEGER,
+                a_negative_int INTEGER,
+                a_double DOUBLE,
+                a_negative_double DOUBLE,
+                a_function DATETIME
+            )
         },
 
         qq{
@@ -1534,7 +1560,7 @@ sub create {
             FOREIGN KEY (id,rel2) REFERENCES loader_test33(id1,id2)
           ) $self->{innodb}
         },
-        q{ INSERT INTO loader_test34 (id,rel1) VALUES (1,2) },
+        q{ INSERT INTO loader_test34 (id,rel1,rel2) VALUES (1,2,2) },
     );
 
     @statements_advanced = (
@@ -1547,10 +1573,11 @@ sub create {
         },
         $make_auto_inc->(qw/loader_test10 id10/),
 
+# Access does not support DEFAULT.
         qq{
             CREATE TABLE loader_test11 (
                 id11 $self->{auto_inc_pk},
-                a_message VARCHAR(8) DEFAULT 'foo',
+                a_message VARCHAR(8) @{[ $self->{vendor} ne 'Access' ? "DEFAULT 'foo'" : '' ]},
                 loader_test10 INTEGER $self->{null},
                 FOREIGN KEY (loader_test10) REFERENCES loader_test10 (id10)
             ) $self->{innodb}
@@ -1653,7 +1680,15 @@ sub create {
         # hack for now, since DB2 doesn't like inline comments, and we need
         # to test one for mysql, which works on everyone else...
         # this all needs to be refactored anyways.
-        $dbh->do($_) for (@statements_reltests);
+
+        for my $stmt (@statements_reltests) {
+            try {
+                $dbh->do($stmt);
+            }
+            catch {
+                die "Error executing '$stmt': $_\n";
+            };
+        }
         if($self->{vendor} =~ /sqlite/i) {
             $dbh->do($_) for (@statements_advanced_sqlite);
         }
@@ -1749,6 +1784,8 @@ sub drop_tables {
     # For some reason some tests do this twice (I guess dependency issues?)
     # do it twice for all drops
     for (1,2) {
+        local $^W = 0; # for ADO
+
         my $dbh = $self->dbconnect(0);
 
         $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };

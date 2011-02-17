@@ -10,6 +10,13 @@ use namespace::clean;
 
 our $VERSION = '0.07007';
 
+__PACKAGE__->mk_group_accessors('simple', qw/
+    _disable_pk_detection
+    _disable_uniq_detection
+    _disable_fk_detection
+    _passwords
+/);
+
 =head1 NAME
 
 DBIx::Class::Schema::Loader::DBI - DBIx::Class::Schema::Loader DBI Implementation.
@@ -196,9 +203,22 @@ sub _table_columns {
 sub _table_pk_info { 
     my ($self, $table) = @_;
 
+    return [] if $self->_disable_pk_detection;
+
     my $dbh = $self->schema->storage->dbh;
 
-    my @primary = map { $self->_lc($_) } $dbh->primary_key('', $self->db_schema, $table);
+    my @primary = try {
+        $dbh->primary_key('', $self->db_schema, $table);
+    }
+    catch {
+        warn "Cannot find primary keys for this driver: $_";
+        $self->_disable_pk_detection(1);
+        return ();
+    };
+
+    return [] if not @primary;
+
+    @primary = map { $self->_lc($_) } @primary;
     s/\Q$self->{_quoter}\E//g for @primary;
 
     return \@primary;
@@ -208,9 +228,13 @@ sub _table_pk_info {
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
+    return [] if $self->_disable_uniq_detection;
+
     my $dbh = $self->schema->storage->dbh;
-    if(!$dbh->can('statistics_info')) {
-        warn "No UNIQUE constraint information can be gathered for this vendor";
+
+    if (not $dbh->can('statistics_info')) {
+        warn "No UNIQUE constraint information can be gathered for this driver";
+        $self->_disable_uniq_detection(1);
         return [];
     }
 
@@ -225,17 +249,14 @@ sub _table_uniq_info {
             || !defined $row->{ORDINAL_POSITION}
             || !$row->{COLUMN_NAME};
 
-        $indices{$row->{INDEX_NAME}}->{$row->{ORDINAL_POSITION}} = $row->{COLUMN_NAME};
+        $indices{$row->{INDEX_NAME}}[$row->{ORDINAL_POSITION}] = $self->_lc($row->{COLUMN_NAME});
     }
     $sth->finish;
 
     my @retval;
     foreach my $index_name (keys %indices) {
         my $index = $indices{$index_name};
-        push(@retval, [ $index_name => [
-            map { $index->{$_} }
-                sort keys %$index
-        ]]);
+        push(@retval, [ $index_name => [ @$index[1..$#$index] ] ]);
     }
 
     return \@retval;
@@ -245,9 +266,19 @@ sub _table_uniq_info {
 sub _table_fk_info {
     my ($self, $table) = @_;
 
+    return [] if $self->_disable_fk_detection;
+
     my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->foreign_key_info( '', $self->db_schema, '',
-                                      '', $self->db_schema, $table );
+    my $sth = try {
+        $dbh->foreign_key_info( '', $self->db_schema, '',
+                                '', $self->db_schema, $table );
+    }
+    catch {
+        warn "Cannot introspect relationships for this driver: $_";
+        $self->_disable_fk_detection(1);
+        return undef;
+    };
+
     return [] if !$sth;
 
     my %rels;
@@ -375,6 +406,23 @@ sub _dbh_column_info {
     my ($self, $dbh) = (shift, shift);
 
     return $dbh->column_info(@_);
+}
+
+# If a coderef uses DBI->connect, this should get its connect info.
+sub _try_infer_connect_info_from_coderef {
+    my ($self, $code) = @_;
+
+    my ($dsn, $user, $pass, $params);
+
+    no warnings 'redefine';
+
+    local *DBI::connect = sub {
+        (undef, $dsn, $user, $pass, $params) = @_;
+    };
+
+    $code->();
+
+    return ($dsn, $user, $pass, $params);
 }
 
 =head1 SEE ALSO

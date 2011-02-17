@@ -1,4 +1,4 @@
-package DBIx::Class::Schema::Loader::DBI::ODBC;
+package DBIx::Class::Schema::Loader::DBI::ADO;
 
 use strict;
 use warnings;
@@ -11,13 +11,11 @@ our $VERSION = '0.07007';
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::DBI::ODBC - L<DBD::ODBC> proxy
+DBIx::Class::Schema::Loader::DBI::ADO - L<DBD::ADO> proxy
 
 =head1 DESCRIPTION
 
-Reblesses into an C<::ODBC::> class when connecting via L<DBD::ODBC>.
-
-Code stolen from the L<DBIx::Class> ODBC storage.
+Reblesses into an C<::ADO::> class when connecting via L<DBD::ADO>.
 
 See L<DBIx::Class::Schema::Loader::Base> for usage information.
 
@@ -28,13 +26,12 @@ sub _rebless {
 
   return if ref $self ne __PACKAGE__;
 
-# stolen from DBIC ODBC storage
   my $dbh  = $self->schema->storage->dbh;
   my $dbtype = eval { $dbh->get_info(17) };
   unless ( $@ ) {
     # Translate the backend name into a perl identifier
     $dbtype =~ s/\W/_/gi;
-    my $class = "DBIx::Class::Schema::Loader::DBI::ODBC::${dbtype}";
+    my $class = "DBIx::Class::Schema::Loader::DBI::ADO::${dbtype}";
     if ($self->load_optional_class($class) && !$self->isa($class)) {
         bless $self, $class;
         $self->_rebless;
@@ -48,11 +45,18 @@ sub _tables_list {
     return $self->next::method($opts, undef, undef);
 }
 
+sub _filter_tables {
+    my $self = shift;
+
+    local $^W = 0; # turn off exception printing from Win32::OLE
+
+    $self->next::method(@_);
+}
+
 =head1 SEE ALSO
 
-L<DBIx::Class::Schema::Loader::DBI::ODBC::Microsoft_SQL_Server>,
-L<DBIx::Class::Schema::Loader::DBI::ODBC::SQL_Anywhere>,
-L<DBIx::Class::Schema::Loader::DBI::ODBC::Firebird>,
+L<DBIx::Class::Schema::Loader::DBI::ADO::Microsoft_SQL_Server>,
+L<DBIx::Class::Schema::Loader::DBI::ADO::MS_Jet>,
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
 L<DBIx::Class::Schema::Loader::DBI>
 

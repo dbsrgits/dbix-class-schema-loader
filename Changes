@@ -2,6 +2,8 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - rename column_accessor_map to col_accessor_map, the old alias still
           works
+        - support MSSQL over DBD::ADO
+        - support for MS Access over DBD::ODBC and DBD::ADO
 
 0.07007  2011-02-15 10:00:07
         - bump DBIx::Class dep to 0.08127
