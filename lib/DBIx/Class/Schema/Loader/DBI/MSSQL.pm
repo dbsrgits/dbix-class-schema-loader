@@ -3,8 +3,10 @@ package DBIx::Class::Schema::Loader::DBI::MSSQL;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
+use Carp::Clan qw/^DBIx::Class/;
+use Try::Tiny;
+use namespace::clean;
 
 our $VERSION = '0.07007';
 
@@ -174,71 +176,79 @@ sub _columns_info_for {
 
     my $result = $self->next::method(@_);
 
+    my $dbh = $self->schema->storage->dbh;
+
     while (my ($col, $info) = each %$result) {
-        my $dbh = $self->schema->storage->dbh;
+# get type info
+        my $sth = $dbh->prepare(qq{
+SELECT character_maximum_length, data_type, datetime_precision
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($col) ]}
+        });
+        $sth->execute;
+        my ($char_max_length, $data_type, $datetime_precision) = $sth->fetchrow_array;
+
+        $info->{data_type} = $data_type;
+
+        if (defined $char_max_length) {
+            $info->{size} = $char_max_length;
+            $info->{size} = 0 if $char_max_length < 0;
+        }
 
 # find identities
-        my $sth = $dbh->prepare(qq{
+        $sth = $dbh->prepare(qq{
 SELECT column_name 
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE columnproperty(object_id(@{[ $dbh->quote($table) ]}, 'U'), @{[ $dbh->quote($col) ]}, 'IsIdentity') = 1
 AND table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($col) ]}
         });
-        if (eval { $sth->execute; $sth->fetchrow_array }) {
+        if (try { $sth->execute; $sth->fetchrow_array }) {
             $info->{is_auto_increment} = 1;
             $info->{data_type} =~ s/\s*identity//i;
             delete $info->{size};
         }
 
-# get datetime precision
-        $sth = $dbh->prepare(qq{
-SELECT datetime_precision
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE table_name = @{[ $dbh->quote($table) ]} AND column_name = @{[ $dbh->quote($col) ]}
-        });
-        $sth->execute;
-        my ($datetime_precision) = $sth->fetchrow_array;
-
 # fix types
-        if ($info->{data_type} eq 'int') {
+        if ($data_type eq 'int') {
             $info->{data_type} = 'integer';
         }
-        elsif ($info->{data_type} eq 'timestamp') {
+        elsif ($data_type eq 'timestamp') {
             $info->{inflate_datetime} = 0;
         }
-        elsif ($info->{data_type} =~ /^(?:numeric|decimal)\z/) {
+        elsif ($data_type =~ /^(?:numeric|decimal)\z/) {
             if (ref($info->{size}) && $info->{size}[0] == 18 && $info->{size}[1] == 0) {
                 delete $info->{size};
             }
         }
-        elsif ($info->{data_type} eq 'float') {
+        elsif ($data_type eq 'float') {
             $info->{data_type} = 'double precision';
+            delete $info->{size};
         }
-        elsif ($info->{data_type} =~ /^(?:small)?datetime\z/) {
+        elsif ($data_type =~ /^(?:small)?datetime\z/) {
             # fixup for DBD::Sybase
             if ($info->{default_value} && $info->{default_value} eq '3') {
                 delete $info->{default_value};
             }
         }
-        elsif ($info->{data_type} =~ /^(?:datetime(?:2|offset)|time)\z/) {
+        elsif ($data_type =~ /^(?:datetime(?:2|offset)|time)\z/) {
             $info->{size} = $datetime_precision;
 
             delete $info->{size} if $info->{size} == 7;
         }
-        elsif ($info->{data_type} eq 'varchar'   && $info->{size} == 0) {
+        elsif ($data_type eq 'varchar'   && $info->{size} == 0) {
             $info->{data_type} = 'text';
             delete $info->{size};
         }
-        elsif ($info->{data_type} eq 'nvarchar'  && $info->{size} == 0) {
+        elsif ($data_type eq 'nvarchar'  && $info->{size} == 0) {
             $info->{data_type} = 'ntext';
             delete $info->{size};
         }
-        elsif ($info->{data_type} eq 'varbinary' && $info->{size} == 0) {
+        elsif ($data_type eq 'varbinary' && $info->{size} == 0) {
             $info->{data_type} = 'image';
             delete $info->{size};
         }
 
-        if ($info->{data_type} !~ /^(?:n?char|n?varchar|binary|varbinary|numeric|decimal|float|datetime(?:2|offset)|time)\z/) {
+        if ($data_type !~ /^(?:n?char|n?varchar|binary|varbinary|numeric|decimal|float|datetime(?:2|offset)|time)\z/) {
             delete $info->{size};
         }
 

@@ -13,7 +13,7 @@ BEGIN {
 }
 
 my ($dsns, $common_version);
-for (qw/MSSQL MSSQL_ODBC/) {
+for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
   next unless $ENV{"DBICTEST_${_}_DSN"};
 
   $dsns->{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
@@ -103,7 +103,9 @@ my $tester = dbixcsl_common_tests->new(
         float          => { data_type => 'double precision' },
         'double precision'
                        => { data_type => 'double precision' },
+        'numeric(6)'   => { data_type => 'numeric', size => [6,0] },
         'numeric(6,3)' => { data_type => 'numeric', size => [6,3] },
+        'decimal(6)'   => { data_type => 'decimal', size => [6,0] },
         'decimal(6,3)' => { data_type => 'decimal', size => [6,3] },
         'dec(6,3)'     => { data_type => 'decimal', size => [6,3] },
         numeric        => { data_type => 'numeric' },
