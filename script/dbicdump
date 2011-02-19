@@ -19,6 +19,13 @@ Examples:
     -o preserve_case=1 \
     MyApp::Schema dbi:mysql:database=foo user pass '{ quote_char => "`" }'
 
+On Windows that would be:
+
+  $ dbicdump -o dump_directory=.\lib ^
+    -o components="[q{InflateColumn::DateTime}]" ^
+    -o preserve_case=1 ^
+    MyApp::Schema dbi:mysql:database=foo user pass "{ quote_char => q{`} }"
+
 =head1 DESCRIPTION
 
 Dbicdump generates a L<DBIx::Class> schema using
