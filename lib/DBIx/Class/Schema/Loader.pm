@@ -78,6 +78,8 @@ DBIx::Class::Schema::Loader automates the definition of a
 L<DBIx::Class::Schema> by scanning database table definitions and
 setting up the columns, primary keys, and relationships.
 
+See L<dbicdump> for the C<dbicdump> utility.
+
 DBIx::Class::Schema::Loader currently supports only the DBI storage type.  It
 has explicit support for L<DBD::Pg>, L<DBD::mysql>, L<DBD::DB2>,
 L<DBD::SQLite>, L<DBD::Sybase> (for Sybase ASE and MSSSQL), L<DBD::ODBC> (for
