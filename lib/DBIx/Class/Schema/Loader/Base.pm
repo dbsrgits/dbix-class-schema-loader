@@ -40,7 +40,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 skip_relationships
                                 skip_load_external
                                 moniker_map
-                                column_accessor_map
+                                col_accessor_map
                                 custom_column_info
                                 inflect_singular
                                 inflect_plural
@@ -310,7 +310,7 @@ together. Examples:
     stations_visited | StationVisited
     routeChange      | RouteChange
 
-=head2 column_accessor_map
+=head2 col_accessor_map
 
 Same as moniker_map, but for column accessor names.  If a coderef is
 passed, the code is called with arguments of
@@ -563,6 +563,10 @@ by L<DBIx::Class::Schema::Loader>.
 
 sub new {
     my ( $class, %args ) = @_;
+
+    if (exists $args{column_accessor_map}) {
+        $args{col_accessor_map} = delete $args{column_accessor_map};
+    }
 
     my $self = { %args };
 
@@ -1638,7 +1642,7 @@ EOF
     }
 }
 
-# use the same logic to run moniker_map, column_accessor_map, and
+# use the same logic to run moniker_map, col_accessor_map, and
 # relationship_name_map
 sub _run_user_map {
     my ( $self, $map, $default_code, $ident, @extra ) = @_;
@@ -1676,7 +1680,7 @@ sub _make_column_accessor_name {
     my ($self, $column_name, $column_context_info ) = @_;
 
     my $accessor = $self->_run_user_map(
-        $self->column_accessor_map,
+        $self->col_accessor_map,
         sub { $self->_default_column_accessor_name( shift ) },
         $column_name,
         $column_context_info,

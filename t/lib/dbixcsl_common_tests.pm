@@ -95,14 +95,14 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    my $column_accessor_map_tests = 5;
+    my $col_accessor_map_tests = 5;
     my $num_rescans = 5;
     $num_rescans-- if $self->{vendor} =~ /^(?:sybase|mysql)\z/i;
     $num_rescans++ if $self->{vendor} eq 'mssql';
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (188 + $num_rescans * $column_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (188 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -221,7 +221,7 @@ sub setup_schema {
         use_moose               => $ENV{SCHEMA_LOADER_TESTS_USE_MOOSE},
         col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
         rel_collision_map       => { '^(set_primary_key)\z' => 'caught_rel_collision_%s' },
-        column_accessor_map     => \&test_column_accessor_map,
+        col_accessor_map        => \&test_col_accessor_map,
         %{ $self->{loader_options} || {} },
     );
 
@@ -635,7 +635,7 @@ sub test_schema {
         isa_ok( $rs_rel4->first, $class4);
 
         is( $class4->column_info('crumb_crisp_coating')->{accessor},  'trivet',
-            'column_accessor_map is being run' );
+            'col_accessor_map is being run' );
 
         # check rel naming with prepositions
         ok ($rsobj4->result_source->has_relationship('loader_test5s_to'),
@@ -1917,12 +1917,12 @@ sub rescan_without_warnings {
     return $conn->rescan;
 }
 
-sub test_column_accessor_map {
+sub test_col_accessor_map {
     my ( $column_name, $default_name, $context ) = @_;
     if( lc($column_name) eq 'crumb_crisp_coating' ) {
 
-        is( $default_name, 'crumb_crisp_coating', 'column_accessor_map was passed the default name' );
-        ok( $context->{$_}, "column_accessor_map func was passed the $_" )
+        is( $default_name, 'crumb_crisp_coating', 'col_accessor_map was passed the default name' );
+        ok( $context->{$_}, "col_accessor_map func was passed the $_" )
             for qw( table_name table_class table_moniker schema_class );
 
         return 'trivet';
