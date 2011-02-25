@@ -126,7 +126,7 @@ sub _columns_info_for {
 
         my $col_obj;
 
-        $self->_adox_catalog->Tables->Item($table)->Columns;
+        my $cols = $self->_adox_catalog->Tables->Item($table)->Columns;
 
         for my $col_idx (0..$cols->Count-1) {
             $col_obj = $cols->Item($col_idx);

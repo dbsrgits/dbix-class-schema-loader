@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix a syntax error in MS Access ADO driver
+
 0.07008  2011-02-25 01:54:43
         - rename column_accessor_map to col_accessor_map, the old alias still
           works
