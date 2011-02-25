@@ -25,7 +25,7 @@ use DBIx::Class ();
 use Class::Load 'load_class';
 use namespace::clean;
 
-our $VERSION = '0.07007';
+our $VERSION = '0.07008';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
