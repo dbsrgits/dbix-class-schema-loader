@@ -8,7 +8,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Try::Tiny;
 use namespace::clean;
 
-our $VERSION = '0.07008';
+our $VERSION = '0.07009';
 
 __PACKAGE__->mk_group_accessors('simple', qw/
     _disable_pk_detection

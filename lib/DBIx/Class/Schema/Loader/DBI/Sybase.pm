@@ -6,7 +6,7 @@ use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
 use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
 
-our $VERSION = '0.07008';
+our $VERSION = '0.07009';
 
 =head1 NAME
 
