@@ -88,6 +88,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 col_collision_map
                                 rel_collision_map
                                 real_dump_directory
+                                result_component_map
                                 datetime_undef_if_invalid
                                 _result_class_methods
 /);
@@ -366,6 +367,22 @@ List of additional components to be loaded into all of your table
 classes.  A good example would be
 L<InflateColumn::DateTime|DBIx::Class::InflateColumn::DateTime>
 
+=head2 result_component_map
+
+A hashref of moniker keys and component values.  Unlike C<components>, which loads the
+given components into every table class, this option allows you to load certain
+components for specified tables.  For example:
+
+  result_component_map => {
+      StationVisited => '+YourApp::Schema::Component::StationVisited',
+      RouteChange    => [
+                            '+YourApp::Schema::Component::RouteChange',
+                            'InflateColumn::DateTime',
+                        ],
+  }
+  
+You may use this in conjunction with C<components>.
+
 =head2 use_namespaces
 
 This is now the default, to go back to L<DBIx::Class::Schema/load_classes> pass
@@ -597,6 +614,15 @@ sub new {
 
     $self->_validate_class_args;
 
+    if ($self->result_component_map) {
+        my %rc_map = %{ $self->result_component_map };
+        foreach my $moniker (keys %rc_map) {
+            $rc_map{$moniker} = [ $rc_map{$moniker} ] unless ref $rc_map{$moniker};
+        }
+        $self->result_component_map(\%rc_map);
+    }
+    $self->_validate_result_component_map;
+
     if ($self->use_moose) {
         if (not DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')) {
             die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\n",
@@ -790,31 +816,50 @@ EOF
 
 sub _validate_class_args {
     my $self = shift;
-    my $args = shift;
 
     foreach my $k (@CLASS_ARGS) {
         next unless $self->$k;
 
         my @classes = ref $self->$k eq 'ARRAY' ? @{ $self->$k } : $self->$k;
-        foreach my $c (@classes) {
-            # components default to being under the DBIx::Class namespace unless they
-            # are preceeded with a '+'
-            if ( $k =~ m/components$/ && $c !~ s/^\+// ) {
-                $c = 'DBIx::Class::' . $c;
-            }
+        $self->_validate_classes($k, \@classes);
+    }
+}
 
-            # 1 == installed, 0 == not installed, undef == invalid classname
-            my $installed = Class::Inspector->installed($c);
-            if ( defined($installed) ) {
-                if ( $installed == 0 ) {
-                    croak qq/$c, as specified in the loader option "$k", is not installed/;
-                }
-            } else {
-                croak qq/$c, as specified in the loader option "$k", is an invalid class name/;
+sub _validate_result_component_map {
+    my $self = shift;
+
+    my $map = $self->result_component_map;
+    return unless $map && ref $map eq 'HASH';
+
+    foreach my $classes (values %$map) {
+        $self->_validate_classes('result_component_map', [@$classes]);
+    }
+}
+
+sub _validate_classes {
+    my $self = shift;
+    my $key  = shift;
+    my $classes = shift;
+
+    foreach my $c (@$classes) {
+        # components default to being under the DBIx::Class namespace unless they
+        # are preceeded with a '+'
+        if ( $key =~ m/component/ && $c !~ s/^\+// ) {
+            $c = 'DBIx::Class::' . $c;
+        }
+
+        # 1 == installed, 0 == not installed, undef == invalid classname
+        my $installed = Class::Inspector->installed($c);
+        if ( defined($installed) ) {
+            if ( $installed == 0 ) {
+                croak qq/$c, as specified in the loader option "$key", is not installed/;
             }
+        } else {
+            croak qq/$c, as specified in the loader option "$key", is an invalid class name/;
         }
     }
 }
+
 
 sub _find_file_in_inc {
     my ($self, $file) = @_;
@@ -1574,20 +1619,29 @@ sub _make_src_class {
     $self->_use   ($table_class, @{$self->additional_classes});
     $self->_inject($table_class, @{$self->left_base_classes});
 
-    if (my @components = @{ $self->components }) {
-        $self->_dbic_stmt($table_class, 'load_components', @components);
+    my @components = @{ $self->components || [] };
+    foreach my $moniker (keys %{ $self->result_component_map || {} }) {
+        next unless $moniker eq $table_moniker;
+        push @components, @{ $self->result_component_map->{$moniker} };
     }
+    $self->_dbic_stmt($table_class, 'load_components', @components) if @components;
 
     $self->_inject($table_class, @{$self->additional_base_classes});
 }
 
 sub _is_result_class_method {
-    my ($self, $name) = @_;
+    my ($self, $name, $table_name) = @_;
+
+    my $table_moniker = $table_name ? $self->_table2moniker($table_name) : '';
 
     if (not $self->_result_class_methods) {
         my (@methods, %methods);
         my $base       = $self->result_base_class || 'DBIx::Class::Core';
         my @components = map { /^\+/ ? substr($_,1) : "DBIx::Class::$_" } @{ $self->components || [] };
+        foreach my $moniker (keys %{ $self->result_component_map || {} }) {
+            next unless $moniker eq $table_moniker;
+            push @components, @{ $self->result_component_map->{$moniker} };
+        }
 
         for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
             load_class $class;
@@ -1619,7 +1673,7 @@ sub _resolve_col_accessor_collisions {
 
         next if $accessor eq 'id'; # special case (very common column)
 
-        if ($self->_is_result_class_method($accessor)) {
+        if ($self->_is_result_class_method($accessor, $table_name)) {
             my $mapped = 0;
 
             if (my $map = $self->col_collision_map) {
