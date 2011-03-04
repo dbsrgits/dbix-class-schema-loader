@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07010  2011-03-04 08:26:31
+        - add result_component_map option
+
 0.07009  2011-02-25 11:06:51
         - fix a syntax error in MS Access ADO driver
 

@@ -10,7 +10,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Try::Tiny;
 use namespace::clean;
 
-our $VERSION = '0.07009';
+our $VERSION = '0.07010';
 
 __PACKAGE__->mk_group_accessors('simple', qw/
     __ado_connection

@@ -9,7 +9,7 @@ use base qw/
 /;
 use Carp::Clan qw/^DBIx::Class/;
 
-our $VERSION = '0.07009';
+our $VERSION = '0.07010';
 
 =head1 NAME
 

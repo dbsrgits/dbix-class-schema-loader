@@ -11,7 +11,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Try::Tiny;
 use namespace::clean;
 
-our $VERSION = '0.07009';
+our $VERSION = '0.07010';
 
 =head1 NAME
 

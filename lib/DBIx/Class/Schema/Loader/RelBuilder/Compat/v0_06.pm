@@ -7,7 +7,7 @@ use base 'DBIx::Class::Schema::Loader::RelBuilder';
 use Carp::Clan qw/^DBIx::Class/;
 use Lingua::EN::Inflect::Phrase ();
 
-our $VERSION = '0.07009';
+our $VERSION = '0.07010';
 
 sub _normalize_name {
     my ($self, $name) = @_;
