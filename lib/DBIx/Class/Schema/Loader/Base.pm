@@ -621,6 +621,9 @@ sub new {
         }
         $self->result_component_map(\%rc_map);
     }
+    else {
+        $self->result_component_map({});
+    }
     $self->_validate_result_component_map;
 
     if ($self->use_moose) {
