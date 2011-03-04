@@ -102,7 +102,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (188 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (192 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -224,6 +224,7 @@ sub setup_schema {
         col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
         rel_collision_map       => { '^(set_primary_key)\z' => 'caught_rel_collision_%s' },
         col_accessor_map        => \&test_col_accessor_map,
+        result_component_map    => { LoaderTest2X => 'TestComponentForMap', LoaderTest1 => '+TestComponentForMapFQN' },
         %{ $self->{loader_options} || {} },
     );
 
@@ -431,8 +432,20 @@ sub test_schema {
             'Additional Component' );
     }
 
-    is ((try { $class1->testcomponent_fqn }), 'TestComponentFQN works',
-        'fully qualified component class');
+    is try { $class2->dbix_class_testcomponentformap }, 'dbix_class_testcomponentformap works',
+        'component from result_component_map';
+
+    isnt try { $class1->dbix_class_testcomponentformap }, 'dbix_class_testcomponentformap works',
+        'component from result_component_map not added to not mapped Result';
+
+    is try { $class1->testcomponent_fqn }, 'TestComponentFQN works',
+        'fully qualified component class';
+
+    is try { $class1->testcomponentformap_fqn }, 'TestComponentForMapFQN works',
+        'fully qualified component class from result_component_map';
+
+    isnt try { $class2->testcomponentformap_fqn }, 'TestComponentForMapFQN works',
+        'fully qualified component class from result_component_map not added to not mapped Result';
 
     SKIP: {
         can_ok( $class1, 'loader_test1_classmeth' )

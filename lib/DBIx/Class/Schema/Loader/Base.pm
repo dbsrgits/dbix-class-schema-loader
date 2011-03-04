@@ -1620,10 +1620,10 @@ sub _make_src_class {
     $self->_inject($table_class, @{$self->left_base_classes});
 
     my @components = @{ $self->components || [] };
-    foreach my $moniker (keys %{ $self->result_component_map || {} }) {
-        next unless $moniker eq $table_moniker;
-        push @components, @{ $self->result_component_map->{$moniker} };
-    }
+
+    push @components, @{ $self->result_component_map->{$table_moniker} }
+        if exists $self->result_component_map->{$table_moniker};
+
     $self->_dbic_stmt($table_class, 'load_components', @components) if @components;
 
     $self->_inject($table_class, @{$self->additional_base_classes});
@@ -1637,10 +1637,14 @@ sub _is_result_class_method {
     if (not $self->_result_class_methods) {
         my (@methods, %methods);
         my $base       = $self->result_base_class || 'DBIx::Class::Core';
-        my @components = map { /^\+/ ? substr($_,1) : "DBIx::Class::$_" } @{ $self->components || [] };
-        foreach my $moniker (keys %{ $self->result_component_map || {} }) {
-            next unless $moniker eq $table_moniker;
-            push @components, @{ $self->result_component_map->{$moniker} };
+
+        my @components = @{ $self->components || [] };
+
+        push @components, @{ $self->result_component_map->{$table_moniker} }
+            if exists $self->result_component_map->{$table_moniker};
+
+        for my $c (@components) {
+            $c = $c =~ /^\+/ ? substr($c,1) : "DBIx::Class::$c";
         }
 
         for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
