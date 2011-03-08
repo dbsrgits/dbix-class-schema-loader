@@ -169,83 +169,83 @@ sub rescan {
     return $self->next::method(@_);
 }
 
-sub _table_pk_info {
-    my ($self, $table) = @_;
-
-    return [] if $self->_disable_pk_detection;
-
-    my @keydata;
-
-    my $indexes = try {
-        $self->_adox_catalog->Tables->Item($table)->Indexes
-    }
-    catch {
-        warn "Could not retrieve indexes in table '$table', disabling primary key detection: $_\n";
-        return undef;
-    };
-
-    if (not $indexes) {
-        $self->_disable_pk_detection(1);
-        return [];
-    }
-
-    for my $idx_num (0..($indexes->Count-1)) {
-        my $idx = $indexes->Item($idx_num);
-        if ($idx->PrimaryKey) {
-            my $cols = $idx->Columns;
-            for my $col_idx (0..$cols->Count-1) {
-                push @keydata, $self->_lc($cols->Item($col_idx)->Name);
-            }
-        }
-    }
-
-    return \@keydata;
-}
-
-sub _table_fk_info {
-    my ($self, $table) = @_;
-
-    return [] if $self->_disable_fk_detection;
-
-    my $keys = try {
-        $self->_adox_catalog->Tables->Item($table)->Keys;
-    }
-    catch {
-        warn "Could not retrieve keys in table '$table', disabling relationship detection: $_\n";
-        return undef;
-    };
-
-    if (not $keys) {
-        $self->_disable_fk_detection(1);
-        return [];
-    }
-
-    my @rels;
-
-    for my $key_idx (0..($keys->Count-1)) {
-      my $key = $keys->Item($key_idx);
-      if ($key->Type == 2) {
-        my $local_cols   = $key->Columns;
-        my $remote_table = $key->RelatedTable;
-        my (@local_cols, @remote_cols);
-
-        for my $col_idx (0..$local_cols->Count-1) {
-          my $col = $local_cols->Item($col_idx);
-          push @local_cols,  $self->_lc($col->Name);
-          push @remote_cols, $self->_lc($col->RelatedColumn);
-        }
-
-        push @rels, {
-            local_columns => \@local_cols,
-            remote_columns => \@remote_cols,
-            remote_table => $remote_table,
-        };
-
-      }
-    }
-
-    return \@rels;
-}
+#sub _table_pk_info {
+#    my ($self, $table) = @_;
+#
+#    return [] if $self->_disable_pk_detection;
+#
+#    my @keydata;
+#
+#    my $indexes = try {
+#        $self->_adox_catalog->Tables->Item($table)->Indexes
+#    }
+#    catch {
+#        warn "Could not retrieve indexes in table '$table', disabling primary key detection: $_\n";
+#        return undef;
+#    };
+#
+#    if (not $indexes) {
+#        $self->_disable_pk_detection(1);
+#        return [];
+#    }
+#
+#    for my $idx_num (0..($indexes->Count-1)) {
+#        my $idx = $indexes->Item($idx_num);
+#        if ($idx->PrimaryKey) {
+#            my $cols = $idx->Columns;
+#            for my $col_idx (0..$cols->Count-1) {
+#                push @keydata, $self->_lc($cols->Item($col_idx)->Name);
+#            }
+#        }
+#    }
+#
+#    return \@keydata;
+#}
+#
+#sub _table_fk_info {
+#    my ($self, $table) = @_;
+#
+#    return [] if $self->_disable_fk_detection;
+#
+#    my $keys = try {
+#        $self->_adox_catalog->Tables->Item($table)->Keys;
+#    }
+#    catch {
+#        warn "Could not retrieve keys in table '$table', disabling relationship detection: $_\n";
+#        return undef;
+#    };
+#
+#    if (not $keys) {
+#        $self->_disable_fk_detection(1);
+#        return [];
+#    }
+#
+#    my @rels;
+#
+#    for my $key_idx (0..($keys->Count-1)) {
+#      my $key = $keys->Item($key_idx);
+#      if ($key->Type == 2) {
+#        my $local_cols   = $key->Columns;
+#        my $remote_table = $key->RelatedTable;
+#        my (@local_cols, @remote_cols);
+#
+#        for my $col_idx (0..$local_cols->Count-1) {
+#          my $col = $local_cols->Item($col_idx);
+#          push @local_cols,  $self->_lc($col->Name);
+#          push @remote_cols, $self->_lc($col->RelatedColumn);
+#        }
+#
+#        push @rels, {
+#            local_columns => \@local_cols,
+#            remote_columns => \@remote_cols,
+#            remote_table => $remote_table,
+#        };
+#
+#      }
+#    }
+#
+#    return \@rels;
+#}
 
 sub _columns_info_for {
     my $self    = shift;
