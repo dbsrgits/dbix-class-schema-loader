@@ -371,8 +371,13 @@ sub test_schema {
     is $class2->column_info('testcomponent_fqn')->{accessor}, undef,
         'accessor for column name that conflicts with a fully qualified component class method removed';
 
-    is $class2->column_info('meta')->{accessor}, undef,
-        'accessor for column name that conflicts with Moose removed';
+    if ($conn->_loader->use_moose) {
+        is $class2->column_info('meta')->{accessor}, undef,
+            'accessor for column name that conflicts with Moose removed';
+    }
+    else {
+        pass "not removing 'meta' accessor with use_moose disabled";
+    }
 
     my %uniq1 = $class1->unique_constraints;
     my $uniq1_test = 0;

@@ -1660,9 +1660,6 @@ sub _is_result_class_method {
 
         @methods{@methods} = ();
 
-        # futureproof meta
-        $methods{meta} = undef;
-
         $self->_result_class_methods(\%methods);
     }
     my $result_methods = $self->_result_class_methods;
