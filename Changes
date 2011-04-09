@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - support for DBD::Firebird
+
 0.07010  2011-03-04 08:26:31
         - add result_component_map option
 
