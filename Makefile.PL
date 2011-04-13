@@ -47,7 +47,6 @@ requires 'Carp::Clan'                  => 0;
 requires 'Class::Inspector'            => 0;
 requires 'DBIx::Class'                 => '0.08127';
 requires 'Class::Unload'               => 0;
-requires 'Class::Load'                 => 0;
 requires 'File::Slurp'                 => '9999.13';
 requires 'List::MoreUtils'             => 0;
 requires 'namespace::clean'            => '0.20';
