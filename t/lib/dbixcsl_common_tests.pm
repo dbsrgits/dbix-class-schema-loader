@@ -498,13 +498,13 @@ sub test_schema {
             'constant negative integer default',
         );
 
-        cmp_ok(
-            $class35->column_info('a_double')->{default_value}, '==', 10.555,
+        is(
+            sprintf("%.3f", $class35->column_info('a_double')->{default_value}), '10.555',
             'constant numeric default',
         );
 
-        cmp_ok(
-            $class35->column_info('a_negative_double')->{default_value}, '==', -10.555,
+        is(
+            sprintf("%.3f", $class35->column_info('a_negative_double')->{default_value}), -10.555,
             'constant negative numeric default',
         );
 
