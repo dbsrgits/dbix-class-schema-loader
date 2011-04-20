@@ -390,18 +390,22 @@ sub _columns_info_for {
         my $type_num = $colinfo->{data_type};
         my $type_name;
         if (defined $type_num && $type_num =~ /^-?\d+\z/ && $dbh->can('type_info')) {
-            my $type_info = do {
-                # for buggy Firebird ODBC driver
-                local $dbh->{LongReadLen} = 100_000;
-                local $dbh->{LongTruncOk} = 1;
-                $dbh->type_info($type_num);
-            };
+            my $type_info = $self->_dbh_type_info($type_num);
             $type_name = $type_info->{TYPE_NAME} if $type_info;
             $colinfo->{data_type} = lc $type_name if $type_name;
         }
     }
 
     return \%result;
+}
+
+# Need to override this for the buggy Firebird ODBC driver.
+sub _dbh_type_info {
+    my ($self, $type_num) = @_;
+
+    my $dbh = $self->schema->storage->dbh;
+
+    return $dbh->type_info($type_num);
 }
 
 # do not use this, override _columns_info_for instead

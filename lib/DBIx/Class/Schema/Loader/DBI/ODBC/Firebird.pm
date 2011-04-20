@@ -22,6 +22,21 @@ Proxy for L<DBIx::Class::Schema::Loader::DBI::InterBase> when using L<DBD::ODBC>
 
 See L<DBIx::Class::Schema::Loader::Base> for usage information.
 
+=cut
+
+# Some (current) versions of the ODBC driver have a bug where ->type_info breaks
+# with "data truncated". This "fixes" it, but some type names are truncated.
+sub _dbh_type_info {
+    my ($self, $type_num) = @_;
+
+    my $dbh = $self->schema->storage->dbh;
+
+    local $dbh->{LongReadLen} = 100_000;
+    local $dbh->{LongTruncOk} = 1;
+
+    return $dbh->type_info($type_num);
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader::DBI::InterBase>,
