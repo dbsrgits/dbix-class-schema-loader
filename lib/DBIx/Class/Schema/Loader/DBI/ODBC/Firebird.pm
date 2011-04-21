@@ -26,7 +26,7 @@ See L<DBIx::Class::Schema::Loader::Base> for usage information.
 
 # Some (current) versions of the ODBC driver have a bug where ->type_info breaks
 # with "data truncated". This "fixes" it, but some type names are truncated.
-sub _dbh_type_info {
+sub _dbh_type_info_type_name {
     my ($self, $type_num) = @_;
 
     my $dbh = $self->schema->storage->dbh;
@@ -34,7 +34,21 @@ sub _dbh_type_info {
     local $dbh->{LongReadLen} = 100_000;
     local $dbh->{LongTruncOk} = 1;
 
-    return $dbh->type_info($type_num);
+    my $type_info = $dbh->type_info($type_num);
+
+    return undef if not $type_info;
+    
+    my $type_name = $type_info->{TYPE_NAME};
+
+    # fix up truncated type names
+    if ($type_name eq "VARCHAR(x) CHARACTER SET UNICODE_\0") {
+        return 'VARCHAR(x) CHARACTER SET UNICODE_FSS';
+    }
+    elsif ($type_name eq "BLOB SUB_TYPE TEXT CHARACTER SET \0") {
+        return 'BLOB SUB_TYPE TEXT CHARACTER SET UNICODE_FSS';
+    }
+
+    return $type_name;
 }
 
 =head1 SEE ALSO

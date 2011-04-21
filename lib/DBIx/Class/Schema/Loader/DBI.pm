@@ -390,8 +390,7 @@ sub _columns_info_for {
         my $type_num = $colinfo->{data_type};
         my $type_name;
         if (defined $type_num && $type_num =~ /^-?\d+\z/ && $dbh->can('type_info')) {
-            my $type_info = $self->_dbh_type_info($type_num);
-            $type_name = $type_info->{TYPE_NAME} if $type_info;
+            my $type_name = $self->_dbh_type_info_type_name($type_num);
             $colinfo->{data_type} = lc $type_name if $type_name;
         }
     }
@@ -400,12 +399,14 @@ sub _columns_info_for {
 }
 
 # Need to override this for the buggy Firebird ODBC driver.
-sub _dbh_type_info {
+sub _dbh_type_info_type_name {
     my ($self, $type_num) = @_;
 
     my $dbh = $self->schema->storage->dbh;
 
-    return $dbh->type_info($type_num);
+    my $type_info = $dbh->type_info($type_num);
+    
+    return $type_info ? $type_info->{TYPE_NAME} : undef;
 }
 
 # do not use this, override _columns_info_for instead

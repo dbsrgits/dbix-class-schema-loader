@@ -104,14 +104,21 @@ my $tester = dbixcsl_common_tests->new(
         'char'         => { data_type => 'char',      size => 1  },
         'char(11)'     => { data_type => 'char',      size => 11 },
         'varchar(20)'  => { data_type => 'varchar',   size => 20 },
+        'char(22) character set unicode_fss' =>
+                       => { data_type => 'char(x) character set unicode_fss', size => 22 },
+        'varchar(33) character set unicode_fss' =>
+                       => { data_type => 'varchar(x) character set unicode_fss', size => 33 },
+
 
         # Blob types
         'blob'        => { data_type => 'blob' },
         'blob sub_type text'
                       => { data_type => 'blob sub_type text' },
+        'blob sub_type text character set unicode_fss'
+                      => { data_type => 'blob sub_type text character set unicode_fss' },
     },
     extra => {
-        count  => 6,
+        count  => 9,
         run    => sub {
             $schema = shift;
             my ($monikers, $classes, $self) = @_;
@@ -162,6 +169,25 @@ q{
             is $col_info->{sequence}, 'Gen_Firebird_Loader_Test1_Id', 'correct mixed case sequence name';
 
             is eval { $rsrc->column_info('Foo')->{default_value} }, 42, 'default_value detected for mixed case column';
+
+            # test the fixed up ->_dbh_type_info_type_name for the ODBC driver
+            if ($schema->storage->_dbi_connect_info->[0] =~ /:ODBC:/i) {
+                my %truncated_types = (
+                      4 => 'INTEGER',
+                     -9 => 'VARCHAR(x) CHARACTER SET UNICODE_FSS',
+                    -10 => 'BLOB SUB_TYPE TEXT CHARACTER SET UNICODE_FSS',
+                );
+
+                for my $type_num (keys %truncated_types) {
+                    is $schema->_loader->_dbh_type_info_type_name($type_num),
+                        $truncated_types{$type_num},
+                        "ODBC ->_dbh_type_info_type_name correct for '$truncated_types{$type_num}'";
+                }
+            }
+            else {
+                my $tb = Test::More->builder;
+                $tb->skip('not testing _dbh_type_info_type_name on DBD::InterBase') for 1..3;
+            }
         },
     },
 );

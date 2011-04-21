@@ -192,7 +192,7 @@ EOF
 
 # fix up types
         $sth = $dbh->prepare(<<'EOF');
-SELECT f.rdb$field_precision, f.rdb$field_scale, f.rdb$field_type, f.rdb$field_sub_type, t.rdb$type_name, st.rdb$type_name
+SELECT f.rdb$field_precision, f.rdb$field_scale, f.rdb$field_type, f.rdb$field_sub_type, f.rdb$character_set_id, f.rdb$character_length, t.rdb$type_name, st.rdb$type_name
 FROM rdb$fields f
 JOIN rdb$relation_fields rf ON rf.rdb$field_source = f.rdb$field_name
 LEFT JOIN rdb$types t  ON f.rdb$field_type     = t.rdb$type  AND t.rdb$field_name  = 'RDB$FIELD_TYPE'
@@ -201,7 +201,7 @@ WHERE rf.rdb$relation_name = ?
     AND rf.rdb$field_name  = ?
 EOF
         $sth->execute($table, $self->_uc($column));
-        my ($precision, $scale, $type_num, $sub_type_num, $type_name, $sub_type_name) = $sth->fetchrow_array;
+        my ($precision, $scale, $type_num, $sub_type_num, $char_set_id, $char_length, $type_name, $sub_type_name) = $sth->fetchrow_array;
         $scale = -$scale if $scale && $scale < 0;
 
         if ($type_name && $sub_type_name) {
@@ -225,7 +225,12 @@ EOF
                     $info->{data_type} = 'blob';
                 }
                 elsif ($sub_type_name eq 'TEXT') {
-                    $info->{data_type} = 'blob sub_type text';
+                    if ($char_set_id == 3) {
+                        $info->{data_type} = 'blob sub_type text character set unicode_fss';
+                    }
+                    else {
+                        $info->{data_type} = 'blob sub_type text';
+                    }
                 }
             }
         }
@@ -262,11 +267,14 @@ EOF
             $info->{data_type} = 'bigint';
         }
 
-        # DBD::InterBase sets scale to '0' for some reason for char types
-        if ($info->{data_type} =~ /^(?:char|varchar)\z/ && ref($info->{size}) eq 'ARRAY') {
-            $info->{size} = $info->{size}[0];
+        if ($info->{data_type} =~ /^(?:char|varchar)\z/) {
+            $info->{size} = $char_length;
+
+            if ($char_set_id == 3) {
+                $info->{data_type} .= '(x) character set unicode_fss';
+            }
         }
-        elsif ($info->{data_type} !~ /^(?:char|varchar|numeric|decimal)\z/) {
+        elsif ($info->{data_type} !~ /^(?:numeric|decimal)\z/) {
             delete $info->{size};
         }
 
