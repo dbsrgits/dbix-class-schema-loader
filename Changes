@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix for mysql rel detection in mixed-case tables on mixed-case
+          filesystems (OSX and Windows)
         - support for DBD::Firebird
         - support for unicode Firebird data types
 

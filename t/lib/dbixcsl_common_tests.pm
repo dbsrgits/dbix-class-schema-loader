@@ -102,7 +102,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (192 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (194 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -1132,10 +1132,16 @@ qq| INSERT INTO ${oqt}LoaderTest41${cqt} VALUES (1, 1) |,
     $self->rescan_without_warnings($conn);
 
     if (not $self->{skip_rels}) {
-        is try { $conn->resultset('LoaderTest41')->find(1)->loader_test40->foo3_bar }, 'foo',
-            'rel and accessor for mixed-case column name in mixed case table';
+        ok my $row = try { $conn->resultset('LoaderTest41')->find(1) },
+            'row in mixed-case table';
+        ok my $related_row = try { $row->loader_test40 },
+            'rel in mixed-case table';
+        is try { $related_row->foo3_bar }, 'foo',
+            'accessor for mixed-case column name in mixed case table';
     }
     else {
+        SKIP: { skip 'not testing mixed-case rels with skip_rels', 2 }
+
         is try { $conn->resultset('LoaderTest40')->find(1)->foo3_bar }, 'foo',
             'accessor for mixed-case column name in mixed case table';
     }

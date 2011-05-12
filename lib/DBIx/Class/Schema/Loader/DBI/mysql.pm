@@ -3,8 +3,9 @@ package DBIx::Class::Schema::Loader::DBI::mysql;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI';
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
+use List::Util 'first';
+use namespace::clean;
 
 our $VERSION = '0.07010';
 
@@ -12,18 +13,9 @@ our $VERSION = '0.07010';
 
 DBIx::Class::Schema::Loader::DBI::mysql - DBIx::Class::Schema::Loader::DBI mysql Implementation.
 
-=head1 SYNOPSIS
-
-  package My::Schema;
-  use base qw/DBIx::Class::Schema::Loader/;
-
-  __PACKAGE__->loader_options( debug => 1 );
-
-  1;
-
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
@@ -71,10 +63,12 @@ sub _table_fk_info {
         my @f_cols = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; $self->_lc($_) }
             split(/$qt?\s*$qt?,$qt?\s*$qt?/, $f_cols);
 
+        my $remote_table = first { $_ =~ /^${f_table}\z/i } $self->_tables_list;
+
         push(@rels, {
             local_columns => \@cols,
             remote_columns => \@f_cols,
-            remote_table => $f_table
+            remote_table => $remote_table,
         });
     }
 
