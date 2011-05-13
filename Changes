@@ -1,5 +1,10 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - rename result_component_map to result_components_map (old name still
+          works)
+        - fix accessor collision detection for methods from
+          result_components_map components
+        - add result_roles and result_roles_map options
         - fix for mysql rel detection in mixed-case tables on mixed-case
           filesystems (OSX and Windows)
         - support for DBD::Firebird

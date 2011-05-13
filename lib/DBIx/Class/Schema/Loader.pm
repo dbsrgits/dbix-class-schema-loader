@@ -506,6 +506,8 @@ timbunce: Tim Bunce <timb@cpan.org>
 
 mst: Matt S. Trout <mst@shadowcatsystems.co.uk>
 
+mstratman: Mark A. Stratman <stratman@gmail.com>
+
 kane: Jos Boumans <kane@cpan.org>
 
 waawaamilk: Nigel McNie <nigel@mcnie.name>

@@ -51,6 +51,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 default_resultset_class
                                 schema_base_class
                                 result_base_class
+                                result_roles
                                 use_moose
                                 overwrite_modifications
 
@@ -87,7 +88,8 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 col_collision_map
                                 rel_collision_map
                                 real_dump_directory
-                                result_component_map
+                                result_components_map
+                                result_roles_map
                                 datetime_undef_if_invalid
                                 _result_class_methods
 /);
@@ -366,18 +368,38 @@ List of additional components to be loaded into all of your table
 classes.  A good example would be
 L<InflateColumn::DateTime|DBIx::Class::InflateColumn::DateTime>
 
-=head2 result_component_map
+=head2 result_components_map
 
-A hashref of moniker keys and component values.  Unlike C<components>, which loads the
-given components into every table class, this option allows you to load certain
-components for specified tables.  For example:
+A hashref of moniker keys and component values.  Unlike C<components>, which
+loads the given components into every Result class, this option allows you to
+load certain components for specified Result classes. For example:
 
-  result_component_map => {
+  result_components_map => {
       StationVisited => '+YourApp::Schema::Component::StationVisited',
       RouteChange    => [
                             '+YourApp::Schema::Component::RouteChange',
                             'InflateColumn::DateTime',
                         ],
+  }
+  
+You may use this in conjunction with C<components>.
+
+=head2 result_roles
+
+List of L<Moose> roles to be applied to all of your Result classes.
+
+=head2 result_roles_map
+
+A hashref of moniker keys and role values.  Unlike C<result_roles>, which
+applies the given roles to every Result class, this option allows you to apply
+certain roles for specified Result classes. For example:
+
+  result_roles_map => {
+      StationVisited => [
+                            'YourApp::Role::Building',
+                            'YourApp::Role::Destination',
+                        ],
+      RouteChange    => 'YourApp::Role::TripEvent',
   }
   
 You may use this in conjunction with C<components>.
@@ -555,7 +577,7 @@ my $CURRENT_V = 'v7';
 
 my @CLASS_ARGS = qw(
     schema_base_class result_base_class additional_base_classes
-    left_base_classes additional_classes components
+    left_base_classes additional_classes components result_roles
 );
 
 # ensure that a peice of object data is a valid arrayref, creating
@@ -605,25 +627,55 @@ sub new {
         }
     }
 
+    $self->result_components_map($self->{result_component_map})
+        if defined $self->{result_component_map};
+
+    $self->result_roles_map($self->{result_role_map})
+        if defined $self->{result_role_map};
+
+    croak "the result_roles and result_roles_map options may only be used in conjunction with use_moose=1"
+        if ((not defined $self->use_moose) || (not $self->use_moose))
+            && ((defined $self->result_roles) || (defined $self->result_roles_map));
+
     $self->_ensure_arrayref(qw/additional_classes
                                additional_base_classes
                                left_base_classes
                                components
+                               result_roles
                               /);
 
     $self->_validate_class_args;
 
-    if ($self->result_component_map) {
-        my %rc_map = %{ $self->result_component_map };
+    croak "result_components_map must be a hash"
+        if defined $self->result_components_map
+            && ref $self->result_components_map ne 'HASH';
+
+    if ($self->result_components_map) {
+        my %rc_map = %{ $self->result_components_map };
         foreach my $moniker (keys %rc_map) {
             $rc_map{$moniker} = [ $rc_map{$moniker} ] unless ref $rc_map{$moniker};
         }
-        $self->result_component_map(\%rc_map);
+        $self->result_components_map(\%rc_map);
     }
     else {
-        $self->result_component_map({});
+        $self->result_components_map({});
     }
-    $self->_validate_result_component_map;
+    $self->_validate_result_components_map;
+
+    croak "result_roles_map must be a hash"
+        if defined $self->result_roles_map
+            && ref $self->result_roles_map ne 'HASH';
+
+    if ($self->result_roles_map) {
+        my %rr_map = %{ $self->result_roles_map };
+        foreach my $moniker (keys %rr_map) {
+            $rr_map{$moniker} = [ $rr_map{$moniker} ] unless ref $rr_map{$moniker};
+        }
+        $self->result_roles_map(\%rr_map);
+    } else {
+        $self->result_roles_map({});
+    }
+    $self->_validate_result_roles_map;
 
     if ($self->use_moose) {
         if (not DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')) {
@@ -830,14 +882,19 @@ sub _validate_class_args {
     }
 }
 
-sub _validate_result_component_map {
+sub _validate_result_components_map {
     my $self = shift;
 
-    my $map = $self->result_component_map;
-    return unless $map && ref $map eq 'HASH';
+    foreach my $classes (values %{ $self->result_components_map }) {
+        $self->_validate_classes('result_components_map', $classes);
+    }
+}
 
-    foreach my $classes (values %$map) {
-        $self->_validate_classes('result_component_map', [@$classes]);
+sub _validate_result_roles_map {
+    my $self = shift;
+
+    foreach my $classes (values %{ $self->result_roles_map }) {
+        $self->_validate_classes('result_roles_map', $classes);
     }
 }
 
@@ -846,7 +903,10 @@ sub _validate_classes {
     my $key  = shift;
     my $classes = shift;
 
-    foreach my $c (@$classes) {
+    # make a copy to not destroy original
+    my @classes = @$classes;
+
+    foreach my $c (@classes) {
         # components default to being under the DBIx::Class namespace unless they
         # are preceeded with a '+'
         if ( $key =~ m/component/ && $c !~ s/^\+// ) {
@@ -1538,6 +1598,18 @@ sub _inject {
     $self->_raw_stmt($target, "use base qw/$blist/;");
 }
 
+sub _with {
+    my $self = shift;
+    my $target = shift;
+
+    my $rlist = join(q{, }, map { qq{'$_'} } @_);
+
+    return unless $rlist;
+
+    warn "$target: with $rlist;" if $self->debug;
+    $self->_raw_stmt($target, "\nwith $rlist;");
+}
+
 sub _result_namespace {
     my ($self, $schema_class, $ns) = @_;
     my @result_namespace;
@@ -1601,12 +1673,7 @@ sub _make_src_class {
             unless $table_class eq $old_class;
     }
 
-# this was a bad idea, should be ok now without it
-#    my $table_normalized = lc $table;
-#    $self->classes->{$table_normalized} = $table_class;
-#    $self->monikers->{$table_normalized} = $table_moniker;
-
-    $self->classes->{$table} = $table_class;
+    $self->classes->{$table}  = $table_class;
     $self->monikers->{$table} = $table_moniker;
 
     $self->_use   ($table_class, @{$self->additional_classes});
@@ -1614,12 +1681,18 @@ sub _make_src_class {
 
     my @components = @{ $self->components || [] };
 
-    push @components, @{ $self->result_component_map->{$table_moniker} }
-        if exists $self->result_component_map->{$table_moniker};
+    push @components, @{ $self->result_components_map->{$table_moniker} }
+        if exists $self->result_components_map->{$table_moniker};
 
     $self->_dbic_stmt($table_class, 'load_components', @components) if @components;
 
     $self->_inject($table_class, @{$self->additional_base_classes});
+
+    my @roles = @{ $self->result_roles || [] };
+    push @roles, @{ $self->result_roles_map->{$table_moniker} }
+        if exists $self->result_roles_map->{$table_moniker};
+
+    $self->_with($table_class, @roles) if @roles;
 }
 
 sub _is_result_class_method {
@@ -1627,20 +1700,29 @@ sub _is_result_class_method {
 
     my $table_moniker = $table_name ? $self->_table2moniker($table_name) : '';
 
-    if (not $self->_result_class_methods) {
+    $self->_result_class_methods({})
+        if not defined $self->_result_class_methods;
+
+    if (not exists $self->_result_class_methods->{$table_moniker}) {
         my (@methods, %methods);
         my $base       = $self->result_base_class || 'DBIx::Class::Core';
 
         my @components = @{ $self->components || [] };
 
-        push @components, @{ $self->result_component_map->{$table_moniker} }
-            if exists $self->result_component_map->{$table_moniker};
+        push @components, @{ $self->result_components_map->{$table_moniker} }
+            if exists $self->result_components_map->{$table_moniker};
 
         for my $c (@components) {
             $c = $c =~ /^\+/ ? substr($c,1) : "DBIx::Class::$c";
         }
 
-        for my $class ($base, @components, $self->use_moose ? 'Moose::Object' : ()) {
+        my @roles = @{ $self->result_roles || [] };
+
+        push @roles, @{ $self->result_roles_map->{$table_moniker} }
+            if exists $self->result_roles_map->{$table_moniker};
+
+        for my $class ($base, @components,
+                       ($self->use_moose ? 'Moose::Object' : ()), @roles) {
             $self->ensure_class_loaded($class);
 
             push @methods, @{ Class::Inspector->methods($class) || [] };
@@ -1650,9 +1732,9 @@ sub _is_result_class_method {
 
         @methods{@methods} = ();
 
-        $self->_result_class_methods(\%methods);
+        $self->_result_class_methods->{$table_moniker} = \%methods;
     }
-    my $result_methods = $self->_result_class_methods;
+    my $result_methods = $self->_result_class_methods->{$table_moniker};
 
     return exists $result_methods->{$name};
 }

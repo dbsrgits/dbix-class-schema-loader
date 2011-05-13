@@ -102,7 +102,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (194 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (199 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -193,14 +193,13 @@ sub setup_schema {
 
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
-    if (
-      $ENV{SCHEMA_LOADER_TESTS_USE_MOOSE}
-        &&
-      ! DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')
-    ) {
-      die sprintf ("Missing dependencies for SCHEMA_LOADER_TESTS_USE_MOOSE: %s\n",
-        DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose')
-      );
+    if ($ENV{SCHEMA_LOADER_TESTS_USE_MOOSE}) {
+        if (not DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')) {
+            die sprintf ("Missing dependencies for SCHEMA_LOADER_TESTS_USE_MOOSE: %s\n",
+                DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose'));
+        }
+
+        $self->{use_moose} = 1;
     }
 
     my %loader_opts = (
@@ -220,11 +219,15 @@ sub setup_schema {
         dump_directory          => $DUMP_DIR,
         datetime_timezone       => 'Europe/Berlin',
         datetime_locale         => 'de_DE',
-        use_moose               => $ENV{SCHEMA_LOADER_TESTS_USE_MOOSE},
+        $self->{use_moose} ? (
+            use_moose        => 1,
+            result_roles     => 'TestRole',
+            result_roles_map => { LoaderTest2X => 'TestRoleForMap' },
+        ) : (),
         col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
         rel_collision_map       => { '^(set_primary_key)\z' => 'caught_rel_collision_%s' },
         col_accessor_map        => \&test_col_accessor_map,
-        result_component_map    => { LoaderTest2X => 'TestComponentForMap', LoaderTest1 => '+TestComponentForMapFQN' },
+        result_components_map   => { LoaderTest2X => 'TestComponentForMap', LoaderTest1 => '+TestComponentForMapFQN' },
         %{ $self->{loader_options} || {} },
     );
 
@@ -357,26 +360,49 @@ sub test_schema {
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent testcomponent_fqn meta/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentformap testcomponent_fqn meta test_role_method test_role_for_map_method/ ], "Column Ordering" );
 
     is $class2->column_info('can')->{accessor}, 'caught_collision_can',
         'accessor for column name that conflicts with a UNIVERSAL method renamed based on col_collision_map';
 
-    is $class2->column_info('set_primary_key')->{accessor}, undef,
-        'accessor for column name that conflicts with a result base class method removed';
+    ok (exists $class2->column_info('set_primary_key')->{accessor}
+        && (not defined $class2->column_info('set_primary_key')->{accessor}),
+        'accessor for column name that conflicts with a result base class method removed');
 
-    is $class2->column_info('dbix_class_testcomponent')->{accessor}, undef,
-        'accessor for column name that conflicts with a component class method removed';
+    ok (exists $class2->column_info('dbix_class_testcomponent')->{accessor}
+        && (not defined $class2->column_info('dbix_class_testcomponent')->{accessor}),
+        'accessor for column name that conflicts with a component class method removed');
 
-    is $class2->column_info('testcomponent_fqn')->{accessor}, undef,
-        'accessor for column name that conflicts with a fully qualified component class method removed';
+    ok (exists $class2->column_info('dbix_class_testcomponentformap')->{accessor}
+        && (not defined $class2->column_info('dbix_class_testcomponentformap')->{accessor}),
+        'accessor for column name that conflicts with a component class method removed');
 
-    if ($conn->_loader->use_moose) {
-        is $class2->column_info('meta')->{accessor}, undef,
-            'accessor for column name that conflicts with Moose removed';
+    ok (exists $class2->column_info('testcomponent_fqn')->{accessor}
+        && (not defined $class2->column_info('testcomponent_fqn')->{accessor}),
+        'accessor for column name that conflicts with a fully qualified component class method removed');
+
+    if ($self->{use_moose}) {
+        ok (exists $class2->column_info('meta')->{accessor}
+            && (not defined $class2->column_info('meta')->{accessor}),
+            'accessor for column name that conflicts with Moose removed');
+
+        ok (exists $class2->column_info('test_role_for_map_method')->{accessor}
+            && (not defined $class2->column_info('test_role_for_map_method')->{accessor}),
+            'accessor for column name that conflicts with a Result role removed');
+
+        ok (exists $class2->column_info('test_role_method')->{accessor}
+            && (not defined $class2->column_info('test_role_method')->{accessor}),
+            'accessor for column name that conflicts with a Result role removed');
     }
     else {
-        pass "not removing 'meta' accessor with use_moose disabled";
+        ok ((not exists $class2->column_info('meta')->{accessor}),
+            "not removing 'meta' accessor with use_moose disabled");
+
+        ok ((not exists $class2->column_info('test_role_for_map_method')->{accessor}),
+            'no role method conflicts with use_moose disabled');
+
+        ok ((not exists $class2->column_info('test_role_method')->{accessor}),
+            'no role method conflicts with use_moose disabled');
     }
 
     my %uniq1 = $class1->unique_constraints;
@@ -451,6 +477,18 @@ sub test_schema {
 
     isnt try { $class2->testcomponentformap_fqn }, 'TestComponentForMapFQN works',
         'fully qualified component class from result_component_map not added to not mapped Result';
+
+    SKIP: {
+        skip 'not testing role methods with use_moose disabled', 2
+            unless $self->{use_moose};
+
+        is try { $class1->test_role_method }, 'test_role_method works',
+            'role from result_roles applied';
+
+        is try { $class2->test_role_for_map_method },
+            'test_role_for_map_method works',
+            'role from result_roles_map applied';
+    }
 
     SKIP: {
         can_ok( $class1, 'loader_test1_classmeth' )
@@ -1257,8 +1295,11 @@ sub create {
                 set_primary_key INTEGER $self->{null},
                 can INTEGER $self->{null},
                 dbix_class_testcomponent INTEGER $self->{null},
+                dbix_class_testcomponentformap INTEGER $self->{null},
                 testcomponent_fqn INTEGER $self->{null},
                 meta INTEGER $self->{null},
+                test_role_method INTEGER $self->{null},
+                test_role_for_map_method INTEGER $self->{null},
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
