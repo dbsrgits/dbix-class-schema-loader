@@ -11,10 +11,9 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - support for unicode Firebird data types
         - handle "use warnings FATAL => 'all';" in custom/external content
           (RT#59849)
-        - for dynamic schemas, if the schema is loaded in backcompat mode, or
-          naming => { monikers => 'v4' } is not explicitly set, will
-          automatically turn on use_namespaces=1 as well. Set use_namespaces=0
-          to disable this behavior (RT#59849)
+        - for dynamic schemas, if the naming option is set, will automatically
+          turn on use_namespaces=1 as well. Set use_namespaces=0 to disable
+          this behavior (RT#59849)
 
 0.07010  2011-03-04 08:26:31
         - add result_component_map option

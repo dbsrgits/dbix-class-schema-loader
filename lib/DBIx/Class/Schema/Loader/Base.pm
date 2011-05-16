@@ -64,6 +64,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 monikers
                                 dynamic
                                 naming
+                                naming_set
                                 datetime_timezone
                                 datetime_locale
                                 config_file
@@ -708,6 +709,13 @@ sub new {
     $self->version_to_dump($DBIx::Class::Schema::Loader::VERSION);
     $self->schema_version_to_dump($DBIx::Class::Schema::Loader::VERSION);
 
+    if (not defined $self->naming) {
+        $self->naming_set(0);
+    }
+    else {
+        $self->naming_set(1);
+    }
+
     if ((not ref $self->naming) && defined $self->naming) {
         my $naming_ver = $self->naming;
         $self->{naming} = {
@@ -773,13 +781,12 @@ EOF
             $self->_upgrading_from('v4');
         }
 
-        $self->naming->{relationships} ||= 'v4';
-        $self->naming->{monikers}      ||= 'v4';
-
-        if ((not defined $self->use_namespaces)
-            && $self->naming->{monikers} ne 'v4') {
+        if ((not defined $self->use_namespaces) && (not $self->naming_set)) {
             $self->use_namespaces(1);
         }
+
+        $self->naming->{relationships} ||= 'v4';
+        $self->naming->{monikers}      ||= 'v4';
 
         if ($self->use_namespaces) {
             $self->_upgrading_from_load_classes(1);
