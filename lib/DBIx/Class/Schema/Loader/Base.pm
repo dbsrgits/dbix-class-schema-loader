@@ -18,7 +18,7 @@ use Class::Unload;
 use Class::Inspector ();
 use Scalar::Util 'looks_like_number';
 use File::Slurp 'slurp';
-use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_without_redefine_warnings/;
+use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path/;
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
@@ -713,8 +713,6 @@ Dynamic schema detected, will run in 0.04006 mode.
 Set the 'naming' attribute or the SCHEMA_LOADER_BACKCOMPAT environment variable
 to disable this warning.
 
-Also consider setting 'use_namespaces => 1' if/when upgrading.
-
 See perldoc DBIx::Class::Schema::Loader::Manual::UpgradingFromV4 for more
 details.
 EOF
@@ -725,6 +723,11 @@ EOF
 
         $self->naming->{relationships} ||= 'v4';
         $self->naming->{monikers}      ||= 'v4';
+
+        if ((not defined $self->use_namespaces)
+            && $self->naming->{monikers} ne 'v4') {
+            $self->use_namespaces(1);
+        }
 
         if ($self->use_namespaces) {
             $self->_upgrading_from_load_classes(1);
@@ -877,20 +880,10 @@ sub _find_file_in_inc {
     return;
 }
 
-sub _class_path {
-    my ($self, $class) = @_;
-
-    my $class_path = $class;
-    $class_path =~ s{::}{/}g;
-    $class_path .= '.pm';
-
-    return $class_path;
-}
-
 sub _find_class_in_inc {
     my ($self, $class) = @_;
 
-    return $self->_find_file_in_inc($self->_class_path($class));
+    return $self->_find_file_in_inc(class_path($class));
 }
 
 sub _rewriting {
@@ -944,7 +937,7 @@ sub _load_external {
         my $code = $self->_rewrite_old_classnames(scalar slurp $real_inc_path);
 
         if ($self->dynamic) { # load the class too
-            eval_without_redefine_warnings($code);
+            eval_package_without_redefine_warnings($class, $code);
         }
 
         $self->_ext_stmt($class,
@@ -985,7 +978,7 @@ been used by an older version of the Loader.
 * PLEASE RENAME THIS CLASS: from '$old_class' to '$class', as that is the
 new name of the Result.
 EOF
-            eval_without_redefine_warnings($code);
+            eval_package_without_redefine_warnings($class, $code);
         }
 
         chomp $code;
@@ -1212,12 +1205,10 @@ sub _moose_metaclass {
 sub _reload_class {
     my ($self, $class) = @_;
 
-    my $class_path = $self->_class_path($class);
-    delete $INC{ $class_path };
+    delete $INC{ +class_path($class) };
 
-# kill redefined warnings
     try {
-        eval_without_redefine_warnings ("require $class");
+        eval_package_without_redefine_warnings ($class, "require $class");
     }
     catch {
         my $source = slurp $self->_get_dump_filename($class);

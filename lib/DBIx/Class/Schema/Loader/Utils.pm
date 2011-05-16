@@ -8,7 +8,7 @@ use Test::More;
 use namespace::clean;
 use Exporter 'import';
 
-our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_without_redefine_warnings warnings_exist warnings_exist_silent/;
+our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path warnings_exist warnings_exist_silent/;
 
 use constant BY_CASE_TRANSITION =>
     qr/(?<=[[:lower:]\d])[\W_]*(?=[[:upper:]])|[\W_]+/;
@@ -38,16 +38,50 @@ sub dumper_squashed($) {
     return $dd->Values([ $val ])->Dump;
 }
 
-sub eval_without_redefine_warnings {
-    my $code = shift;
+sub eval_package_without_redefine_warnings {
+    my ($pkg, $code) = @_;
 
     my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+
     local $SIG{__WARN__} = sub {
         $warn_handler->(@_)
             unless $_[0] =~ /^Subroutine \S+ redefined/;
     };
-    eval $code;
-    die $@ if $@;
+
+    # This hairiness is to handle people using "use warnings FATAL => 'all';"
+    # in their custom or external content.
+    my @delete_syms;
+    my $try_again = 1;
+
+    while ($try_again) {
+        eval $code;
+
+        if (my ($sym) = $@ =~ /^Subroutine (\S+) redefined/) {
+            delete $INC{ +class_path($pkg) };
+            push @delete_syms, $sym;
+
+            foreach my $sym (@delete_syms) {
+                no strict 'refs';
+                undef *{"${pkg}::${sym}"};
+            }
+        }
+        elsif ($@) {
+            die $@ if $@;
+        }
+        else {
+            $try_again = 0;
+        }
+    }
+}
+
+sub class_path {
+    my $class = shift;
+
+    my $class_path = $class;
+    $class_path =~ s{::}{/}g;
+    $class_path .= '.pm';
+
+    return $class_path;
 }
 
 sub warnings_exist(&$$) {
