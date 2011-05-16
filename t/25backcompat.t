@@ -58,7 +58,7 @@ sub class_content_like;
         Bar   => 'Foos',
     });
 
-    my $res = run_loader(naming => 'current');
+    my $res = run_loader(naming => 'current', use_namespaces => 0);
     my $schema = $res->{schema};
 
     is scalar @{ $res->{warnings} }, 1,

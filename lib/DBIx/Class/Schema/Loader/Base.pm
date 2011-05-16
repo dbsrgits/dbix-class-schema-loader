@@ -765,7 +765,7 @@ sub _check_back_compat {
 # just in case, though no one is likely to dump a dynamic schema
         $self->schema_version_to_dump('0.04006');
 
-        if (not %{ $self->naming }) {
+        if (not $self->naming_set) {
             warn <<EOF unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
 
 Dynamic schema detected, will run in 0.04006 mode.

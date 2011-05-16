@@ -32,6 +32,7 @@ my @invocations = (
         package DBICTest::Schema::_hardcode;
         use base qw/ DBIx::Class::Schema::Loader /;
         __PACKAGE__->naming('current');
+        __PACKAGE__->use_namespaces(0);
         __PACKAGE__->connection($make_dbictest_db::dsn);
         __PACKAGE__;
     },
@@ -40,13 +41,18 @@ my @invocations = (
         use base qw/ DBIx::Class::Schema::Loader /;
         __PACKAGE__->loader_options();
         __PACKAGE__->naming('current');
+        __PACKAGE__->use_namespaces(0);
         __PACKAGE__->connect($make_dbictest_db::dsn);
     },
     'make_schema_at' => sub {
         use DBIx::Class::Schema::Loader qw/ make_schema_at /;
         make_schema_at(
             'DBICTest::Schema::_make_schema_at',
-            { really_erase_my_files => 1, naming => 'current' },
+            {
+                really_erase_my_files => 1,
+                naming => 'current',
+                use_namespaces => 0
+            },
             [ $make_dbictest_db::dsn ],
         );
         DBICTest::Schema::_make_schema_at->clone;
@@ -55,6 +61,7 @@ my @invocations = (
         package DBICTest::Schema::_embedded_options;
         use base qw/ DBIx::Class::Schema::Loader /;
         __PACKAGE__->naming('current');
+        __PACKAGE__->use_namespaces(0);
         __PACKAGE__->connect(
             $make_dbictest_db::dsn,
             { loader_options => { really_erase_my_files => 1 } }
@@ -64,6 +71,7 @@ my @invocations = (
         package DBICTest::Schema::_embedded_options_in_attrs;
         use base qw/ DBIx::Class::Schema::Loader /;
         __PACKAGE__->naming('current');
+        __PACKAGE__->use_namespaces(0);
         __PACKAGE__->connect(
             $make_dbictest_db::dsn,
             undef,
@@ -80,7 +88,8 @@ my @invocations = (
                 $make_dbictest_db::dsn,
                 { loader_options => {
                     really_erase_my_files => 1,
-                    naming => 'current'
+                    naming => 'current',
+                    use_namespaces => 0,
                 } },
             ],
         );
@@ -91,7 +100,8 @@ my @invocations = (
         use base qw/ DBIx::Class::Schema::Loader /;
         __PACKAGE__->loader_options(
             really_erase_my_files => 1,
-            naming => 'current'
+            naming => 'current',
+            use_namespaces => 0,
         );
         __PACKAGE__->connect(
             $make_dbictest_db::dsn,
@@ -102,7 +112,11 @@ my @invocations = (
         use DBIx::Class::Schema::Loader;
         DBIx::Class::Schema::Loader::make_schema_at(
             'DBICTest::Schema::_make_schema_at_explicit',
-            { really_erase_my_files => 1, naming => 'current' },
+            {
+                really_erase_my_files => 1,
+                naming => 'current',
+                use_namespaces => 0,
+            },
             [ $make_dbictest_db::dsn ],
         );
         DBICTest::Schema::_make_schema_at_explicit->clone;
@@ -112,7 +126,11 @@ my @invocations = (
         use DBIx::Class::Schema::Loader;
         DBIx::Class::Schema::Loader::make_schema_at(
             'DBICTest::Schema::_no_skip_load_external',
-            { really_erase_my_files => 1, naming => 'current' },
+            {
+                really_erase_my_files => 1,
+                naming => 'current',
+                use_namespaces => 0,
+            },
             [ $make_dbictest_db::dsn ],
         );
         DBICTest::Schema::_no_skip_load_external->clone;
@@ -122,7 +140,12 @@ my @invocations = (
         use DBIx::Class::Schema::Loader;
         DBIx::Class::Schema::Loader::make_schema_at(
             'DBICTest::Schema::_skip_load_external',
-            { really_erase_my_files => 1, naming => 'current', skip_load_external => 1 },
+            {
+                really_erase_my_files => 1,
+                naming => 'current',
+                use_namespaces => 0,
+                skip_load_external => 1,
+            },
             [ $make_dbictest_db::dsn ],
         );
         DBICTest::Schema::_skip_load_external->clone;
@@ -132,6 +155,7 @@ my @invocations = (
             package DBICTest::Schema::_use_moose;
             use base qw/ DBIx::Class::Schema::Loader /;
             __PACKAGE__->naming('current');
+            __PACKAGE__->use_namespaces(0);
             __PACKAGE__->connect(
                 $make_dbictest_db::dsn,
                 { loader_options => { use_moose =>  1 } }
