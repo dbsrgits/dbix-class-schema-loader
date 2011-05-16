@@ -64,7 +64,6 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 monikers
                                 dynamic
                                 naming
-                                naming_set
                                 datetime_timezone
                                 datetime_locale
                                 config_file
@@ -93,6 +92,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 result_roles_map
                                 datetime_undef_if_invalid
                                 _result_class_methods
+                                naming_set
 /);
 
 =head1 NAME
