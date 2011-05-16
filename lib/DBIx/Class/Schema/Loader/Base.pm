@@ -781,7 +781,7 @@ EOF
             $self->_upgrading_from('v4');
         }
 
-        if ((not defined $self->use_namespaces) && (not $self->naming_set)) {
+        if ((not defined $self->use_namespaces) && ($self->naming_set)) {
             $self->use_namespaces(1);
         }
 
