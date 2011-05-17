@@ -1395,6 +1395,10 @@ sub _dump_to_dir {
         else {
              $src_text .= qq|use base '$result_base_class';\n\n|;
         }
+
+        $self->_base_class_pod($src_class, $result_base_class)
+            unless $result_base_class eq 'DBIx::Class::Core';
+
         $self->_write_classfile($src_class, $src_text);
     }
 
@@ -2137,6 +2141,15 @@ sub _pod_class_list {
     }
 
     $self->_pod($class, '=back');
+    $self->_pod_cut($class);
+}
+
+sub _base_class_pod {
+    my ($self, $class, $base_class) = @_;
+
+    return unless $self->generate_pod;
+
+    $self->_pod($class, "=head1 BASE CLASS: L<$base_class>");
     $self->_pod_cut($class);
 }
 

@@ -82,6 +82,7 @@ $t->dump_test(
       my ($table, $col, $info) = @_;
       return +{ extra => { is_footext => 1 } } if $col eq 'footext';
     },
+    result_base_class => 'My::ResultBaseClass',
     additional_classes => 'TestAdditional',
     additional_base_classes => 'TestAdditionalBase',
     left_base_classes => 'TestLeftBase',
@@ -99,6 +100,7 @@ $t->dump_test(
     Foo => [
       qr/package DBICTest::DumpMore::1::Foo;/,
       qr/\n=head1 NAME\n\nDBICTest::DumpMore::1::Foo\n\n=cut\n\n/,
+      qr/\n=head1 BASE CLASS: L<My::ResultBaseClass>\n\n=cut\n\n/,
       qr/\n=head1 ADDITIONAL CLASSES USED\n\n=over 4\n\n=item L<TestAdditional>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 ADDITIONAL BASE CLASSES\n\n=over 4\n\n=item L<TestAdditionalBase>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 LEFT BASE CLASSES\n\n=over 4\n\n=item L<TestLeftBase>\n\n=back\n\n=cut\n\n/,
@@ -114,6 +116,7 @@ $t->dump_test(
     Bar => [
       qr/package DBICTest::DumpMore::1::Bar;/,
       qr/\n=head1 NAME\n\nDBICTest::DumpMore::1::Bar\n\n=cut\n\n/,
+      qr/\n=head1 BASE CLASS: L<My::ResultBaseClass>\n\n=cut\n\n/,
       qr/\n=head1 ADDITIONAL CLASSES USED\n\n=over 4\n\n=item L<TestAdditional>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 ADDITIONAL BASE CLASSES\n\n=over 4\n\n=item L<TestAdditionalBase>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 LEFT BASE CLASSES\n\n=over 4\n\n=item L<TestLeftBase>\n\n=back\n\n=cut\n\n/,
