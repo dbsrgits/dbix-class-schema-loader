@@ -22,6 +22,7 @@ $t->dump_test(
     use_moose => 1,
     result_base_class => 'My::ResultBaseClass',
     schema_base_class => 'My::SchemaBaseClass',
+    result_roles => ['TestRole', 'TestRole2'],
   },
   warnings => [
     qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
@@ -34,10 +35,14 @@ $t->dump_test(
     ],
     Foo => [
       qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+      qr/=head1 L<Moose> ROLES APPLIED\n\n=over 4\n\n=item L<TestRole>\n\n=item L<TestRole2>\n\n=back\n\n=cut\n\n/,
+      qr/\nwith 'TestRole', 'TestRole2';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
     ],
     Bar => [
       qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+      qr/=head1 L<Moose> ROLES APPLIED\n\n=over 4\n\n=item L<TestRole>\n\n=item L<TestRole2>\n\n=back\n\n=cut\n\n/,
+      qr/\nwith 'TestRole', 'TestRole2';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
     ],
   },

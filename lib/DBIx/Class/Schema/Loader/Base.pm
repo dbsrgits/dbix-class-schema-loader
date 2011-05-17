@@ -1685,7 +1685,12 @@ sub _make_src_class {
     $self->classes->{$table}  = $table_class;
     $self->monikers->{$table} = $table_moniker;
 
+    $self->_pod_class_list($table_class, 'ADDITIONAL CLASSES USED', @{$self->additional_classes});
+
     $self->_use   ($table_class, @{$self->additional_classes});
+
+    $self->_pod_class_list($table_class, 'LEFT BASE CLASSES', @{$self->left_base_classes});
+
     $self->_inject($table_class, @{$self->left_base_classes});
 
     my @components = @{ $self->components || [] };
@@ -1693,7 +1698,18 @@ sub _make_src_class {
     push @components, @{ $self->result_components_map->{$table_moniker} }
         if exists $self->result_components_map->{$table_moniker};
 
+    my @fq_components = @components;
+    foreach my $component (@fq_components) {
+        if ($component !~ s/^\+//) {
+            $component = "DBIx::Class::$component";
+        }
+    }
+
+    $self->_pod_class_list($table_class, 'COMPONENTS LOADED', @fq_components);
+
     $self->_dbic_stmt($table_class, 'load_components', @components) if @components;
+
+    $self->_pod_class_list($table_class, 'ADDITIONAL BASE CLASSES', @{$self->additional_base_classes});
 
     $self->_inject($table_class, @{$self->additional_base_classes});
 }
@@ -2004,7 +2020,11 @@ sub _load_roles {
     push @roles, @{ $self->result_roles_map->{$table_moniker} }
         if exists $self->result_roles_map->{$table_moniker};
 
-    $self->_with($table_class, @roles) if @roles;
+    if (@roles) {
+        $self->_pod_class_list($table_class, 'L<Moose> ROLES APPLIED', @roles);
+
+        $self->_with($table_class, @roles);
+    }
 }
 
 # Overload these in driver class:
@@ -2102,6 +2122,22 @@ sub _make_pod {
         $self->_pod_cut( $class );
         $self->{_relations_started} { $class } = 1;
     }
+}
+
+sub _pod_class_list {
+    my ($self, $class, $title, @classes) = @_;
+
+    return unless @classes && $self->generate_pod;
+
+    $self->_pod($class, "=head1 $title");
+    $self->_pod($class, '=over 4');
+
+    foreach my $link (@classes) {
+        $self->_pod($class, "=item L<$link>");
+    }
+
+    $self->_pod($class, '=back');
+    $self->_pod_cut($class);
 }
 
 sub _filter_comment {
