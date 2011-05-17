@@ -1187,6 +1187,8 @@ sub _load_tables {
         @INC = grep $_ ne $self->dump_directory, @INC;
     }
 
+    $self->_load_roles($_) for @tables;
+
     $self->_load_external($_)
         for map { $self->classes->{$_} } @tables;
 
@@ -1694,12 +1696,6 @@ sub _make_src_class {
     $self->_dbic_stmt($table_class, 'load_components', @components) if @components;
 
     $self->_inject($table_class, @{$self->additional_base_classes});
-
-    my @roles = @{ $self->result_roles || [] };
-    push @roles, @{ $self->result_roles_map->{$table_moniker} }
-        if exists $self->result_roles_map->{$table_moniker};
-
-    $self->_with($table_class, @roles) if @roles;
 }
 
 sub _is_result_class_method {
@@ -1833,7 +1829,7 @@ sub _setup_src_meta {
     my $schema       = $self->schema;
     my $schema_class = $self->schema_class;
 
-    my $table_class = $self->classes->{$table};
+    my $table_class   = $self->classes->{$table};
     my $table_moniker = $self->monikers->{$table};
 
     my $table_name = $table;
@@ -1996,6 +1992,19 @@ sub _load_relationships {
             $self->_dbic_stmt($src_class,$stmt->{method},@{$stmt->{args}});
         }
     }
+}
+
+sub _load_roles {
+    my ($self, $table) = @_;
+
+    my $table_moniker = $self->monikers->{$table};
+    my $table_class   = $self->classes->{$table};
+
+    my @roles = @{ $self->result_roles || [] };
+    push @roles, @{ $self->result_roles_map->{$table_moniker} }
+        if exists $self->result_roles_map->{$table_moniker};
+
+    $self->_with($table_class, @roles) if @roles;
 }
 
 # Overload these in driver class:
