@@ -526,8 +526,6 @@ spb: Stephen Bennett <spb@exherbo.org>
 
 Matias E. Fernandez <mfernandez@pisco.ch>
 
-mstratman: Mark A. Stratman <stratman@gmail.com>
-
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
