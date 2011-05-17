@@ -9,4 +9,9 @@ sub biz {
     return 'foo bar biz baz boz noz schnozz';
 }
 
+sub boz {
+    my ($self) = @_;
+    return 'foo bar biz baz boz noz schnozz';
+}
+
 1;
