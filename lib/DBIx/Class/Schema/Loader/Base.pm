@@ -2137,7 +2137,7 @@ sub _pod_class_list {
     $self->_pod($class, '=over 4');
 
     foreach my $link (@classes) {
-        $self->_pod($class, "=item L<$link>");
+        $self->_pod($class, "=item * L<$link>");
     }
 
     $self->_pod($class, '=back');
