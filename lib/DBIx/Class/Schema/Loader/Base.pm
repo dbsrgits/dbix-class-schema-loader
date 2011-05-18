@@ -93,6 +93,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 datetime_undef_if_invalid
                                 _result_class_methods
                                 naming_set
+                                tables
 /);
 
 =head1 NAME
@@ -686,7 +687,8 @@ sub new {
     }
 
     $self->{monikers} = {};
-    $self->{classes} = {};
+    $self->{tables}   = {};
+    $self->{classes}  = {};
     $self->{_upgrading_classes} = {};
 
     $self->{schema_class} ||= ( ref $self->{schema} || $self->{schema} );
@@ -1179,8 +1181,7 @@ sub _load_tables {
         $self->{quiet} = 1;
         local $self->{dump_directory} = $self->{temp_directory};
         $self->_reload_classes(\@tables);
-        $self->_load_relationships($_) for @tables;
-        $self->_relbuilder->cleanup;
+        $self->_load_relationships(\@tables);
         $self->{quiet} = 0;
 
         # Remove that temp dir from INC so it doesn't get reloaded
@@ -1688,6 +1689,7 @@ sub _make_src_class {
 
     $self->classes->{$table}  = $table_class;
     $self->monikers->{$table} = $table_moniker;
+    $self->tables->{$table_moniker} = $table;
 
     $self->_pod_class_list($table_class, 'ADDITIONAL CLASSES USED', @{$self->additional_classes});
 
@@ -1721,7 +1723,7 @@ sub _make_src_class {
 sub _is_result_class_method {
     my ($self, $name, $table_name) = @_;
 
-    my $table_moniker = $table_name ? $self->_table2moniker($table_name) : '';
+    my $table_moniker = $table_name ? $self->monikers->{$table_name} : '';
 
     $self->_result_class_methods({})
         if not defined $self->_result_class_methods;
@@ -1885,7 +1887,7 @@ sub _setup_src_meta {
         $info->{accessor} = $self->_make_column_accessor_name( $col, $context );
     }
 
-    $self->_resolve_col_accessor_collisions($full_table_name, $col_info);
+    $self->_resolve_col_accessor_collisions($table, $col_info);
 
     # prune any redundant accessor names
     while (my ($col, $info) = each %$col_info) {
@@ -1994,17 +1996,24 @@ sub _table2moniker {
 }
 
 sub _load_relationships {
-    my ($self, $table) = @_;
+    my ($self, $tables) = @_;
 
-    my $tbl_fk_info = $self->_table_fk_info($table);
-    foreach my $fkdef (@$tbl_fk_info) {
-        $fkdef->{remote_source} =
-            $self->monikers->{delete $fkdef->{remote_table}};
+    my @tables;
+
+    foreach my $table (@$tables) {
+        my $tbl_fk_info = $self->_table_fk_info($table);
+        foreach my $fkdef (@$tbl_fk_info) {
+            $fkdef->{remote_source} =
+                $self->monikers->{delete $fkdef->{remote_table}};
+        }
+        my $tbl_uniq_info = $self->_table_uniq_info($table);
+
+        my $local_moniker = $self->monikers->{$table};
+
+        push @tables, [ $local_moniker, $tbl_fk_info, $tbl_uniq_info ];
     }
-    my $tbl_uniq_info = $self->_table_uniq_info($table);
 
-    my $local_moniker = $self->monikers->{$table};
-    my $rel_stmts = $self->_relbuilder->generate_code($local_moniker, $tbl_fk_info, $tbl_uniq_info);
+    my $rel_stmts = $self->_relbuilder->generate_code(\@tables);
 
     foreach my $src_class (sort keys %$rel_stmts) {
         my $src_stmts = $rel_stmts->{$src_class};

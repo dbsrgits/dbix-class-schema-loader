@@ -7,6 +7,7 @@ use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
 use Lingua::EN::Inflect::Phrase ();
+use Lingua::EN::Tagger ();
 use DBIx::Class::Schema::Loader::Utils 'split_name';
 use File::Slurp 'slurp';
 use Try::Tiny;
@@ -44,9 +45,14 @@ Arguments: $base object
 
 =head2 generate_code
 
-Arguments: local_moniker (scalar), fk_info (arrayref)
+Arguments: 
+    
+    {
+        local_moniker (scalar) => [ fk_info (arrayref), uniq_info (arrayref) ]
+        ...
+    }
 
-This generates the code for the relationships of a given table.
+This generates the code for the relationships of each table.
 
 C<local_moniker> is the moniker name of the table which had the REFERENCES
 statements.  The fk_info arrayref's contents should take the form:
@@ -63,6 +69,17 @@ statements.  The fk_info arrayref's contents should take the form:
             remote_moniker => 'YetAnotherTableMoniker',
         },
         # ...
+    ],
+
+The uniq_info arrayref's contents should take the form:
+
+    [
+        [
+            uniq_constraint_name         => [ 'col1', 'col2' ],
+        ],
+        [
+            another_uniq_constraint_name => [ 'col1', 'col2' ],
+        ],
     ],
 
 This method will return the generated relationships as a hashref keyed on the
@@ -90,6 +107,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
     relationship_attrs
     rel_collision_map
     _temp_classes
+    __tagger
 /);
 
 sub new {
@@ -294,7 +312,9 @@ sub _resolve_relname_collision {
 
     return $relname if $relname eq 'id'; # this shouldn't happen, but just in case
 
-    if ($self->base->_is_result_class_method($relname)) {
+    my $table = $self->base->tables->{$moniker};
+
+    if ($self->base->_is_result_class_method($relname, $table)) {
         if (my $map = $self->rel_collision_map) {
             for my $re (keys %$map) {
                 if (my @matches = $relname =~ /$re/) {
@@ -304,7 +324,7 @@ sub _resolve_relname_collision {
         }
 
         my $new_relname = $relname;
-        while ($self->base->_is_result_class_method($new_relname)) {
+        while ($self->base->_is_result_class_method($new_relname, $table)) {
             $new_relname .= '_rel'
         }
 
@@ -321,72 +341,224 @@ EOF
 }
 
 sub generate_code {
-    my ($self, $local_moniker, $rels, $uniqs) = @_;
+    my ($self, $tables) = @_;
+    
+    # make a copy to destroy
+    my @tables = @$tables;
 
     my $all_code = {};
 
-    my $local_class = $self->schema->class($local_moniker);
+    while (my ($local_moniker, $rels, $uniqs) = @{ shift @tables || [] }) {
+        my $local_class = $self->schema->class($local_moniker);
 
-    my %counters;
-    foreach my $rel (@$rels) {
-        next if !$rel->{remote_source};
-        $counters{$rel->{remote_source}}++;
+        my %counters;
+        foreach my $rel (@$rels) {
+            next if !$rel->{remote_source};
+            $counters{$rel->{remote_source}}++;
+        }
+
+        foreach my $rel (@$rels) {
+            my $remote_moniker = $rel->{remote_source}
+                or next;
+
+            my $remote_class   = $self->schema->class($remote_moniker);
+            my $remote_obj     = $self->schema->source($remote_moniker);
+            my $remote_cols    = $rel->{remote_columns} || [ $remote_obj->primary_columns ];
+
+            my $local_cols     = $rel->{local_columns};
+
+            if($#$local_cols != $#$remote_cols) {
+                croak "Column count mismatch: $local_moniker (@$local_cols) "
+                    . "$remote_moniker (@$remote_cols)";
+            }
+
+            my %cond;
+            foreach my $i (0 .. $#$local_cols) {
+                $cond{$remote_cols->[$i]} = $local_cols->[$i];
+            }
+
+            my ( $local_relname, $remote_relname, $remote_method ) =
+                $self->_relnames_and_method( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
+
+            $remote_relname = $self->_resolve_relname_collision($local_moniker,  $local_cols,  $remote_relname);
+            $local_relname  = $self->_resolve_relname_collision($remote_moniker, $remote_cols, $local_relname);
+
+            push(@{$all_code->{$local_class}},
+                { method => 'belongs_to',
+                  args => [ $remote_relname,
+                            $remote_class,
+                            \%cond,
+                            $self->_remote_attrs($local_moniker, $local_cols),
+                  ],
+                  extra => {
+                      moniker => $local_moniker,
+                  },
+                }
+            );
+
+            my %rev_cond = reverse %cond;
+            for (keys %rev_cond) {
+                $rev_cond{"foreign.$_"} = "self.".$rev_cond{$_};
+                delete $rev_cond{$_};
+            }
+
+            push(@{$all_code->{$remote_class}},
+                { method => $remote_method,
+                  args => [ $local_relname,
+                            $local_class,
+                            \%rev_cond,
+                            $self->_relationship_attrs($remote_method),
+                  ],
+                  extra => {
+                      moniker => $remote_moniker,
+                  },
+                }
+            );
+        }
     }
 
-    foreach my $rel (@$rels) {
-        my $remote_moniker = $rel->{remote_source}
-            or next;
+    # disambiguate rels with the same name
+    foreach my $class (keys %$all_code) {
+        my $dups = $self->_duplicates($all_code->{$class});
 
-        my $remote_class   = $self->schema->class($remote_moniker);
-        my $remote_obj     = $self->schema->source($remote_moniker);
-        my $remote_cols    = $rel->{remote_columns} || [ $remote_obj->primary_columns ];
-
-        my $local_cols     = $rel->{local_columns};
-
-        if($#$local_cols != $#$remote_cols) {
-            croak "Column count mismatch: $local_moniker (@$local_cols) "
-                . "$remote_moniker (@$remote_cols)";
-        }
-
-        my %cond;
-        foreach my $i (0 .. $#$local_cols) {
-            $cond{$remote_cols->[$i]} = $local_cols->[$i];
-        }
-
-        my ( $local_relname, $remote_relname, $remote_method ) =
-            $self->_relnames_and_method( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
-
-        $remote_relname = $self->_resolve_relname_collision($local_moniker,  $local_cols,  $remote_relname);
-        $local_relname  = $self->_resolve_relname_collision($remote_moniker, $remote_cols, $local_relname);
-
-        push(@{$all_code->{$local_class}},
-            { method => 'belongs_to',
-              args => [ $remote_relname,
-                        $remote_class,
-                        \%cond,
-                        $self->_remote_attrs($local_moniker, $local_cols),
-              ],
-            }
-        );
-
-        my %rev_cond = reverse %cond;
-        for (keys %rev_cond) {
-            $rev_cond{"foreign.$_"} = "self.".$rev_cond{$_};
-            delete $rev_cond{$_};
-        }
-
-        push(@{$all_code->{$remote_class}},
-            { method => $remote_method,
-              args => [ $local_relname,
-                        $local_class,
-                        \%rev_cond,
-			$self->_relationship_attrs($remote_method),
-              ],
-            }
-        );
+        $self->_disambiguate($all_code->{$class}, $dups) if $dups;
     }
+
+    $self->_cleanup;
 
     return $all_code;
+}
+
+sub _duplicates {
+    my ($self, $rels) = @_;
+
+    my @rels = map [ $_->{args}[0] => $_ ], @$rels;
+    my %rel_names;
+    $rel_names{$_}++ foreach map $_->[0], @rels;
+
+    my @dups = grep $rel_names{$_} > 1, keys %rel_names;
+
+    my %dups;
+
+    foreach my $dup (@dups) {
+        $dups{$dup} = [ map $_->[1], grep { $_->[0] eq $dup } @rels ];
+    }
+
+    return if not %dups;
+
+    return \%dups;
+}
+
+sub _tagger {
+    my $self = shift;
+
+    $self->__tagger(Lingua::EN::Tagger->new) unless $self->__tagger;
+
+    return $self->__tagger;
+}
+
+sub _adjectives {
+    my ($self, @cols) = @_;
+
+    my @adjectives;
+
+    foreach my $col (@cols) {
+        my @words = split_name $col;
+
+        my $tagged = $self->_tagger->get_readable(join ' ', @words);
+
+        push @adjectives, $tagged =~ m{\G(\w+)/JJ\s+}g;
+    }
+
+    return @adjectives;
+}
+
+sub _disambiguate {
+    my ($self, $all_rels, $dups) = @_;
+
+    foreach my $dup (keys %$dups) {
+        my @rels = @{ $dups->{$dup} };
+
+        foreach my $rel (@rels) {
+            next if $rel->{method} eq 'belongs_to';
+
+            my @to_cols = apply { s/^foreign\.//i }
+                keys %{ $rel->{args}[2] };
+
+            my @adjectives = $self->_adjectives(@to_cols);
+
+            # If there are no adjectives, and there is only one might_have
+            # rel to that class, we hardcode 'active'.
+
+            my $to_class = $rel->{args}[1];
+
+            if ((not @adjectives)
+                && (grep { $_->{method} eq 'might_have'
+                           && $_->{args}[1] eq $to_class } @$all_rels) == 1) {
+
+                @adjectives = 'active';
+            }
+
+            if (@adjectives) {
+                my $rel_name = join '_', sort(@adjectives), $rel->{args}[0];
+
+                $rel_name = $rel->{method} eq 'might_have' ?
+                    $self->_inflect_singular($rel_name)
+                    :
+                    $self->_inflect_plural($rel_name);
+
+                my $moniker = $rel->{extra}{moniker};
+
+                my @from_cols = apply { s/^self\.//i }
+                    values %{ $rel->{args}[2] };
+
+                $rel_name = $self->_resolve_relname_collision($moniker, \@from_cols, $rel_name);
+
+                $rel->{args}[0] = $rel_name;
+            }
+        }
+    }
+
+    # Check again for duplicates, since the heuristics above may not have resolved them all.
+
+    if ($dups = $self->_duplicates($all_rels)) {
+        foreach my $dup (keys %$dups) {
+            # sort by method
+            my @rels = map $_->[1], sort { $a->[0] <=> $b->[0] } map [
+                ($_->{method} eq 'belongs_to' ? 3 : $_->{method} eq 'has_many' ? 2 : 1), $_
+            ], @{ $dups->{$dup} };
+
+            my $rel_num = 2;
+
+            foreach my $rel (@rels[1 .. $#rels]) {
+                my $inflect_type = $rel->{method} eq 'has_many' ?
+                    'inflect_plural'
+                    :
+                    'inflect_singular';
+
+                my $inflect_method = "_$inflect_type";
+
+                my $relname_new_uninflected =
+                    $self->_inflect_singular($rel->{args}[0]) . "_$rel_num";
+
+                $rel_num++;
+
+                my $relname_new = $self->$inflect_method($relname_new_uninflected);
+
+                my $moniker = $rel->{extra}{moniker};
+
+                my @from_cols = apply { s/^self\.//i }
+                    values %{ $rel->{args}[2] };
+
+                warn <<"EOF";
+Could not find a proper name for relationship '$relname_new' in source '$moniker' for columns '@{[ join ',', @from_cols ]}'.
+Supply a value in '$inflect_type' for '$relname_new_uninflected' to name this relationship.
+EOF
+
+                $rel->{args}[0] = $relname_new;
+            }
+        }
+    }
 }
 
 sub _relnames_and_method {
@@ -463,7 +635,7 @@ sub _relnames_and_method {
     return ( $local_relname, $remote_relname, $remote_method );
 }
 
-sub cleanup {
+sub _cleanup {
     my $self = shift;
 
     for my $class (@{ $self->_temp_classes }) {

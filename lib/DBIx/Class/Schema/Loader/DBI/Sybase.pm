@@ -108,7 +108,7 @@ sub _table_fk_info {
     }
 
     $sth->finish;
-    return $self->_table_fk_info_builder($table);
+    return $self->_table_fk_info_by_sp_helpconstraint($table);
 }
 
 sub _table_fk_info_by_name {
@@ -142,58 +142,40 @@ sub _table_fk_info_by_name {
     return \@rels;
 }
 
-sub _table_fk_info_builder {
+sub _table_fk_info_by_sp_helpconstraint {
     my ($self, $table) = @_;
 
+    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+    local $SIG{__WARN__} = sub {
+        $warn_handler->(@_) unless $_[0] =~
+            /^\s*$|^Total Number of|^Details|^(?:--?|=|\+) Number|^Formula for/;
+    };
+
     my $dbh = $self->schema->storage->dbh;
+
     local $dbh->{FetchHashKeyName} = 'NAME_lc';
-    # hide "Object does not exist in this database." when trying to fetch fkeys
-    local $dbh->{syb_err_handler} = sub { return 0 if $_[0] == 17461; }; 
-    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = @{[ $dbh->quote($table) ]}});
+
+    my $sth = $dbh->prepare("sp_helpconstraint $table");
     $sth->execute;
 
-    my @fk_info;
-    while (my $row = $sth->fetchrow_hashref) {
-        (my $ksq = $row->{key_seq}) =~ s/\s+//g;
+    my $constraints = $sth->fetchall_arrayref({});
 
-        my @keys = qw/pktable_name pkcolumn_name fktable_name fkcolumn_name/;
-        my %ds;
-        @ds{@keys}   = @{$row}{@keys};
-        $ds{key_seq} = $ksq;
-
-        push @{ $fk_info[$ksq] }, \%ds;
-    }
-
-    my $max_keys = $#fk_info;
     my @rels;
-    for my $level (reverse 1 .. $max_keys) {
-        my @level_rels;
-        $level_rels[$level] = splice @fk_info, $level, 1;
-        my $count = @{ $level_rels[$level] };
 
-        for my $sub_level (reverse 1 .. $level-1) {
-            my $total = @{ $fk_info[$sub_level] };
+    foreach my $constraint (map $_->{definition}, @$constraints) {
+        my ($local_cols, $remote_table, $remote_cols) = $constraint =~
+/^$table FOREIGN KEY \(([^)]+)\) REFERENCES ([^(]+)\(([^)]+)\)/;
 
-            $level_rels[$sub_level] = [
-                splice @{ $fk_info[$sub_level] }, $total-$count, $count
-            ];
-        }
+        next unless $local_cols;
 
-        while (1) {
-            my @rel = map shift @$_, @level_rels[1..$level];
+        my @local_cols  = split /,\s*/, $local_cols;
+        my @remote_cols = split /,\s*/, $remote_cols;
 
-            last unless defined $rel[0];
-
-            my @local_columns  = map $_->{fkcolumn_name}, @rel;
-            my @remote_columns = map $_->{pkcolumn_name}, @rel;
-            my $remote_table   = $rel[0]->{pktable_name};
-
-            push @rels, {
-                local_columns => \@local_columns,
-                remote_columns => \@remote_columns,
-                remote_table => $remote_table
-            };
-        }
+        push @rels, {
+            local_columns  => \@local_cols,
+            remote_columns => \@remote_cols,
+            remote_table   => $remote_table,
+        };
     }
 
     return \@rels;

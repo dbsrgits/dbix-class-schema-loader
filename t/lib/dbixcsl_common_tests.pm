@@ -16,6 +16,7 @@ use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use List::MoreUtils 'apply';
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
+use File::Slurp 'slurp';
 use namespace::clean;
 
 use dbixcsl_test_dir qw/$tdir/;
@@ -97,12 +98,12 @@ sub run_tests {
 
     my $col_accessor_map_tests = 5;
     my $num_rescans = 5;
-    $num_rescans-- if $self->{vendor} =~ /^(?:sybase|mysql)\z/i;
+    $num_rescans-- if $self->{vendor} eq 'Mysql';
     $num_rescans++ if $self->{vendor} eq 'mssql';
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (199 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (203 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -172,11 +173,11 @@ sub drop_extra_tables_only {
     local $^W = 0; # for ADO
 
     $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
-    $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
+    $self->drop_table($dbh, $_) for @{ $self->{extra}{drop} || [] };
 
     if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
         foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
-            $dbh->do("DROP TABLE $data_type_table");
+            $self->drop_table($dbh, $data_type_table);
         }
     }
 }
@@ -360,7 +361,7 @@ sub test_schema {
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentformap testcomponent_fqn meta test_role_method test_role_for_map_method/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentmap testcomponent_fqn meta test_role_method test_role_for_map_method/ ], "Column Ordering" );
 
     is $class2->column_info('can')->{accessor}, 'caught_collision_can',
         'accessor for column name that conflicts with a UNIVERSAL method renamed based on col_collision_map';
@@ -373,8 +374,8 @@ sub test_schema {
         && (not defined $class2->column_info('dbix_class_testcomponent')->{accessor}),
         'accessor for column name that conflicts with a component class method removed');
 
-    ok (exists $class2->column_info('dbix_class_testcomponentformap')->{accessor}
-        && (not defined $class2->column_info('dbix_class_testcomponentformap')->{accessor}),
+    ok (exists $class2->column_info('dbix_class_testcomponentmap')->{accessor}
+        && (not defined $class2->column_info('dbix_class_testcomponentmap')->{accessor}),
         'accessor for column name that conflicts with a component class method removed');
 
     ok (exists $class2->column_info('testcomponent_fqn')->{accessor}
@@ -463,10 +464,10 @@ sub test_schema {
             'Additional Component' );
     }
 
-    is try { $class2->dbix_class_testcomponentformap }, 'dbix_class_testcomponentformap works',
+    is try { $class2->dbix_class_testcomponentmap }, 'dbix_class_testcomponentmap works',
         'component from result_component_map';
 
-    isnt try { $class1->dbix_class_testcomponentformap }, 'dbix_class_testcomponentformap works',
+    isnt try { $class1->dbix_class_testcomponentmap }, 'dbix_class_testcomponentmap works',
         'component from result_component_map not added to not mapped Result';
 
     is try { $class1->testcomponent_fqn }, 'TestComponentFQN works',
@@ -556,7 +557,7 @@ sub test_schema {
     }
 
     SKIP: {
-        skip $self->{skip_rels}, 120 if $self->{skip_rels};
+        skip $self->{skip_rels}, 124 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -772,9 +773,42 @@ sub test_schema {
         ok($class6->column_info('loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
         ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
 
-	my $id2_info = eval { $class6->column_info('id2') } ||
+	my $id2_info = try { $class6->column_info('id2') } ||
 			$class6->column_info('Id2');
         ok($id2_info->{is_foreign_key}, 'Foreign key detected');
+
+        unlike slurp($conn->_loader->get_dump_filename($class6)),
+qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
+    \s+ "(\w+?)"
+    .*?
+   \n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
+    \s+ "\1"/xs,
+'did not create two relationships with the same name';
+
+       unlike slurp($conn->_loader->get_dump_filename($class8)),
+qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
+    \s+ "(\w+?)"
+    .*?
+   \n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
+    \s+ "\1"/xs,
+'did not create two relationships with the same name';
+
+        # check naming of ambiguous relationships
+        my $rel_info = $class6->relationship_info('lovely_loader_test7') || {};
+
+        ok (($class6->has_relationship('lovely_loader_test7')
+            && $rel_info->{cond}{'foreign.lovely_loader_test6'} eq 'self.id'
+            && $rel_info->{class} eq $class7
+            && $rel_info->{attrs}{accessor} eq 'single'),
+            'ambiguous relationship named correctly');
+
+        $rel_info = $class8->relationship_info('active_loader_test16') || {};
+
+        ok (($class8->has_relationship('active_loader_test16')
+            && $rel_info->{cond}{'foreign.loader_test8_id'} eq 'self.id'
+            && $rel_info->{class} eq $class16
+            && $rel_info->{attrs}{accessor} eq 'single'),
+            'ambiguous relationship named correctly');
 
         # fk that references a non-pk key (UNIQUE)
         my $obj8 = try { $rsobj8->find(1) } || $rsobj8->search({ id => 1 })->first;
@@ -954,9 +988,6 @@ sub test_schema {
 
             # relname is preserved when another fk is added
 
-            skip 'Sybase cannot add FKs via ALTER TABLE', 2
-                if $self->{vendor} eq 'sybase';
-
             {
                 local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ /invalidates \d+ active statement/ };
                 $conn->storage->disconnect; # for mssql and access
@@ -966,7 +997,15 @@ sub test_schema {
 
             $conn->storage->disconnect; # for access
 
-            $conn->storage->dbh->do('ALTER TABLE loader_test4 ADD fkid2 INTEGER REFERENCES loader_test3 (id)');
+            if (lc($self->{vendor}) ne 'sybase') {
+                $conn->storage->dbh->do('ALTER TABLE loader_test4 ADD fkid2 INTEGER REFERENCES loader_test3 (id)');
+            }
+            else {
+                $conn->storage->dbh->do(<<"EOF");
+                ALTER TABLE loader_test4 ADD fkid2 INTEGER $self->{null}
+                ALTER TABLE loader_test4 ADD CONSTRAINT loader_test4_to_3_fk FOREIGN KEY (fkid2) REFERENCES loader_test3 (id)
+EOF
+            }
 
             $conn->storage->disconnect; # for firebird
 
@@ -1083,7 +1122,7 @@ sub test_schema {
         }
 
         $conn->storage->disconnect; # for Firebird
-        $conn->storage->dbh->do("DROP TABLE loader_test30");
+        $self->drop_table($conn->storage->dbh, 'loader_test30');
 
         @new = $self->rescan_without_warnings($conn);
 
@@ -1295,7 +1334,7 @@ sub create {
                 set_primary_key INTEGER $self->{null},
                 can INTEGER $self->{null},
                 dbix_class_testcomponent INTEGER $self->{null},
-                dbix_class_testcomponentformap INTEGER $self->{null},
+                dbix_class_testcomponentmap INTEGER $self->{null},
                 testcomponent_fqn INTEGER $self->{null},
                 meta INTEGER $self->{null},
                 test_role_method INTEGER $self->{null},
@@ -1421,15 +1460,31 @@ sub create {
         (qq| INSERT INTO loader_test6 (id, ${oqt}Id2${cqt},loader_test2_id,dat) | .
          q{ VALUES (1, 1,1,'aaa') }),
 
+        # here we are testing adjective detection
+
         qq{
             CREATE TABLE loader_test7 (
                 id INTEGER NOT NULL PRIMARY KEY,
                 id2 VARCHAR(8) NOT NULL UNIQUE,
-                dat VARCHAR(8)
+                dat VARCHAR(8),
+                lovely_loader_test6 INTEGER NOT NULL UNIQUE,
+                FOREIGN KEY (lovely_loader_test6) REFERENCES loader_test6 (id)
             ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test7 (id,id2,dat) VALUES (1,'aaa','bbb') },
+        q{ INSERT INTO loader_test7 (id,id2,dat,lovely_loader_test6) VALUES (1,'aaa','bbb',1) },
+
+        # for some DBs we need a named FK to drop later
+        ($self->{vendor} =~ /^(mssql|sybase|access|mysql)\z/i ? (
+            (q{ ALTER TABLE loader_test6 ADD } .
+             qq{ loader_test7_id INTEGER $self->{null} }),
+            (q{ ALTER TABLE loader_test6 ADD CONSTRAINT loader_test6_to_7_fk } .
+             q{ FOREIGN KEY (loader_test7_id) } .
+             q{ REFERENCES loader_test7 (id) })
+        ) : (
+            (q{ ALTER TABLE loader_test6 ADD } .
+             qq{ loader_test7_id INTEGER $self->{null} REFERENCES loader_test7 (id) }),
+        )),
 
         qq{
             CREATE TABLE loader_test8 (
@@ -1440,8 +1495,9 @@ sub create {
             ) $self->{innodb}
         },
 
-        (q{ INSERT INTO loader_test8 (id,loader_test7,dat) } .
-         q{ VALUES (1,'aaa','bbb') }),
+        (q{ INSERT INTO loader_test8 (id,loader_test7,dat) VALUES (1,'aaa','bbb') }),
+        (q{ INSERT INTO loader_test8 (id,loader_test7,dat) VALUES (2,'aaa','bbb') }),
+        (q{ INSERT INTO loader_test8 (id,loader_test7,dat) VALUES (3,'aaa','bbb') }),
 
         qq{
             CREATE TABLE loader_test9 (
@@ -1452,13 +1508,27 @@ sub create {
         qq{
             CREATE TABLE loader_test16 (
                 id INTEGER NOT NULL PRIMARY KEY,
-                dat  VARCHAR(8)
+                dat  VARCHAR(8),
+                loader_test8_id INTEGER NOT NULL UNIQUE,
+                FOREIGN KEY (loader_test8_id) REFERENCES loader_test8 (id)
             ) $self->{innodb}
         },
 
-        qq{ INSERT INTO loader_test16 (id,dat) VALUES (2,'x16') },
-        qq{ INSERT INTO loader_test16 (id,dat) VALUES (4,'y16') },
-        qq{ INSERT INTO loader_test16 (id,dat) VALUES (6,'z16') },
+        qq{ INSERT INTO loader_test16 (id,dat,loader_test8_id) VALUES (2,'x16',1) },
+        qq{ INSERT INTO loader_test16 (id,dat,loader_test8_id) VALUES (4,'y16',2) },
+        qq{ INSERT INTO loader_test16 (id,dat,loader_test8_id) VALUES (6,'z16',3) },
+
+        # for some DBs we need a named FK to drop later
+        ($self->{vendor} =~ /^(mssql|sybase|access|mysql)\z/i ? (
+            (q{ ALTER TABLE loader_test8 ADD } .
+             qq{ loader_test16_id INTEGER $self->{null} }),
+            (q{ ALTER TABLE loader_test8 ADD CONSTRAINT loader_test8_to_16_fk } .
+             q{ FOREIGN KEY (loader_test16_id) } .
+             q{ REFERENCES loader_test16 (id) })
+        ) : (
+            (q{ ALTER TABLE loader_test8 ADD } .
+             qq{ loader_test16_id INTEGER $self->{null} REFERENCES loader_test16 (id) }),
+        )),
 
         qq{
             CREATE TABLE loader_test17 (
@@ -1840,11 +1910,18 @@ sub drop_tables {
 
     my @tables_preserve_case_tests = qw/ LoaderTest41 LoaderTest40 /;
 
-    my $drop_fk_mysql =
-        q{ALTER TABLE loader_test10 DROP FOREIGN KEY loader_test11_fk};
+    my %drop_columns = (
+        loader_test6  => 'loader_test7_id',
+        loader_test7  => 'lovely_loader_test6',
+        loader_test8  => 'loader_test16_id',
+        loader_test16 => 'loader_test8_id',
+    );
 
-    my $drop_fk =
-        q{ALTER TABLE loader_test10 DROP CONSTRAINT loader_test11_fk};
+    my %drop_constraints = (
+        loader_test10 => 'loader_test11_fk',
+        loader_test6  => 'loader_test6_to_7_fk',
+        loader_test8  => 'loader_test8_to_16_fk',
+    );
 
     # For some reason some tests do this twice (I guess dependency issues?)
     # do it twice for all drops
@@ -1855,44 +1932,69 @@ sub drop_tables {
 
         $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
 
-        $dbh->do("DROP TABLE $_") for @{ $self->{extra}{drop} || [] };
+        $self->drop_table($dbh, $_) for @{ $self->{extra}{drop} || [] };
 
         my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
 
         unless($self->{skip_rels}) {
-            $dbh->do("DROP TABLE $_") for (@tables_reltests);
-            $dbh->do("DROP TABLE $_") for (@tables_reltests);
-            if($self->{vendor} =~ /mysql/i) {
-                $dbh->do($drop_fk_mysql);
+            # drop the circular rel columns if possible, this
+            # doesn't work on all DBs
+            foreach my $table (keys %drop_columns) {
+                $dbh->do("ALTER TABLE $table DROP $drop_columns{$table}");
+                $dbh->do("ALTER TABLE $table DROP COLUMN $drop_columns{$table}");
             }
-            else {
-                $dbh->do($drop_fk);
+
+            foreach my $table (keys %drop_constraints) {
+                # for MSSQL
+                $dbh->do("ALTER TABLE $table DROP $drop_constraints{$table}"); 
+                # for Sybase and Access
+                $dbh->do("ALTER TABLE $table DROP CONSTRAINT $drop_constraints{$table}"); 
+                # for MySQL
+                $dbh->do("ALTER TABLE $table DROP FOREIGN KEY $drop_constraints{$table}"); 
             }
+
+            $self->drop_table($dbh, $_) for (@tables_reltests);
+            $self->drop_table($dbh, $_) for (@tables_reltests);
+
             $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_advanced_auto_inc;
-            $dbh->do("DROP TABLE $_") for (@tables_advanced);
+
+            $self->drop_table($dbh, $_) for (@tables_advanced);
 
             unless($self->{no_inline_rels}) {
-                $dbh->do("DROP TABLE $_") for (@tables_inline_rels);
+                $self->drop_table($dbh, $_) for (@tables_inline_rels);
             }
             unless($self->{no_implicit_rels}) {
-                $dbh->do("DROP TABLE $_") for (@tables_implicit_rels);
+                $self->drop_table($dbh, $_) for (@tables_implicit_rels);
             }
         }
         $dbh->do($_) for map { $drop_auto_inc->(@$_) } @tables_auto_inc;
-        $dbh->do("DROP TABLE $_") for (@tables, @tables_rescan);
+        $self->drop_table($dbh, $_) for (@tables, @tables_rescan);
 
         if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
             foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
-                $dbh->do("DROP TABLE $data_type_table");
+                $self->drop_table($dbh, $data_type_table);
             }
         }
 
-        my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1);
-
-        $dbh->do("DROP TABLE ${oqt}${_}${cqt}") for @tables_preserve_case_tests;
+        $self->drop_table($dbh, $_) for @tables_preserve_case_tests;
 
         $dbh->disconnect;
     }
+}
+
+sub drop_table {
+    my ($self, $dbh, $table) = @_;
+
+    local $^W = 0; # for ADO
+
+    try { $dbh->do("DROP TABLE $table CASCADE CONSTRAINTS") }; # oracle
+    try { $dbh->do("DROP TABLE $table CASCADE") }; # postgres and ?
+    try { $dbh->do("DROP TABLE $table") };
+
+    # if table name is case sensitive
+    my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1);
+
+    try { $dbh->do("DROP TABLE ${oqt}${table}${cqt}") };
 }
 
 sub _custom_column_info {

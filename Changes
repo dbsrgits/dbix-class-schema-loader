@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - handle duplicate relationship names (RT#64041)
+        - fix a bug in Sybase ASE foreign key detection
         - generate POD for result_base_class, additional_classes,
           additional_base_classes, left_base_classes, components,
           result_components_map, result_roles and result_roles_map
