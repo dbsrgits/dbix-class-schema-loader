@@ -403,7 +403,7 @@ certain roles for specified Result classes. For example:
       RouteChange    => 'YourApp::Role::TripEvent',
   }
   
-You may use this in conjunction with C<components>.
+You may use this in conjunction with C<result_roles>.
 
 =head2 use_namespaces
 
