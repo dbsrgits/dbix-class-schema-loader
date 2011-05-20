@@ -371,7 +371,7 @@ L<InflateColumn::DateTime|DBIx::Class::InflateColumn::DateTime>
 
 =head2 result_components_map
 
-A hashref of moniker keys and component values.  Unlike C<components>, which
+A hashref of moniker keys and component values.  Unlike L</components>, which
 loads the given components into every Result class, this option allows you to
 load certain components for specified Result classes. For example:
 
@@ -383,7 +383,7 @@ load certain components for specified Result classes. For example:
                         ],
   }
   
-You may use this in conjunction with C<components>.
+You may use this in conjunction with L</components>.
 
 =head2 result_roles
 
@@ -391,7 +391,7 @@ List of L<Moose> roles to be applied to all of your Result classes.
 
 =head2 result_roles_map
 
-A hashref of moniker keys and role values.  Unlike C<result_roles>, which
+A hashref of moniker keys and role values.  Unlike L</result_roles>, which
 applies the given roles to every Result class, this option allows you to apply
 certain roles for specified Result classes. For example:
 
@@ -403,7 +403,7 @@ certain roles for specified Result classes. For example:
       RouteChange    => 'YourApp::Role::TripEvent',
   }
   
-You may use this in conjunction with C<result_roles>.
+You may use this in conjunction with L</result_roles>.
 
 =head2 use_namespaces
 
