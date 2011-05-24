@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - set cascade_update => 0 on might_have relationships
         - generate POD for result_base_class, additional_classes,
           additional_base_classes, left_base_classes, components,
           result_components_map, result_roles and result_roles_map
