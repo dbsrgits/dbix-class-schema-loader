@@ -102,7 +102,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (202 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (199 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -556,7 +556,7 @@ sub test_schema {
     }
 
     SKIP: {
-        skip $self->{skip_rels}, 123 if $self->{skip_rels};
+        skip $self->{skip_rels}, 120 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -715,9 +715,6 @@ sub test_schema {
         is try { $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_copy} }, 0,
             'cascade_copy => 0 on has_many by default';
 
-        ok ((not try { exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{cascade_update} }),
-            'has_many does not have cascade_update');
-
         ok ((not try { exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{on_delete} }),
             'has_many does not have on_delete');
 
@@ -742,17 +739,11 @@ sub test_schema {
         ok ((not try { exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_copy} }),
             'belongs_to does not have cascade_copy');
 
-        ok ((not try { exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_update} }),
-            'belongs_to does not have cascade_update');
-
         is try { $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_delete} }, 0,
             'cascade_delete => 0 on might_have by default';
 
         is try { $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_copy} }, 0,
             'cascade_copy => 0 on might_have by default';
-
-        is try { $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{cascade_update} }, 0,
-            'cascade_update => 0 on might_have by default';
 
         ok ((not try { exists $rsobj27->result_source->relationship_info('loader_test28')->{attrs}{on_delete} }),
             'might_have does not have on_delete');

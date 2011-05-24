@@ -192,7 +192,6 @@ sub _default_relationship_attrs { +{
     might_have => {
         cascade_delete => 0,
         cascade_copy   => 0,
-        cascade_update => 0,
     },
     belongs_to => {
         on_delete => 'CASCADE',
