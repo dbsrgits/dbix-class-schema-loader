@@ -22,6 +22,7 @@ use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_packag
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
+use Encode qw/decode encode/;
 use namespace::clean;
 
 our $VERSION = '0.07010';
@@ -1003,7 +1004,7 @@ sub _load_external {
         warn qq/# Loaded external class definition for '$class'\n/
             if $self->debug;
 
-        my $code = $self->_rewrite_old_classnames(scalar slurp $real_inc_path);
+        my $code = $self->_rewrite_old_classnames(decode 'UTF-8', scalar slurp $real_inc_path);
 
         if ($self->dynamic) { # load the class too
             eval_package_without_redefine_warnings($class, $code);
@@ -1026,7 +1027,7 @@ sub _load_external {
     }
 
     if ($old_real_inc_path) {
-        my $code = slurp $old_real_inc_path;
+        my $code = decode 'UTF-8', scalar slurp $old_real_inc_path;
 
         $self->_ext_stmt($class, <<"EOF");
 
@@ -1281,7 +1282,7 @@ sub _reload_class {
         eval_package_without_redefine_warnings ($class, "require $class");
     }
     catch {
-        my $source = slurp $self->_get_dump_filename($class);
+        my $source = decode 'UTF-8', scalar slurp $self->_get_dump_filename($class);
         die "Failed to reload class $class: $_.\n\nCLASS SOURCE:\n\n$source";
     };
 }
@@ -1503,7 +1504,7 @@ sub _write_classfile {
     my $compare_to;
     if ($old_md5) {
       $compare_to = $text . $self->_sig_comment($old_ver, $old_ts);
-      if (Digest::MD5::md5_base64($compare_to) eq $old_md5) {
+      if (Digest::MD5::md5_base64(encode 'UTF-8', $compare_to) eq $old_md5) {
         return unless $self->_upgrading_from && $is_schema;
       }
     }
@@ -1513,11 +1514,11 @@ sub _write_classfile {
       POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
     );
 
-    open(my $fh, '>', $filename)
+    open(my $fh, '>:encoding(UTF-8)', $filename)
         or croak "Cannot open '$filename' for writing: $!";
 
     # Write the top half and its MD5 sum
-    print $fh $text . Digest::MD5::md5_base64($text) . "\n";
+    print $fh $text . Digest::MD5::md5_base64(encode 'UTF-8', $text) . "\n";
 
     # Write out anything loaded via external partial class file in @INC
     print $fh qq|$_\n|
@@ -1556,7 +1557,7 @@ sub _parse_generated_file {
 
     return unless -f $fn;
 
-    open(my $fh, '<', $fn)
+    open(my $fh, '<:encoding(UTF-8)', $fn)
         or croak "Cannot open '$fn' for reading: $!";
 
     my $mark_re =
@@ -1573,7 +1574,7 @@ sub _parse_generated_file {
 
             $gen .= $pre_md5;
             croak "Checksum mismatch in '$fn', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n"
-                if !$self->overwrite_modifications && Digest::MD5::md5_base64($gen) ne $md5;
+                if !$self->overwrite_modifications && Digest::MD5::md5_base64(encode 'UTF-8', $gen) ne $md5;
 
             last;
         }

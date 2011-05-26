@@ -3,6 +3,8 @@ use lib qw(t/lib);
 use dbixcsl_common_tests;
 use Test::More;
 use File::Slurp 'slurp';
+use utf8;
+use Encode 'decode';
 
 my $dsn      = $ENV{DBICTEST_PG_DSN} || '';
 my $user     = $ENV{DBICTEST_PG_USER} || '';
@@ -16,7 +18,8 @@ my $tester = dbixcsl_common_tests->new(
     password    => $password,
     loader_options  => { preserve_case => 1 },
     connect_info_opts => {
-        on_connect_do => [ 'SET client_min_messages=WARNING' ],
+        pg_enable_utf8 => 1,
+        on_connect_do  => [ 'SET client_min_messages=WARNING' ],
     },
     quote_char  => '"',
     data_types  => {
@@ -139,7 +142,7 @@ my $tester = dbixcsl_common_tests->new(
                 )
             },
             qq{
-                COMMENT ON TABLE pg_loader_test1 IS 'The\15\12Table'
+                COMMENT ON TABLE pg_loader_test1 IS 'The\15\12Table ∑'
             },
             qq{
                 COMMENT ON COLUMN pg_loader_test1.value IS 'The\15\12Column'
@@ -170,9 +173,9 @@ my $tester = dbixcsl_common_tests->new(
             my $class    = $classes->{pg_loader_test1};
             my $filename = $schema->_loader->get_dump_filename($class);
 
-            my $code = slurp $filename;
+            my $code = decode('UTF-8', scalar slurp $filename);
 
-            like $code, qr/^=head1 NAME\n\n^$class - The\nTable\n\n^=cut\n/m,
+            like $code, qr/^=head1 NAME\n\n^$class - The\nTable ∑\n\n^=cut\n/m,
                 'table comment';
 
             like $code, qr/^=head2 value\n\n(.+:.+\n)+\nThe\nColumn\n\n/m,

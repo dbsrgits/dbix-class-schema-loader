@@ -14,6 +14,7 @@ use Try::Tiny;
 use Class::Unload ();
 use Class::Inspector ();
 use List::MoreUtils 'apply';
+use Encode 'decode';
 use namespace::clean;
 
 our $VERSION = '0.07010';
@@ -597,7 +598,7 @@ sub _relnames_and_method {
             my $class = "${remote_class}Temporary";
 
             if (not Class::Inspector->loaded($class)) {
-                my $code = slurp $existing_remote_file;
+                my $code = decode 'UTF-8', scalar slurp $existing_remote_file;
 
                 $code =~ s/(?<=package $remote_class)/Temporary/g;
 
