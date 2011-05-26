@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - automatically turn on quoting for MySQL (RT#60469)
         - become utf8-aware (RT#67920)
         - handle duplicate relationship names (RT#64041)
         - fix a bug in Sybase ASE foreign key detection

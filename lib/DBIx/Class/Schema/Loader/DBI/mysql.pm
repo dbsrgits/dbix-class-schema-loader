@@ -22,6 +22,9 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 sub _setup {
     my $self = shift;
 
+    $self->schema->storage->sql_maker->quote_char("`");
+    $self->schema->storage->sql_maker->name_sep(".");
+
     $self->next::method(@_);
 
     if (not defined $self->preserve_case) {

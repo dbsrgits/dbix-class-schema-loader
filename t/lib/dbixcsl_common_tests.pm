@@ -211,7 +211,7 @@ sub setup_schema {
 
     my %loader_opts = (
         constraint              =>
-          qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)_?)?loader_?test[0-9]+(?!.*_)/i,
+          qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i,
         relationships           => 1,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',

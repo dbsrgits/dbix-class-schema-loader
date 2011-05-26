@@ -20,6 +20,7 @@ my $tester = dbixcsl_common_tests->new(
     connect_info_opts=> { on_connect_call => 'set_strict_mode' },
     loader_options   => { preserve_case => 1 },
     skip_rels        => $test_innodb ? 0 : $skip_rels_msg,
+    quote_char       => '`',
     no_inline_rels   => 1,
     no_implicit_rels => 1,
     data_types  => {
@@ -127,20 +128,23 @@ my $tester = dbixcsl_common_tests->new(
     extra => {
         create => [
             q{
-                CREATE TABLE mysql_loader_test1 (
+                CREATE TABLE `mysql_loader-test1` (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     value varchar(100)
                 )
             },
             q{
-                CREATE VIEW mysql_loader_test2 AS SELECT * FROM mysql_loader_test1
+                CREATE VIEW mysql_loader_test2 AS SELECT * FROM `mysql_loader-test1`
             },
         ],
         pre_drop_ddl => [ 'DROP VIEW mysql_loader_test2', ],
-        drop => [ 'mysql_loader_test1', ],
-        count => 1,
+        drop => [ 'mysql_loader-test1', ],
+        count => 2,
         run => sub {
             my ($schema, $monikers, $classes) = @_;
+
+            is $monikers->{'mysql_loader-test1'}, 'MysqlLoaderTest1',
+                'table with dash correctly monikerized';
 
             my $rsrc = $schema->resultset($monikers->{mysql_loader_test2})->result_source;
 
