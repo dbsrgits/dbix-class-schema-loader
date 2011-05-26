@@ -555,6 +555,8 @@ Could not find a proper name for relationship '$relname_new' in source '$moniker
 Supply a value in '$inflect_type' for '$relname_new_uninflected' to name this relationship.
 EOF
 
+                $relname_new = $self->_resolve_relname_collision($moniker, \@from_cols, $relname_new);
+
                 $rel->{args}[0] = $relname_new;
             }
         }
