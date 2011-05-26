@@ -58,6 +58,12 @@ sub new {
 
     $self = bless $self, $class;
 
+    $self->{preserve_case_tests_table_names} = [qw/LoaderTest40 LoaderTest41/];
+
+    if (lc($self->{vendor}) eq 'mysql' && $^O =~ /^(?:MSWin32|cygwin)\z/) {
+        $self->{preserve_case_tests_table_names} = [qw/Loader_Test40 Loader_Test41/];
+    }
+
     $self->setup_data_type_tests;
 
     return $self;
@@ -1184,22 +1190,24 @@ sub test_preserve_case {
 
     my $dbh = $self->dbconnect;
 
+    my ($table40_name, $table41_name) = @{ $self->{preserve_case_tests_table_names} };
+
     $dbh->do($_) for (
 qq|
-    CREATE TABLE ${oqt}LoaderTest40${cqt} (
+    CREATE TABLE ${oqt}${table40_name}${cqt} (
         ${oqt}Id${cqt} INTEGER NOT NULL PRIMARY KEY,
         ${oqt}Foo3Bar${cqt} VARCHAR(100) NOT NULL
     ) $self->{innodb}
 |,
 qq|
-    CREATE TABLE ${oqt}LoaderTest41${cqt} (
+    CREATE TABLE ${oqt}${table41_name}${cqt} (
         ${oqt}Id${cqt} INTEGER NOT NULL PRIMARY KEY,
         ${oqt}LoaderTest40Id${cqt} INTEGER,
-        FOREIGN KEY (${oqt}LoaderTest40Id${cqt}) REFERENCES ${oqt}LoaderTest40${cqt} (${oqt}Id${cqt})
+        FOREIGN KEY (${oqt}LoaderTest40Id${cqt}) REFERENCES ${oqt}${table40_name}${cqt} (${oqt}Id${cqt})
     ) $self->{innodb}
 |,
-qq| INSERT INTO ${oqt}LoaderTest40${cqt} VALUES (1, 'foo') |,
-qq| INSERT INTO ${oqt}LoaderTest41${cqt} VALUES (1, 1) |,
+qq| INSERT INTO ${oqt}${table40_name}${cqt} VALUES (1, 'foo') |,
+qq| INSERT INTO ${oqt}${table41_name}${cqt} VALUES (1, 1) |,
     );
     $conn->storage->disconnect;
 
@@ -1908,7 +1916,7 @@ sub drop_tables {
 
     my @tables_rescan = qw/ loader_test30 /;
 
-    my @tables_preserve_case_tests = qw/ LoaderTest41 LoaderTest40 /;
+    my @tables_preserve_case_tests = @{ $self->{preserve_case_tests_table_names} };
 
     my %drop_columns = (
         loader_test6  => 'loader_test7_id',
