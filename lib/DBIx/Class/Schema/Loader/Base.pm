@@ -1845,6 +1845,18 @@ sub _make_column_accessor_name {
     return $accessor;
 }
 
+sub _quote {
+    my ($self, $identifier) = @_;
+
+    my $qt = $self->schema->storage->sql_maker->quote_char;
+
+    if (ref $qt) {
+        return $qt->[0] . $identifier . $qt->[1];
+    }
+
+    return "${qt}${identifier}${qt}";
+}
+
 # Set up metadata (cols, pks, etc)
 sub _setup_src_meta {
     my ($self, $table) = @_;
@@ -1856,16 +1868,20 @@ sub _setup_src_meta {
     my $table_moniker = $self->monikers->{$table};
 
     my $table_name = $table;
-    my $name_sep   = $self->schema->storage->sql_maker->name_sep;
+
+    my $sql_maker  = $self->schema->storage->sql_maker;
+    my $name_sep   = $sql_maker->name_sep;
 
     if ($name_sep && $table_name =~ /\Q$name_sep\E/) {
-        $table_name = \ $self->_quote_table_name($table_name);
+        $table_name = \ $self->_quote($table_name);
     }
 
-    my $full_table_name = ($self->qualify_objects ? ($self->db_schema . '.') : '') . (ref $table_name ? $$table_name : $table_name);
+    my $full_table_name = ($self->qualify_objects ?
+        ($self->_quote($self->db_schema) . '.') : '')
+        . (ref $table_name ? $$table_name : $table_name);
 
     # be careful to not create refs Data::Dump can "optimize"
-    $full_table_name    = \do {"".$full_table_name} if ref $table_name;
+    $full_table_name = \do {"".$full_table_name} if ref $table_name;
 
     $self->_dbic_stmt($table_class, 'table', $full_table_name);
 
@@ -2214,20 +2230,6 @@ sub _raw_stmt {
 sub _ext_stmt {
     my ($self, $class, $stmt) = @_;
     push(@{$self->{_ext_storage}->{$class}}, $stmt);
-}
-
-sub _quote_table_name {
-    my ($self, $table) = @_;
-
-    my $qt = $self->schema->storage->sql_maker->quote_char;
-
-    return $table unless $qt;
-
-    if (ref $qt) {
-        return $qt->[0] . $table . $qt->[1];
-    }
-
-    return $qt . $table . $qt;
 }
 
 sub _custom_column_info {

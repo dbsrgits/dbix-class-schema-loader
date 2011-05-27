@@ -47,6 +47,26 @@ sub _setup {
     }
 }
 
+sub _tables_list {
+    my ($self, $opts) = @_;
+
+    my $dbh = $self->schema->storage->dbh;
+    my @tables = $dbh->tables(undef, $self->db_schema, '%', '%');
+
+    my $schema_quoted = $tables[0] =~ /^"/;
+
+    if ($schema_quoted) {
+        s/^"[^"]+"\.// for @tables;
+    }
+    else {
+        s/^[^.]+\.// for @tables;
+    }
+
+    s/^"([^"]+)"\z/$1/ for @tables;
+
+    return $self->_filter_tables(\@tables, $opts);
+}
+
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
@@ -254,7 +274,8 @@ EOF
         }
 
 # process SERIAL columns
-        if (ref($info->{default_value}) eq 'SCALAR' && ${ $info->{default_value} } =~ /\bnextval\(['"]([.\w]+)/i) {
+        if (ref($info->{default_value}) eq 'SCALAR'
+                && ${ $info->{default_value} } =~ /\bnextval\('([^:]+)'/i) {
             $info->{is_auto_increment} = 1;
             $info->{sequence}          = $1;
             delete $info->{default_value};

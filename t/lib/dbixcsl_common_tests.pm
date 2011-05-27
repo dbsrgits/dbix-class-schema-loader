@@ -26,6 +26,8 @@ rmtree $DUMP_DIR;
 
 use constant RESCAN_WARNINGS => qr/(?i:loader_test|LoaderTest)\d+s? has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method|invalidates \d+ active statement|^Bad table or view/;
 
+use constant SOURCE_DDL => qr/CREATE (?:TABLE|VIEW) (?!"dbicsl[.-]test")/i;
+
 sub new {
     my $class = shift;
 
@@ -150,7 +152,7 @@ sub run_only_extra_tests {
 
         $self->{_created} = 1;
 
-        my $file_count = grep /CREATE (?:TABLE|VIEW)/i, @{ $self->{extra}{create} || [] };
+        my $file_count = grep $_ =~ SOURCE_DDL, @{ $self->{extra}{create} || [] };
         $file_count++; # schema
         
         if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
@@ -267,7 +269,8 @@ sub setup_schema {
                 $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
             }
 
-            $expected_count += grep /CREATE (?:TABLE|VIEW)/i,
+            # skip schema-qualified tables
+            $expected_count += grep $_ =~ SOURCE_DDL,
                 @{ $self->{extra}{create} || [] };
      
             $expected_count -= grep /CREATE TABLE/, @statements_inline_rels

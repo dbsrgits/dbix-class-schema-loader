@@ -108,7 +108,7 @@ sub _tables_list {
     my $all_tables_quoted = (grep /$qt/, @tables) == @tables;
 
     if ($self->{_quoter} && $all_tables_quoted) {
-        s/.* $qt (?= .* $qt)//xg for @tables;
+        s/.* $qt (?= .* $qt\z)//xg for @tables;
     } else {
         s/^.*\Q$self->{_namesep}\E// for @tables;
     }
@@ -167,14 +167,17 @@ sub load {
 sub _table_as_sql {
     my ($self, $table) = @_;
 
-    if($self->{db_schema}) {
-        $table = $self->{db_schema} . $self->{_namesep} .
-            $self->_quote_table_name($table);
-    } else {
-        $table = $self->_quote_table_name($table);
+    my $sql_maker = $self->schema->storage->sql_maker;
+    my $name_sep  = $sql_maker->name_sep;
+    my $db_schema = $self->db_schema;
+
+    if($db_schema) {
+        return $self->_quote($self->{db_schema})
+            . $name_sep
+            . $self->_quote($table);
     }
 
-    return $table;
+    return $self->_quote($table);
 }
 
 sub _sth_for {

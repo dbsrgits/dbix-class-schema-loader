@@ -8,7 +8,7 @@ use Test::More;
 use namespace::clean;
 use Exporter 'import';
 
-our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path warnings_exist warnings_exist_silent/;
+our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent/;
 
 use constant BY_CASE_TRANSITION =>
     qr/(?<=[[:lower:]\d])[\W_]*(?=[[:upper:]])|[\W_]+/;
@@ -82,6 +82,22 @@ sub class_path {
     $class_path .= '.pm';
 
     return $class_path;
+}
+
+sub no_warnings(&;$) {
+    my ($code, $test_name) = @_;
+
+    my $failed = 0;
+
+    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+    local $SIG{__WARN__} = sub {
+        $failed = 1;
+        $warn_handler->(@_);
+    };
+
+    $code->();
+
+    ok ((not $failed), $test_name);
 }
 
 sub warnings_exist(&$$) {
