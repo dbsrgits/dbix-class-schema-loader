@@ -74,6 +74,86 @@ $t->dump_test(
 
 $t->cleanup;
 
+# test naming => { column_accessors => 'preserve' }
+$t->dump_test(
+    classname => 'DBICTest::Schema::_preserve_column_accessors',
+    test_db_class => 'make_dbictest_db_with_unique',
+    options => { naming => { column_accessors => 'preserve' } },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::Schema::_preserve_column_accessors to directory /,
+        qr/Schema dump completed/,
+    ],
+    neg_regexes => {
+        RouteChange => [
+            qr/\baccessor\b/,
+        ],
+    },
+);
+
+$t->cleanup;
+
+# test naming => { monikers => 'plural' }
+$t->dump_test(
+    classname => 'DBICTest::Schema::_plural_monikers',
+    options => { naming => { monikers => 'plural' } },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::Schema::_plural_monikers to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        Foos => [
+            qr/\n=head1 NAME\n\nDBICTest::Schema::_plural_monikers::Foos\n\n=cut\n\n/,
+        ],
+        Bars => [
+            qr/\n=head1 NAME\n\nDBICTest::Schema::_plural_monikers::Bars\n\n=cut\n\n/,
+        ],
+    },
+);
+
+$t->cleanup;
+
+# test naming => { monikers => 'singular' }
+$t->dump_test(
+    classname => 'DBICTest::Schema::_singular_monikers',
+    test_db_class => 'make_dbictest_db_plural_tables',
+    options => { naming => { monikers => 'singular' } },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::Schema::_singular_monikers to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        Foo => [
+            qr/\n=head1 NAME\n\nDBICTest::Schema::_singular_monikers::Foo\n\n=cut\n\n/,
+        ],
+        Bar => [
+            qr/\n=head1 NAME\n\nDBICTest::Schema::_singular_monikers::Bar\n\n=cut\n\n/,
+        ],
+    },
+);
+
+$t->cleanup;
+
+# test naming => { monikers => 'preserve' }
+$t->dump_test(
+    classname => 'DBICTest::Schema::_preserve_monikers',
+    test_db_class => 'make_dbictest_db_plural_tables',
+    options => { naming => { monikers => 'preserve' } },
+    warnings => [
+        qr/Dumping manual schema for DBICTest::Schema::_preserve_monikers to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        Foos => [
+            qr/\n=head1 NAME\n\nDBICTest::Schema::_preserve_monikers::Foos\n\n=cut\n\n/,
+        ],
+        Bars => [
+            qr/\n=head1 NAME\n\nDBICTest::Schema::_preserve_monikers::Bars\n\n=cut\n\n/,
+        ],
+    },
+);
+
+$t->cleanup;
+
 # test out the POD
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
@@ -363,3 +443,4 @@ $t->dump_test(
 );
 
 done_testing;
+# vim:et sts=4 sw=4 tw=0:

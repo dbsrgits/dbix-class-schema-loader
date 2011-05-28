@@ -205,6 +205,23 @@ transition instead of just being lowercased, so C<FooId> becomes C<foo_id>.
 If you don't have any CamelCase table or column names, you can upgrade without
 breaking any of your code.
 
+=item preserve
+
+For L</monikers>, this option does not inflect the table names but makes
+monikers based on the actual name. For L</column_accessors> this option does
+not normalize CamelCase column names to lowercase column accessors, but makes
+accessors that are the same names as the columns (with any non-\w chars
+replaced with underscores.)
+
+=item singular
+
+For L</monikers>, singularizes the names using the most current inflector. This
+is the same as setting the option to L</current>.
+
+=item plural
+
+For L</monikers>, pluralizes the names, using the most current inflector.
+
 =back
 
 Dynamic schemas will always default to the 0.04XXX relationship names and won't
@@ -1827,9 +1844,11 @@ sub _default_column_accessor_name {
         # older naming just lc'd the col accessor and that's all.
         return lc $accessor_name;
     }
+    elsif (($self->naming->{column_accessors}||'') eq 'preserve') {
+        return $accessor_name;
+    }
 
     return join '_', map lc, split_name $column_name;
-
 }
 
 sub _make_column_accessor_name {
@@ -1997,7 +2016,13 @@ sub _default_table2moniker {
     my @words = map lc, split_name $table;
     my $as_phrase = join ' ', @words;
 
-    my $inflected = Lingua::EN::Inflect::Phrase::to_S($as_phrase);
+    my $inflected = $self->naming->{monikers} eq 'plural' ?
+        Lingua::EN::Inflect::Phrase::to_PL($as_phrase)
+        :
+        $self->naming->{monikers} eq 'preserve' ?
+            $as_phrase
+            :
+            Lingua::EN::Inflect::Phrase::to_S($as_phrase);
 
     return join '', map ucfirst, split /\W+/, $inflected;
 }
