@@ -70,6 +70,8 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 config_file
                                 loader_class
                                 qualify_objects
+                                tables
+                                class_to_table
 /);
 
 
@@ -94,7 +96,6 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 datetime_undef_if_invalid
                                 _result_class_methods
                                 naming_set
-                                tables
 /);
 
 =head1 NAME
@@ -706,6 +707,7 @@ sub new {
 
     $self->{monikers} = {};
     $self->{tables}   = {};
+    $self->{class_to_table} = {};
     $self->{classes}  = {};
     $self->{_upgrading_classes} = {};
 
@@ -1398,25 +1400,29 @@ sub _dump_to_dir {
         my $src_text = 
               qq|package $src_class;\n\n|
             . qq|# Created by DBIx::Class::Schema::Loader\n|
-            . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|
-            . qq|use strict;\nuse warnings;\n\n|;
+            . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|;
+
+        $src_text .= $self->_make_pod_heading($src_class);
+
+        $src_text .= qq|use strict;\nuse warnings;\n\n|;
+
+        $src_text .= $self->_base_class_pod($result_base_class)
+            unless $result_base_class eq 'DBIx::Class::Core';
+
         if ($self->use_moose) {
             $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;|;
 
             # these options 'use base' which is compile time
             if (@{ $self->left_base_classes } || @{ $self->additional_base_classes }) {
-                $src_text .= qq|\nBEGIN { extends '$result_base_class' }\n\n|;
+                $src_text .= qq|\nBEGIN { extends '$result_base_class' }\n|;
             }
             else {
-                $src_text .= qq|\nextends '$result_base_class';\n\n|;
+                $src_text .= qq|\nextends '$result_base_class';\n|;
             }
         }
         else {
-             $src_text .= qq|use base '$result_base_class';\n\n|;
+             $src_text .= qq|use base '$result_base_class';\n|;
         }
-
-        $self->_base_class_pod($src_class, $result_base_class)
-            unless $result_base_class eq 'DBIx::Class::Core';
 
         $self->_write_classfile($src_class, $src_text);
     }
@@ -1708,6 +1714,7 @@ sub _make_src_class {
     $self->classes->{$table}  = $table_class;
     $self->monikers->{$table} = $table_moniker;
     $self->tables->{$table_moniker} = $table;
+    $self->class_to_table->{$table_class} = $table;
 
     $self->_pod_class_list($table_class, 'ADDITIONAL CLASSES USED', @{$self->additional_classes});
 
@@ -1901,6 +1908,8 @@ sub _setup_src_meta {
 
     # be careful to not create refs Data::Dump can "optimize"
     $full_table_name = \do {"".$full_table_name} if ref $table_name;
+
+    $self->_raw_stmt($table_class, ''); # add a blank line
 
     $self->_dbic_stmt($table_class, 'table', $full_table_name);
 
@@ -2119,6 +2128,36 @@ sub _dbic_stmt {
     return;
 }
 
+sub _make_pod_heading {
+    my ($self, $class) = @_;
+
+    return '' if not $self->generate_pod;
+
+    my $table = $self->class_to_table->{$class};
+    my $pod;
+
+    my $pcm = $self->pod_comment_mode;
+    my ($comment, $comment_overflows, $comment_in_name, $comment_in_desc);
+    $comment = $self->__table_comment($table);
+    $comment_overflows = ($comment and length $comment > $self->pod_comment_spillover_length);
+    $comment_in_name   = ($pcm eq 'name' or ($pcm eq 'auto' and !$comment_overflows));
+    $comment_in_desc   = ($pcm eq 'description' or ($pcm eq 'auto' and $comment_overflows));
+
+    $pod .= "=head1 NAME\n\n";
+
+    my $table_descr = $class;
+    $table_descr .= " - " . $comment if $comment and $comment_in_name;
+
+    $pod .= "$table_descr\n\n";
+
+    if ($comment and $comment_in_desc) {
+        $pod .= "=head1 DESCRIPTION\n\n${comment}\n\n";
+    }
+    $pod .= "=cut\n\n";
+
+    return $pod;
+}
+
 # generates the accompanying pod for a DBIC class method statement,
 # storing it with $self->_pod
 sub _make_pod {
@@ -2126,25 +2165,7 @@ sub _make_pod {
     my $class  = shift;
     my $method = shift;
 
-    if ( $method eq 'table' ) {
-        my ($table) = @_;
-        my $pcm = $self->pod_comment_mode;
-        my ($comment, $comment_overflows, $comment_in_name, $comment_in_desc);
-        $comment = $self->__table_comment($table);
-        $comment_overflows = ($comment and length $comment > $self->pod_comment_spillover_length);
-        $comment_in_name   = ($pcm eq 'name' or ($pcm eq 'auto' and !$comment_overflows));
-        $comment_in_desc   = ($pcm eq 'description' or ($pcm eq 'auto' and $comment_overflows));
-        $self->_pod( $class, "=head1 NAME" );
-        my $table_descr = $class;
-        $table_descr .= " - " . $comment if $comment and $comment_in_name;
-        $self->{_class2table}{ $class } = $table;
-        $self->_pod( $class, $table_descr );
-        if ($comment and $comment_in_desc) {
-            $self->_pod( $class, "=head1 DESCRIPTION" );
-            $self->_pod( $class, $comment );
-        }
-        $self->_pod_cut( $class );
-    } elsif ( $method eq 'add_columns' ) {
+    if ( $method eq 'add_columns' ) {
         $self->_pod( $class, "=head1 ACCESSORS" );
         my $col_counter = 0;
         my @cols = @_;
@@ -2163,7 +2184,7 @@ sub _make_pod {
                     "  $_: $s"
                  } sort keys %$attrs,
             );
-            if (my $comment = $self->__column_comment($self->{_class2table}{$class}, $col_counter, $name)) {
+            if (my $comment = $self->__column_comment($self->class_to_table->{$class}, $col_counter, $name)) {
                 $self->_pod( $class, $comment );
             }
         }
@@ -2196,12 +2217,16 @@ sub _pod_class_list {
 }
 
 sub _base_class_pod {
-    my ($self, $class, $base_class) = @_;
+    my ($self, $base_class) = @_;
 
     return unless $self->generate_pod;
 
-    $self->_pod($class, "=head1 BASE CLASS: L<$base_class>");
-    $self->_pod_cut($class);
+    return <<"EOF"
+=head1 BASE CLASS: L<$base_class>
+
+=cut
+
+EOF
 }
 
 sub _filter_comment {

@@ -179,8 +179,8 @@ $t->dump_test(
     ],
     Foo => [
       qr/package DBICTest::DumpMore::1::Foo;/,
-      qr/\n=head1 NAME\n\nDBICTest::DumpMore::1::Foo\n\n=cut\n\n/,
-      qr/\n=head1 BASE CLASS: L<My::ResultBaseClass>\n\n=cut\n\n/,
+      qr/\n=head1 NAME\n\nDBICTest::DumpMore::1::Foo\n\n=cut\n\nuse strict;\nuse warnings;\n\n/,
+      qr/\n=head1 BASE CLASS: L<My::ResultBaseClass>\n\n=cut\n\nuse base 'My::ResultBaseClass';\n\n/,
       qr/\n=head1 ADDITIONAL CLASSES USED\n\n=over 4\n\n=item \* L<TestAdditional>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 ADDITIONAL BASE CLASSES\n\n=over 4\n\n=item \* L<TestAdditionalBase>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 LEFT BASE CLASSES\n\n=over 4\n\n=item \* L<TestLeftBase>\n\n=back\n\n=cut\n\n/,
@@ -195,8 +195,8 @@ $t->dump_test(
     ],
     Bar => [
       qr/package DBICTest::DumpMore::1::Bar;/,
-      qr/\n=head1 NAME\n\nDBICTest::DumpMore::1::Bar\n\n=cut\n\n/,
-      qr/\n=head1 BASE CLASS: L<My::ResultBaseClass>\n\n=cut\n\n/,
+      qr/\n=head1 NAME\n\nDBICTest::DumpMore::1::Bar\n\n=cut\n\nuse strict;\nuse warnings;\n\n/,
+      qr/\n=head1 BASE CLASS: L<My::ResultBaseClass>\n\n=cut\n\nuse base 'My::ResultBaseClass';\n\n/,
       qr/\n=head1 ADDITIONAL CLASSES USED\n\n=over 4\n\n=item \* L<TestAdditional>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 ADDITIONAL BASE CLASSES\n\n=over 4\n\n=item \* L<TestAdditionalBase>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 LEFT BASE CLASSES\n\n=over 4\n\n=item \* L<TestLeftBase>\n\n=back\n\n=cut\n\n/,
@@ -211,7 +211,6 @@ $t->dump_test(
     ],
   },
 );
-
 
 $t->append_to_class('DBICTest::DumpMore::1::Foo',q{# XXX This is my custom content XXX});
 
