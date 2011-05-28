@@ -1848,7 +1848,7 @@ sub _make_column_accessor_name {
 sub _quote {
     my ($self, $identifier) = @_;
 
-    my $qt = $self->schema->storage->sql_maker->quote_char;
+    my $qt = $self->schema->storage->sql_maker->quote_char || '';
 
     if (ref $qt) {
         return $qt->[0] . $identifier . $qt->[1];

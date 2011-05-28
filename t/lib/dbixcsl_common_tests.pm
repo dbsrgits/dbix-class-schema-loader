@@ -111,7 +111,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (203 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (203 + ($self->{skip_rels} ? 5 : $num_rescans * $col_accessor_map_tests) + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -310,7 +310,7 @@ sub setup_schema {
             }
             else {
                 $warn_count++;
-                is(scalar(@loader_warnings), $warn_count, "Expected loader warning")
+                is(scalar(@loader_warnings), $warn_count, "Expected loader warnings")
                     or diag @loader_warnings;
                 is(grep(/loader_test9 has no primary key/i, @loader_warnings), 1,
                      "Missing PK warning");
@@ -565,7 +565,7 @@ sub test_schema {
     }
 
     SKIP: {
-        skip $self->{skip_rels}, 124 if $self->{skip_rels};
+        skip $self->{skip_rels}, 132 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -1822,7 +1822,7 @@ sub create {
         $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || [] });
     }
 
-    unless($self->{skip_rels}) {
+    unless ($self->{skip_rels}) {
         # hack for now, since DB2 doesn't like inline comments, and we need
         # to test one for mysql, which works on everyone else...
         # this all needs to be refactored anyways.
@@ -1947,7 +1947,7 @@ sub drop_tables {
 
         my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
 
-        unless($self->{skip_rels}) {
+        unless ($self->{skip_rels}) {
             # drop the circular rel columns if possible, this
             # doesn't work on all DBs
             foreach my $table (keys %drop_columns) {
