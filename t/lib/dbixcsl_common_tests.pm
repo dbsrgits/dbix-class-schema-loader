@@ -26,6 +26,7 @@ rmtree $DUMP_DIR;
 
 use constant RESCAN_WARNINGS => qr/(?i:loader_test|LoaderTest)\d+s? has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method|invalidates \d+ active statement|^Bad table or view/;
 
+# skip schema-qualified tables in the Pg tests
 use constant SOURCE_DDL => qr/CREATE (?:TABLE|VIEW) (?!"dbicsl[.-]test")/i;
 
 sub new {
@@ -106,7 +107,6 @@ sub run_tests {
 
     my $col_accessor_map_tests = 5;
     my $num_rescans = 5;
-    $num_rescans-- if $self->{vendor} eq 'Mysql';
     $num_rescans++ if $self->{vendor} eq 'mssql';
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
@@ -269,7 +269,6 @@ sub setup_schema {
                 $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
             }
 
-            # skip schema-qualified tables
             $expected_count += grep $_ =~ SOURCE_DDL,
                 @{ $self->{extra}{create} || [] };
      
@@ -969,7 +968,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
         }
 
         SKIP: {
-            skip 'This vendor cannot do inline relationship definitions', 11
+            skip 'This vendor cannot do inline relationship definitions', 9
                 if $self->{no_inline_rels};
 
             my $moniker12 = $monikers->{loader_test12};
@@ -994,35 +993,36 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
             my $obj12 = try { $rsobj12->find(1) } || $rsobj12->search({ id => 1 })->first;
             isa_ok( try { $obj12->loader_test13 }, $class13 );
-
-            # relname is preserved when another fk is added
-
-            {
-                local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ /invalidates \d+ active statement/ };
-                $conn->storage->disconnect; # for mssql and access
-            }
-
-            isa_ok try { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet';
-
-            $conn->storage->disconnect; # for access
-
-            if (lc($self->{vendor}) ne 'sybase') {
-                $conn->storage->dbh->do('ALTER TABLE loader_test4 ADD fkid2 INTEGER REFERENCES loader_test3 (id)');
-            }
-            else {
-                $conn->storage->dbh->do(<<"EOF");
-                ALTER TABLE loader_test4 ADD fkid2 INTEGER $self->{null}
-                ALTER TABLE loader_test4 ADD CONSTRAINT loader_test4_to_3_fk FOREIGN KEY (fkid2) REFERENCES loader_test3 (id)
-EOF
-            }
-
-            $conn->storage->disconnect; # for firebird
-
-            $self->rescan_without_warnings($conn);
-
-            isa_ok try { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet',
-                'relationship name preserved when another foreign key is added in remote table';
         }
+
+        # relname is preserved when another fk is added
+        {
+            local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ /invalidates \d+ active statement/ };
+            $conn->storage->disconnect; # for mssql and access
+        }
+
+        isa_ok try { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet';
+
+        $conn->storage->disconnect; # for access
+
+        if (lc($self->{vendor}) !~ /^(?:sybase|mysql)\z/) {
+            $conn->storage->dbh->do('ALTER TABLE loader_test4 ADD fkid2 INTEGER REFERENCES loader_test3 (id)');
+        }
+        else {
+            $conn->storage->dbh->do(<<"EOF");
+            ALTER TABLE loader_test4 ADD fkid2 INTEGER $self->{null}
+EOF
+            $conn->storage->dbh->do(<<"EOF");
+            ALTER TABLE loader_test4 ADD CONSTRAINT loader_test4_to_3_fk FOREIGN KEY (fkid2) REFERENCES loader_test3 (id)
+EOF
+        }
+
+        $conn->storage->disconnect; # for firebird
+
+        $self->rescan_without_warnings($conn);
+
+        isa_ok try { $rsobj3->find(1)->loader_test4zes }, 'DBIx::Class::ResultSet',
+            'relationship name preserved when another foreign key is added in remote table';
 
         SKIP: {
             skip 'This vendor cannot do out-of-line implicit rel defs', 4
