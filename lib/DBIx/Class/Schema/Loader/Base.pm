@@ -842,7 +842,7 @@ EOF
 Could not eval expression '$result_namespace' for result_namespace from
 $filename: $@
 EOF
-    $result_namespace = $ds;
+    $result_namespace = $ds || '';
 
     if ($load_classes && (not defined $self->use_namespaces)) {
         warn <<"EOF"  unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
