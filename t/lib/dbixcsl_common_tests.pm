@@ -16,18 +16,27 @@ use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use List::MoreUtils 'apply';
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
-use File::Slurp 'slurp';
+use File::Slurp 'read_file';
+use File::Spec::Functions 'catfile';
+use File::Basename 'basename';
 use namespace::clean;
 
 use dbixcsl_test_dir qw/$tdir/;
 
-my $DUMP_DIR = "$tdir/common_dump";
-rmtree $DUMP_DIR;
+use constant DUMP_DIR => "$tdir/common_dump";
+
+rmtree DUMP_DIR;
 
 use constant RESCAN_WARNINGS => qr/(?i:loader_test|LoaderTest)\d+s? has no primary key|^Dumping manual schema|^Schema dump completed|collides with an inherited method|invalidates \d+ active statement|^Bad table or view/;
 
 # skip schema-qualified tables in the Pg tests
 use constant SOURCE_DDL => qr/CREATE (?:TABLE|VIEW) (?!"dbicsl[.-]test")/i;
+
+use constant SCHEMA_CLASS => 'DBIXCSL_Test::Schema';
+
+use constant RESULT_NAMESPACE => [ 'MyResult', 'MyResultTwo' ];
+
+use constant RESULTSET_NAMESPACE => [ 'MyResultSet', 'MyResultSetTwo' ];
 
 sub new {
     my $class = shift;
@@ -111,7 +120,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (203 + ($self->{skip_rels} ? 5 : $num_rescans * $col_accessor_map_tests) + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (206 + ($self->{skip_rels} ? 5 : $num_rescans * $col_accessor_map_tests) + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -123,7 +132,7 @@ sub run_tests {
         my $schema_class = $self->setup_schema($info);
         $self->test_schema($schema_class);
 
-        rmtree $DUMP_DIR
+        rmtree DUMP_DIR
             unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#connect_info;
     }
 }
@@ -133,7 +142,7 @@ sub run_only_extra_tests {
 
     plan tests => @$connect_info * (4 + ($self->{extra}{count} || 0) + ($self->{data_type_tests}{test_count} || 0));
 
-    rmtree $DUMP_DIR;
+    rmtree DUMP_DIR;
 
     foreach my $info_idx (0..$#$connect_info) {
         my $info = $connect_info->[$info_idx];
@@ -168,7 +177,7 @@ sub run_only_extra_tests {
 
         if (not ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#$connect_info)) {
             $self->drop_extra_tables_only;
-            rmtree $DUMP_DIR;
+            rmtree DUMP_DIR;
         }
     }
 }
@@ -198,8 +207,6 @@ my (@statements, @statements_reltests, @statements_advanced,
 sub setup_schema {
     my ($self, $connect_info, $expected_count) = @_;
 
-    my $schema_class = 'DBIXCSL_Test::Schema';
-
     my $debug = ($self->{verbose} > 1) ? 1 : 0;
 
     if ($ENV{SCHEMA_LOADER_TESTS_USE_MOOSE}) {
@@ -214,7 +221,8 @@ sub setup_schema {
     my %loader_opts = (
         constraint              =>
           qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i,
-        relationships           => 1,
+        result_namespace        => RESULT_NAMESPACE,
+        resultset_namespace     => RESULTSET_NAMESPACE,
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
         left_base_classes       => [ qw/TestLeftBase/ ],
@@ -224,8 +232,7 @@ sub setup_schema {
         moniker_map             => \&_monikerize,
         custom_column_info      => \&_custom_column_info,
         debug                   => $debug,
-        use_namespaces          => 0,
-        dump_directory          => $DUMP_DIR,
+        dump_directory          => DUMP_DIR,
         datetime_timezone       => 'Europe/Berlin',
         datetime_locale         => 'de_DE',
         $self->{use_moose} ? (
@@ -242,14 +249,14 @@ sub setup_schema {
 
     $loader_opts{db_schema} = $self->{db_schema} if $self->{db_schema};
 
-    Class::Unload->unload($schema_class);
+    Class::Unload->unload(SCHEMA_CLASS);
 
     my $file_count;
     {
         my @loader_warnings;
         local $SIG{__WARN__} = sub { push(@loader_warnings, @_); };
          eval qq{
-             package $schema_class;
+             package @{[SCHEMA_CLASS]};
              use base qw/DBIx::Class::Schema::Loader/;
      
              __PACKAGE__->loader_options(\%loader_opts);
@@ -258,7 +265,7 @@ sub setup_schema {
  
         ok(!$@, "Loader initialization") or diag $@;
 
-        find sub { return if -d; $file_count++ }, $DUMP_DIR;
+        find sub { return if -d; $file_count++ }, DUMP_DIR;
 
         my $standard_sources = not defined $expected_count;
 
@@ -326,8 +333,8 @@ sub setup_schema {
     }
 
     exit if ($file_count||0) != $expected_count;
-   
-    return $schema_class;
+
+    return SCHEMA_CLASS;
 }
 
 sub test_schema {
@@ -367,6 +374,30 @@ sub test_schema {
     isa_ok( $rsobj23, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj24, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
+
+    # check result_namespace
+    my @schema_dir = split /::/, SCHEMA_CLASS;
+    my $result_dir = ref RESULT_NAMESPACE ? ${RESULT_NAMESPACE()}[0] : RESULT_NAMESPACE;
+
+    my $schema_files = [ sort map basename($_), glob catfile(DUMP_DIR, @schema_dir, '*') ];
+
+    is_deeply $schema_files, [ $result_dir ],
+        'first entry in result_namespace exists as a directory';
+
+    my $result_file_count =()= glob catfile(DUMP_DIR, @schema_dir, $result_dir, '*.pm');
+
+    ok $result_file_count,
+        'Result files dumped to first entry in result_namespace';
+
+    # parse out the resultset_namespace
+    my $schema_code = read_file($conn->_loader->get_dump_filename(SCHEMA_CLASS), binmode => ':encoding(UTF-8)');
+
+    my ($schema_resultset_namespace) = $schema_code =~ /\bresultset_namespace => (.*)/;
+    $schema_resultset_namespace = eval $schema_resultset_namespace;
+    die $@ if $@;
+
+    is_deeply $schema_resultset_namespace, RESULTSET_NAMESPACE,
+        'resultset_namespace set correctly on Schema';
 
     my @columns_lt2 = $class2->columns;
     is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentmap testcomponent_fqn meta test_role_method test_role_for_map_method/ ], "Column Ordering" );
@@ -785,7 +816,7 @@ sub test_schema {
 			$class6->column_info('Id2');
         ok($id2_info->{is_foreign_key}, 'Foreign key detected');
 
-        unlike slurp($conn->_loader->get_dump_filename($class6)),
+        unlike read_file($conn->_loader->get_dump_filename($class6), binmode => ':encoding(UTF-8)'),
 qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
     \s+ "(\w+?)"
     .*?
@@ -793,7 +824,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
     \s+ "\1"/xs,
 'did not create two relationships with the same name';
 
-       unlike slurp($conn->_loader->get_dump_filename($class8)),
+        unlike read_file($conn->_loader->get_dump_filename($class8), binmode => ':encoding(UTF-8)'),
 qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
     \s+ "(\w+?)"
     .*?
@@ -1090,7 +1121,7 @@ EOF
             $digest->addfile($fh);
         };
 
-        find $find_cb, $DUMP_DIR;
+        find $find_cb, DUMP_DIR;
 
 #        system "rm -f /tmp/before_rescan/* /tmp/after_rescan/*";
 #        system "cp $tdir/common_dump/DBIXCSL_Test/Schema/*.pm /tmp/before_rescan";
@@ -1111,7 +1142,7 @@ EOF
 #        system "cp t/_common_dump/DBIXCSL_Test/Schema/*.pm /tmp/after_rescan";
 
         $digest = Digest::MD5->new;
-        find $find_cb, $DUMP_DIR;
+        find $find_cb, DUMP_DIR;
         my $after_digest = $digest->b64digest;
 
         is $before_digest, $after_digest,
@@ -1244,12 +1275,14 @@ sub monikers_and_classes {
 
         $table_name = $$table_name if ref $table_name;
 
+        my $result_class = $schema_class->source($source_name)->result_class;
+
         $monikers->{$table_name} = $source_name;
-        $classes->{$table_name} = $schema_class . q{::} . $source_name;
+        $classes->{$table_name} = $result_class;
 
         # some DBs (Firebird) uppercase everything
         $monikers->{lc $table_name} = $source_name;
-        $classes->{lc $table_name} = $schema_class . q{::} . $source_name;
+        $classes->{lc $table_name} = $result_class;
     }
 
     return ($monikers, $classes);
@@ -2150,7 +2183,7 @@ sub DESTROY {
     my $self = shift;
     unless ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
       $self->drop_tables if $self->{_created};
-      rmtree $DUMP_DIR
+      rmtree DUMP_DIR
     }
 }
 

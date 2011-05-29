@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - support arrayrefs for result_namespace and resultset_namespace
+          (RT#40214)
         - add naming => { monikers => 'preserve' } or 'singular'/'plural' to
           control moniker inflection (RT#44935)
         - add naming => { column_accessors => 'preserve' } to not normalize

@@ -17,12 +17,12 @@ use File::Temp qw//;
 use Class::Unload;
 use Class::Inspector ();
 use Scalar::Util 'looks_like_number';
-use File::Slurp 'slurp';
+use File::Slurp 'read_file';
 use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path/;
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
-use Encode qw/decode encode/;
+use Encode qw/encode/;
 use namespace::clean;
 
 our $VERSION = '0.07010';
@@ -821,7 +821,7 @@ EOF
     }
 
 # otherwise check if we need backcompat mode for a static schema
-    my $filename = $self->_get_dump_filename($self->schema_class);
+    my $filename = $self->get_dump_filename($self->schema_class);
     return unless -e $filename;
 
     my ($old_gen, $old_md5, $old_ver, $old_ts, $old_custom) =
@@ -835,7 +835,14 @@ EOF
     }
 
     my $load_classes = ($old_gen =~ /^__PACKAGE__->load_classes;/m) ? 1 : 0;
-    my $result_namespace = do { ($old_gen =~ /result_namespace => '([^']+)'/) ? $1 : '' };
+
+    my $result_namespace = do { ($old_gen =~ /result_namespace => (.+)/) ? $1 : '' };
+    my $ds = eval $result_namespace;
+    die <<"EOF" if $@;
+Could not eval expression '$result_namespace' for result_namespace from
+$filename: $@
+EOF
+    $result_namespace = $ds;
 
     if ($load_classes && (not defined $self->use_namespaces)) {
         warn <<"EOF"  unless $ENV{SCHEMA_LOADER_BACKCOMPAT};
@@ -1023,7 +1030,7 @@ sub _load_external {
         warn qq/# Loaded external class definition for '$class'\n/
             if $self->debug;
 
-        my $code = $self->_rewrite_old_classnames(decode 'UTF-8', scalar slurp $real_inc_path);
+        my $code = $self->_rewrite_old_classnames(scalar read_file($real_inc_path, binmode => ':encoding(UTF-8)'));
 
         if ($self->dynamic) { # load the class too
             eval_package_without_redefine_warnings($class, $code);
@@ -1046,7 +1053,7 @@ sub _load_external {
     }
 
     if ($old_real_inc_path) {
-        my $code = decode 'UTF-8', scalar slurp $old_real_inc_path;
+        my $code = read_file($old_real_inc_path, binmode => ':encoding(UTF-8)');
 
         $self->_ext_stmt($class, <<"EOF");
 
@@ -1301,7 +1308,7 @@ sub _reload_class {
         eval_package_without_redefine_warnings ($class, "require $class");
     }
     catch {
-        my $source = decode 'UTF-8', scalar slurp $self->_get_dump_filename($class);
+        my $source = read_file($self->_get_dump_filename($class), binmode => ':encoding(UTF-8)');
         die "Failed to reload class $class: $_.\n\nCLASS SOURCE:\n\n$source";
     };
 }
@@ -1379,7 +1386,8 @@ sub _dump_to_dir {
 
         for my $attr (@attr) {
             if ($self->$attr) {
-                $namespace_options .= qq|    $attr => '| . $self->$attr . qq|',\n|
+                my $code = dumper_squashed $self->$attr;
+                $namespace_options .= qq|    $attr => $code,\n|
             }
         }
         $schema_text .= qq|(\n$namespace_options)| if $namespace_options;
@@ -1651,6 +1659,8 @@ sub _with {
 sub _result_namespace {
     my ($self, $schema_class, $ns) = @_;
     my @result_namespace;
+
+    $ns = $ns->[0] if ref $ns;
 
     if ($ns =~ /^\+(.*)/) {
         # Fully qualified namespace

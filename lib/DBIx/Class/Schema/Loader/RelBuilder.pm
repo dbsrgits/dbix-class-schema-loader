@@ -9,12 +9,11 @@ use Scalar::Util 'weaken';
 use Lingua::EN::Inflect::Phrase ();
 use Lingua::EN::Tagger ();
 use DBIx::Class::Schema::Loader::Utils 'split_name';
-use File::Slurp 'slurp';
+use File::Slurp 'read_file';
 use Try::Tiny;
 use Class::Unload ();
 use Class::Inspector ();
 use List::MoreUtils 'apply';
-use Encode 'decode';
 use namespace::clean;
 
 our $VERSION = '0.07010';
@@ -598,7 +597,7 @@ sub _relnames_and_method {
             my $class = "${remote_class}Temporary";
 
             if (not Class::Inspector->loaded($class)) {
-                my $code = decode 'UTF-8', scalar slurp $existing_remote_file;
+                my $code = read_file($existing_remote_file, binmode => ':encoding(UTF-8)');
 
                 $code =~ s/(?<=package $remote_class)/Temporary/g;
 
