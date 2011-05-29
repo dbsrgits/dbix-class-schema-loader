@@ -215,9 +215,9 @@ do_dump_test(
         schema => [
             qr/package DBICTest::DumpMore::1;/,
             qr/->load_namespaces/,
-            qr/result_namespace => 'Res'/,
-            qr/resultset_namespace => 'RSet'/,
-            qr/default_resultset_class => 'RSetBase'/,
+            qr/result_namespace => "Res"/,
+            qr/resultset_namespace => "RSet"/,
+            qr/default_resultset_class => "RSetBase"/,
         ],
         'Res/Foo' => [
             qr/package DBICTest::DumpMore::1::Res::Foo;/,
@@ -250,9 +250,9 @@ do_dump_test(
         schema => [
             qr/package DBICTest::DumpMore::1;/,
             qr/->load_namespaces/,
-            qr/result_namespace => '\+DBICTest::DumpMore::1::Res'/,
-            qr/resultset_namespace => 'RSet'/,
-            qr/default_resultset_class => 'RSetBase'/,
+            qr/result_namespace => "\+DBICTest::DumpMore::1::Res"/,
+            qr/resultset_namespace => "RSet"/,
+            qr/default_resultset_class => "RSetBase"/,
             qr/use base 'My::SchemaBaseClass'/,
         ],
         'Res/Foo' => [
