@@ -49,7 +49,7 @@ sub _setup {
 sub _table_as_sql {
     my ($self, $table) = @_;
 
-    return $self->_quote_table_name($table);
+    return $self->_quote($table);
 }
 
 sub _tables_list { 
