@@ -8,7 +8,7 @@ use dbixcsl_test_dir qw/$tdir/;
 eval { require DBD::SQLite };
 my $class = $@ ? 'SQLite2' : 'SQLite';
 
-my $fn = "$tdir/dbictest.db";
+my $fn = "$tdir/dbictest_plural_tables.db";
 
 unlink($fn);
 our $dsn = "dbi:$class:dbname=$fn";
@@ -23,7 +23,7 @@ $dbh->do($_) for (
       )|,
     q|CREATE TABLE bars (
         barid INTEGER PRIMARY KEY,
-        fooref INTEGER REFERENCES foo(fooid)
+        fooref INTEGER REFERENCES foos(fooid)
       )|,
     q|INSERT INTO foos (fooid, footext) VALUES (1,'Foo text for number 1')|,
     q|INSERT INTO foos (fooid, footext) VALUES (2,'Foo record associated with the Bar with barid 3')|,
