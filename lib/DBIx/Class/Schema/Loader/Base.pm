@@ -1134,8 +1134,7 @@ sub rescan {
         }
     }
 
-    delete $self->{_dump_storage};
-    delete $self->{_relations_started};
+    delete @$self{qw/_dump_storage _relations_started _uniqs_started/};
 
     my $loaded = $self->_load_tables(@current);
 
@@ -1918,8 +1917,6 @@ sub _setup_src_meta {
 
     # be careful to not create refs Data::Dump can "optimize"
     $full_table_name = \do {"".$full_table_name} if ref $table_name;
-
-    $self->_raw_stmt($table_class, ''); # add a blank line
 
     $self->_dbic_stmt($table_class, 'table', $full_table_name);
 
