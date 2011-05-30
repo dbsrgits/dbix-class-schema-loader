@@ -2,12 +2,13 @@ package DBIx::Class::Schema::Loader::DBI::SQLAnywhere;
 
 use strict;
 use warnings;
-use mro 'c3';
 use base qw/
     DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
     DBIx::Class::Schema::Loader::DBI
 /;
-use Carp::Clan qw/^DBIx::Class/;
+use mro 'c3';
+use List::MoreUtils 'any';
+use namespace::clean;
 
 our $VERSION = '0.07010';
 
@@ -22,27 +23,57 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
+sub _system_schemas {
+    return (qw/dbo SYS diagnostics rs_systabgroup SA_DEBUG/);
+}
+
 sub _setup {
     my $self = shift;
 
     $self->next::method(@_);
 
-    $self->{db_schema} ||=
-        ($self->schema->storage->dbh->selectrow_array('select user'))[0];
+    $self->preserve_case(1)
+        unless defined $self->preserve_case;
+
+    $self->schema->storage->sql_maker->quote_char('"');
+    $self->schema->storage->sql_maker->name_sep('.');
+
+    $self->db_schema([($self->dbh->selectrow_array('select user'))[0]])
+        unless $self->db_schema;
+
+    if (ref $self->db_schema eq 'ARRAY' && $self->db_schema->[0] eq '%') {
+        my @users = grep { my $uname = $_; not any { $_ eq $uname } $self->_system_schemas }
+            @{ $self->dbh->selectcol_arrayref('select user_name from sysuser') };
+
+        $self->db_schema(\@users);
+    }
 }
 
 sub _tables_list {
     my ($self, $opts) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(<<'EOF');
-select t.table_name from systab t
-join sysuser u on u.user_id = t.creator
-where u.user_name = ?
-EOF
-    $sth->execute($self->db_schema);
+    my @tables;
 
-    my @tables = map @$_, @{ $sth->fetchall_arrayref };
+    foreach my $schema (@{ $self->db_schema }) {
+        my $sth = $self->dbh->prepare(<<'EOF');
+SELECT t.table_name name
+FROM systab t
+JOIN sysuser u
+    ON t.creator = u.user_id
+WHERE u.user_name = ?
+EOF
+        $sth->execute($schema);
+
+        my @table_names = map @$_, @{ $sth->fetchall_arrayref };
+
+        foreach my $table_name (@table_names) {
+            push @tables, DBIx::Class::Schema::Loader::Table->new(
+                loader  => $self,
+                name    => $table_name,
+                schema  => $schema,
+            );
+        }
+    }
 
     return $self->_filter_tables(\@tables, $opts);
 }
@@ -62,12 +93,16 @@ sub _columns_info_for {
             $info->{is_auto_increment} = 1;
         }
 
-        my ($user_type) = $dbh->selectrow_array(<<'EOF', {}, $table, $col);
+        my ($user_type) = $dbh->selectrow_array(<<'EOF', {}, $table->schema, $table->name, $col);
 SELECT ut.type_name
 FROM systabcol tc
-JOIN systab t ON tc.table_id = t.table_id
-JOIN sysusertype ut on tc.user_type = ut.type_id
-WHERE t.table_name = ? AND lower(tc.column_name) = ?
+JOIN systab t
+    ON tc.table_id = t.table_id
+JOIN sysuser u
+    ON t.creator = u.user_id
+JOIN sysusertype ut
+    ON tc.user_type = ut.type_id
+WHERE u.user_name = ? AND t.table_name = ? AND tc.column_name = ?
 EOF
         $info->{data_type} = $user_type if defined $user_type;
 
@@ -85,10 +120,13 @@ EOF
         my $sth = $dbh->prepare(<<'EOF');
 SELECT tc.width, tc.scale
 FROM systabcol tc
-JOIN systab t ON t.table_id = tc.table_id
-WHERE t.table_name = ? AND tc.column_name = ?
+JOIN systab t
+    ON t.table_id = tc.table_id
+JOIN sysuser u
+    ON t.creator = u.user_id
+WHERE u.user_name = ? AND t.table_name = ? AND tc.column_name = ?
 EOF
-        $sth->execute($table, $col);
+        $sth->execute($table->schema, $table->name, $col);
         my ($width, $scale) = $sth->fetchrow_array;
         $sth->finish;
 
@@ -118,10 +156,9 @@ EOF
 
 sub _table_pk_info {
     my ($self, $table) = @_;
-    my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
-    my $sth = $dbh->prepare(qq{sp_pkeys ?});
-    $sth->execute($table);
+    local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
+    my $sth = $self->dbh->prepare(qq{sp_pkeys ?, ?});
+    $sth->execute($table->name, $table->schema);
 
     my @keydata;
 
@@ -136,25 +173,39 @@ sub _table_fk_info {
     my ($self, $table) = @_;
 
     my ($local_cols, $remote_cols, $remote_table, @rels);
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(<<'EOF');
-select fki.index_name fk_name, fktc.column_name local_column, pkt.table_name remote_table, pktc.column_name remote_column
-from sysfkey fk
-join systab    pkt  on fk.primary_table_id = pkt.table_id
-join systab    fkt  on fk.foreign_table_id = fkt.table_id
-join sysidx    pki  on fk.primary_table_id = pki.table_id  and fk.primary_index_id    = pki.index_id
-join sysidx    fki  on fk.foreign_table_id = fki.table_id  and fk.foreign_index_id    = fki.index_id
-join sysidxcol fkic on fkt.table_id        = fkic.table_id and fki.index_id           = fkic.index_id
-join systabcol pktc on pkt.table_id        = pktc.table_id and fkic.primary_column_id = pktc.column_id
-join systabcol fktc on fkt.table_id        = fktc.table_id and fkic.column_id         = fktc.column_id
-where fkt.table_name = ?
+    my $sth = $self->dbh->prepare(<<'EOF');
+SELECT fki.index_name fk_name, fktc.column_name local_column, pku.user_name remote_schema, pkt.table_name remote_table, pktc.column_name remote_column
+FROM sysfkey fk
+JOIN systab    pkt
+    ON fk.primary_table_id = pkt.table_id
+JOIN sysuser   pku
+    ON pkt.creator = pku.user_id
+JOIN systab    fkt
+    ON fk.foreign_table_id = fkt.table_id
+JOIN sysuser   fku
+    ON fkt.creator = fku.user_id
+JOIN sysidx    pki 
+    ON fk.primary_table_id = pki.table_id  AND fk.primary_index_id    = pki.index_id
+JOIN sysidx    fki 
+    ON fk.foreign_table_id = fki.table_id  AND fk.foreign_index_id    = fki.index_id
+JOIN sysidxcol fkic
+    ON fkt.table_id        = fkic.table_id AND fki.index_id           = fkic.index_id
+JOIN systabcol pktc
+    ON pkt.table_id        = pktc.table_id AND fkic.primary_column_id = pktc.column_id
+JOIN systabcol fktc
+    ON fkt.table_id        = fktc.table_id AND fkic.column_id         = fktc.column_id
+WHERE fku.user_name = ? AND fkt.table_name = ?
 EOF
-    $sth->execute($table);
+    $sth->execute($table->schema, $table->name);
 
-    while (my ($fk, $local_col, $remote_tab, $remote_col) = $sth->fetchrow_array) {
+    while (my ($fk, $local_col, $remote_schema, $remote_tab, $remote_col) = $sth->fetchrow_array) {
         push @{$local_cols->{$fk}},  $self->_lc($local_col);
         push @{$remote_cols->{$fk}}, $self->_lc($remote_col);
-        $remote_table->{$fk} = $remote_tab;
+        $remote_table->{$fk} = DBIx::Class::Schema::Loader::Table->new(
+            loader  => $self,
+            name    => $remote_tab,
+            schema  => $remote_schema,
+        );
     }
 
     foreach my $fk (keys %$remote_table) {
@@ -170,17 +221,22 @@ EOF
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(<<'EOF');
-select c.constraint_name, tc.column_name
-from sysconstraint c
-join systab t on c.table_object_id = t.object_id
-join sysidx i on c.ref_object_id = i.object_id
-join sysidxcol ic on i.table_id = ic.table_id and i.index_id = ic.index_id
-join systabcol tc on ic.table_id = tc.table_id and ic.column_id = tc.column_id
-where c.constraint_type = 'U' and t.table_name = ?
+    my $sth = $self->dbh->prepare(<<'EOF');
+SELECT c.constraint_name, tc.column_name
+FROM sysconstraint c
+JOIN systab t
+    ON c.table_object_id = t.object_id
+JOIN sysuser u
+    ON t.creator = u.user_id
+JOIN sysidx i
+    ON c.ref_object_id = i.object_id
+JOIN sysidxcol ic
+    ON i.table_id = ic.table_id AND i.index_id = ic.index_id
+JOIN systabcol tc
+    ON ic.table_id = tc.table_id AND ic.column_id = tc.column_id
+WHERE c.constraint_type = 'U' AND u.user_name = ? AND t.table_name = ?
 EOF
-    $sth->execute($table);
+    $sth->execute($table->schema, $table->name);
 
     my $constraints;
     while (my ($constraint_name, $column) = $sth->fetchrow_array) {

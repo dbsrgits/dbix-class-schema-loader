@@ -18,7 +18,6 @@ DBIx::Class::Schema::Loader::DBI::Writing - Loader subclass writing guide for DB
   use strict;
   use warnings;
   use base 'DBIx::Class::Schema::Loader::DBI';
-  use Carp::Clan qw/^DBIx::Class/;
   use mro 'c3';
 
   sub _table_uniq_info {
@@ -63,6 +62,9 @@ likely want to override are: C<_table_pk_info>, C<_table_fk_info>,
 C<_tables_list> and C<_extra_column_info>.  See the included DBD drivers
 for examples of these.
 
+To import comments from the database you need to implement C<_table_comment>,
+C<_column_comment>
+
 =head1 AUTHOR
 
 See L<DBIx::Class::Schema::Loader/AUTHOR> and L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
@@ -71,9 +73,6 @@ See L<DBIx::Class::Schema::Loader/AUTHOR> and L<DBIx::Class::Schema::Loader/CONT
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
-
-To import comments from database you need to implement C<_table_comment>,
-C<_column_comment>
 
 =cut
 

@@ -6,8 +6,12 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
     DBIx::Class::Schema::Loader::DBI
 /;
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
+
+use List::MoreUtils 'any';
+use namespace::clean;
+
+use DBIx::Class::Schema::Loader::Table ();
 
 our $VERSION = '0.07010';
 
@@ -15,35 +19,37 @@ our $VERSION = '0.07010';
 
 DBIx::Class::Schema::Loader::DBI::DB2 - DBIx::Class::Schema::Loader::DBI DB2 Implementation.
 
-=head1 SYNOPSIS
-
-  package My::Schema;
-  use base qw/DBIx::Class::Schema::Loader/;
-
-  __PACKAGE__->loader_options( db_schema => "MYSCHEMA" );
-
-  1;
-
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
+
+sub _system_schemas {
+    my $self = shift;
+
+    return ($self->next::method(@_), qw/
+        SYSCAT SYSIBM SYSIBMADM SYSPUBLIC SYSSTAT SYSTOOLS
+    /);
+}
 
 sub _setup {
     my $self = shift;
 
     $self->next::method(@_);
 
-    my $dbh = $self->schema->storage->dbh;
-    $self->{db_schema} ||= $dbh->selectrow_array('VALUES(CURRENT_USER)', {});
+    my $ns = $self->name_sep;
+
+    $self->db_schema([ $self->dbh->selectrow_array(<<"EOF", {}) ]) unless $self->db_schema;
+SELECT CURRENT_SCHEMA FROM sysibm${ns}sysdummy1
+EOF
 
     if (not defined $self->preserve_case) {
         $self->preserve_case(0);
     }
     elsif ($self->preserve_case) {
         $self->schema->storage->sql_maker->quote_char('"');
-        $self->schema->storage->sql_maker->name_sep('.');
+        $self->schema->storage->sql_maker->name_sep($ns);
     }
 }
 
@@ -52,17 +58,17 @@ sub _table_uniq_info {
 
     my @uniqs;
 
-    my $dbh = $self->schema->storage->dbh;
+    my $sth = $self->{_cache}->{db2_uniq} ||= $self->dbh->prepare(<<'EOF');
+SELECT kcu.colname, kcu.constname, kcu.colseq
+FROM syscat.tabconst as tc
+JOIN syscat.keycoluse as kcu
+    ON tc.constname = kcu.constname
+        AND tc.tabschema = kcu.tabschema
+        AND tc.tabname   = kcu.tabname
+WHERE tc.tabschema = ? and tc.tabname = ? and tc.type = 'U'
+EOF
 
-    my $sth = $self->{_cache}->{db2_uniq} ||= $dbh->prepare(
-        q{SELECT kcu.COLNAME, kcu.CONSTNAME, kcu.COLSEQ
-        FROM SYSCAT.TABCONST as tc
-        JOIN SYSCAT.KEYCOLUSE as kcu
-        ON tc.CONSTNAME = kcu.CONSTNAME AND tc.TABSCHEMA = kcu.TABSCHEMA
-        WHERE tc.TABSCHEMA = ? and tc.TABNAME = ? and tc.TYPE = 'U'}
-    ) or die $DBI::errstr;
-
-    $sth->execute($self->db_schema, $self->_uc($table)) or die $DBI::errstr;
+    $sth->execute($table->schema, $table->name);
 
     my %keydata;
     while(my $row = $sth->fetchrow_arrayref) {
@@ -80,48 +86,74 @@ sub _table_uniq_info {
     return \@uniqs;
 }
 
-# DBD::DB2 doesn't follow the DBI API for ->tables
-sub _tables_list { 
-    my ($self, $opts) = @_;
-    
-    my $dbh = $self->schema->storage->dbh;
-    my @tables = map $self->_lc($_), $dbh->tables(
-        $self->db_schema ? { TABLE_SCHEM => $self->db_schema } : undef
-    );
-    s/\Q$self->{_quoter}\E//g for @tables;
-    s/^.*\Q$self->{_namesep}\E// for @tables;
-
-    return $self->_filter_tables(\@tables, $opts);
-}
-
-sub _table_pk_info {
-    my ($self, $table) = @_;
-    return $self->next::method($self->_uc($table));
-}
-
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my $rels = $self->next::method($self->_uc($table));
+    my $sth = $self->{_cache}->{db2_fk} ||= $self->dbh->prepare(<<'EOF');
+SELECT tc.constname, sr.reftabschema, sr.reftabname,
+       kcu.colname, rkcu.colname, kcu.colseq
+FROM syscat.tabconst tc
+JOIN syscat.keycoluse kcu
+    ON tc.constname = kcu.constname
+        AND tc.tabschema = kcu.tabschema
+        AND tc.tabname = kcu.tabname
+JOIN syscat.references sr
+    ON tc.constname = sr.constname
+        AND tc.tabschema = sr.tabschema
+        AND tc.tabname = sr.tabname
+JOIN syscat.keycoluse rkcu
+    ON sr.refkeyname = rkcu.constname
+        AND kcu.colseq = rkcu.colseq
+WHERE tc.tabschema = ?
+    AND tc.tabname = ?
+    AND tc.type = 'F';
+EOF
+    $sth->execute($table->schema, $table->name);
 
-    foreach my $rel (@$rels) {
-        $rel->{remote_table} = $self->_lc($rel->{remote_table});
+    my %rels;
+
+    COLS: while (my @row = $sth->fetchrow_array) {
+        my ($fk, $remote_schema, $remote_table, $local_col, $remote_col,
+            $colseq) = @row;
+
+        if (not exists $rels{$fk}) {
+            if ($self->db_schema && $self->db_schema->[0] ne '%'
+                && (not any { $_ eq $remote_schema } @{ $self->db_schema })) {
+
+                next COLS;
+            }
+
+            $rels{$fk}{remote_table} = DBIx::Class::Schema::Loader::Table->new(
+                loader  => $self,
+                name    => $remote_table,
+                schema  => $remote_schema,
+            );
+        }
+
+        $rels{$fk}{local_columns}[$colseq-1]  = $self->_lc($local_col);
+        $rels{$fk}{remote_columns}[$colseq-1] = $self->_lc($remote_col);
     }
 
-    return $rels;
+    return [ values %rels ];
+}
+
+
+# DBD::DB2 doesn't follow the DBI API for ->tables
+sub _dbh_tables {
+    my ($self, $schema) = @_;
+
+    return $self->dbh->tables($schema ? { TABLE_SCHEM => $schema } : undef);
 }
 
 sub _columns_info_for {
     my $self = shift;
     my ($table) = @_;
 
-    my $result = $self->next::method($self->_uc($table));
-
-    my $dbh = $self->schema->storage->dbh;
+    my $result = $self->next::method(@_);
 
     while (my ($col, $info) = each %$result) {
         # check for identities
-        my $sth = $dbh->prepare_cached(
+        my $sth = $self->dbh->prepare_cached(
             q{
                 SELECT COUNT(*)
                 FROM syscat.columns
@@ -129,7 +161,7 @@ sub _columns_info_for {
                 AND identity = 'Y' AND generated != ''
             },
             {}, 1);
-        $sth->execute($self->db_schema, $self->_uc($table), $self->_uc($col));
+        $sth->execute($table->schema, $table->name, $self->_uc($col));
         if ($sth->fetchrow_array) {
             $info->{is_auto_increment} = 1;
         }
@@ -172,7 +204,7 @@ sub _columns_info_for {
                     $info->{data_type} = 'varbinary';
                 }
 
-                my ($size) = $dbh->selectrow_array(<<'EOF', {}, $self->db_schema, $self->_uc($table), $self->_uc($col));
+                my ($size) = $self->dbh->selectrow_array(<<'EOF', {}, $table->schema, $table->name, $self->_uc($col));
 SELECT length
 FROM syscat.columns
 WHERE tabschema = ? AND tabname = ? AND colname = ?

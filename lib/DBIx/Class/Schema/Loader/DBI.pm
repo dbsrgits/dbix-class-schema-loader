@@ -4,9 +4,10 @@ use strict;
 use warnings;
 use base qw/DBIx::Class::Schema::Loader::Base/;
 use mro 'c3';
-use Carp::Clan qw/^DBIx::Class/;
 use Try::Tiny;
+use List::MoreUtils 'any';
 use namespace::clean;
+use DBIx::Class::Schema::Loader::Table ();
 
 our $VERSION = '0.07010';
 
@@ -15,6 +16,8 @@ __PACKAGE__->mk_group_accessors('simple', qw/
     _disable_uniq_detection
     _disable_fk_detection
     _passwords
+    quote_char
+    name_sep
 /);
 
 =head1 NAME
@@ -47,8 +50,7 @@ sub new {
     # rebless to vendor-specific class if it exists and loads and we're not in a
     # custom class.
     if (not $self->loader_class) {
-        my $dbh = $self->schema->storage->dbh;
-        my $driver = $dbh->{Driver}->{Name};
+        my $driver = $self->dbh->{Driver}->{Name};
 
         my $subclass = 'DBIx::Class::Schema::Loader::DBI::' . $driver;
         if ($self->load_optional_class($subclass)) {
@@ -58,34 +60,35 @@ sub new {
     }
 
     # Set up the default quoting character and name seperators
-    $self->{_quoter}  = $self->_build_quoter;
-    $self->{_namesep} = $self->_build_namesep;
-
-    # For our usage as regex matches, concatenating multiple quoter
-    # values works fine (e.g. s/\Q<>\E// if quoter was [ '<', '>' ])
-    if( ref $self->{_quoter} eq 'ARRAY') {
-        $self->{_quoter} = join(q{}, @{$self->{_quoter}});
-    }
+    $self->quote_char($self->_build_quote_char);
+    $self->name_sep($self->_build_name_sep);
 
     $self->_setup;
 
     $self;
 }
 
-sub _build_quoter {
+sub _build_quote_char {
     my $self = shift;
-    my $dbh = $self->schema->storage->dbh;
-    return $dbh->get_info(29)
+
+    my $quote_char = $self->dbh->get_info(29)
            || $self->schema->storage->sql_maker->quote_char
            || q{"};
+
+    # For our usage as regex matches, concatenating multiple quote_char
+    # values works fine (e.g. s/[\Q<>\E]// if quote_char was [ '<', '>' ])
+    if (ref $quote_char eq 'ARRAY') {
+        $quote_char = join '', @$quote_char;
+    }
+
+    return $quote_char;
 }
 
-sub _build_namesep {
+sub _build_name_sep {
     my $self = shift;
-    my $dbh = $self->schema->storage->dbh;
-    return $dbh->get_info(41)
+    return $self->dbh->get_info(41)
            || $self->schema->storage->sql_maker->name_sep
-           || q{.};
+           || '.';
 }
 
 # Override this in vendor modules to do things at the end of ->new()
@@ -94,25 +97,97 @@ sub _setup { }
 # Override this in vendor module to load a subclass if necessary
 sub _rebless { }
 
-# Returns an array of table names
+sub _system_schemas {
+    return ('information_schema');
+}
+
+sub _system_tables {
+    return ();
+}
+
+sub _dbh_tables {
+    my ($self, $schema) = (shift, shift);
+
+    my ($table_pattern, $table_type_pattern) = @_ ? @_ : ('%', '%');
+
+    return $self->dbh->tables(undef, $schema, $table_pattern, $table_type_pattern);
+}
+
+# default to be overridden in subclasses if necessary
+sub _supports_db_schema { 1 }
+
+# Returns an array of table objects
 sub _tables_list { 
     my ($self, $opts) = (shift, shift);
 
-    my ($table, $type) = @_ ? @_ : ('%', '%');
+    my @tables;
 
-    my $dbh = $self->schema->storage->dbh;
-    my @tables = $dbh->tables(undef, $self->db_schema, $table, $type);
+    my $qt  = qr/[\Q$self->{quote_char}\E"'`\[\]]/;
+    my $nqt = qr/[^\Q$self->{quote_char}\E"'`\[\]]/;
+    my $ns  = qr/[\Q$self->{name_sep}\E]/;
+    my $nns = qr/[^\Q$self->{name_sep}\E]/;
 
-    my $qt = qr/[\Q$self->{_quoter}\E"'`\[\]]/;
+    foreach my $schema (@{ $self->db_schema || [undef] }) {
+        my @raw_table_names = $self->_dbh_tables($schema, @_);
 
-    my $all_tables_quoted = (grep /$qt/, @tables) == @tables;
+        TABLE: foreach my $raw_table_name (@raw_table_names) {
+            my $quoted = $raw_table_name =~ /^$qt/;
 
-    if ($self->{_quoter} && $all_tables_quoted) {
-        s/.* $qt (?= .* $qt\z)//xg for @tables;
-    } else {
-        s/^.*\Q$self->{_namesep}\E// for @tables;
+            # These regexes are not entirely correct, but hopefully they will work
+            # in most cases. RT reports welcome.
+            my ($schema_name, $table_name1, $table_name2) = $quoted ?
+                $raw_table_name =~ /^(?:${qt}(${nqt}+?)${qt}${ns})?(?:${qt}(.+?)${qt}|(${nns}+))\z/
+                :
+                $raw_table_name =~ /^(?:(${nns}+?)${ns})?(?:${qt}(.+?)${qt}|(${nns}+))\z/;
+
+            my $table_name = $table_name1 || $table_name2;
+
+            foreach my $system_schema ($self->_system_schemas) {
+                if ($schema_name) {
+                    my $matches = 0;
+
+                    if (ref $system_schema) {
+                        $matches = 1
+                            if $schema_name =~ $system_schema
+                                 && $schema !~ $system_schema;
+                    }
+                    else {
+                        $matches = 1
+                            if $schema_name eq $system_schema
+                                && $schema  ne $system_schema;
+                    }
+
+                    next TABLE if $matches;
+                }
+            }
+
+            foreach my $system_table ($self->_system_tables) {
+                my $matches = 0;
+
+                if (ref $system_table) {
+                    $matches = 1 if $table_name =~ $system_table;
+                }
+                else {
+                    $matches = 1 if $table_name eq $system_table
+                }
+
+                next TABLE if $matches;
+            }
+
+            $schema_name ||= $schema;
+
+            my $table = DBIx::Class::Schema::Loader::Table->new(
+                loader => $self,
+                name   => $table_name,
+                schema => $schema_name,
+                ($self->_supports_db_schema ? () : (
+                    ignore_schema => 1
+                )),
+            );
+
+            push @tables, $table;
+        }
     }
-    s/$qt//g for @tables;
 
     return $self->_filter_tables(\@tables, $opts);
 }
@@ -131,18 +206,17 @@ sub _filter_tables {
     @tables = grep { /$constraint/ } @$tables if defined $constraint;
     @tables = grep { ! /$exclude/  } @$tables if defined $exclude;
 
-    LOOP: for my $table (@tables) {
+    TABLE: for my $table (@tables) {
         try {
             local $^W = 0; # for ADO
             my $sth = $self->_sth_for($table, undef, \'1 = 0');
             $sth->execute;
+            1;
         }
         catch {
             warn "Bad table or view '$table', ignoring: $_\n";
-            $self->_unregister_source_for_table($table);
-            no warnings 'exiting';
-            next LOOP;
-        };
+            0;
+        } or next TABLE;
 
         push @filtered_tables, $table;
     }
@@ -159,34 +233,19 @@ We override L<DBIx::Class::Schema::Loader::Base/load> here to hook in our locali
 sub load {
     my $self = shift;
 
-    local $self->schema->storage->dbh->{RaiseError} = 1;
-    local $self->schema->storage->dbh->{PrintError} = 0;
+    local $self->dbh->{RaiseError} = 1;
+    local $self->dbh->{PrintError} = 0;
+
     $self->next::method(@_);
-}
 
-sub _table_as_sql {
-    my ($self, $table) = @_;
-
-    my $sql_maker = $self->schema->storage->sql_maker;
-    my $name_sep  = $sql_maker->name_sep;
-    my $db_schema = $self->db_schema;
-
-    if($db_schema) {
-        return $self->_quote($self->{db_schema})
-            . $name_sep
-            . $self->_quote($table);
-    }
-
-    return $self->_quote($table);
+    $self->schema->storage->disconnect unless $self->dynamic;
 }
 
 sub _sth_for {
     my ($self, $table, $fields, $where) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-
-    my $sth = $dbh->prepare($self->schema->storage->sql_maker
-        ->select(\$self->_table_as_sql($table), $fields, $where));
+    my $sth = $self->dbh->prepare($self->schema->storage->sql_maker
+        ->select(\$table->sql_name, $fields, $where));
 
     return $sth;
 }
@@ -209,10 +268,8 @@ sub _table_pk_info {
 
     return [] if $self->_disable_pk_detection;
 
-    my $dbh = $self->schema->storage->dbh;
-
     my @primary = try {
-        $dbh->primary_key('', $self->db_schema, $table);
+        $self->dbh->primary_key('', $table->schema, $table->name);
     }
     catch {
         warn "Cannot find primary keys for this driver: $_";
@@ -223,7 +280,7 @@ sub _table_pk_info {
     return [] if not @primary;
 
     @primary = map { $self->_lc($_) } @primary;
-    s/\Q$self->{_quoter}\E//g for @primary;
+    s/[\Q$self->{quote_char}\E]//g for @primary;
 
     return \@primary;
 }
@@ -234,16 +291,14 @@ sub _table_uniq_info {
 
     return [] if $self->_disable_uniq_detection;
 
-    my $dbh = $self->schema->storage->dbh;
-
-    if (not $dbh->can('statistics_info')) {
+    if (not $self->dbh->can('statistics_info')) {
         warn "No UNIQUE constraint information can be gathered for this driver";
         $self->_disable_uniq_detection(1);
         return [];
     }
 
     my %indices;
-    my $sth = $dbh->statistics_info(undef, $self->db_schema, $table, 1, 1);
+    my $sth = $self->dbh->statistics_info(undef, $table->schema, $table->name, 1, 1);
     while(my $row = $sth->fetchrow_hashref) {
         # skip table-level stats, conditional indexes, and any index missing
         #  critical fields
@@ -266,75 +321,33 @@ sub _table_uniq_info {
     return \@retval;
 }
 
-sub _table_found {
-    my ( $self, $table ) = @_;
-    return grep {lc($_) eq lc($table)} $self->_tables_list({});
-}
-
-sub _table_found_cached {
-    my ( $self, $table ) = @_;
-    if (not exists ($self->{found_table}->{$table})) {
-        $self->{found_table}->{$table} = $self->_table_found($table);
-    }
-    return $self->{found_table}->{$table};
-}
-
-sub _table_columns_found {
-    my ( $self, $table, @columns ) = @_;
-    my %known_column = map {(lc($_)=>$_)} @{$self->_table_columns($table)};
-    for my $column (@columns) {
-        if (not exists $known_column{lc($column)}) {
-            return();
-        }
-    }
-    # In scalar context, whether or not all columns were found.
-    # In list context, all of the found columns.
-    return map $known_column{lc($_)}, @columns;
-}
-
-sub _table_columns_found_cached {
-    my ( $self, $table, @columns ) = @_;
-    my $key = join chr(28), $table, @columns;
-    if (not exists $self->{found_table_columns}->{$key}) {
-        $self->{found_table_columns}->{$key}
-          = [$self->_table_columns_found($table, @columns)];
-    }
-    return @{ $self->{found_table_columns}{$key} };
-}
-
 sub _table_comment {
-    my ( $self, $table ) = @_;
-    my $table_comments = $self->table_comments_table;
-    if ($self->_table_found_cached($table_comments) and
-         $self->_table_columns_found_cached(
-             $table_comments, 'table_name', 'comment_text')
-    ) {
-        my ($comment) = $self->schema->storage->dbh->selectrow_array(
-            qq{SELECT comment_text
-                FROM $table_comments
-                WHERE table_name = ?
-            }, undef, $table);
-        return $comment;
-    }
-    return undef;
+    my ($self, $table) = @_;
+
+    my $comments_table = $self->table_comments_table;
+
+    my ($comment) = try { $self->dbh->selectrow_array(<<"EOF", {}, $table->name) };
+SELECT comment_text
+FROM $comments_table
+WHERE table_name = ?
+EOF
+
+    return $comment;
 }
 
 sub _column_comment {
-    my ( $self, $table, $column_counter, $column_name ) = @_;
-    my $column_comments = $self->column_comments_table;
-    if ($self->_table_found_cached($column_comments) and
-         $self->_table_columns_found_cached(
-             $column_comments, 'table_name', 'column_name', 'comment_text')
-    ) {
-        my ($comment) = $self->schema->storage->dbh->selectrow_array(
-            qq{SELECT comment_text
-                FROM $column_comments
-                WHERE table_name = ?
-                  AND column_name = ?
-            }, undef, $table, $column_name);
-        return $comment;
-    }
-    return undef;
+    my ($self, $table, $column_counter, $column_name) = @_;
+
+    my $comments_table = $self->column_comments_table;
+
+    my ($comment) = try { $self->dbh->selectrow_array(<<"EOF", {}, $table->name, $column_name) };
+SELECT comment_text
+FROM $comments_table
+WHERE table_name = ?
+AND column_name = ?
+EOF
+        
+    return $comment;
 }
 
 # Find relationships
@@ -343,10 +356,9 @@ sub _table_fk_info {
 
     return [] if $self->_disable_fk_detection;
 
-    my $dbh = $self->schema->storage->dbh;
     my $sth = try {
-        $dbh->foreign_key_info( '', $self->db_schema, '',
-                                '', $self->db_schema, $table );
+        $self->dbh->foreign_key_info( '', '', '',
+                                '', ($table->schema || ''), $table->name );
     }
     catch {
         warn "Cannot introspect relationships for this driver: $_";
@@ -359,17 +371,33 @@ sub _table_fk_info {
     my %rels;
 
     my $i = 1; # for unnamed rels, which hopefully have only 1 column ...
-    while(my $raw_rel = $sth->fetchrow_arrayref) {
+    REL: while(my $raw_rel = $sth->fetchrow_arrayref) {
+        my $uk_scm  = $raw_rel->[1];
         my $uk_tbl  = $raw_rel->[2];
         my $uk_col  = $self->_lc($raw_rel->[3]);
+        my $fk_scm  = $raw_rel->[5];
         my $fk_col  = $self->_lc($raw_rel->[7]);
         my $relid   = ($raw_rel->[11] || ( "__dcsld__" . $i++ ));
-        $uk_tbl =~ s/\Q$self->{_quoter}\E//g;
-        $uk_col =~ s/\Q$self->{_quoter}\E//g;
-        $fk_col =~ s/\Q$self->{_quoter}\E//g;
-        $relid  =~ s/\Q$self->{_quoter}\E//g;
-        $rels{$relid}->{tbl} = $uk_tbl;
-        $rels{$relid}->{cols}{$uk_col} = $fk_col;
+
+        foreach my $var ($uk_scm, $uk_tbl, $uk_col, $fk_scm, $fk_col, $relid) {
+            $var =~ s/[\Q$self->{quote_char}\E]//g;
+        }
+
+        if ($self->db_schema && $self->db_schema->[0] ne '%'
+            && (not any { $_ eq $uk_scm } @{ $self->db_schema })) {
+
+            next REL;
+        }
+
+        $rels{$relid}{tbl} = DBIx::Class::Schema::Loader::Table->new(
+            loader => $self,
+            name   => $uk_tbl,
+            schema => $uk_scm,
+            ($self->_supports_db_schema ? () : (
+                ignore_schema => 1
+            )),
+        );
+        $rels{$relid}{cols}{$uk_col} = $fk_col;
     }
     $sth->finish;
 
@@ -394,7 +422,7 @@ sub _columns_info_for {
     my %result;
 
     if ($dbh->can('column_info')) {
-        my $sth = $self->_dbh_column_info($dbh, undef, $self->db_schema, $table, '%' );
+        my $sth = $self->_dbh_column_info($dbh, undef, $table->schema, $table->name, '%' );
         while ( my $info = $sth->fetchrow_hashref() ){
             my $column_info = {};
             $column_info->{data_type}     = lc $info->{TYPE_NAME};
@@ -476,9 +504,7 @@ sub _columns_info_for {
 sub _dbh_type_info_type_name {
     my ($self, $type_num) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-
-    my $type_info = $dbh->type_info($type_num);
+    my $type_info = $self->dbh->type_info($type_num);
     
     return $type_info ? $type_info->{TYPE_NAME} : undef;
 }
@@ -508,6 +534,12 @@ sub _try_infer_connect_info_from_coderef {
     $code->();
 
     return ($dsn, $user, $pass, $params);
+}
+
+sub dbh {
+    my $self = shift;
+
+    return $self->schema->storage->dbh;
 }
 
 =head1 SEE ALSO

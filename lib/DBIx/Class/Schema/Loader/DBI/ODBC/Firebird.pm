@@ -6,7 +6,6 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::ODBC
     DBIx::Class::Schema::Loader::DBI::InterBase
 /;
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
 
 our $VERSION = '0.07010';

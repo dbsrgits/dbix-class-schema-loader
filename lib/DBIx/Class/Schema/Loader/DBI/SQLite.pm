@@ -6,8 +6,8 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
     DBIx::Class::Schema::Loader::DBI
 /;
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
+use DBIx::Class::Schema::Loader::Table ();
 
 our $VERSION = '0.07010';
 
@@ -39,6 +39,15 @@ sub _setup {
     if (not defined $self->preserve_case) {
         $self->preserve_case(0);
     }
+    
+    if ($self->db_schema) {
+        warn <<'EOF';
+db_schema is not supported on SQLite, the option is implemented only for qualify_objects testing.
+EOF
+        if ($self->db_schema->[0] eq '%') {
+            $self->db_schema(undef);
+        }
+    }
 }
 
 sub rescan {
@@ -48,33 +57,16 @@ sub rescan {
     $self->next::method($schema);
 }
 
-# A hack so that qualify_objects can be tested on SQLite, SQLite does not
-# actually have schemas.
-{
-    sub _table_as_sql {
-        my $self = shift;
-        local $self->{db_schema};
-        return $self->next::method(@_);
-    }
-
-    sub _table_pk_info {
-        my $self = shift;
-        local $self->{db_schema};
-        return $self->next::method(@_);
-    }
-}
-
 sub _columns_info_for {
     my $self = shift;
     my ($table) = @_;
 
     my $result = $self->next::method(@_);
 
-    my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
+    local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
 
-    my $sth = $dbh->prepare(
-      "pragma table_info(" . $dbh->quote_identifier($table) . ")"
+    my $sth = $self->dbh->prepare(
+      "pragma table_info(" . $self->dbh->quote_identifier($table) . ")"
     );
     $sth->execute;
     my $cols = $sth->fetchall_hashref('name');
@@ -108,9 +100,8 @@ sub _columns_info_for {
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(
-        "pragma foreign_key_list(" . $dbh->quote_identifier($table) . ")"
+    my $sth = $self->dbh->prepare(
+        "pragma foreign_key_list(" . $self->dbh->quote_identifier($table) . ")"
     );
     $sth->execute;
 
@@ -119,14 +110,21 @@ sub _table_fk_info {
         my $rel = $rels[ $fk->{id} ] ||= {
             local_columns => [],
             remote_columns => undef,
-            remote_table => $fk->{table}
+            remote_table => DBIx::Class::Schema::Loader::Table->new(
+                loader => $self,
+                name   => $fk->{table},
+                ($self->db_schema ? (
+                    schema        => $self->db_schema->[0],
+                    ignore_schema => 1,
+                ) : ()),
+            ),
         };
 
         push @{ $rel->{local_columns} }, $self->_lc($fk->{from});
         push @{ $rel->{remote_columns} }, $self->_lc($fk->{to}) if defined $fk->{to};
         warn "This is supposed to be the same rel but remote_table changed from ",
-            $rel->{remote_table}, " to ", $fk->{table}
-            if $rel->{remote_table} ne $fk->{table};
+            $rel->{remote_table}->name, " to ", $fk->{table}
+            if $rel->{remote_table}->name ne $fk->{table};
     }
     $sth->finish;
     return \@rels;
@@ -135,9 +133,8 @@ sub _table_fk_info {
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(
-        "pragma index_list(" . $dbh->quote($table) . ")"
+    my $sth = $self->dbh->prepare(
+        "pragma index_list(" . $self->dbh->quote($table) . ")"
     );
     $sth->execute;
 
@@ -147,7 +144,7 @@ sub _table_uniq_info {
 
         my $name = $idx->{name};
 
-        my $get_idx_sth = $dbh->prepare("pragma index_info(" . $dbh->quote($name) . ")");
+        my $get_idx_sth = $self->dbh->prepare("pragma index_info(" . $self->dbh->quote($name) . ")");
         $get_idx_sth->execute;
         my @cols;
         while (my $idx_row = $get_idx_sth->fetchrow_hashref) {
@@ -168,14 +165,20 @@ sub _table_uniq_info {
 sub _tables_list {
     my ($self, $opts) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare("SELECT * FROM sqlite_master");
+    my $sth = $self->dbh->prepare("SELECT * FROM sqlite_master");
     $sth->execute;
     my @tables;
     while ( my $row = $sth->fetchrow_hashref ) {
         next unless $row->{type} =~ /^(?:table|view)\z/i;
         next if $row->{tbl_name} =~ /^sqlite_/;
-        push @tables, $row->{tbl_name};
+        push @tables, DBIx::Class::Schema::Loader::Table->new(
+            loader => $self,
+            name   => $row->{tbl_name},
+            ($self->db_schema ? (
+                schema        => $self->db_schema->[0],
+                ignore_schema => 1, # for qualify_objects tests
+            ) : ()),
+        );
     }
     $sth->finish;
     return $self->_filter_tables(\@tables, $opts);

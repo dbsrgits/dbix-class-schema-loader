@@ -2,10 +2,8 @@ package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06;
 
 use strict;
 use warnings;
-use mro 'c3';
 use base 'DBIx::Class::Schema::Loader::RelBuilder';
-use Carp::Clan qw/^DBIx::Class/;
-use Lingua::EN::Inflect::Phrase ();
+use mro 'c3';
 
 our $VERSION = '0.07010';
 

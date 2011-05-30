@@ -3,7 +3,6 @@ package DBIx::Class::Schema::Loader::DBI::Sybase::Common;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI';
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
 
 our $VERSION = '0.07010';
@@ -20,8 +19,8 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 =cut
 
 # DBD::Sybase doesn't implement get_info properly
-sub _build_quoter  { '"' }
-sub _build_namesep { '.' }
+sub _build_quote_char { '[]' }
+sub _build_name_sep   { '.'  }
 
 sub _setup {
     my $self = shift;
@@ -30,16 +29,6 @@ sub _setup {
 
     $self->schema->storage->sql_maker->quote_char([qw/[ ]/]);
     $self->schema->storage->sql_maker->name_sep('.');
-    $self->{db_schema} ||= $self->_build_db_schema;
-}
-
-sub _build_db_schema {
-    my $self = shift;
-    my $dbh  = $self->schema->storage->dbh;
-
-    my ($db_schema) = $dbh->selectrow_array('select user_name()');
-
-    return $db_schema;
 }
 
 # remove 'IDENTITY' from column data_type

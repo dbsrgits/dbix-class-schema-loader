@@ -3,6 +3,9 @@ use warnings;
 use Test::More;
 use Test::Exception;
 use DBIx::Class::Schema::Loader::Utils 'warnings_exist_silent';
+use Try::Tiny;
+use File::Path 'rmtree';
+use DBIx::Class::Schema::Loader 'make_schema_at';
 use namespace::clean;
 
 # use this if you keep a copy of DBD::Sybase linked to FreeTDS somewhere else
@@ -12,7 +15,18 @@ BEGIN {
   }
 }
 
+use lib qw(t/lib);
+
+use dbixcsl_common_tests ();
+use dbixcsl_test_dir '$tdir';
+
+use constant EXTRA_DUMP_DIR => "$tdir/mssql_extra_dump";
+
+# for cleanup in END for extra tests
+my ($schema, $schemas_created, $databases_created);
+
 my ($dsns, $common_version);
+
 for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
   next unless $ENV{"DBICTEST_${_}_DSN"};
 
@@ -37,9 +51,6 @@ for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
 
 plan skip_all => 'You need to set the DBICTEST_MSSQL_DSN, _USER and _PASS and/or the DBICTEST_MSSQL_ODBC_DSN, _USER and _PASS environment variables'
   unless $dsns;
-
-use lib qw(t/lib);
-use dbixcsl_common_tests;
 
 my $mssql_2008_new_data_types = {
   date     => { data_type => 'date' },
@@ -199,13 +210,16 @@ my $tester = dbixcsl_common_tests->new(
             'MSSQL_Loader_Test6',
             'MSSQL_Loader_Test5',
         ],
-        count  => 10,
+        count  => 10 + 28 * 2 + 24,
         run    => sub {
-            my ($schema, $monikers, $classes) = @_;
+            my ($monikers, $classes, $self);
+            ($schema, $monikers, $classes, $self) = @_;
+
+            my $connect_info = [@$self{qw/dsn user password/}];
 
 # Test that the table above (with '.' in name) gets loaded correctly.
             ok((my $rs = eval {
-                $schema->resultset($monikers->{'[mssql_loader_test1.dot]'}) }),
+                $schema->resultset('MssqlLoaderTest1Dot') }),
                 'got a resultset for table with dot in name');
 
             ok((my $from = eval { $rs->result_source->from }),
@@ -220,7 +234,7 @@ my $tester = dbixcsl_common_tests->new(
             ok ((my $rsrc = $schema->resultset($monikers->{mssql_loader_test5})->result_source),
                 'got result_source');
 
-            if ($schema->_loader->preserve_case) {
+            if ($schema->loader->preserve_case) {
                 is_deeply [ $rsrc->columns ], [qw/Id FooCol BarCol/],
                     'column name case is preserved with case-sensitive collation';
 
@@ -244,7 +258,7 @@ my $tester = dbixcsl_common_tests->new(
             lives_and {
                 my $five_row = $schema->resultset($monikers->{mssql_loader_test5})->new_result({});
 
-                if ($schema->_loader->preserve_case) {
+                if ($schema->loader->preserve_case) {
                     $five_row->foo_col(1);
                     $five_row->bar_col(2);
                 }
@@ -270,10 +284,435 @@ my $tester = dbixcsl_common_tests->new(
                 $schema->resultset($monikers->{mssql_loader_test4})
             } qr/Can't find source/,
                 'no source registered for bad view';
+
+            SKIP: {
+                my $dbh = $schema->storage->dbh;
+
+                try {
+                    $dbh->do('CREATE SCHEMA "dbicsl-test"');
+                }
+                catch {
+                    $schemas_created = 0;
+                    skip "no CREATE SCHEMA privileges", 28 * 2;
+                };
+
+                $dbh->do(<<"EOF");
+                    CREATE TABLE [dbicsl-test].mssql_loader_test8 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100)
+                    )
+EOF
+                $dbh->do(<<"EOF");
+                    CREATE TABLE [dbicsl-test].mssql_loader_test9 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100),
+                        eight_id INTEGER NOT NULL UNIQUE,
+                        FOREIGN KEY (eight_id) REFERENCES [dbicsl-test].mssql_loader_test8 (id)
+                    )
+EOF
+                $dbh->do('CREATE SCHEMA [dbicsl.test]');
+                $dbh->do(<<"EOF");
+                    CREATE TABLE [dbicsl.test].mssql_loader_test10 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100),
+                        mssql_loader_test8_id INTEGER,
+                        FOREIGN KEY (mssql_loader_test8_id) REFERENCES [dbicsl-test].mssql_loader_test8 (id)
+                    )
+EOF
+                $dbh->do(<<"EOF");
+                    CREATE TABLE [dbicsl.test].mssql_loader_test11 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100),
+                        ten_id INTEGER NOT NULL UNIQUE,
+                        FOREIGN KEY (ten_id) REFERENCES [dbicsl.test].mssql_loader_test10 (id)
+                    )
+EOF
+                $dbh->do(<<"EOF");
+                    CREATE TABLE [dbicsl-test].mssql_loader_test12 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100),
+                        mssql_loader_test11_id INTEGER,
+                        FOREIGN KEY (mssql_loader_test11_id) REFERENCES [dbicsl.test].mssql_loader_test11 (id)
+                    )
+EOF
+
+                $schemas_created = 1;
+
+                foreach my $db_schema (['dbicsl-test', 'dbicsl.test'], '%') {
+                    lives_and {
+                        rmtree EXTRA_DUMP_DIR;
+
+                        my @warns;
+                        local $SIG{__WARN__} = sub {
+                            push @warns, $_[0] unless $_[0] =~ /\bcollides\b/;
+                        };
+
+                        make_schema_at(
+                            'MSSQLMultiSchema',
+                            {
+                                naming => 'current',
+                                db_schema => $db_schema,
+                                dump_directory => EXTRA_DUMP_DIR,
+                                quiet => 1,
+                            },
+                            $connect_info,
+                        );
+
+                        diag join "\n", @warns if @warns;
+
+                        is @warns, 0;
+                    } 'dumped schema for "dbicsl-test" and "dbicsl.test" schemas with no warnings';
+
+                    my ($test_schema, $rsrc, $rs, $row, %uniqs, $rel_info);
+
+                    lives_and {
+                        ok $test_schema = MSSQLMultiSchema->connect(@$connect_info);
+                    } 'connected test schema';
+
+                    lives_and {
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest8');
+                    } 'got source for table in schema name with dash';
+
+                    is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                        'column in schema name with dash';
+
+                    is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                        'column in schema name with dash';
+
+                    is try { $rsrc->column_info('value')->{size} }, 100,
+                        'column in schema name with dash';
+
+                    lives_and {
+                        ok $rs = $test_schema->resultset('MssqlLoaderTest8');
+                    } 'got resultset for table in schema name with dash';
+
+                    lives_and {
+                        ok $row = $rs->create({ value => 'foo' });
+                    } 'executed SQL on table in schema name with dash';
+
+                    $rel_info = try { $rsrc->relationship_info('mssql_loader_test9') };
+
+                    is_deeply $rel_info->{cond}, {
+                        'foreign.eight_id' => 'self.id'
+                    }, 'relationship in schema name with dash';
+
+                    is $rel_info->{attrs}{accessor}, 'single',
+                        'relationship in schema name with dash';
+
+                    is $rel_info->{attrs}{join_type}, 'LEFT',
+                        'relationship in schema name with dash';
+
+                    lives_and {
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest9');
+                    } 'got source for table in schema name with dash';
+
+                    %uniqs = try { $rsrc->unique_constraints };
+
+                    is keys %uniqs, 2,
+                        'got unique and primary constraint in schema name with dash';
+
+                    lives_and {
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest10');
+                    } 'got source for table in schema name with dot';
+
+                    is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                        'column in schema name with dot introspected correctly';
+
+                    is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                        'column in schema name with dot introspected correctly';
+
+                    is try { $rsrc->column_info('value')->{size} }, 100,
+                        'column in schema name with dot introspected correctly';
+
+                    lives_and {
+                        ok $rs = $test_schema->resultset('MssqlLoaderTest10');
+                    } 'got resultset for table in schema name with dot';
+
+                    lives_and {
+                        ok $row = $rs->create({ value => 'foo' });
+                    } 'executed SQL on table in schema name with dot';
+
+                    $rel_info = try { $rsrc->relationship_info('mssql_loader_test11') };
+
+                    is_deeply $rel_info->{cond}, {
+                        'foreign.ten_id' => 'self.id'
+                    }, 'relationship in schema name with dot';
+
+                    is $rel_info->{attrs}{accessor}, 'single',
+                        'relationship in schema name with dot';
+
+                    is $rel_info->{attrs}{join_type}, 'LEFT',
+                        'relationship in schema name with dot';
+
+                    lives_and {
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest11');
+                    } 'got source for table in schema name with dot';
+
+                    %uniqs = try { $rsrc->unique_constraints };
+
+                    is keys %uniqs, 2,
+                        'got unique and primary constraint in schema name with dot';
+
+                    lives_and {
+                        ok $test_schema->source('MssqlLoaderTest10')
+                            ->has_relationship('mssql_loader_test8');
+                    } 'cross-schema relationship in multi-db_schema';
+
+                    lives_and {
+                        ok $test_schema->source('MssqlLoaderTest8')
+                            ->has_relationship('mssql_loader_test10s');
+                    } 'cross-schema relationship in multi-db_schema';
+
+                    lives_and {
+                        ok $test_schema->source('MssqlLoaderTest12')
+                            ->has_relationship('mssql_loader_test11');
+                    } 'cross-schema relationship in multi-db_schema';
+
+                    lives_and {
+                        ok $test_schema->source('MssqlLoaderTest11')
+                            ->has_relationship('mssql_loader_test12s');
+                    } 'cross-schema relationship in multi-db_schema';
+                }
+            }
+
+            SKIP: {
+                my $dbh = $schema->storage->dbh;
+
+                try {
+                    $dbh->do('USE master');
+                    $dbh->do('CREATE DATABASE dbicsl_test1');
+                }
+                catch {
+                    skip "no CREATE DATABASE privileges", 24;
+                };
+
+                $dbh->do('CREATE DATABASE dbicsl_test2');
+
+                $dbh->do('USE dbicsl_test1');
+
+                $dbh->do(<<'EOF');
+                    CREATE TABLE mssql_loader_test13 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100)
+                    )
+EOF
+                $dbh->do(<<'EOF');
+                    CREATE TABLE mssql_loader_test14 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100),
+                        thirteen_id INTEGER UNIQUE REFERENCES mssql_loader_test13 (id)
+                    )
+EOF
+
+                $dbh->do('USE master');
+                $dbh->do('USE dbicsl_test2');
+
+                $dbh->do(<<"EOF");
+                    CREATE TABLE mssql_loader_test15 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100)
+                    )
+EOF
+                $dbh->do(<<"EOF");
+                    CREATE TABLE mssql_loader_test16 (
+                        id INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100),
+                        fifteen_id INTEGER UNIQUE REFERENCES mssql_loader_test15 (id)
+                    )
+EOF
+
+                $databases_created = 1;
+
+                lives_and {
+                    my @warns;
+                    local $SIG{__WARN__} = sub {
+                        push @warns, $_[0] unless $_[0] =~ /\bcollides\b/;
+                    };
+ 
+                    make_schema_at(
+                        'MSSQLMultiDatabase',
+                        {
+                            naming => 'current',
+                            db_schema => { '%' => '%' },
+                            dump_directory => EXTRA_DUMP_DIR,
+                            quiet => 1,
+                        },
+                        $connect_info,
+                    );
+
+                    diag join "\n", @warns if @warns;
+
+                    is @warns, 0;
+                } 'dumped schema for all databases with no warnings';
+
+                my $test_schema;
+
+                lives_and {
+                    ok $test_schema = MSSQLMultiDatabase->connect(@$connect_info);
+                } 'connected test schema';
+
+                my ($rsrc, $rs, $row, $rel_info, %uniqs);
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('MssqlLoaderTest13');
+                } 'got source for table in database one';
+
+                is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                    'column in database one';
+
+                is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                    'column in database one';
+
+                is try { $rsrc->column_info('value')->{size} }, 100,
+                    'column in database one';
+
+                lives_and {
+                    ok $rs = $test_schema->resultset('MssqlLoaderTest13');
+                } 'got resultset for table in database one';
+
+                lives_and {
+                    ok $row = $rs->create({ value => 'foo' });
+                } 'executed SQL on table in database one';
+
+                $rel_info = try { $rsrc->relationship_info('mssql_loader_test14') };
+
+                is_deeply $rel_info->{cond}, {
+                    'foreign.thirteen_id' => 'self.id'
+                }, 'relationship in database one';
+
+                is $rel_info->{attrs}{accessor}, 'single',
+                    'relationship in database one';
+
+                is $rel_info->{attrs}{join_type}, 'LEFT',
+                    'relationship in database one';
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('MssqlLoaderTest14');
+                } 'got source for table in database one';
+
+                %uniqs = try { $rsrc->unique_constraints };
+
+                is keys %uniqs, 2,
+                    'got unique and primary constraint in database one';
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('MssqlLoaderTest15');
+                } 'got source for table in database two';
+
+                is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                    'column in database two introspected correctly';
+
+                is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                    'column in database two introspected correctly';
+
+                is try { $rsrc->column_info('value')->{size} }, 100,
+                    'column in database two introspected correctly';
+
+                lives_and {
+                    ok $rs = $test_schema->resultset('MssqlLoaderTest15');
+                } 'got resultset for table in database two';
+
+                lives_and {
+                    ok $row = $rs->create({ value => 'foo' });
+                } 'executed SQL on table in database two';
+
+                $rel_info = try { $rsrc->relationship_info('mssql_loader_test16') };
+
+                is_deeply $rel_info->{cond}, {
+                    'foreign.fifteen_id' => 'self.id'
+                }, 'relationship in database two';
+
+                is $rel_info->{attrs}{accessor}, 'single',
+                    'relationship in database two';
+
+                is $rel_info->{attrs}{join_type}, 'LEFT',
+                    'relationship in database two';
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('MssqlLoaderTest16');
+                } 'got source for table in database two';
+
+                %uniqs = try { $rsrc->unique_constraints };
+
+                is keys %uniqs, 2,
+                    'got unique and primary constraint in database two';
+            }
         },
     },
 );
 
 $tester->run_tests();
 
+END {
+    if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
+        if ($schema) {
+            # switch back to default database
+            $schema->storage->disconnect;
+            my $dbh = $schema->storage->dbh;
+
+            if ($schemas_created) {
+                foreach my $table ('[dbicsl-test].mssql_loader_test12',
+                                   '[dbicsl.test].mssql_loader_test11',
+                                   '[dbicsl.test].mssql_loader_test10',
+                                   '[dbicsl-test].mssql_loader_test9',
+                                   '[dbicsl-test].mssql_loader_test8') {
+                    try {
+                        $dbh->do("DROP TABLE $table");
+                    }
+                    catch {
+                        diag "Error dropping table: $_";
+                    };
+                }
+
+                foreach my $db_schema (qw/dbicsl-test dbicsl.test/) {
+                    try {
+                        $dbh->do(qq{DROP SCHEMA [$db_schema]});
+                    }
+                    catch {
+                        diag "Error dropping test schema $db_schema: $_";
+                    };
+                }
+            }
+
+            if ($databases_created) {
+                $dbh->do('USE dbicsl_test1');
+
+                foreach my $table ('mssql_loader_test14',
+                                   'mssql_loader_test13') {
+                    try {
+                        $dbh->do("DROP TABLE $table");
+                    }
+                    catch {
+                        diag "Error dropping table: $_";
+                    };
+                }
+
+                $dbh->do('USE dbicsl_test2');
+
+                foreach my $table ('mssql_loader_test16',
+                                   'mssql_loader_test15') {
+                    try {
+                        $dbh->do("DROP TABLE $table");
+                    }
+                    catch {
+                        diag "Error dropping table: $_";
+                    };
+                }
+
+                $dbh->do('USE master');
+
+                foreach my $database (qw/dbicsl_test1 dbicsl_test2/) {
+                    try {
+                        $dbh->do(qq{DROP DATABASE $database});
+                    }
+                    catch {
+                        diag "Error dropping test database '$database': $_";
+                    };
+                }
+            }
+
+            rmtree EXTRA_DUMP_DIR;
+        }
+    }
+}
 # vim:et sts=4 sw=4 tw=0:

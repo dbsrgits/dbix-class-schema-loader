@@ -41,6 +41,6 @@ while (my ($style,$subref) = each %invocations) {
     while (my ($arg, $class) = each %loader_class) {
         my $schema = $subref->($arg);
         $schema = $schema->clone unless ref $schema;
-        isa_ok($schema->_loader, $class, "$style($arg)");
+        isa_ok($schema->loader, $class, "$style($arg)");
     }
 }

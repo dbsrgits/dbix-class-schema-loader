@@ -5,9 +5,13 @@ use Scope::Guard ();
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
-my $dbd_interbase_dsn      = $ENV{DBICTEST_FIREBIRD_DSN} || '';
-my $dbd_interbase_user     = $ENV{DBICTEST_FIREBIRD_USER} || '';
-my $dbd_interbase_password = $ENV{DBICTEST_FIREBIRD_PASS} || '';
+my $dbd_firebird_dsn      = $ENV{DBICTEST_FIREBIRD_DSN} || '';
+my $dbd_firebird_user     = $ENV{DBICTEST_FIREBIRD_USER} || '';
+my $dbd_firebird_password = $ENV{DBICTEST_FIREBIRD_PASS} || '';
+
+my $dbd_interbase_dsn      = $ENV{DBICTEST_FIREBIRD_INTERBASE_DSN} || '';
+my $dbd_interbase_user     = $ENV{DBICTEST_FIREBIRD_INTERBASE_USER} || '';
+my $dbd_interbase_password = $ENV{DBICTEST_FIREBIRD_INTERBASE_PASS} || '';
 
 my $odbc_dsn      = $ENV{DBICTEST_FIREBIRD_ODBC_DSN} || '';
 my $odbc_user     = $ENV{DBICTEST_FIREBIRD_ODBC_USER} || '';
@@ -43,8 +47,14 @@ my $tester = dbixcsl_common_tests->new(
     null        => '',
     preserve_case_mode_is_exclusive => 1,
     quote_char                      => '"',
-    warnings => [ qr/'preserve_case' option/ ],
-    connect_info => [ ($dbd_interbase_dsn ? {
+    connect_info => [
+        ($dbd_firebird_dsn ? {
+            dsn         => $dbd_firebird_dsn,
+            user        => $dbd_firebird_user,
+            password    => $dbd_firebird_password,
+            connect_info_opts => { on_connect_call => 'use_softcommit' },
+        } : ()),
+        ($dbd_interbase_dsn ? {
             dsn         => $dbd_interbase_dsn,
             user        => $dbd_interbase_user,
             password    => $dbd_interbase_password,
@@ -109,7 +119,6 @@ my $tester = dbixcsl_common_tests->new(
         'varchar(33) character set unicode_fss' =>
                        => { data_type => 'varchar(x) character set unicode_fss', size => 33 },
 
-
         # Blob types
         'blob'        => { data_type => 'blob' },
         'blob sub_type text'
@@ -151,8 +160,8 @@ q{
 
             my $guard = Scope::Guard->new(\&cleanup_extra);
 
-            local $schema->_loader->{preserve_case} = 1;
-            $schema->_loader->_setup;
+            local $schema->loader->{preserve_case} = 1;
+            $schema->loader->_setup;
 
             $self->rescan_without_warnings($schema);
 
@@ -179,7 +188,7 @@ q{
                 );
 
                 for my $type_num (keys %truncated_types) {
-                    is $schema->_loader->_dbh_type_info_type_name($type_num),
+                    is $schema->loader->_dbh_type_info_type_name($type_num),
                         $truncated_types{$type_num},
                         "ODBC ->_dbh_type_info_type_name correct for '$truncated_types{$type_num}'";
                 }
@@ -192,17 +201,18 @@ q{
     },
 );
 
-if (not ($dbd_interbase_dsn || $odbc_dsn)) {
-    $tester->skip_tests('You need to set the DBICTEST_FIREBIRD_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_ODBC_DSN, _USER and _PASS environment variables');
+if (not ($dbd_firebird_dsn || $dbd_interbase_dsn || $odbc_dsn)) {
+    $tester->skip_tests('You need to set the DBICTEST_FIREBIRD_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_INTERBASE_DSN and/or the DBICTEST_FIREBIRD_ODBC_DSN environment variables');
 }
 else {
     # get rid of stupid warning from InterBase/GetInfo.pm
     if ($dbd_interbase_dsn) {
         local $SIG{__WARN__} = sub { warn @_
-            unless $_[0] =~ m|^Use of uninitialized value in sprintf at \S+DBD/InterBase/GetInfo\.pm line \d+\.$| };
+            unless $_[0] =~ m{^Use of uninitialized value in sprintf at \S+DBD/InterBase/GetInfo\.pm line \d+\.$|^Missing argument in sprintf at \S+DBD/InterBase/GetInfo.pm line \d+\.$} };
         require DBD::InterBase;
         require DBD::InterBase::GetInfo;
     }
+
     $tester->run_tests();
 }
 

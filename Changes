@@ -9,6 +9,9 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - $schema->loader is now a public method
         - add schema_components option
         - sort relationships so they always come out in the same order
+        - multi db_schema support with cross-schema rels (RT#39478)
+        - added moniker_parts option for name clashes in multi db_schema setups
+        - add quiet option
         - add rel_name_map option
         - fix the decimal data type for MS Access over ODBC
         - fix enum/set detection for MySQL (RT#68717)

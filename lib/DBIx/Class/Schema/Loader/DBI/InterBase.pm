@@ -7,8 +7,11 @@ use base qw/DBIx::Class::Schema::Loader::DBI/;
 use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
 use namespace::clean;
+use DBIx::Class::Schema::Loader::Table ();
 
 our $VERSION = '0.07010';
+
+sub _supports_db_schema { 0 }
 
 =head1 NAME
 
@@ -48,40 +51,33 @@ sub _setup {
     $self->next::method(@_);
 
     if (not defined $self->preserve_case) {
-        warn <<'EOF';
-
-WARNING: Assuming unquoted Firebird DDL, see
-perldoc DBIx::Class::Schema::Loader::DBI::InterBase
-and the 'preserve_case' option in
-perldoc DBIx::Class::Schema::Loader::Base
-for more information.
-
-EOF
         $self->preserve_case(0);
     }
-
-    if ($self->preserve_case) {
+    elsif ($self->preserve_case) {
         $self->schema->storage->sql_maker->quote_char('"');
         $self->schema->storage->sql_maker->name_sep('.');
     }
-    else {
-        $self->schema->storage->sql_maker->quote_char(undef);
-        $self->schema->storage->sql_maker->name_sep(undef);
+
+    if ($self->db_schema) {
+        carp "db_schema is not supported on Firebird";
+
+        if ($self->db_schema->[0] eq '%') {
+            $self->db_schema(undef);
+        }
     }
 }
 
 sub _table_pk_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(<<'EOF');
+    my $sth = $self->dbh->prepare(<<'EOF');
 SELECT iseg.rdb$field_name
 FROM rdb$relation_constraints rc
 JOIN rdb$index_segments iseg ON rc.rdb$index_name = iseg.rdb$index_name
 WHERE rc.rdb$constraint_type = 'PRIMARY KEY' and rc.rdb$relation_name = ?
 ORDER BY iseg.rdb$field_position
 EOF
-    $sth->execute($table);
+    $sth->execute($table->name);
 
     my @keydata;
 
@@ -98,8 +94,7 @@ sub _table_fk_info {
     my ($self, $table) = @_;
 
     my ($local_cols, $remote_cols, $remote_table, @rels);
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(<<'EOF');
+    my $sth = $self->dbh->prepare(<<'EOF');
 SELECT rc.rdb$constraint_name fk, iseg.rdb$field_name local_col, ri.rdb$relation_name remote_tab, riseg.rdb$field_name remote_col
 FROM rdb$relation_constraints rc
 JOIN rdb$index_segments iseg ON rc.rdb$index_name = iseg.rdb$index_name
@@ -109,14 +104,21 @@ JOIN rdb$index_segments riseg ON iseg.rdb$field_position = riseg.rdb$field_posit
 WHERE rc.rdb$constraint_type = 'FOREIGN KEY' and rc.rdb$relation_name = ?
 ORDER BY iseg.rdb$field_position
 EOF
-    $sth->execute($table);
+    $sth->execute($table->name);
 
     while (my ($fk, $local_col, $remote_tab, $remote_col) = $sth->fetchrow_array) {
         s/^\s+//, s/\s+\z// for $fk, $local_col, $remote_tab, $remote_col;
 
         push @{$local_cols->{$fk}},  $self->_lc($local_col);
         push @{$remote_cols->{$fk}}, $self->_lc($remote_col);
-        $remote_table->{$fk} = $remote_tab;
+        $remote_table->{$fk} = DBIx::Class::Schema::Loader::Table->new(
+            loader => $self,
+            name   => $remote_tab,
+            ($self->db_schema ? (
+                schema        => $self->db_schema->[0],
+                ignore_schema => 1,
+            ) : ()),
+        );
     }
 
     foreach my $fk (keys %$remote_table) {
@@ -132,15 +134,14 @@ EOF
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(<<'EOF');
+    my $sth = $self->dbh->prepare(<<'EOF');
 SELECT rc.rdb$constraint_name, iseg.rdb$field_name
 FROM rdb$relation_constraints rc
 JOIN rdb$index_segments iseg ON rc.rdb$index_name = iseg.rdb$index_name
 WHERE rc.rdb$constraint_type = 'UNIQUE' and rc.rdb$relation_name = ?
 ORDER BY iseg.rdb$field_position
 EOF
-    $sth->execute($table);
+    $sth->execute($table->name);
 
     my $constraints;
     while (my ($constraint_name, $column) = $sth->fetchrow_array) {
@@ -159,20 +160,20 @@ sub _columns_info_for {
 
     my $result = $self->next::method(@_);
 
-    my $dbh = $self->schema->storage->dbh;
-
-    local $dbh->{LongReadLen} = 100000;
-    local $dbh->{LongTruncOk} = 1;
+    local $self->dbh->{LongReadLen} = 100000;
+    local $self->dbh->{LongTruncOk} = 1;
 
     while (my ($column, $info) = each %$result) {
-        my $sth = $dbh->prepare(<<'EOF');
+        my $data_type = $info->{data_type};
+
+        my $sth = $self->dbh->prepare(<<'EOF');
 SELECT t.rdb$trigger_source
 FROM rdb$triggers t
 WHERE t.rdb$relation_name = ?
 AND t.rdb$system_flag = 0 -- user defined
 AND t.rdb$trigger_type = 1 -- BEFORE INSERT
 EOF
-        $sth->execute($table);
+        $sth->execute($table->name);
 
         while (my ($trigger) = $sth->fetchrow_array) {
             my @trig_cols = map { /^"([^"]+)/ ? $1 : uc($_) } $trigger =~ /new\.("?\w+"?)/ig;
@@ -191,7 +192,7 @@ EOF
         }
 
 # fix up types
-        $sth = $dbh->prepare(<<'EOF');
+        $sth = $self->dbh->prepare(<<'EOF');
 SELECT f.rdb$field_precision, f.rdb$field_scale, f.rdb$field_type, f.rdb$field_sub_type, f.rdb$character_set_id, f.rdb$character_length, t.rdb$type_name, st.rdb$type_name
 FROM rdb$fields f
 JOIN rdb$relation_fields rf ON rf.rdb$field_source = f.rdb$field_name
@@ -200,7 +201,7 @@ LEFT JOIN rdb$types st ON f.rdb$field_sub_type = st.rdb$type AND st.rdb$field_na
 WHERE rf.rdb$relation_name = ?
     AND rf.rdb$field_name  = ?
 EOF
-        $sth->execute($table, $self->_uc($column));
+        $sth->execute($table->name, $self->_uc($column));
         my ($precision, $scale, $type_num, $sub_type_num, $char_set_id, $char_length, $type_name, $sub_type_name) = $sth->fetchrow_array;
         $scale = -$scale if $scale && $scale < 0;
 
@@ -208,7 +209,7 @@ EOF
             s/\s+\z// for $type_name, $sub_type_name;
 
             # fixups primarily for DBD::InterBase
-            if ($info->{data_type} =~ /^(?:integer|int|smallint|bigint|-9581)\z/) {
+            if ($data_type =~ /^(?:integer|int|smallint|bigint|-9581)\z/) {
                 if ($precision && $type_name =~ /^(?:LONG|INT64)\z/ && $sub_type_name eq 'BLR') {
                     $info->{data_type} = 'decimal';
                 }
@@ -235,7 +236,9 @@ EOF
             }
         }
 
-        if ($info->{data_type} =~ /^(?:decimal|numeric)\z/ && defined $precision && defined $scale) {
+        $data_type = $info->{data_type};
+
+        if ($data_type =~ /^(?:decimal|numeric)\z/ && defined $precision && defined $scale) {
             if ($precision == 9 && $scale == 0) {
                 delete $info->{size};
             }
@@ -244,50 +247,52 @@ EOF
             }
         }
 
-        if ($info->{data_type} eq '11') {
+        if ($data_type eq '11') {
             $info->{data_type} = 'timestamp';
         }
-        elsif ($info->{data_type} eq '10') {
+        elsif ($data_type eq '10') {
             $info->{data_type} = 'time';
         }
-        elsif ($info->{data_type} eq '9') {
+        elsif ($data_type eq '9') {
             $info->{data_type} = 'date';
         }
-        elsif ($info->{data_type} eq 'character varying') {
+        elsif ($data_type eq 'character varying') {
             $info->{data_type} = 'varchar';
         }
-        elsif ($info->{data_type} eq 'character') {
+        elsif ($data_type eq 'character') {
             $info->{data_type} = 'char';
         }
-        elsif ($info->{data_type} eq 'float') {
+        elsif ($data_type eq 'float') {
             $info->{data_type} = 'real';
         }
-        elsif ($info->{data_type} eq 'int64' || $info->{data_type} eq '-9581') {
+        elsif ($data_type eq 'int64' || $data_type eq '-9581') {
             # the constant is just in case, the query should pick up the type
             $info->{data_type} = 'bigint';
         }
 
-        if ($info->{data_type} =~ /^(?:char|varchar)\z/) {
+        $data_type = $info->{data_type};
+
+        if ($data_type =~ /^(?:char|varchar)\z/) {
             $info->{size} = $char_length;
 
             if ($char_set_id == 3) {
                 $info->{data_type} .= '(x) character set unicode_fss';
             }
         }
-        elsif ($info->{data_type} !~ /^(?:numeric|decimal)\z/) {
+        elsif ($data_type !~ /^(?:numeric|decimal)\z/) {
             delete $info->{size};
         }
 
 # get default
         delete $info->{default_value} if $info->{default_value} && $info->{default_value} eq 'NULL';
 
-        $sth = $dbh->prepare(<<'EOF');
+        $sth = $self->dbh->prepare(<<'EOF');
 SELECT rf.rdb$default_source
 FROM rdb$relation_fields rf
 WHERE rf.rdb$relation_name = ?
 AND rf.rdb$field_name = ?
 EOF
-        $sth->execute($table, $self->_uc($column));
+        $sth->execute($table->name, $self->_uc($column));
         my ($default_src) = $sth->fetchrow_array;
 
         if ($default_src && (my ($def) = $default_src =~ /^DEFAULT \s+ (\S+)/ix)) {

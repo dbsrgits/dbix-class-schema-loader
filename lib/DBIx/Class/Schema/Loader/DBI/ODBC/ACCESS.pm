@@ -6,9 +6,9 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::ODBC
 /;
 use mro 'c3';
-use Carp::Clan qw/^DBIx::Class/;
 use Try::Tiny;
 use namespace::clean;
+use DBIx::Class::Schema::Loader::Table ();
 
 our $VERSION = '0.07010';
 
@@ -27,6 +27,8 @@ DBIx::Class::Schema::Loader
 See L<DBIx::Class::Schema::Loader::Base> for usage information.
 
 =cut
+
+sub _supports_db_schema { 0 }
 
 sub _db_path {
     my $self = shift;
@@ -163,7 +165,7 @@ sub _adox_column {
 
     my $col_obj;
 
-    my $cols = $self->_adox_catalog->Tables->Item($table)->Columns;
+    my $cols = $self->_adox_catalog->Tables->Item($table->name)->Columns;
 
     for my $col_idx (0..$cols->Count-1) {
         $col_obj = $cols->Item($col_idx);
@@ -197,7 +199,7 @@ sub _table_pk_info {
     my @keydata;
 
     my $indexes = try {
-        $self->_adox_catalog->Tables->Item($table)->Indexes
+        $self->_adox_catalog->Tables->Item($table->name)->Indexes
     }
     catch {
         warn "Could not retrieve indexes in table '$table', disabling primary key detection: $_\n";
@@ -228,7 +230,7 @@ sub _table_fk_info {
     return [] if $self->_disable_fk_detection;
 
     my $keys = try {
-        $self->_adox_catalog->Tables->Item($table)->Keys;
+        $self->_adox_catalog->Tables->Item($table->name)->Keys;
     }
     catch {
         warn "Could not retrieve keys in table '$table', disabling relationship detection: $_\n";
@@ -243,25 +245,32 @@ sub _table_fk_info {
     my @rels;
 
     for my $key_idx (0..($keys->Count-1)) {
-      my $key = $keys->Item($key_idx);
-      if ($key->Type == 2) {
+        my $key = $keys->Item($key_idx);
+
+        next unless $key->Type == 2;
+
         my $local_cols   = $key->Columns;
         my $remote_table = $key->RelatedTable;
         my (@local_cols, @remote_cols);
 
         for my $col_idx (0..$local_cols->Count-1) {
-          my $col = $local_cols->Item($col_idx);
-          push @local_cols,  $self->_lc($col->Name);
-          push @remote_cols, $self->_lc($col->RelatedColumn);
+            my $col = $local_cols->Item($col_idx);
+            push @local_cols,  $self->_lc($col->Name);
+            push @remote_cols, $self->_lc($col->RelatedColumn);
         }
 
         push @rels, {
             local_columns => \@local_cols,
             remote_columns => \@remote_cols,
-            remote_table => $remote_table,
+            remote_table => DBIx::Class::Schema::Loader::Table->new(
+                loader => $self,
+                name   => $remote_table,
+                ($self->db_schema ? (
+                    schema        => $self->db_schema->[0],
+                    ignore_schema => 1,
+                ) : ()),
+            ),
         };
-
-      }
     }
 
     return \@rels;

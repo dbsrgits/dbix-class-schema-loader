@@ -6,7 +6,6 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
     DBIx::Class::Schema::Loader::DBI
 /;
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
 
 our $VERSION = '0.07010';
@@ -18,7 +17,7 @@ Oracle Implementation.
 
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
@@ -27,14 +26,13 @@ sub _setup {
 
     $self->next::method(@_);
 
-    my $dbh = $self->schema->storage->dbh;
+    my ($current_schema) = $self->dbh->selectrow_array('SELECT USER FROM DUAL');
 
-    my ($current_schema) = $dbh->selectrow_array('SELECT USER FROM DUAL', {});
+    $self->db_schema([ $current_schema ]) unless $self->db_schema;
 
-    $self->{db_schema} ||= $current_schema;
-
-    if (lc($self->db_schema) ne lc($current_schema)) {
-        $dbh->do('ALTER SESSION SET current_schema=' . $self->db_schema);
+    if (@{ $self->db_schema } == 1 && $self->db_schema->[0] ne '%'
+        && lc($self->db_schema->[0]) ne lc($current_schema)) {
+        $self->dbh->do('ALTER SESSION SET current_schema=' . $self->db_schema->[0]);
     }
 
     if (not defined $self->preserve_case) {
@@ -46,49 +44,45 @@ sub _setup {
     }
 }
 
-sub _table_as_sql {
-    my ($self, $table) = @_;
+sub _build_name_sep { '.' }
 
-    return $self->_quote($table);
+sub _system_schemas {
+    my $self = shift;
+
+    # From http://www.adp-gmbh.ch/ora/misc/known_schemas.html
+
+    return ($self->next::method(@_), qw/ANONYMOUS APEX_PUBLIC_USER APEX_030200 APPQOSSYS CTXSYS DBSNMP DIP DMSYS EXFSYS LBACSYS MDDATA MDSYS MGMT_VIEW OLAPSYS ORACLE_OCM ORDDATA ORDPLUGINS ORDSYS OUTLN SI_INFORMTN_SCHEMA SPATIAL_CSW_ADMIN_USR SPATIAL_WFS_ADMIN_USR SYS SYSMAN SYSTEM TRACESRV MTSSYS OASPUBLIC OWBSYS OWBSYS_AUDIT WEBSYS WK_PROXY WKSYS WK_TEST WMSYS XDB OSE$HTTP$ADMIN AURORA$JIS$UTILITY$ AURORA$ORB$UNAUTHENTICATED/, qr/^FLOWS_\d\d\d\d\d\d\z/);
 }
 
-sub _tables_list { 
-    my ($self, $opts) = @_;
+sub _system_tables {
+    my $self = shift;
 
-    my $dbh = $self->schema->storage->dbh;
+    return ($self->next::method(@_), 'PLAN_TABLE');
+}
 
-    my @tables;
-    for my $table ( $dbh->tables(undef, $self->db_schema, '%', 'TABLE,VIEW') ) { #catalog, schema, table, type
-        my $quoter = $dbh->get_info(29);
-        $table =~ s/$quoter//g;
+sub _dbh_tables {
+    my ($self, $schema) = @_;
 
-        # remove "user." (schema) prefixes
-        $table =~ s/\w+\.//;
+    return $self->dbh->tables(undef, $schema, '%', 'TABLE,VIEW');
+}
 
-        next if $table eq 'PLAN_TABLE';
-        $table = $self->_lc($table);
-        push @tables, $1
-          if $table =~ /\A(\w+)\z/;
-    }
+sub _filter_tables {
+    my $self = shift;
 
-    {
-        # silence a warning from older DBD::Oracles in tests
-        my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-        local $SIG{__WARN__} = sub {
-            $warn_handler->(@_)
-            unless $_[0] =~ /^Field \d+ has an Oracle type \(\d+\) which is not explicitly supported/;
-        };
+    # silence a warning from older DBD::Oracles in tests
+    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+    local $SIG{__WARN__} = sub {
+        $warn_handler->(@_)
+        unless $_[0] =~ /^Field \d+ has an Oracle type \(\d+\) which is not explicitly supported/;
+    };
 
-        return $self->_filter_tables(\@tables, $opts);
-    }
+    return $self->next::method(@_);
 }
 
 sub _table_columns {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-
-    my $sth = $dbh->column_info(undef, $self->db_schema, $self->_uc($table), '%');
+    my $sth = $self->dbh->column_info(undef, $table->schema, $table, '%');
 
     return [ map $self->_lc($_->{COLUMN_NAME}), @{ $sth->fetchall_arrayref({ COLUMN_NAME => 1 }) || [] } ];
 }
@@ -96,24 +90,21 @@ sub _table_columns {
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
+    my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
+SELECT constraint_name, acc.column_name
+FROM all_constraints
+JOIN all_cons_columns acc USING (constraint_name)
+WHERE acc.table_name=? and acc.owner = ? AND constraint_type='U'
+ORDER BY acc.position
+EOF
 
-    my $sth = $dbh->prepare_cached(
-        q{
-            SELECT constraint_name, acc.column_name
-            FROM all_constraints JOIN all_cons_columns acc USING (constraint_name)
-            WHERE acc.table_name=? and acc.owner = ? AND constraint_type='U'
-            ORDER BY acc.position
-        },
-        {}, 1);
+    $sth->execute($table->name, $table->schema);
 
-    $sth->execute($self->_uc($table),$self->{db_schema} );
     my %constr_names;
+
     while(my $constr = $sth->fetchrow_arrayref) {
         my $constr_name = $self->_lc($constr->[0]);
         my $constr_col  = $self->_lc($constr->[1]);
-        $constr_name =~ s/\Q$self->{_quoter}\E//;
-        $constr_col  =~ s/\Q$self->{_quoter}\E//;
         push @{$constr_names{$constr_name}}, $constr_col;
     }
     
@@ -129,14 +120,12 @@ sub _table_comment {
 
     return $table_comment if $table_comment;
 
-    ($table_comment) = $self->schema->storage->dbh->selectrow_array(
-        q{
-            SELECT comments FROM all_tab_comments
-            WHERE owner = ? 
-              AND table_name = ?
-              AND table_type = 'TABLE'
-        }, undef, $self->db_schema, $self->_uc($table)
-    );
+    ($table_comment) = $self->dbh->selectrow_array(<<'EOF', {}, $table->schema, $table->name);
+SELECT comments FROM all_tab_comments
+WHERE owner = ? 
+  AND table_name = ?
+  AND (table_type = 'TABLE' OR table_type = 'VIEW')
+EOF
 
     return $table_comment
 }
@@ -149,55 +138,35 @@ sub _column_comment {
 
     return $column_comment if $column_comment;
 
-    ($column_comment) = $self->schema->storage->dbh->selectrow_array(
-        q{
-            SELECT comments FROM all_col_comments
-            WHERE owner = ? 
-              AND table_name = ?
-              AND column_name = ?
-        }, undef, $self->db_schema, $self->_uc( $table ), $self->_uc( $column_name )
-    );
+    ($column_comment) = $self->dbh->selectrow_array(<<'EOF', {}, $table->schema, $table->name, $self->_uc($column_name));
+SELECT comments FROM all_col_comments
+WHERE owner = ? 
+  AND table_name = ?
+  AND column_name = ?
+EOF
+
     return $column_comment
 }
 
-sub _table_pk_info {
-    my ($self, $table) = (shift, shift);
-
-    return $self->next::method($self->_uc($table), @_);
-}
-
-sub _table_fk_info {
-    my ($self, $table) = (shift, shift);
-
-    my $rels = $self->next::method($self->_uc($table), @_);
-
-    foreach my $rel (@$rels) {
-        $rel->{remote_table} = $self->_lc($rel->{remote_table});
-    }
-
-    return $rels;
-}
-
 sub _columns_info_for {
-    my ($self, $table) = (shift, shift);
+    my $self = shift;
+    my ($table) = @_;
 
-    my $result = $self->next::method($self->_uc($table), @_);
+    my $result = $self->next::method(@_);
 
-    my $dbh = $self->schema->storage->dbh;
+    local $self->dbh->{LongReadLen} = 100000;
+    local $self->dbh->{LongTruncOk} = 1;
 
-    local $dbh->{LongReadLen} = 100000;
-    local $dbh->{LongTruncOk} = 1;
-
-    my $sth = $dbh->prepare_cached(q{
+    my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
 SELECT atc.column_name, ut.trigger_body
 FROM all_triggers ut
 JOIN all_trigger_cols atc USING (trigger_name)
 WHERE atc.table_name = ?
 AND lower(column_usage) LIKE '%new%' AND lower(column_usage) LIKE '%out%'
 AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIKE '%insert%'
-    }, {}, 1);
+EOF
 
-    $sth->execute($self->_uc($table));
+    $sth->execute($table->name);
 
     while (my ($col_name, $trigger_body) = $sth->fetchrow_array) {
         $col_name = $self->_lc($col_name);
@@ -205,7 +174,7 @@ AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIK
         $result->{$col_name}{is_auto_increment} = 1;
 
         if (my ($seq_schema, $seq_name) = $trigger_body =~ /(?:\."?(\w+)"?)?"?(\w+)"?\.nextval/i) {
-            $seq_schema = $self->_lc($seq_schema || $self->db_schema);
+            $seq_schema = $self->_lc($seq_schema || $table->schema);
             $seq_name   = $self->_lc($seq_name);
 
             $result->{$col_name}{sequence} = ($self->qualify_objects ? ($seq_schema . '.') : '') . $seq_name;

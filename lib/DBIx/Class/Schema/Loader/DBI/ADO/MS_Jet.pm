@@ -7,7 +7,6 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::ODBC::ACCESS
 /;
 use mro 'c3';
-use Carp::Clan qw/^DBIx::Class/;
 use Try::Tiny;
 use namespace::clean;
 

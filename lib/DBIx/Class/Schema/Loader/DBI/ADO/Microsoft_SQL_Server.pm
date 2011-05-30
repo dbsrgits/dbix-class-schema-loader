@@ -7,8 +7,6 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::MSSQL
 /;
 use mro 'c3';
-use Carp::Clan qw/^DBIx::Class/;
-use namespace::clean;
 
 our $VERSION = '0.07010';
 
@@ -25,6 +23,7 @@ See L<DBIx::Class::Schema::Loader::Base> for usage information.
 
 =head1 SEE ALSO
 
+L<DBIx::Class::Schema::Loader::DBI::ADO>,
 L<DBIx::Class::Schema::Loader::DBI::MSSQL>,
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
 L<DBIx::Class::Schema::Loader::DBI>

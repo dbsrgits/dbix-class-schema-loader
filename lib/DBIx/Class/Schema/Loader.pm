@@ -465,19 +465,7 @@ Can be imported into your dump script and called as a function as well:
 
 =head2 Multiple Database Schemas
 
-Currently the loader is limited to working within a single schema
-(using the underlying RDBMS's definition of "schema").  If you have a
-multi-schema database with inter-schema relationships (which is easy
-to do in PostgreSQL or DB2 for instance), you currently can only
-automatically load the tables of one schema, and relationships to
-tables in other schemas will be silently ignored.
-
-At some point in the future, an intelligent way around this might be
-devised, probably by allowing the C<db_schema> option to be an
-arrayref of schemas to load.
-
-In "normal" L<DBIx::Class::Schema> usage, manually-defined
-source classes and relationships have no problems crossing vendor schemas.
+See L<DBIx::Class::Schema::Loader::Base/db_schema>.
 
 =head1 ACKNOWLEDGEMENTS
 

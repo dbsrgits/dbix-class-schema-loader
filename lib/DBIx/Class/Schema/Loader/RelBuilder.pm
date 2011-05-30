@@ -6,14 +6,14 @@ use base 'Class::Accessor::Grouped';
 use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
-use Lingua::EN::Inflect::Phrase ();
-use Lingua::EN::Tagger ();
 use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file/;
 use Try::Tiny;
-use Class::Unload ();
-use Class::Inspector ();
 use List::MoreUtils 'apply';
 use namespace::clean;
+use Lingua::EN::Inflect::Phrase ();
+use Lingua::EN::Tagger ();
+use Class::Unload ();
+use Class::Inspector ();
 
 our $VERSION = '0.07010';
 
@@ -46,10 +46,11 @@ Arguments: $loader object
 
 Arguments: 
     
-    {
-        local_moniker (scalar) => [ fk_info (arrayref), uniq_info (arrayref) ]
+    [
+        [ local_moniker1 (scalar), fk_info1 (arrayref), uniq_info1 (arrayref) ]
+        [ local_moniker2 (scalar), fk_info2 (arrayref), uniq_info2 (arrayref) ]
         ...
-    }
+    ]
 
 This generates the code for the relationships of each table.
 
@@ -58,14 +59,20 @@ statements.  The fk_info arrayref's contents should take the form:
 
     [
         {
-            local_columns => [ 'col2', 'col3' ],
-            remote_columns => [ 'col5', 'col7' ],
+            local_table    => 'some_table',
+            local_moniker  => 'SomeTable',
+            local_columns  => [ 'col2', 'col3' ],
+            remote_table   => 'another_table_moniker',
             remote_moniker => 'AnotherTableMoniker',
+            remote_columns => [ 'col5', 'col7' ],
         },
         {
-            local_columns => [ 'col1', 'col4' ],
-            remote_columns => [ 'col1', 'col2' ],
+            local_table    => 'some_other_table',
+            local_moniker  => 'SomeOtherTable',
+            local_columns  => [ 'col1', 'col4' ],
+            remote_table   => 'yet_another_table_moniker',
             remote_moniker => 'YetAnotherTableMoniker',
+            remote_columns => [ 'col1', 'col2' ],
         },
         # ...
     ],
@@ -287,14 +294,7 @@ sub _remote_attrs {
 sub _sanitize_name {
     my ($self, $name) = @_;
 
-    if (ref $name) {
-        # scalar ref for weird table name (like one containing a '.')
-        ($name = $$name) =~ s/\W+/_/g;
-    }
-    else {
-        # remove 'schema.' prefix if any
-        $name =~ s/^[^.]+\.//;
-    }
+    $name =~ s/\W+/_/g;
 
     return $name;
 }
@@ -333,7 +333,7 @@ sub _resolve_relname_collision {
 
     return $relname if $relname eq 'id'; # this shouldn't happen, but just in case
 
-    my $table = $self->loader->tables->{$moniker};
+    my $table = $self->loader->moniker_to_table->{$moniker};
 
     if ($self->loader->_is_result_class_method($relname, $table)) {
         if (my $map = $self->rel_collision_map) {
@@ -350,8 +350,7 @@ sub _resolve_relname_collision {
         }
 
         warn <<"EOF";
-Relationship '$relname' in source '$moniker' for columns '@{[ join ',', @$cols ]}' collides with an inherited method.
-Renaming to '$new_relname'.
+Relationship '$relname' in source '$moniker' for columns '@{[ join ',', @$cols ]}' collides with an inherited method. Renaming to '$new_relname'.
 See "RELATIONSHIP NAME COLLISIONS" in perldoc DBIx::Class::Schema::Loader::Base .
 EOF
 
@@ -617,10 +616,10 @@ sub _relnames_and_method {
     my $remote_moniker  = $rel->{remote_source};
     my $remote_obj      = $self->schema->source( $remote_moniker );
     my $remote_class    = $self->schema->class(  $remote_moniker );
-    my $remote_relname  = $self->_remote_relname( $remote_obj->from, $cond);
+    my $remote_relname  = $self->_remote_relname( $rel->{remote_table}, $cond);
 
     my $local_cols      = $rel->{local_columns};
-    my $local_table     = $self->schema->source($local_moniker)->from;
+    my $local_table     = $rel->{local_table};
     my $local_class     = $self->schema->class($local_moniker);
     my $local_source    = $self->schema->source($local_moniker);
 

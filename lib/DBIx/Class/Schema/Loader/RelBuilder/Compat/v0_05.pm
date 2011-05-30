@@ -2,9 +2,8 @@ package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05;
 
 use strict;
 use warnings;
-use mro 'c3';
 use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06';
-use Carp::Clan qw/^DBIx::Class/;
+use mro 'c3';
 use Lingua::EN::Inflect::Number ();
 
 our $VERSION = '0.07010';
@@ -29,10 +28,10 @@ sub _relnames_and_method {
     my $remote_moniker = $rel->{remote_source};
     my $remote_obj     = $self->{schema}->source( $remote_moniker );
     my $remote_class   = $self->{schema}->class(  $remote_moniker );
-    my $remote_relname = $self->_remote_relname( $remote_obj->from, $cond);
+    my $remote_relname = $self->_remote_relname( $rel->{remote_table}, $cond);
 
     my $local_cols  = $rel->{local_columns};
-    my $local_table = $self->{schema}->source($local_moniker)->from;
+    my $local_table = $rel->{local_table};
 
     # If more than one rel between this pair of tables, use the local
     # col names to distinguish

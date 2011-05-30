@@ -47,6 +47,7 @@
     - remove implicit rels from common tests so all tests work on MySQL
     - sort unique keys by name
     - server link support for Oracle and MSSQL
+    - add -I support to dbicdump
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find

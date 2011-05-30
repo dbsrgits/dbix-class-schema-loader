@@ -2,10 +2,8 @@ package DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_040;
 
 use strict;
 use warnings;
-use mro 'c3';
 use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05';
-use Carp::Clan qw/^DBIx::Class/;
-use Lingua::EN::Inflect::Number ();
+use mro 'c3';
 
 our $VERSION = '0.07010';
 
@@ -13,9 +11,9 @@ sub _relnames_and_method {
     my ( $self, $local_moniker, $rel, $cond, $uniqs, $counters ) = @_;
 
     my $remote_moniker = $rel->{remote_source};
-    my $remote_table   = $self->{schema}->source( $remote_moniker )->from;
+    my $remote_table   = $rel->{remote_table};
 
-    my $local_table = $self->{schema}->source($local_moniker)->from;
+    my $local_table = $rel->{local_table};
     my $local_cols  = $rel->{local_columns};
 
     # for single-column case, set the remote relname to just the column name

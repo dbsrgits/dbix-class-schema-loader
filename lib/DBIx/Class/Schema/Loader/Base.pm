@@ -22,7 +22,7 @@ use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
 use Encode qw/encode decode/;
-use List::MoreUtils 'all';
+use List::MoreUtils qw/all firstidx/;
 use IPC::Open2;
 use Symbol 'gensym';
 use namespace::clean;
@@ -61,7 +61,6 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
 
                                 relationship_attrs
 
-                                db_schema
                                 _tables
                                 classes
                                 _upgrading_classes
@@ -72,11 +71,10 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 datetime_locale
                                 config_file
                                 loader_class
-                                qualify_objects
-                                tables
                                 table_comments_table
                                 column_comments_table
                                 class_to_table
+                                moniker_to_table
                                 uniq_to_primary
                                 quiet
 /);
@@ -105,6 +103,9 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 _result_class_methods
                                 naming_set
                                 filter_generated_code
+                                db_schema
+                                qualify_objects
+                                moniker_parts
 /);
 
 my $CURRENT_V = 'v7';
@@ -354,8 +355,52 @@ decides to execute will be C<warn>-ed before execution.
 =head2 db_schema
 
 Set the name of the schema to load (schema in the sense that your database
-vendor means it).  Does not currently support loading more than one schema
-name.
+vendor means it).
+
+Can be set to an arrayref of schema names for multiple schemas, or the special
+value C<%> for all schemas.
+
+For MSSQL, Sybase ASE, and Informix can be set to a hashref of databases as
+keys and arrays of owners as values, set to the value:
+
+    { '%' => '%' }
+
+for all owners in all databases.
+
+You may need to control naming of monikers with L</moniker_parts> if you have
+name clashes for tables in different schemas/databases.
+
+=head2 moniker_parts
+
+The database table names are represented by the
+L<DBIx::Class::Schema::Loader::Table> class in the loader, the
+L<DBIx::Class::Schema::Loader::Table::Sybase> class for Sybase ASE and
+L<DBIx::Class::Schema::Loader::Table::Informix> for Informix.
+
+Monikers are created normally based on just the
+L<name|DBIx::Class::Schema::Loader::DBObject/name> property, corresponding to
+the table name, but can consist of other parts of the fully qualified name of
+the table.
+
+The L</moniker_parts> option is an arrayref of methods on the table class
+corresponding to parts of the fully qualified table name, defaulting to
+C<['name']>, in the order those parts are used to create the moniker name.
+
+The C<'name'> entry B<must> be present.
+
+Below is a table of supported databases and possible L</moniker_parts>.
+
+=over 4
+
+=item * DB2, Firebird, mysql, Oracle, Pg, SQLAnywhere, SQLite, MS Access
+
+C<schema>, C<name>
+
+=item * Informix, MSSQL, Sybase ASE
+
+C<database>, C<schema>, C<name>    
+
+=back
 
 =head2 constraint
 
@@ -827,8 +872,9 @@ sub new {
         }
     }
 
+    $self->{_tables} = {};
     $self->{monikers} = {};
-    $self->{tables}   = {};
+    $self->{moniker_to_table} = {};
     $self->{class_to_table} = {};
     $self->{classes}  = {};
     $self->{_upgrading_classes} = {};
@@ -925,7 +971,40 @@ sub new {
         }
     }
 
-    $self;
+    if (defined $self->db_schema) {
+        if (ref $self->db_schema eq 'ARRAY') {
+            if (@{ $self->db_schema } > 1) {
+                $self->{qualify_objects} = 1;
+            }
+            elsif (@{ $self->db_schema } == 0) {
+                $self->{db_schema} = undef;
+            }
+        }
+        elsif (not ref $self->db_schema) {
+            if ($self->db_schema eq '%') {
+                $self->{qualify_objects} = 1;
+            }
+
+            $self->{db_schema} = [ $self->db_schema ];
+        }
+    }
+
+    if (not $self->moniker_parts) {
+        $self->moniker_parts(['name']);
+    }
+    else {
+        if (not ref $self->moniker_parts) {
+            $self->moniker_parts([ $self->moniker_parts ]);
+        }
+        if (ref $self->moniker_parts ne 'ARRAY') {
+            croak 'moniker_parts must be an arrayref';
+        }
+        if ((firstidx { $_ eq 'name' } @{ $self->moniker_parts }) == -1) {
+            croak "moniker_parts option *must* contain 'name'";
+        }
+    }
+
+    return $self;
 }
 
 sub _check_back_compat {
@@ -1270,16 +1349,16 @@ sub rescan {
     my @current = $self->_tables_list({ constraint => $self->constraint, exclude => $self->exclude });
 
     foreach my $table (@current) {
-        if(!exists $self->{_tables}->{$table}) {
+        if(!exists $self->_tables->{$table->sql_name}) {
             push(@created, $table);
         }
     }
 
     my %current;
-    @current{@current} = ();
-    foreach my $table (keys %{ $self->{_tables} }) {
-        if (not exists $current{$table}) {
-            $self->_unregister_source_for_table($table);
+    @current{map $_->sql_name, @current} = ();
+    foreach my $table (values %{ $self->_tables }) {
+        if (not exists $current{$table->sql_name}) {
+            $self->_remove_table($table);
         }
     }
 
@@ -1287,7 +1366,11 @@ sub rescan {
 
     my $loaded = $self->_load_tables(@current);
 
-    return map { $self->monikers->{$_} } @created;
+    foreach my $table (@created) {
+        $self->monikers->{$table->sql_name} = $self->_table2moniker($table);
+    }
+
+    return map { $self->monikers->{$_->sql_name} } @created;
 }
 
 sub _relbuilder {
@@ -1318,24 +1401,24 @@ sub _load_tables {
 
     # Save the new tables to the tables list
     foreach (@tables) {
-        $self->{_tables}->{$_} = 1;
+        $self->_tables->{$_->sql_name} = $_;
     }
 
     $self->_make_src_class($_) for @tables;
 
     # sanity-check for moniker clashes
     my $inverse_moniker_idx;
-    for (keys %{$self->monikers}) {
-      push @{$inverse_moniker_idx->{$self->monikers->{$_}}}, $_;
+    foreach my $table (values %{ $self->_tables }) {
+      push @{ $inverse_moniker_idx->{$self->monikers->{$table->sql_name}} }, $table;
     }
 
     my @clashes;
-    for (keys %$inverse_moniker_idx) {
-      my $tables = $inverse_moniker_idx->{$_};
+    foreach my $moniker (keys %$inverse_moniker_idx) {
+      my $tables = $inverse_moniker_idx->{$moniker};
       if (@$tables > 1) {
         push @clashes, sprintf ("tables %s reduced to the same source moniker '%s'",
-          join (', ', map { "'$_'" } @$tables),
-          $_,
+          join (', ', map $_->sql_name, @$tables),
+          $moniker,
         );
       }
     }
@@ -1347,7 +1430,6 @@ sub _load_tables {
           . "\n"
       ;
     }
-
 
     $self->_setup_src_meta($_) for @tables;
 
@@ -1365,7 +1447,7 @@ sub _load_tables {
     $self->_load_roles($_) for @tables;
 
     $self->_load_external($_)
-        for map { $self->classes->{$_} } @tables;
+        for map { $self->classes->{$_->sql_name} } @tables;
 
     # Reload without unloading first to preserve any symbols from external
     # packages.
@@ -1388,7 +1470,7 @@ sub _reload_classes {
     # so that we don't repeat custom sections
     @INC = grep $_ ne $self->dump_directory, @INC;
 
-    $self->_dump_to_dir(map { $self->classes->{$_} } @tables);
+    $self->_dump_to_dir(map { $self->classes->{$_->sql_name} } @tables);
 
     unshift @INC, $self->dump_directory;
     
@@ -1397,8 +1479,8 @@ sub _reload_classes {
         $self->schema->sources;
 
     for my $table (@tables) {
-        my $moniker = $self->monikers->{$table};
-        my $class = $self->classes->{$table};
+        my $moniker = $self->monikers->{$table->sql_name};
+        my $class = $self->classes->{$table->sql_name};
         
         {
             no warnings 'redefine';
@@ -1609,7 +1691,6 @@ sub _dump_to_dir {
     }
 
     warn "Schema dump completed.\n" unless $self->dynamic or $self->quiet;
-
 }
 
 sub _sig_comment {
@@ -1911,16 +1992,15 @@ sub _make_src_class {
             );
         }
 
-        my $old_class = join(q{::}, @result_namespace,
-            $self->_table2moniker($table));
+        my $old_class = join(q{::}, @result_namespace, $table_moniker);
 
         $self->_upgrading_classes->{$table_class} = $old_class
             unless $table_class eq $old_class;
     }
 
-    $self->classes->{$table}  = $table_class;
-    $self->monikers->{$table} = $table_moniker;
-    $self->tables->{$table_moniker} = $table;
+    $self->classes->{$table->sql_name}  = $table_class;
+    $self->monikers->{$table->sql_name} = $table_moniker;
+    $self->moniker_to_table->{$table_moniker} = $table;
     $self->class_to_table->{$table_class} = $table;
 
     $self->_pod_class_list($table_class, 'ADDITIONAL CLASSES USED', @{$self->additional_classes});
@@ -1953,9 +2033,9 @@ sub _make_src_class {
 }
 
 sub _is_result_class_method {
-    my ($self, $name, $table_name) = @_;
+    my ($self, $name, $table) = @_;
 
-    my $table_moniker = $table_name ? $self->monikers->{$table_name} : '';
+    my $table_moniker = $table ? $self->monikers->{$table->sql_name} : '';
 
     $self->_result_class_methods({})
         if not defined $self->_result_class_methods;
@@ -1999,14 +2079,12 @@ sub _is_result_class_method {
 sub _resolve_col_accessor_collisions {
     my ($self, $table, $col_info) = @_;
 
-    my $table_name = ref $table ? $$table : $table;
-
     while (my ($col, $info) = each %$col_info) {
         my $accessor = $info->{accessor} || $col;
 
         next if $accessor eq 'id'; # special case (very common column)
 
-        if ($self->_is_result_class_method($accessor, $table_name)) {
+        if ($self->_is_result_class_method($accessor, $table)) {
             my $mapped = 0;
 
             if (my $map = $self->col_collision_map) {
@@ -2020,7 +2098,7 @@ sub _resolve_col_accessor_collisions {
 
             if (not $mapped) {
                 warn <<"EOF";
-Column '$col' in table '$table_name' collides with an inherited method.
+Column '$col' in table '$table' collides with an inherited method.
 See "COLUMN ACCESSOR COLLISIONS" in perldoc DBIx::Class::Schema::Loader::Base .
 EOF
                 $info->{accessor} = undef;
@@ -2077,18 +2155,6 @@ sub _make_column_accessor_name {
     return $accessor;
 }
 
-sub _quote {
-    my ($self, $identifier) = @_;
-
-    my $qt = $self->schema->storage->sql_maker->quote_char || '';
-
-    if (ref $qt) {
-        return $qt->[0] . $identifier . $qt->[1];
-    }
-
-    return "${qt}${identifier}${qt}";
-}
-
 # Set up metadata (cols, pks, etc)
 sub _setup_src_meta {
     my ($self, $table) = @_;
@@ -2096,26 +2162,10 @@ sub _setup_src_meta {
     my $schema       = $self->schema;
     my $schema_class = $self->schema_class;
 
-    my $table_class   = $self->classes->{$table};
-    my $table_moniker = $self->monikers->{$table};
+    my $table_class   = $self->classes->{$table->sql_name};
+    my $table_moniker = $self->monikers->{$table->sql_name};
 
-    my $table_name = $table;
-
-    my $sql_maker  = $self->schema->storage->sql_maker;
-    my $name_sep   = $sql_maker->name_sep;
-
-    if ($name_sep && $table_name =~ /\Q$name_sep\E/) {
-        $table_name = \ $self->_quote($table_name);
-    }
-
-    my $full_table_name = ($self->qualify_objects ?
-        ($self->_quote($self->db_schema) . '.') : '')
-        . (ref $table_name ? $$table_name : $table_name);
-
-    # be careful to not create refs Data::Dump can "optimize"
-    $full_table_name = \do {"".$full_table_name} if ref $table_name;
-
-    $self->_dbic_stmt($table_class, 'table', $full_table_name);
+    $self->_dbic_stmt($table_class, 'table', $table->dbic_name);
 
     my $cols     = $self->_table_columns($table);
     my $col_info = $self->__columns_info_for($table);
@@ -2127,8 +2177,8 @@ sub _setup_src_meta {
         my $context = {
             table_class     => $table_class,
             table_moniker   => $table_moniker,
-            table_name      => $table_name,
-            full_table_name => $full_table_name,
+            table_name      => $table,
+            full_table_name => $table->dbic_name,
             schema_class    => $schema_class,
             column_info     => $info,
         };
@@ -2231,7 +2281,7 @@ names.
 sub tables {
     my $self = shift;
 
-    return keys %{$self->_tables};
+    return values %{$self->_tables};
 }
 
 # Make a moniker from a table
@@ -2239,21 +2289,27 @@ sub _default_table2moniker {
     no warnings 'uninitialized';
     my ($self, $table) = @_;
 
+    my @name_parts = map $table->$_, @{ $self->moniker_parts };
+
+    my $name_idx = firstidx { $_ eq 'name' } @{ $self->moniker_parts };
+
     if ($self->naming->{monikers} eq 'v4') {
-        return join '', map ucfirst, split /[\W_]+/, lc $table;
+        return join '', map ucfirst, map split(/[\W_]+/, lc $_), @name_parts;
     }
     elsif ($self->naming->{monikers} eq 'v5') {
-        return join '', map ucfirst, split /[\W_]+/,
-            Lingua::EN::Inflect::Number::to_S(lc $table);
+        my @parts = map lc, @name_parts;
+        $parts[$name_idx] = Lingua::EN::Inflect::Number::to_S($parts[$name_idx]);
+
+        return join '', map ucfirst, map split(/[\W_]+/, $_), @parts;
     }
     elsif ($self->naming->{monikers} eq 'v6') {
-        (my $as_phrase = lc $table) =~ s/_+/ /g;
+        (my $as_phrase = join '', map lc, @name_parts) =~ s/_+/ /g;
         my $inflected = Lingua::EN::Inflect::Phrase::to_S($as_phrase);
 
         return join '', map ucfirst, split /\W+/, $inflected;
     }
 
-    my @words = map lc, split_name $table;
+    my @words = map lc, map split_name $_, @name_parts;
     my $as_phrase = join ' ', @words;
 
     my $inflected = $self->naming->{monikers} eq 'plural' ?
@@ -2283,14 +2339,17 @@ sub _load_relationships {
     my @tables;
 
     foreach my $table (@$tables) {
+        my $local_moniker = $self->monikers->{$table->sql_name};
+
         my $tbl_fk_info = $self->_table_fk_info($table);
+
         foreach my $fkdef (@$tbl_fk_info) {
+            $fkdef->{local_table}   = $table;
+            $fkdef->{local_moniker} = $local_moniker;
             $fkdef->{remote_source} =
-                $self->monikers->{delete $fkdef->{remote_table}};
+                $self->monikers->{$fkdef->{remote_table}->sql_name};
         }
         my $tbl_uniq_info = $self->_table_uniq_info($table);
-
-        my $local_moniker = $self->monikers->{$table};
 
         push @tables, [ $local_moniker, $tbl_fk_info, $tbl_uniq_info ];
     }
@@ -2312,8 +2371,8 @@ sub _load_relationships {
 sub _load_roles {
     my ($self, $table) = @_;
 
-    my $table_moniker = $self->monikers->{$table};
-    my $table_class   = $self->classes->{$table};
+    my $table_moniker = $self->monikers->{$table->sql_name};
+    my $table_class   = $self->classes->{$table->sql_name};
 
     my @roles = @{ $self->result_roles || [] };
     push @roles, @{ $self->result_roles_map->{$table_moniker} }
@@ -2585,19 +2644,16 @@ sub _uc {
     return $self->preserve_case ? $name : uc($name);
 }
 
-sub _unregister_source_for_table {
+sub _remove_table {
     my ($self, $table) = @_;
 
     try {
-        local $@;
         my $schema = $self->schema;
         # in older DBIC it's a private method
         my $unregister = $schema->can('unregister_source') || $schema->can('_unregister_source');
-        $schema->$unregister($self->_table2moniker($table));
-        delete $self->monikers->{$table};
-        delete $self->classes->{$table};
-        delete $self->_upgrading_classes->{$table};
-        delete $self->{_tables}{$table};
+        $schema->$unregister(delete $self->monikers->{$table->sql_name});
+        delete $self->_upgrading_classes->{delete $self->classes->{$table->sql_name}};
+        delete $self->_tables->{$table->sql_name};
     };
 }
 

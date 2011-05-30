@@ -2,11 +2,13 @@ package DBIx::Class::Schema::Loader::DBI::Informix;
 
 use strict;
 use warnings;
-use mro 'c3';
 use base qw/DBIx::Class::Schema::Loader::DBI/;
-use Carp::Clan qw/^DBIx::Class/;
+use mro 'c3';
 use Scalar::Util 'looks_like_number';
+use List::MoreUtils 'any';
+use Try::Tiny;
 use namespace::clean;
+use DBIx::Class::Schema::Loader::Table::Informix ();
 
 our $VERSION = '0.07010';
 
@@ -21,6 +23,43 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
+sub _build_name_sep { '.' }
+
+sub _system_databases {
+    return (qw/
+        sysmaster sysutils sysuser sysadmin
+    /);
+}
+
+sub _current_db {
+    my $self = shift;
+
+    my ($current_db) = $self->dbh->selectrow_array(<<'EOF');
+SELECT rtrim(ODB_DBName)
+FROM sysmaster:informix.SysOpenDB
+WHERE ODB_SessionID = (
+        SELECT DBINFO('sessionid')
+        FROM informix.SysTables
+        WHERE TabID = 1
+    ) and ODB_IsCurrent = 'Y'
+EOF
+
+    return $current_db;
+}
+
+sub _owners {
+    my ($self, $db) = @_;
+
+    my ($owners) = $self->dbh->selectcol_arrayref(<<"EOF");
+SELECT distinct(rtrim(owner))
+FROM ${db}:informix.systables
+EOF
+
+    my @owners = grep $_ && $_ ne 'informix' && !/^\d/, @$owners;
+
+    return @owners;
+}
+
 sub _setup {
     my $self = shift;
 
@@ -33,19 +72,137 @@ sub _setup {
         $self->schema->storage->sql_maker->quote_char('"');
         $self->schema->storage->sql_maker->name_sep('.');
     }
+
+    my $current_db = $self->_current_db;
+
+    if (ref $self->db_schema eq 'HASH') {
+        if (keys %{ $self->db_schema } < 2) {
+            my ($db) = keys %{ $self->db_schema };
+
+            $db ||= $current_db;
+
+            if ($db eq '%') {
+                my $owners = $self->db_schema->{$db};
+
+                my $db_names = $self->dbh->selectcol_arrayref(<<'EOF');
+SELECT rtrim(name)
+FROM sysmaster:sysdatabases
+EOF
+
+                my @dbs;
+
+                foreach my $db_name (@$db_names) {
+                    push @dbs, $db_name
+                        unless any { $_ eq $db_name } $self->_system_databases;
+                }
+
+                $self->db_schema({});
+
+                DB: foreach my $db (@dbs) {
+                    if (not ((ref $owners eq 'ARRAY' && $owners->[0] eq '%') || $owners eq '%')) {
+                        my @owners;
+
+                        my @db_owners = try {
+                            $self->_owners($db);
+                        }
+                        catch {
+                            if (/without logging/) {
+                                warn
+"Database '$db' is unreferencable due to lack of logging.\n";
+                            }
+                            return ();
+                        };
+
+                        foreach my $owner (@$owners) {
+                            push @owners, $owner
+                                if any { $_ eq $owner } @db_owners;
+                        }
+
+                        next DB unless @owners;
+
+                        $self->db_schema->{$db} = \@owners;
+                    }
+                    else {
+                        # for post-processing below
+                        $self->db_schema->{$db} = '%';
+                    }
+                }
+
+                $self->qualify_objects(1);
+            }
+            else {
+                if ($db ne $current_db) {
+                    $self->qualify_objects(1);
+                }
+            }
+        }
+        else {
+            $self->qualify_objects(1);
+        }
+    }
+    elsif (ref $self->db_schema eq 'ARRAY' || (not defined $self->db_schema)) {
+        my $owners = $self->db_schema;
+        $owners ||= [ $self->dbh->selectrow_array(<<'EOF') ];
+SELECT rtrim(username)
+FROM sysmaster:syssessions
+WHERE sid = DBINFO('sessionid')
+EOF
+
+        $self->qualify_objects(1) if @$owners > 1;
+
+        $self->db_schema({ $current_db => $owners });
+    }
+
+    DB: foreach my $db (keys %{ $self->db_schema }) {
+        if ($self->db_schema->{$db} eq '%') {
+            my @db_owners = try {
+                $self->_owners($db);
+            }
+            catch {
+                if (/without logging/) {
+                    warn
+"Database '$db' is unreferencable due to lack of logging.\n";
+                }
+                return ();
+            };
+
+            if (not @db_owners) {
+                delete $self->db_schema->{$db};
+                next DB;
+            }
+
+            $self->db_schema->{$db} = \@db_owners;
+
+            $self->qualify_objects(1);
+        }
+    }
 }
 
 sub _tables_list {
     my ($self, $opts) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(<<'EOF');
-select tabname from systables t
-where t.owner <> 'informix' and t.owner <> '' and t.tabname <> ' VERSION'
-EOF
-    $sth->execute;
+    my @tables;
 
-    my @tables = map @$_, @{ $sth->fetchall_arrayref };
+    while (my ($db, $owners) = each %{ $self->db_schema }) {
+        foreach my $owner (@$owners) {
+            my $table_names = $self->dbh->selectcol_arrayref(<<"EOF", {}, $owner);
+select tabname
+FROM ${db}:informix.systables
+WHERE rtrim(owner) = ?
+EOF
+
+            TABLE: foreach my $table_name (@$table_names) {
+                next if $table_name =~ /^\s/;
+
+                push @tables, DBIx::Class::Schema::Loader::Table::Informix->new(
+                    loader   => $self,
+                    name     => $table_name,
+                    database => $db,
+                    schema   => $owner,
+                );
+            }
+        }
+    }
 
     return $self->_filter_tables(\@tables, $opts);
 }
@@ -53,15 +210,18 @@ EOF
 sub _constraints_for {
     my ($self, $table, $type) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
+    local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
 
-    my $sth = $dbh->prepare(<<'EOF');
-select c.constrname, i.*
-from sysconstraints c
-join systables t on t.tabid = c.tabid
-join sysindexes i on c.idxname = i.idxname
-where t.tabname = ? and c.constrtype = ?
+    my $db = $table->database;
+
+    my $sth = $self->dbh->prepare(<<"EOF");
+SELECT c.constrname, i.*
+FROM ${db}:informix.sysconstraints c
+JOIN ${db}:informix.systables t
+    ON t.tabid = c.tabid
+JOIN ${db}:informix.sysindexes i
+    ON c.idxname = i.idxname
+WHERE t.tabname = ? and c.constrtype = ?
 EOF
     $sth->execute($table, $type);
     my $indexes = $sth->fetchall_hashref('constrname');
@@ -86,14 +246,16 @@ sub _idx_colnames {
 sub _colnames_by_colno {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
+    local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
 
-    my $sth = $dbh->prepare(<<'EOF');
-select c.colname, c.colno
-from syscolumns c
-join systables t on c.tabid = t.tabid
-where t.tabname = ?
+    my $db = $table->database;
+
+    my $sth = $self->dbh->prepare(<<"EOF");
+SELECT c.colname, c.colno
+FROM ${db}:informix.syscolumns c
+JOIN ${db}:informix.systables t
+    ON c.tabid = t.tabid
+WHERE t.tabname = ?
 EOF
     $sth->execute($table);
     my $cols = $sth->fetchall_hashref('colno');
@@ -124,18 +286,24 @@ sub _table_fk_info {
 
     my $local_columns = $self->_constraints_for($table, 'R');
 
-    my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
+    local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
 
-    my $sth = $dbh->prepare(<<'EOF');
-select c.constrname local_constraint, rt.tabname remote_table, rc.constrname remote_constraint, ri.*
-from sysconstraints c
-join systables t on c.tabid = t.tabid
-join sysreferences r on c.constrid = r.constrid
-join sysconstraints rc on rc.constrid = r.primary
-join systables rt on r.ptabid = rt.tabid
-join sysindexes ri on rc.idxname = ri.idxname
-where t.tabname = ? and c.constrtype = 'R'
+    my $db = $table->database;
+
+    my $sth = $self->dbh->prepare(<<"EOF");
+SELECT c.constrname local_constraint, rt.tabname remote_table, rtrim(rt.owner) remote_owner, rc.constrname remote_constraint, ri.*
+FROM ${db}:informix.sysconstraints c
+JOIN ${db}:informix.systables t
+    ON c.tabid = t.tabid
+JOIN ${db}:informix.sysreferences r
+    ON c.constrid = r.constrid
+JOIN ${db}:informix.sysconstraints rc
+    ON rc.constrid = r.primary
+JOIN ${db}:informix.systables rt
+    ON r.ptabid = rt.tabid
+JOIN ${db}:informix.sysindexes ri
+    ON rc.idxname = ri.idxname
+WHERE t.tabname = ? and c.constrtype = 'R'
 EOF
     $sth->execute($table);
     my $remotes = $sth->fetchall_hashref('local_constraint');
@@ -144,10 +312,17 @@ EOF
     my @rels;
 
     while (my ($local_constraint, $remote_info) = each %$remotes) {
+        my $remote_table = DBIx::Class::Schema::Loader::Table::Informix->new(
+            loader   => $self,
+            name     => $remote_info->{remote_table},
+            database => $db,
+            schema   => $remote_info->{remote_owner},
+        );
+
         push @rels, {
-            local_columns => $local_columns->{$local_constraint},
-            remote_columns => $self->_idx_colnames($remote_info, $self->_colnames_by_colno($remote_info->{remote_table})),
-            remote_table => $remote_info->{remote_table},
+            local_columns  => $local_columns->{$local_constraint},
+            remote_columns => $self->_idx_colnames($remote_info, $self->_colnames_by_colno($remote_table)),
+            remote_table   => $remote_table,
         };
     }
 
@@ -185,14 +360,16 @@ sub _columns_info_for {
 
     my $result = $self->next::method(@_);
 
-    my $dbh = $self->schema->storage->dbh;
+    my $db = $table->database;
 
-    my $sth = $dbh->prepare(<<'EOF');
-select c.colname, c.coltype, c.collength, c.colmin, d.type deflt_type, d.default deflt
-from syscolumns c
-join systables t on c.tabid = t.tabid
-left join sysdefaults d on t.tabid = d.tabid and c.colno = d.colno
-where t.tabname = ?
+    my $sth = $self->dbh->prepare(<<"EOF");
+SELECT c.colname, c.coltype, c.collength, c.colmin, d.type deflt_type, d.default deflt
+FROM ${db}:informix.syscolumns c
+JOIN ${db}:informix.systables t
+    ON c.tabid = t.tabid
+LEFT JOIN ${db}:informix.sysdefaults d
+    ON t.tabid = d.tabid AND c.colno = d.colno
+WHERE t.tabname = ?
 EOF
     $sth->execute($table);
     my $cols = $sth->fetchall_hashref('colname');

@@ -6,9 +6,14 @@ use DBIx::Class::Schema::Loader::Utils qw/no_warnings slurp_file/;
 use Test::More;
 use Test::Exception;
 use Try::Tiny;
+use File::Path 'rmtree';
 use namespace::clean;
+
 use lib qw(t/lib);
 use dbixcsl_common_tests ();
+use dbixcsl_test_dir '$tdir';
+
+use constant EXTRA_DUMP_DIR => "$tdir/pg_extra_dump";
 
 my $dsn      = $ENV{DBICTEST_PG_DSN} || '';
 my $user     = $ENV{DBICTEST_PG_USER} || '';
@@ -164,32 +169,40 @@ my $tester = dbixcsl_common_tests->new(
                 CREATE SCHEMA "dbicsl-test"
             },
             q{
-                CREATE TABLE "dbicsl-test".pg_loader_test3 (
+                CREATE TABLE "dbicsl-test".pg_loader_test4 (
                     id SERIAL PRIMARY KEY,
                     value VARCHAR(100)
                 )
             },
             q{
-                CREATE TABLE "dbicsl-test".pg_loader_test4 (
+                CREATE TABLE "dbicsl-test".pg_loader_test5 (
                     id SERIAL PRIMARY KEY,
                     value VARCHAR(100),
-                    three_id INTEGER UNIQUE REFERENCES "dbicsl-test".pg_loader_test3 (id)
+                    four_id INTEGER UNIQUE REFERENCES "dbicsl-test".pg_loader_test4 (id)
                 )
             },
             q{
                 CREATE SCHEMA "dbicsl.test"
             },
             q{
-                CREATE TABLE "dbicsl.test".pg_loader_test5 (
-                    id SERIAL PRIMARY KEY,
-                    value VARCHAR(100)
-                )
-            },
-            q{
                 CREATE TABLE "dbicsl.test".pg_loader_test6 (
                     id SERIAL PRIMARY KEY,
                     value VARCHAR(100),
-                    five_id INTEGER UNIQUE REFERENCES "dbicsl.test".pg_loader_test5 (id)
+                    pg_loader_test4_id INTEGER REFERENCES "dbicsl-test".pg_loader_test4 (id)
+                )
+            },
+            q{
+                CREATE TABLE "dbicsl.test".pg_loader_test7 (
+                    id SERIAL PRIMARY KEY,
+                    value VARCHAR(100),
+                    six_id INTEGER UNIQUE REFERENCES "dbicsl.test".pg_loader_test6 (id)
+                )
+            },
+            q{
+                CREATE TABLE "dbicsl-test".pg_loader_test8 (
+                    id SERIAL PRIMARY KEY,
+                    value VARCHAR(100),
+                    pg_loader_test7_id INTEGER REFERENCES "dbicsl.test".pg_loader_test7 (id)
                 )
             },
         ],
@@ -200,7 +213,7 @@ my $tester = dbixcsl_common_tests->new(
             'DROP TYPE pg_loader_test_enum',
         ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 24,
+        count => 4 + 28 * 2,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -209,7 +222,7 @@ my $tester = dbixcsl_common_tests->new(
                 'qualified sequence detected';
 
             my $class    = $classes->{pg_loader_test1};
-            my $filename = $schema->_loader->get_dump_filename($class);
+            my $filename = $schema->loader->get_dump_filename($class);
 
             my $code = slurp_file $filename;
 
@@ -220,115 +233,153 @@ my $tester = dbixcsl_common_tests->new(
                 'column comment and attrs';
 
             $class    = $classes->{pg_loader_test2};
-            $filename = $schema->_loader->get_dump_filename($class);
+            $filename = $schema->loader->get_dump_filename($class);
 
             $code = slurp_file $filename;
 
             like $code, qr/^=head1 NAME\n\n^$class\n\n=head1 DESCRIPTION\n\n^very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long comment\n\n^=cut\n/m,
                 'long table comment is in DESCRIPTION';
 
-            lives_and {
-                no_warnings {
+            foreach my $db_schema (['dbicsl-test', 'dbicsl.test'], '%') {
+                lives_and {
+                    rmtree EXTRA_DUMP_DIR;
+
+                    my @warns;
+                    local $SIG{__WARN__} = sub {
+                        push @warns, $_[0] unless $_[0] =~ /\bcollides\b/;
+                    };
+
                     make_schema_at(
-                        'PGSchemaWithDash',
+                        'PGMultiSchema',
                         {
                             naming => 'current',
+                            db_schema => $db_schema,
                             preserve_case => 1,
-                            db_schema => 'dbicsl-test'
+                            dump_directory => EXTRA_DUMP_DIR,
+                            quiet => 1,
                         },
                         [ $dsn, $user, $password, {
                             on_connect_do  => [ 'SET client_min_messages=WARNING' ],
                         } ],
                     );
-                };
-            } 'created dynamic schema for "dbicsl-test" with no warnings';
 
-            my ($rsrc, %uniqs, $rel_info);
+                    diag join "\n", @warns if @warns;
 
-            lives_and {
-                ok $rsrc = PGSchemaWithDash->source('PgLoaderTest3');
-            } 'got source for table in schema name with dash';
+                    is @warns, 0;
+                } 'dumped schema for "dbicsl-test" and "dbicsl.test" schemas with no warnings';
 
-            is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
-                'column in schema name with dash';
+                my ($test_schema, $rsrc, $rs, $row, %uniqs, $rel_info);
 
-            is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
-                'column in schema name with dash';
+                lives_and {
+                    ok $test_schema = PGMultiSchema->connect($dsn, $user, $password, {
+                        on_connect_do  => [ 'SET client_min_messages=WARNING' ],
+                    });
+                } 'connected test schema';
 
-            is try { $rsrc->column_info('value')->{size} }, 100,
-                'column in schema name with dash';
+                lives_and {
+                    ok $rsrc = $test_schema->source('PgLoaderTest4');
+                } 'got source for table in schema name with dash';
 
-            $rel_info = try { $rsrc->relationship_info('pg_loader_test4') };
+                is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                    'column in schema name with dash';
 
-            is_deeply $rel_info->{cond}, {
-                'foreign.three_id' => 'self.id'
-            }, 'relationship in schema name with dash';
+                is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                    'column in schema name with dash';
 
-            is $rel_info->{attrs}{accessor}, 'single',
-                'relationship in schema name with dash';
+                is try { $rsrc->column_info('value')->{size} }, 100,
+                    'column in schema name with dash';
 
-            is $rel_info->{attrs}{join_type}, 'LEFT',
-                'relationship in schema name with dash';
+                lives_and {
+                    ok $rs = $test_schema->resultset('PgLoaderTest4');
+                } 'got resultset for table in schema name with dash';
 
-            lives_and {
-                ok $rsrc = PGSchemaWithDash->source('PgLoaderTest4');
-            } 'got source for table in schema name with dash';
+                lives_and {
+                    ok $row = $rs->create({ value => 'foo' });
+                } 'executed SQL on table in schema name with dash';
 
-            %uniqs = try { $rsrc->unique_constraints };
+                $rel_info = try { $rsrc->relationship_info('pg_loader_test5') };
 
-            is keys %uniqs, 2,
-                'got unique and primary constraint in schema name with dash';
+                is_deeply $rel_info->{cond}, {
+                    'foreign.four_id' => 'self.id'
+                }, 'relationship in schema name with dash';
 
-            lives_and {
-                no_warnings {
-                    make_schema_at(
-                        'PGSchemaWithDot',
-                        {
-                            naming => 'current',
-                            preserve_case => 1,
-                            db_schema => 'dbicsl.test'
-                        },
-                        [ $dsn, $user, $password, {
-                            on_connect_do  => [ 'SET client_min_messages=WARNING' ],
-                        } ],
-                    );
-                };
-            } 'created dynamic schema for "dbicsl.test" with no warnings';
+                is $rel_info->{attrs}{accessor}, 'single',
+                    'relationship in schema name with dash';
 
-            lives_and {
-                ok $rsrc = PGSchemaWithDot->source('PgLoaderTest5');
-            } 'got source for table in schema name with dot';
+                is $rel_info->{attrs}{join_type}, 'LEFT',
+                    'relationship in schema name with dash';
 
-            is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
-                'column in schema name with dot introspected correctly';
+                lives_and {
+                    ok $rsrc = $test_schema->source('PgLoaderTest5');
+                } 'got source for table in schema name with dash';
 
-            is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
-                'column in schema name with dash introspected correctly';
+                %uniqs = try { $rsrc->unique_constraints };
 
-            is try { $rsrc->column_info('value')->{size} }, 100,
-                'column in schema name with dash introspected correctly';
+                is keys %uniqs, 2,
+                    'got unique and primary constraint in schema name with dash';
 
-            $rel_info = try { $rsrc->relationship_info('pg_loader_test6') };
+                lives_and {
+                    ok $rsrc = $test_schema->source('PgLoaderTest6');
+                } 'got source for table in schema name with dot';
 
-            is_deeply $rel_info->{cond}, {
-                'foreign.five_id' => 'self.id'
-            }, 'relationship in schema name with dot';
+                is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                    'column in schema name with dot introspected correctly';
 
-            is $rel_info->{attrs}{accessor}, 'single',
-                'relationship in schema name with dot';
+                is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                    'column in schema name with dot introspected correctly';
 
-            is $rel_info->{attrs}{join_type}, 'LEFT',
-                'relationship in schema name with dot';
+                is try { $rsrc->column_info('value')->{size} }, 100,
+                    'column in schema name with dot introspected correctly';
 
-            lives_and {
-                ok $rsrc = PGSchemaWithDot->source('PgLoaderTest6');
-            } 'got source for table in schema name with dot';
+                lives_and {
+                    ok $rs = $test_schema->resultset('PgLoaderTest6');
+                } 'got resultset for table in schema name with dot';
 
-            %uniqs = try { $rsrc->unique_constraints };
+                lives_and {
+                    ok $row = $rs->create({ value => 'foo' });
+                } 'executed SQL on table in schema name with dot';
 
-            is keys %uniqs, 2,
-                'got unique and primary constraint in schema name with dot';
+                $rel_info = try { $rsrc->relationship_info('pg_loader_test7') };
 
+                is_deeply $rel_info->{cond}, {
+                    'foreign.six_id' => 'self.id'
+                }, 'relationship in schema name with dot';
+
+                is $rel_info->{attrs}{accessor}, 'single',
+                    'relationship in schema name with dot';
+
+                is $rel_info->{attrs}{join_type}, 'LEFT',
+                    'relationship in schema name with dot';
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('PgLoaderTest7');
+                } 'got source for table in schema name with dot';
+
+                %uniqs = try { $rsrc->unique_constraints };
+
+                is keys %uniqs, 2,
+                    'got unique and primary constraint in schema name with dot';
+
+                lives_and {
+                    ok $test_schema->source('PgLoaderTest6')
+                        ->has_relationship('pg_loader_test4');
+                } 'cross-schema relationship in multi-db_schema';
+
+                lives_and {
+                    ok $test_schema->source('PgLoaderTest4')
+                        ->has_relationship('pg_loader_test6s');
+                } 'cross-schema relationship in multi-db_schema';
+
+                lives_and {
+                    ok $test_schema->source('PgLoaderTest8')
+                        ->has_relationship('pg_loader_test7');
+                } 'cross-schema relationship in multi-db_schema';
+
+                lives_and {
+                    ok $test_schema->source('PgLoaderTest7')
+                        ->has_relationship('pg_loader_test8s');
+                } 'cross-schema relationship in multi-db_schema';
+            }
         },
     },
 );
@@ -338,5 +389,9 @@ if( !$dsn || !$user ) {
 }
 else {
     $tester->run_tests();
+}
+
+END {
+    rmtree EXTRA_DUMP_DIR unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 }
 # vim:et sw=4 sts=4 tw=0:

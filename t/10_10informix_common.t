@@ -1,6 +1,17 @@
 use strict;
+use warnings;
+use Test::More;
+use Test::Exception;
+use Try::Tiny;
+use File::Path 'rmtree';
+use DBIx::Class::Schema::Loader 'make_schema_at';
+
 use lib qw(t/lib);
-use dbixcsl_common_tests;
+
+use dbixcsl_common_tests ();
+use dbixcsl_test_dir '$tdir';
+
+use constant EXTRA_DUMP_DIR => "$tdir/informix_extra_dump";
 
 # to support " quoted identifiers
 BEGIN { $ENV{DELIMIDENT} = 'y' }
@@ -10,6 +21,8 @@ BEGIN { $ENV{DELIMIDENT} = 'y' }
 my $dsn      = $ENV{DBICTEST_INFORMIX_DSN} || '';
 my $user     = $ENV{DBICTEST_INFORMIX_USER} || '';
 my $password = $ENV{DBICTEST_INFORMIX_PASS} || '';
+
+my ($schema, $extra_schema); # for cleanup in END for extra tests
 
 my $tester = dbixcsl_common_tests->new(
     vendor         => 'Informix',
@@ -113,6 +126,166 @@ my $tester = dbixcsl_common_tests->new(
         'set(varchar(20) not null)'
                            => { data_type => 'set' },
     },
+    extra => {
+        count => 24,
+        run   => sub {
+            ($schema) = @_;
+
+            SKIP: {
+                skip 'Set the DBICTEST_INFORMIX_EXTRADB_DSN, _USER and _PASS environment variables to run the multi-database tests', 24
+                    unless $ENV{DBICTEST_INFORMIX_EXTRADB_DSN};
+
+                $extra_schema = $schema->clone;
+                $extra_schema->connection(@ENV{map "DBICTEST_INFORMIX_EXTRADB_$_",
+                    qw/DSN USER PASS/
+                });
+
+                my $dbh1 = $schema->storage->dbh;
+                my $dbh2 = $extra_schema->storage->dbh;
+
+                $dbh1->do(<<'EOF');
+                    CREATE TABLE informix_loader_test4 (
+                        id SERIAL PRIMARY KEY,
+                        value VARCHAR(100)
+                    )
+EOF
+                $dbh1->do(<<'EOF');
+                    CREATE TABLE informix_loader_test5 (
+                        id SERIAL PRIMARY KEY,
+                        value VARCHAR(100),
+                        four_id INTEGER UNIQUE REFERENCES informix_loader_test4 (id)
+                    )
+EOF
+                $dbh2->do(<<"EOF");
+                    CREATE TABLE informix_loader_test6 (
+                        id SERIAL PRIMARY KEY,
+                        value VARCHAR(100)
+                    )
+EOF
+                $dbh2->do(<<"EOF");
+                    CREATE TABLE informix_loader_test7 (
+                        id SERIAL PRIMARY KEY,
+                        value VARCHAR(100),
+                        six_id INTEGER UNIQUE REFERENCES informix_loader_test6 (id)
+                    )
+EOF
+                lives_and {
+                    my @warns;
+                    local $SIG{__WARN__} = sub {
+                        push @warns, $_[0] unless $_[0] =~ /\bcollides\b/
+                            || $_[0] =~ /unreferencable/;
+                    };
+ 
+                    make_schema_at(
+                        'InformixMultiDatabase',
+                        {
+                            naming => 'current',
+                            db_schema => { '%' => '%' },
+                            dump_directory => EXTRA_DUMP_DIR,
+                            quiet => 1,
+                        },
+                        [ $dsn, $user, $password ],
+                    );
+
+                    diag join "\n", @warns if @warns;
+
+                    is @warns, 0;
+                } 'dumped schema for all databases with no warnings';
+
+                my $test_schema;
+
+                lives_and {
+                    ok $test_schema = InformixMultiDatabase->connect($dsn, $user, $password);
+                } 'connected test schema';
+
+                my ($rsrc, $rs, $row, $rel_info, %uniqs);
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('InformixLoaderTest4');
+                } 'got source for table in database one';
+
+                is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                    'column in database one';
+
+                is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                    'column in database one';
+
+                is try { $rsrc->column_info('value')->{size} }, 100,
+                    'column in database one';
+
+                lives_and {
+                    ok $rs = $test_schema->resultset('InformixLoaderTest4');
+                } 'got resultset for table in database one';
+
+                lives_and {
+                    ok $row = $rs->create({ value => 'foo' });
+                } 'executed SQL on table in database one';
+
+                $rel_info = try { $rsrc->relationship_info('informix_loader_test5') };
+
+                is_deeply $rel_info->{cond}, {
+                    'foreign.four_id' => 'self.id'
+                }, 'relationship in database one';
+
+                is $rel_info->{attrs}{accessor}, 'single',
+                    'relationship in database one';
+
+                is $rel_info->{attrs}{join_type}, 'LEFT',
+                    'relationship in database one';
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('InformixLoaderTest5');
+                } 'got source for table in database one';
+
+                %uniqs = try { $rsrc->unique_constraints };
+
+                is keys %uniqs, 2,
+                    'got unique and primary constraint in database one';
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('InformixLoaderTest6');
+                } 'got source for table in database two';
+
+                is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                    'column in database two introspected correctly';
+
+                is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                    'column in database two introspected correctly';
+
+                is try { $rsrc->column_info('value')->{size} }, 100,
+                    'column in database two introspected correctly';
+
+                lives_and {
+                    ok $rs = $test_schema->resultset('InformixLoaderTest6');
+                } 'got resultset for table in database two';
+
+                lives_and {
+                    ok $row = $rs->create({ value => 'foo' });
+                } 'executed SQL on table in database two';
+
+                $rel_info = try { $rsrc->relationship_info('informix_loader_test7') };
+
+                is_deeply $rel_info->{cond}, {
+                    'foreign.six_id' => 'self.id'
+                }, 'relationship in database two';
+
+                is $rel_info->{attrs}{accessor}, 'single',
+                    'relationship in database two';
+
+                is $rel_info->{attrs}{join_type}, 'LEFT',
+                    'relationship in database two';
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('InformixLoaderTest7');
+                } 'got source for table in database two';
+
+                %uniqs = try { $rsrc->unique_constraints };
+
+                is keys %uniqs, 2,
+                    'got unique and primary constraint in database two';
+            }
+        },
+    },
 );
 
 if( !$dsn ) {
@@ -120,5 +293,25 @@ if( !$dsn ) {
 }
 else {
     $tester->run_tests();
+}
+
+END {
+    if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
+        if (my $dbh2 = try { $extra_schema->storage->dbh }) {
+            my $dbh1 = $schema->storage->dbh;
+
+            try {
+                $dbh2->do('DROP TABLE informix_loader_test7');
+                $dbh2->do('DROP TABLE informix_loader_test6');
+                $dbh1->do('DROP TABLE informix_loader_test5');
+                $dbh1->do('DROP TABLE informix_loader_test4');
+            }
+            catch {
+                die "Error dropping test tables: $_";
+            };
+        }
+
+        rmtree EXTRA_DUMP_DIR;
+    }
 }
 # vim:et sts=4 sw=4 tw=0:

@@ -2,14 +2,23 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
+use DBIx::Class::Schema::Loader 'make_schema_at';
 use DBIx::Class::Schema::Loader::Utils 'slurp_file';
+use Try::Tiny;
+use File::Path 'rmtree';
 use namespace::clean;
+
 use lib qw(t/lib);
-use dbixcsl_common_tests;
+use dbixcsl_common_tests ();
+use dbixcsl_test_dir '$tdir';
+
+use constant EXTRA_DUMP_DIR => "$tdir/ora_extra_dump";
 
 my $dsn      = $ENV{DBICTEST_ORA_DSN} || '';
 my $user     = $ENV{DBICTEST_ORA_USER} || '';
 my $password = $ENV{DBICTEST_ORA_PASS} || '';
+
+my ($schema, $extra_schema); # for cleanup in END for extra tests
 
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'Oracle',
@@ -145,9 +154,10 @@ my $tester = dbixcsl_common_tests->new(
             q{ COMMENT ON COLUMN oracle_loader_test1.value IS 'oracle_loader_test1.value column comment' },
         ],
         drop  => [qw/oracle_loader_test1/],
-        count => 3,
+        count => 3 + 6 * 2,
         run   => sub {
-            my ($schema, $monikers, $classes) = @_;
+            my ($monikers, $classes);
+            ($schema, $monikers, $classes) = @_;
 
             SKIP: {
                 if (my $source = $monikers->{loader_test1s}) {
@@ -161,7 +171,8 @@ my $tester = dbixcsl_common_tests->new(
             }
 
             my $class = $classes->{oracle_loader_test1};
-            my $filename = $schema->_loader->get_dump_filename($class);
+
+            my $filename = $schema->loader->get_dump_filename($class);
             my $code = slurp_file $filename;
 
             like $code, qr/^=head1 NAME\n\n^$class - oracle_loader_test1 table comment\n\n^=cut\n/m,
@@ -169,6 +180,105 @@ my $tester = dbixcsl_common_tests->new(
 
             like $code, qr/^=head2 value\n\n(.+:.+\n)+\noracle_loader_test1\.value column comment\n\n/m,
                 'column comment and attrs';
+
+            SKIP: {
+                skip 'Set the DBICTEST_ORA_EXTRAUSER_DSN, _USER and _PASS environment variables to run the cross-schema relationship tests', 6 * 2
+                    unless $ENV{DBICTEST_ORA_EXTRAUSER_DSN};
+
+                $extra_schema = $schema->clone;
+                $extra_schema->connection(@ENV{map "DBICTEST_ORA_EXTRAUSER_$_",
+                    qw/DSN USER PASS/
+                });
+
+                my $dbh1 = $schema->storage->dbh;
+                my $dbh2 = $extra_schema->storage->dbh;
+
+                my ($schema1) = $dbh1->selectrow_array('SELECT USER FROM DUAL');
+                my ($schema2) = $dbh2->selectrow_array('SELECT USER FROM DUAL');
+
+                $dbh1->do(<<'EOF');
+                    CREATE TABLE oracle_loader_test4 (
+                        id INT NOT NULL PRIMARY KEY,
+                        value VARCHAR(100)
+                    )
+EOF
+                $dbh1->do("GRANT ALL ON oracle_loader_test4 TO $schema2");
+                $dbh2->do(<<"EOF");
+                    CREATE TABLE oracle_loader_test6 (
+                        id INT NOT NULL PRIMARY KEY,
+                        value VARCHAR(100),
+                        oracle_loader_test4_id INT REFERENCES ${schema1}.oracle_loader_test4 (id)
+                    )
+EOF
+                $dbh2->do("GRANT ALL ON oracle_loader_test6 to $schema1");
+                $dbh2->do(<<"EOF");
+                    CREATE TABLE oracle_loader_test7 (
+                        id INT NOT NULL PRIMARY KEY,
+                        value VARCHAR(100)
+                    )
+EOF
+                $dbh2->do("GRANT ALL ON oracle_loader_test7 to $schema1");
+                $dbh1->do(<<"EOF");
+                    CREATE TABLE oracle_loader_test8 (
+                        id INT NOT NULL PRIMARY KEY,
+                        value VARCHAR(100),
+                        oracle_loader_test7_id INT REFERENCES ${schema2}.oracle_loader_test7 (id)
+                    )
+EOF
+
+                foreach my $db_schema ([$schema1, $schema2], '%') {
+                    lives_and {
+                        rmtree EXTRA_DUMP_DIR;
+
+                        my @warns;
+                        local $SIG{__WARN__} = sub {
+                            push @warns, $_[0] unless $_[0] =~ /\bcollides\b/;
+                        };
+
+                        make_schema_at(
+                            'OracleMultiSchema',
+                            {
+                                naming => 'current',
+                                db_schema => $db_schema,
+                                preserve_case => 1,
+                                dump_directory => EXTRA_DUMP_DIR,
+                                quiet => 1,
+                            },
+                            [ $dsn, $user, $password ],
+                        );
+
+                        diag join "\n", @warns if @warns;
+
+                        is @warns, 0;
+                    } qq{dumped schema for "$schema1" and "$schema2" schemas with no warnings};
+
+                    my $test_schema;
+
+                    lives_and {
+                        ok $test_schema = OracleMultiSchema->connect($dsn, $user, $password);
+                    } 'connected test schema';
+
+                    lives_and {
+                        ok $test_schema->source('OracleLoaderTest6')
+                            ->has_relationship('oracle_loader_test4');
+                    } 'cross-schema relationship in multi-db_schema';
+
+                    lives_and {
+                        ok $test_schema->source('OracleLoaderTest4')
+                            ->has_relationship('oracle_loader_test6s');
+                    } 'cross-schema relationship in multi-db_schema';
+
+                    lives_and {
+                        ok $test_schema->source('OracleLoaderTest8')
+                            ->has_relationship('oracle_loader_test7');
+                    } 'cross-schema relationship in multi-db_schema';
+
+                    lives_and {
+                        ok $test_schema->source('OracleLoaderTest7')
+                            ->has_relationship('oracle_loader_test8s');
+                    } 'cross-schema relationship in multi-db_schema';
+                }
+            }
         },
     },
 );
@@ -178,5 +288,25 @@ if( !$dsn || !$user ) {
 }
 else {
     $tester->run_tests();
+}
+
+END {
+    if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
+        if (my $dbh2 = try { $extra_schema->storage->dbh }) {
+            my $dbh1 = $schema->storage->dbh;
+
+            try {
+                $dbh2->do('DROP TABLE oracle_loader_test6');
+                $dbh1->do('DROP TABLE oracle_loader_test4');
+                $dbh1->do('DROP TABLE oracle_loader_test8');
+                $dbh2->do('DROP TABLE oracle_loader_test7');
+            }
+            catch {
+                die "Error dropping cross-schema test tables: $_";
+            };
+        }
+
+        rmtree EXTRA_DUMP_DIR;
+    }
 }
 # vim:et sw=4 sts=4 tw=0:

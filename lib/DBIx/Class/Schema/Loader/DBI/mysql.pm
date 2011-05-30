@@ -4,7 +4,9 @@ use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI';
 use mro 'c3';
+use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
+use List::MoreUtils 'any';
 use Try::Tiny;
 use namespace::clean;
 
@@ -31,6 +33,28 @@ sub _setup {
     if (not defined $self->preserve_case) {
         $self->preserve_case(0);
     }
+
+    if ($self->db_schema && $self->db_schema->[0] eq '%') {
+        my @schemas = try {
+            map $_->[0], @{ $self->dbh->selectall_arrayref('SHOW DATABASES') };
+        }
+        catch {
+            croak "no SHOW DATABASES privileges: $_";
+        };
+
+        @schemas = grep {
+            my $schema = $_;
+            not any { $schema eq $_ } $self->_system_schemas
+        } @schemas;
+
+        $self->db_schema(\@schemas);
+    }
+}
+
+sub _system_schemas {
+    my $self = shift;
+
+    return ($self->next::method(@_), 'mysql');
 }
 
 sub _tables_list { 
@@ -42,32 +66,32 @@ sub _tables_list {
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-
-    my $table_def_ref = eval { $dbh->selectrow_arrayref("SHOW CREATE TABLE `$table`") };
+    my $table_def_ref = eval { $self->dbh->selectrow_arrayref("SHOW CREATE TABLE ".$table->sql_name) };
     my $table_def = $table_def_ref->[1];
 
     return [] if not $table_def;
 
-    my $qt = qr/["`]/;
+    my $qt  = qr/["`]/;
+    my $nqt = qr/[^"`]/;
 
     my (@reldata) = ($table_def =~
-        /CONSTRAINT $qt.*$qt FOREIGN KEY \($qt(.*)$qt\) REFERENCES $qt(.*)$qt \($qt(.*)$qt\)/ig
+        /CONSTRAINT ${qt}${nqt}+${qt} FOREIGN KEY \($qt(.*)$qt\) REFERENCES (?:$qt($nqt+)$qt\.)?$qt($nqt+)$qt \($qt(.+)$qt\)/ig
     );
 
     my @rels;
     while (scalar @reldata > 0) {
-        my $cols = shift @reldata;
-        my $f_table = shift @reldata;
-        my $f_cols = shift @reldata;
+        my ($cols, $f_schema, $f_table, $f_cols) = splice @reldata, 0, 4;
 
-        my @cols   = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; $self->_lc($_) }
+        my @cols   = map { s/$qt//g; $self->_lc($_) }
             split(/$qt?\s*$qt?,$qt?\s*$qt?/, $cols);
 
-        my @f_cols = map { s/(?: \Q$self->{_quoter}\E | $qt )//x; $self->_lc($_) }
+        my @f_cols = map { s/$qt//g; $self->_lc($_) }
             split(/$qt?\s*$qt?,$qt?\s*$qt?/, $f_cols);
 
-        my $remote_table = first { $_ =~ /^${f_table}\z/i } $self->_tables_list;
+        my $remote_table = first {
+               lc($_->name) eq lc($f_table)
+            && ((not $f_schema) || lc($_->schema) eq lc($f_schema))
+        } $self->_tables_list;
 
         push(@rels, {
             local_columns => \@cols,
@@ -86,8 +110,7 @@ sub _mysql_table_get_keys {
 
     if(!exists($self->{_cache}->{_mysql_keys}->{$table})) {
         my %keydata;
-        my $dbh = $self->schema->storage->dbh;
-        my $sth = $dbh->prepare('SHOW INDEX FROM '.$self->_table_as_sql($table));
+        my $sth = $self->dbh->prepare('SHOW INDEX FROM '.$table->sql_name);
         $sth->execute;
         while(my $row = $sth->fetchrow_hashref) {
             next if $row->{Non_unique};
@@ -131,8 +154,6 @@ sub _columns_info_for {
 
     my $result = $self->next::method(@_);
 
-    my $dbh = $self->schema->storage->dbh;
-
     while (my ($col, $info) = each %$result) {
         if ($info->{data_type} eq 'int') {
             $info->{data_type} = 'integer';
@@ -145,7 +166,7 @@ sub _columns_info_for {
         delete $info->{size} if $data_type !~ /^(?: (?:var)?(?:char(?:acter)?|binary) | bit | year)\z/ix;
 
         # information_schema is available in 5.0+
-        my ($precision, $scale, $column_type, $default) = eval { $dbh->selectrow_array(<<'EOF', {}, $table, $col) };
+        my ($precision, $scale, $column_type, $default) = eval { $self->dbh->selectrow_array(<<'EOF', {}, $table, $col) };
 SELECT numeric_precision, numeric_scale, column_type, column_default
 FROM information_schema.columns
 WHERE table_name = ? AND column_name = ?

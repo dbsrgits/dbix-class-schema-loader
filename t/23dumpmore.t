@@ -56,7 +56,7 @@ $t->cleanup;
 $t->dump_test(
   classname => 'DBICTest::Schema::_clashing_monikers',
   test_db_class => 'make_dbictest_db_clashing_monikers',
-  error => qr/tables 'bar', 'bars' reduced to the same source moniker 'Bar'/,
+  error => qr/tables (?:"bar", "bars"|"bars", "bar") reduced to the same source moniker 'Bar'/,
 );
 
 
@@ -278,9 +278,33 @@ $t->dump_test(
     qualify_objects => 1,
     use_namespaces => 1
   },
+  warnings => [
+    qr/^db_schema is not supported on SQLite/,
+  ],
   regexes => {
     'Result/Foo' => [
       qr/^\Q__PACKAGE__->table("foo_schema.foo");\E/m,
+      # the has_many relname should not have the schema in it!
+      qr/^__PACKAGE__->has_many\(\n  "bars"/m,
+    ],
+  },
+);
+
+# test moniker_parts
+$t->dump_test(
+  classname => 'DBICTest::DumpMore::1',
+  options => {
+    db_schema => 'my_schema',
+    moniker_parts => ['_schema', 'name'],
+    qualify_objects => 1,
+    use_namespaces => 1,
+  },
+  warnings => [
+    qr/^db_schema is not supported on SQLite/,
+  ],
+  regexes => {
+    'Result/MySchemaFoo' => [
+      qr/^\Q__PACKAGE__->table("my_schema.foo");\E/m,
       # the has_many relname should not have the schema in it!
       qr/^__PACKAGE__->has_many\(\n  "bars"/m,
     ],

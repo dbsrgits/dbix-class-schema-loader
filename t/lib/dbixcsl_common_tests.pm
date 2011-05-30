@@ -7,7 +7,7 @@ use Test::More;
 use Test::Exception;
 use DBIx::Class::Schema::Loader;
 use Class::Unload;
-use File::Path;
+use File::Path 'rmtree';
 use DBI;
 use Digest::MD5;
 use File::Find 'find';
@@ -20,7 +20,7 @@ use File::Spec::Functions 'catfile';
 use File::Basename 'basename';
 use namespace::clean;
 
-use dbixcsl_test_dir qw/$tdir/;
+use dbixcsl_test_dir '$tdir';
 
 use constant DUMP_DIR => "$tdir/common_dump";
 
@@ -578,12 +578,12 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         );
 
         is(
-            sprintf("%.3f", $class35->column_info('a_double')->{default_value}), '10.555',
+            sprintf("%.3f", $class35->column_info('a_double')->{default_value}||0), '10.555',
             'constant numeric default',
         );
 
         is(
-            sprintf("%.3f", $class35->column_info('a_negative_double')->{default_value}), -10.555,
+            sprintf("%.3f", $class35->column_info('a_negative_double')->{default_value}||0), -10.555,
             'constant negative numeric default',
         );
 
@@ -802,7 +802,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
             'might_have does not have is_deferrable');
 
         # find on multi-col pk
-        if ($conn->_loader->preserve_case) {
+        if ($conn->loader->preserve_case) {
             my $obj5 = $rsobj5->find({id1 => 1, iD2 => 1});
             is $obj5->i_d2, 1, 'Find on multi-col PK';
         }
@@ -1184,10 +1184,10 @@ EOF
 
     $self->test_data_types($conn);
 
+    $self->test_preserve_case($conn);
+
     # run extra tests
     $self->{extra}{run}->($conn, $monikers, $classes, $self) if $self->{extra}{run};
-
-    $self->test_preserve_case($conn);
 
     $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 
@@ -1254,8 +1254,8 @@ qq| INSERT INTO ${oqt}${table41_name}${cqt} VALUES (1, 1) |,
     );
     $conn->storage->disconnect;
 
-    local $conn->_loader->{preserve_case} = 1;
-    $conn->_loader->_setup;
+    local $conn->loader->{preserve_case} = 1;
+    $conn->loader->_setup;
 
     $self->rescan_without_warnings($conn);
 
@@ -1280,9 +1280,7 @@ sub monikers_and_classes {
     my ($monikers, $classes);
 
     foreach my $source_name ($schema_class->sources) {
-        my $table_name = $schema_class->source($source_name)->from;
-
-        $table_name = $$table_name if ref $table_name;
+        my $table_name = $schema_class->loader->moniker_to_table->{$source_name};
 
         my $result_class = $schema_class->source($source_name)->result_class;
 
@@ -1449,6 +1447,8 @@ sub create {
                 c_char_as_data VARCHAR(100)
             ) $self->{innodb}
         },
+        # DB2 does not allow nullable uniq components, SQLAnywhere automatically
+        # converts nullable uniq components to NOT NULL
         qq{
             CREATE TABLE loader_test50 (
                 id INTEGER NOT NULL UNIQUE,
@@ -2168,7 +2168,7 @@ sub setup_data_type_tests {
                 $col_name .= "_sz_$size_name";
             }
 
-            # XXX would be better to check _loader->preserve_case
+            # XXX would be better to check loader->preserve_case
             $col_name = lc $col_name;
 
             $col_name .= '_' . $seen_col_names{$col_name} if $seen_col_names{$col_name}++;

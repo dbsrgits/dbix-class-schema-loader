@@ -3,8 +3,11 @@ package DBIx::Class::Schema::Loader::DBI::Sybase;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
+use List::MoreUtils 'any';
+use namespace::clean;
+
+use DBIx::Class::Schema::Loader::Table::Sybase ();
 
 our $VERSION = '0.07010';
 
@@ -17,17 +20,9 @@ Sybase ASE Implementation.
 
 See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
+This class reblesses into the L<DBIx::Class::Schema::Loader::DBI::Sybase::Microsoft_SQL_Server> class for connections to MSSQL.
+
 =cut
-
-sub _setup {
-    my $self = shift;
-
-    $self->next::method(@_);
-
-    if (not defined $self->preserve_case) {
-        $self->preserve_case(1);
-    }
-}
 
 sub _rebless {
     my $self = shift;
@@ -44,29 +39,166 @@ sub _rebless {
     }
 }
 
+sub _system_databases {
+    return (qw/
+        master model sybsystemdb sybsystemprocs tempdb
+    /);
+}
+
+sub _system_tables {
+    return (qw/
+        sysquerymetrics
+    /);
+}
+
+sub _setup {
+    my $self = shift;
+
+    $self->next::method(@_);
+
+    $self->preserve_case(1);
+
+    my ($current_db) = $self->dbh->selectrow_array('SELECT db_name()');
+
+    if (ref $self->db_schema eq 'HASH') {
+        if (keys %{ $self->db_schema } < 2) {
+            my ($db) = keys %{ $self->db_schema };
+
+            $db ||= $current_db;
+
+            if ($db eq '%') {
+                my $owners = $self->db_schema->{$db};
+
+                my $db_names = $self->dbh->selectcol_arrayref(<<'EOF');
+SELECT name
+FROM master.dbo.sysdatabases
+EOF
+
+                my @dbs;
+
+                foreach my $db_name (@$db_names) {
+                    push @dbs, $db_name
+                        unless any { $_ eq $db_name } $self->_system_databases;
+                }
+
+                $self->db_schema({});
+
+                DB: foreach my $db (@dbs) {
+                    if (not ((ref $owners eq 'ARRAY' && $owners->[0] eq '%') || $owners eq '%')) {
+                        my @owners;
+
+                        foreach my $owner (@$owners) {
+                            push @owners, $owner
+                                if defined $self->_uid($db, $owner);
+                        }
+
+                        next DB unless @owners;
+
+                        $self->db_schema->{$db} = \@owners;
+                    }
+                    else {
+                        # for post-processing below
+                        $self->db_schema->{$db} = '%';
+                    }
+                }
+
+                $self->qualify_objects(1);
+            }
+            else {
+                if ($db ne $current_db) {
+                    $self->dbh->do("USE [$db]");
+
+                    $self->qualify_objects(1);
+                }
+            }
+        }
+        else {
+            $self->qualify_objects(1);
+        }
+    }
+    elsif (ref $self->db_schema eq 'ARRAY' || (not defined $self->db_schema)) {
+        my $owners = $self->db_schema;
+        $owners ||= [ $self->dbh->selectrow_array('SELECT user_name()') ];
+
+        $self->qualify_objects(1) if @$owners > 1;
+
+        $self->db_schema({ $current_db => $owners });
+    }
+
+    foreach my $db (keys %{ $self->db_schema }) {
+        if ($self->db_schema->{$db} eq '%') {
+            my $owners = $self->dbh->selectcol_arrayref(<<"EOF");
+SELECT name
+FROM [$db].dbo.sysusers
+WHERE uid <> gid
+EOF
+            $self->db_schema->{$db} = $owners;
+
+            $self->qualify_objects(1);
+        }
+    }
+}
+
 sub _tables_list {
     my ($self, $opts) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
+    my @tables;
 
-    my $sth = $dbh->table_info(undef, $self->db_schema, undef, "'TABLE','VIEW'");
+    while (my ($db, $owners) = each %{ $self->db_schema }) {
+        foreach my $owner (@$owners) {
+            my ($uid) = $self->_uid($db, $owner);
 
-    my @tables = grep $_ ne 'sysquerymetrics',
-              map $_->{table_name}, @{ $sth->fetchall_arrayref({ table_name => 1 }) };
+            my $table_names = $self->dbh->selectcol_arrayref(<<"EOF");
+SELECT name
+FROM [$db].dbo.sysobjects
+WHERE uid = $uid
+    AND type IN ('U', 'V')
+EOF
+
+            TABLE: foreach my $table_name (@$table_names) {
+                next TABLE if any { $_ eq $table_name } $self->_system_tables;
+
+                push @tables, DBIx::Class::Schema::Loader::Table::Sybase->new(
+                    loader   => $self,
+                    name     => $table_name,
+                    database => $db,
+                    schema   => $owner,
+                );
+            }
+        }
+    }
 
     return $self->_filter_tables(\@tables, $opts);
+}
+
+sub _uid {
+    my ($self, $db, $owner) = @_;
+
+    my ($uid) = $self->dbh->selectrow_array(<<"EOF");
+SELECT uid
+FROM [$db].dbo.sysusers
+WHERE name = @{[ $self->dbh->quote($owner) ]}
+EOF
+
+    return $uid;
 }
 
 sub _table_columns {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $columns = $dbh->selectcol_arrayref(qq{
+    my $db    = $table->database;
+    my $owner = $table->schema;
+
+    my $columns = $self->dbh->selectcol_arrayref(<<"EOF");
 SELECT c.name
-FROM syscolumns c JOIN sysobjects o
-ON c.id = o.id
-WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
-});
+FROM [$db].dbo.syscolumns c
+JOIN [$db].dbo.sysobjects o
+    ON c.id = o.id
+WHERE o.name = @{[ $self->dbh->quote($table->name) ]}
+    AND o.type IN ('U', 'V')
+    AND o.uid  = @{[ $self->_uid($db, $owner) ]}
+ORDER BY c.colid ASC
+EOF
 
     return $columns;
 }
@@ -74,8 +206,19 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
 sub _table_pk_info {
     my ($self, $table) = @_;
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{sp_pkeys @{[ $dbh->quote($table) ]}});
+    my ($current_db) = $self->dbh->selectrow_array('SELECT db_name()');
+
+    my $db = $table->database;
+
+    $self->dbh->do("USE [$db]");
+
+    local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
+
+    my $sth = $self->dbh->prepare(<<"EOF");
+sp_pkeys @{[ $self->dbh->quote($table->name) ]}, 
+    @{[ $self->dbh->quote($table->schema) ]},
+    @{[ $self->dbh->quote($db) ]}
+EOF
     $sth->execute;
 
     my @keydata;
@@ -84,163 +227,178 @@ sub _table_pk_info {
         push @keydata, $row->{column_name};
     }
 
+    $self->dbh->do("USE [$current_db]");
+
     return \@keydata;
 }
 
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    # check if FK_NAME is supported
+    my $db    = $table->database;
+    my $owner = $table->schema;
 
-    my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
-    # hide "Object does not exist in this database." when trying to fetch fkeys
-    local $dbh->{syb_err_handler} = sub { return $_[0] == 17461 ? 0 : 1 }; 
-    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = @{[ $dbh->quote($table) ]}});
+    my $sth = $self->dbh->prepare(<<"EOF");
+SELECT sr.reftabid, sd2.name, sr.keycnt,
+    fokey1,  fokey2,   fokey3,   fokey4,   fokey5,   fokey6,   fokey7,   fokey8,
+    fokey9,  fokey10,  fokey11,  fokey12,  fokey13,  fokey14,  fokey15,  fokey16,
+    refkey1, refkey2,  refkey3,  refkey4,  refkey5,  refkey6,  refkey7,  refkey8,
+    refkey9, refkey10, refkey11, refkey12, refkey13, refkey14, refkey15, refkey16
+FROM [$db].dbo.sysreferences sr
+JOIN [$db].dbo.sysobjects so1
+    ON sr.tableid = so1.id
+JOIN [$db].dbo.sysusers su1
+    ON so1.uid = su1.uid
+JOIN master.dbo.sysdatabases sd2
+    ON sr.pmrydbid = sd2.dbid
+WHERE so1.name = @{[ $self->dbh->quote($table->name) ]}
+    AND su1.name = @{[ $self->dbh->quote($table->schema) ]}
+EOF
     $sth->execute;
-    my $row = $sth->fetchrow_hashref;
-
-    return unless $row;
-
-    if (exists $row->{fk_name}) {
-        $sth->finish;
-        return $self->_table_fk_info_by_name($table);
-    }
-
-    $sth->finish;
-    return $self->_table_fk_info_by_sp_helpconstraint($table);
-}
-
-sub _table_fk_info_by_name {
-    my ($self, $table) = @_;
-    my ($local_cols, $remote_cols, $remote_table, @rels);
-
-    my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
-    # hide "Object does not exist in this database." when trying to fetch fkeys
-    local $dbh->{syb_err_handler} = sub { return $_[0] == 17461 ? 0 : 1 }; 
-    my $sth = $dbh->prepare(qq{sp_fkeys \@fktable_name = @{[ $dbh->quote($table) ]}});
-    $sth->execute;
-
-    while (my $row = $sth->fetchrow_hashref) {
-        my $fk = $row->{fk_name};
-        next unless defined $fk;
-
-        push @{$local_cols->{$fk}}, $row->{fkcolumn_name};
-        push @{$remote_cols->{$fk}}, $row->{pkcolumn_name};
-        $remote_table->{$fk} = $row->{pktable_name};
-    }
-
-    foreach my $fk (keys %$remote_table) {
-        push @rels, {
-                     local_columns => \@{$local_cols->{$fk}},
-                     remote_columns => \@{$remote_cols->{$fk}},
-                     remote_table => $remote_table->{$fk},
-                    };
-
-    }
-    return \@rels;
-}
-
-sub _table_fk_info_by_sp_helpconstraint {
-    my ($self, $table) = @_;
-
-    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-    local $SIG{__WARN__} = sub {
-        $warn_handler->(@_) unless $_[0] =~
-            /^\s*$|^Total Number of|^Details|^(?:--?|=|\+) Number|^Formula for/;
-    };
-
-    my $dbh = $self->schema->storage->dbh;
-
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
-
-    my $sth = $dbh->prepare("sp_helpconstraint $table");
-    $sth->execute;
-
-    my $constraints = $sth->fetchall_arrayref({});
 
     my @rels;
 
-    foreach my $constraint (map $_->{definition}, @$constraints) {
-        my ($local_cols, $remote_table, $remote_cols) = $constraint =~
-/^$table FOREIGN KEY \(([^)]+)\) REFERENCES ([^(]+)\(([^)]+)\)/;
+    REL: while (my @rel = $sth->fetchrow_array) {
+        my ($remote_tab_id, $remote_db, $key_cnt) = splice @rel, 0, 3;
 
-        next unless $local_cols;
+        my ($remote_tab_owner, $remote_tab_name) =
+            $self->dbh->selectrow_array(<<"EOF");
+SELECT su.name, so.name
+FROM [$remote_db].dbo.sysusers su
+JOIN [$remote_db].dbo.sysobjects so
+    ON su.uid = so.uid
+WHERE so.id = $remote_tab_id
+EOF
 
-        my @local_cols  = split /,\s*/, $local_cols;
-        my @remote_cols = split /,\s*/, $remote_cols;
+        next REL
+            unless any { $_ eq $remote_tab_owner }
+                @{ $self->db_schema->{$remote_db} || [] };
+
+        my @local_col_ids  = splice @rel, 0, 16;
+        my @remote_col_ids = splice @rel, 0, 16;
+
+        @local_col_ids  = splice @local_col_ids,  0, $key_cnt;
+        @remote_col_ids = splice @remote_col_ids, 0, $key_cnt;
+
+        my $remote_table = DBIx::Class::Schema::Loader::Table::Sybase->new(
+            loader   => $self,
+            name     => $remote_tab_name,
+            database => $remote_db,
+            schema   => $remote_tab_owner,
+        );
+
+        my $all_local_cols  = $self->_table_columns($table);
+        my $all_remote_cols = $self->_table_columns($remote_table);
+
+        my @local_cols  = map $all_local_cols->[$_-1],  @local_col_ids;
+        my @remote_cols = map $all_remote_cols->[$_-1], @remote_col_ids;
+
+        next REL if    (any { not defined $_ } @local_cols)
+                    || (any { not defined $_ } @remote_cols);
 
         push @rels, {
             local_columns  => \@local_cols,
-            remote_columns => \@remote_cols,
             remote_table   => $remote_table,
+            remote_columns => \@remote_cols,
         };
-    }
+    };
 
     return \@rels;
 }
 
 sub _table_uniq_info {
-    no warnings 'uninitialized'; # for presumably XS weirdness with null operations
     my ($self, $table) = @_;
 
-    local $SIG{__WARN__} = sub { warn @_
-        unless $_[0] =~ /^Formula for Calculation:|^(?:--?|\+|=) Number of (?:self )?references|^Total Number of Referential Constraints|^Details:|^\s*$/ };
+    my $db    = $table->database;
+    my $owner = $table->schema;
+    my $uid   = $self->_uid($db, $owner);
 
-    my $dbh = $self->schema->storage->dbh;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
-    my $sth = $dbh->prepare(qq{sp_helpconstraint \@objname=@{[ $dbh->quote($table) ]}, \@nomsg='nomsg'});
-    eval { $sth->execute };
-    return if $@;
+    my ($current_db) = $self->dbh->selectrow_array('SELECT db_name()');
 
-    my $constraints;
-    while (my $row = $sth->fetchrow_hashref) {
-        if (exists $row->{constraint_type}) {
-            my $type = $row->{constraint_type} || '';
-            if ($type =~ /^unique/i) {
-                my $name = $row->{constraint_name};
-                push @{$constraints->{$name}},
-                    ( split /,/, $row->{constraint_keys} );
-            }
-        } else {
-            my $def = $row->{definition} || next;
-            next unless $def =~ /^unique/i;
-            my $name = $row->{name};
-            my ($keys) = $def =~ /\((.*)\)/;
-            $keys =~ s/\s*//g;
-            my @keys = split /,/ => $keys;
-            push @{$constraints->{$name}}, @keys;
+    $self->dbh->do("USE [$db]");
+
+    my $sth = $self->dbh->prepare(<<"EOF");
+SELECT si.name, si.indid, si.keycnt
+FROM [$db].dbo.sysindexes si
+JOIN [$db].dbo.sysobjects so
+    ON si.id = so.id
+WHERE so.name = @{[ $self->dbh->quote($table->name) ]}
+    AND so.uid = $uid
+    AND si.indid > 0
+    AND si.status & 2048 <> 2048
+    AND si.status2 & 2 = 2
+EOF
+    $sth->execute;
+
+    my %uniqs;
+
+    while (my ($ind_name, $ind_id, $key_cnt) = $sth->fetchrow_array) {
+        COLS: foreach my $col_idx (1 .. ($key_cnt+1)) {
+            my ($next_col) = $self->dbh->selectrow_array(<<"EOF");
+SELECT index_col(
+    @{[ $self->dbh->quote($table->name) ]},
+    $ind_id, $col_idx, $uid
+)
+EOF
+            last COLS unless defined $next_col;
+
+            push @{ $uniqs{$ind_name} }, $next_col;
         }
     }
 
-    my @uniqs = map { [ $_ => $constraints->{$_} ] } keys %$constraints;
+    my @uniqs = map { [ $_ => $uniqs{$_} ] } keys %uniqs;
+
+    $self->dbh->do("USE [$current_db]");
+
     return \@uniqs;
 }
 
-# get the correct data types, defaults and size
 sub _columns_info_for {
     my $self    = shift;
     my ($table) = @_;
     my $result  = $self->next::method(@_);
 
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{
+    my $db    = $table->database;
+    my $owner = $table->schema;
+    my $uid   = $self->_uid($db, $owner);
+
+    local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
+    my $sth = $self->dbh->prepare(<<"EOF");
 SELECT c.name name, bt.name base_type, ut.name user_type, cm.text deflt, c.prec prec, c.scale scale, c.length len
-FROM syscolumns c
-JOIN sysobjects o ON c.id = o.id
-LEFT JOIN systypes bt ON c.type     = bt.type 
-LEFT JOIN systypes ut ON c.usertype = ut.usertype
-LEFT JOIN syscomments cm
+FROM [$db].dbo.syscolumns c
+JOIN [$db].dbo.sysobjects o ON c.id = o.id
+LEFT JOIN [$db].dbo.systypes bt ON c.type     = bt.type 
+LEFT JOIN [$db].dbo.systypes ut ON c.usertype = ut.usertype
+LEFT JOIN [$db].dbo.syscomments cm
     ON cm.id = CASE WHEN c.cdefault = 0 THEN c.computedcol ELSE c.cdefault END
-WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
-});
+WHERE o.name = @{[ $self->dbh->quote($table) ]}
+    AND o.uid = $uid
+    AND o.type IN ('U', 'V')
+EOF
     $sth->execute;
-    local $dbh->{FetchHashKeyName} = 'NAME_lc';
     my $info = $sth->fetchall_hashref('name');
 
     while (my ($col, $res) = each %$result) {
         my $data_type = $res->{data_type} = $info->{$col}{user_type} || $info->{$col}{base_type};
+ 
+        # check if it's an IDENTITY column
+        my $sth = $self->dbh->prepare(<<"EOF");
+SELECT name
+FROM [$db].dbo.syscolumns
+WHERE id = (
+    SELECT id
+    FROM [$db].dbo.sysobjects
+    WHERE name = @{[ $self->dbh->quote($table->name) ]}
+        AND uid = $uid
+)
+    AND (status & 0x80) = 0x80
+    AND name = @{[ $self->dbh->quote($col) ]}
+EOF
+        $sth->execute;
+
+        if ($sth->fetchrow_array) {
+            $res->{is_auto_increment} = 1;
+        }
 
         if ($data_type && $data_type =~ /^timestamp\z/i) {
             $res->{inflate_datetime} = 0;
@@ -285,8 +443,12 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
                     $res->{size} = [ $prec, $scale ];
                 }
             }
-            elsif ($data_type =~ /^(?:unichar|univarchar)\z/i) {
-                $res->{size} /= 2;
+            elsif ($data_type =~ /char/) {
+                $res->{size} = $info->{$col}{len};
+
+                if ($data_type =~ /^(?:unichar|univarchar)\z/i) {
+                    $res->{size} /= 2;
+                }
             }
         }
 
@@ -296,21 +458,6 @@ WHERE o.name = @{[ $dbh->quote($table) ]} AND o.type = 'U'
     }
 
     return $result;
-}
-
-sub _extra_column_info {
-    my ($self, $table, $column, $info, $dbi_info) = @_;
-    my %extra_info;
-
-    my $dbh = $self->schema->storage->dbh;
-    my $sth = $dbh->prepare(qq{SELECT name FROM syscolumns WHERE id = (SELECT id FROM sysobjects WHERE name = @{[ $dbh->quote($table) ]}) AND (status & 0x80) = 0x80 AND name = @{[ $dbh->quote($column) ]}});
-    $sth->execute();
-
-    if ($sth->fetchrow_array) {
-        $extra_info{is_auto_increment} = 1;
-    }
-
-    return \%extra_info;
 }
 
 =head1 SEE ALSO

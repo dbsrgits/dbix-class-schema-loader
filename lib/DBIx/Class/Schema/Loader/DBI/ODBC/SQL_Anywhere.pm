@@ -3,9 +3,9 @@ package DBIx::Class::Schema::Loader::DBI::ODBC::SQL_Anywhere;
 use strict;
 use warnings;
 use base qw/
+    DBIx::Class::Schema::Loader::DBI::ODBC
     DBIx::Class::Schema::Loader::DBI::SQLAnywhere
 /;
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
 
 our $VERSION = '0.07010';
