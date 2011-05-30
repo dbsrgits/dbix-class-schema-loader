@@ -140,7 +140,7 @@ sub run_tests {
 sub run_only_extra_tests {
     my ($self, $connect_info) = @_;
 
-    plan tests => @$connect_info * (4 + ($self->{extra}{count} || 0) + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @$connect_info * (3 + ($self->{extra}{count} || 0) + ($self->{data_type_tests}{test_count} || 0));
 
     rmtree DUMP_DIR;
 
@@ -1895,6 +1895,7 @@ sub drop_tables {
         LoAdEr_test24
         loader_test35
         loader_test36
+        loader_test50
     /;
     
     my @tables_auto_inc = (
