@@ -182,7 +182,8 @@ my $tester = dbixcsl_common_tests->new(
             q{
                 CREATE TABLE "dbicsl.test".pg_loader_test5 (
                     id SERIAL PRIMARY KEY,
-                    value VARCHAR(100)
+                    value VARCHAR(100),
+                    pg_loader_test3_id INTEGER NOT NULL REFERENCES "dbicsl-test".pg_loader_test3 (id)
                 )
             },
             q{
@@ -230,23 +231,24 @@ my $tester = dbixcsl_common_tests->new(
             lives_and {
                 no_warnings {
                     make_schema_at(
-                        'PGSchemaWithDash',
+                        'PGMultiSchema',
                         {
                             naming => 'current',
                             preserve_case => 1,
-                            db_schema => 'dbicsl-test'
+                            db_schema => ['dbicsl-test', 'dbicsl.test'],
                         },
                         [ $dsn, $user, $password, {
                             on_connect_do  => [ 'SET client_min_messages=WARNING' ],
                         } ],
                     );
                 };
-            } 'created dynamic schema for "dbicsl-test" with no warnings';
+            }
+'created dynamic schema for "dbicsl-test" and "dbicsl.test" schemas with no warnings';
 
             my ($rsrc, %uniqs, $rel_info);
 
             lives_and {
-                ok $rsrc = PGSchemaWithDash->source('PgLoaderTest3');
+                ok $rsrc = PGMultiSchema->source('PgLoaderTest3');
             } 'got source for table in schema name with dash';
 
             is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -271,7 +273,7 @@ my $tester = dbixcsl_common_tests->new(
                 'relationship in schema name with dash';
 
             lives_and {
-                ok $rsrc = PGSchemaWithDash->source('PgLoaderTest4');
+                ok $rsrc = PGMultiSchema->source('PgLoaderTest4');
             } 'got source for table in schema name with dash';
 
             %uniqs = try { $rsrc->unique_constraints };
@@ -280,23 +282,7 @@ my $tester = dbixcsl_common_tests->new(
                 'got unique and primary constraint in schema name with dash';
 
             lives_and {
-                no_warnings {
-                    make_schema_at(
-                        'PGSchemaWithDot',
-                        {
-                            naming => 'current',
-                            preserve_case => 1,
-                            db_schema => 'dbicsl.test'
-                        },
-                        [ $dsn, $user, $password, {
-                            on_connect_do  => [ 'SET client_min_messages=WARNING' ],
-                        } ],
-                    );
-                };
-            } 'created dynamic schema for "dbicsl.test" with no warnings';
-
-            lives_and {
-                ok $rsrc = PGSchemaWithDot->source('PgLoaderTest5');
+                ok $rsrc = PGMultiSchema->source('PgLoaderTest5');
             } 'got source for table in schema name with dot';
 
             is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -321,14 +307,13 @@ my $tester = dbixcsl_common_tests->new(
                 'relationship in schema name with dot';
 
             lives_and {
-                ok $rsrc = PGSchemaWithDot->source('PgLoaderTest6');
+                ok $rsrc = PGMultiSchema->source('PgLoaderTest6');
             } 'got source for table in schema name with dot';
 
             %uniqs = try { $rsrc->unique_constraints };
 
             is keys %uniqs, 2,
                 'got unique and primary constraint in schema name with dot';
-
         },
     },
 );
