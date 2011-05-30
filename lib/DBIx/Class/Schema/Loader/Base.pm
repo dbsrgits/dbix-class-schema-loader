@@ -72,6 +72,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 qualify_objects
                                 tables
                                 class_to_table
+                                uniq_to_primary
 /);
 
 
@@ -585,6 +586,11 @@ rather than column names/accessors.
 
 The default is to just append C<_rel> to the relationship name, see
 L</RELATIONSHIP NAME COLLISIONS>.
+
+=head2 uniq_to_primary
+
+Automatically promotes the largest unique constraints on tables to primary
+keys, assuming there is only one largest unique constraint.
 
 =head1 METHODS
 
@@ -1957,6 +1963,30 @@ sub _setup_src_meta {
 
     my $pks = $self->_table_pk_info($table) || [];
 
+    my %uniq_tag; # used to eliminate duplicate uniqs
+
+    $uniq_tag{ join("\0", @$pks) }++ if @$pks; # pk is a uniq
+
+    my $uniqs = $self->_table_uniq_info($table) || [];
+    my @uniqs;
+
+    foreach my $uniq (@$uniqs) {
+        my ($name, $cols) = @$uniq;
+        next if $uniq_tag{ join("\0", @$cols) }++; # skip duplicates
+        push @uniqs, [$name, $cols];
+    }
+
+    if ((not @$pks) && @uniqs && $self->uniq_to_primary) {
+        my @by_colnum = sort { $b->[0] <=> $a->[0] }
+            map [ scalar @{ $_->[1] }, $_ ], @uniqs;
+
+        if (not (@by_colnum > 1 && $by_colnum[0][0] == $by_colnum[1][0])) {
+            @uniqs = map $_->[1], @by_colnum;
+
+            $pks = (shift @uniqs)->[1];
+        }
+    }
+
     foreach my $pkcol (@$pks) {
         $col_info->{$pkcol}{is_nullable} = 0;
     }
@@ -1967,19 +1997,13 @@ sub _setup_src_meta {
         map { $_, ($col_info->{$_}||{}) } @$cols
     );
 
-    my %uniq_tag; # used to eliminate duplicate uniqs
+    $self->_dbic_stmt($table_class, 'set_primary_key', @$pks)
+        if @$pks;
 
-    @$pks ? $self->_dbic_stmt($table_class,'set_primary_key',@$pks)
-          : carp("$table has no primary key");
-    $uniq_tag{ join("\0", @$pks) }++ if @$pks; # pk is a uniq
-
-    my $uniqs = $self->_table_uniq_info($table) || [];
-    for (@$uniqs) {
-        my ($name, $cols) = @$_;
-        next if $uniq_tag{ join("\0", @$cols) }++; # skip duplicates
+    foreach my $uniq (@uniqs) {
+        my ($name, $cols) = @$uniq;
         $self->_dbic_stmt($table_class,'add_unique_constraint', $name, $cols);
     }
-
 }
 
 sub __columns_info_for {

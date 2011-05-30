@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - added uniq_to_primary option to promote unique keys to primary keys
+          (RT#25944)
         - support arrayrefs for result_namespace and resultset_namespace
           (RT#40214)
         - add naming => { monikers => 'preserve' } or 'singular'/'plural' to

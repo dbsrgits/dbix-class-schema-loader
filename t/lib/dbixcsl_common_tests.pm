@@ -120,7 +120,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (206 + ($self->{skip_rels} ? 5 : $num_rescans * $col_accessor_map_tests) + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (207 + ($self->{skip_rels} ? 5 : $num_rescans * $col_accessor_map_tests) + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -244,6 +244,7 @@ sub setup_schema {
         rel_collision_map       => { '^(set_primary_key)\z' => 'caught_rel_collision_%s' },
         col_accessor_map        => \&test_col_accessor_map,
         result_components_map   => { LoaderTest2X => 'TestComponentForMap', LoaderTest1 => '+TestComponentForMapFQN' },
+        uniq_to_primary         => 1,
         %{ $self->{loader_options} || {} },
     );
 
@@ -270,7 +271,7 @@ sub setup_schema {
         my $standard_sources = not defined $expected_count;
 
         if ($standard_sources) {
-            $expected_count = 36;
+            $expected_count = 37;
 
             if (not ($self->{vendor} eq 'mssql' && $connect_info->[0] =~ /Sybase/)) {
                 $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
@@ -307,29 +308,8 @@ sub setup_schema {
 
         $warn_count-- for grep { my $w = $_; grep $w =~ $_, @{ $self->{failtrigger_warnings} || [] } } @loader_warnings;
 
-        if ($standard_sources) {
-            if($self->{skip_rels}) {
-                SKIP: {
-                    is(scalar(@loader_warnings), $warn_count, "No loader warnings")
-                        or diag @loader_warnings;
-                    skip "No missing PK warnings without rels", 1;
-                }
-            }
-            else {
-                $warn_count++;
-                is(scalar(@loader_warnings), $warn_count, "Expected loader warnings")
-                    or diag @loader_warnings;
-                is(grep(/loader_test9 has no primary key/i, @loader_warnings), 1,
-                     "Missing PK warning");
-            }
-        }
-        else {
-            SKIP: {
-                is scalar(@loader_warnings), $warn_count, 'Correct number of warnings'
-                    or diag @loader_warnings;
-                skip "not testing standard sources", 1;
-            }
-        }
+        is scalar(@loader_warnings), $warn_count, 'Correct number of warnings'
+            or diag @loader_warnings;
     }
 
     exit if ($file_count||0) != $expected_count;
@@ -369,11 +349,16 @@ sub test_schema {
     my $class35   = $classes->{loader_test35};
     my $rsobj35   = $conn->resultset($moniker35);
 
+    my $moniker50 = $monikers->{loader_test50};
+    my $class50   = $classes->{loader_test50};
+    my $rsobj50   = $conn->resultset($moniker50);
+
     isa_ok( $rsobj1, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj2, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj23, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj24, "DBIx::Class::ResultSet" );
     isa_ok( $rsobj35, "DBIx::Class::ResultSet" );
+    isa_ok( $rsobj50, "DBIx::Class::ResultSet" );
 
     # check result_namespace
     my @schema_dir = split /::/, SCHEMA_CLASS;
@@ -470,6 +455,11 @@ sub test_schema {
         }
     }
     ok($uniq2_test, "Multi-col unique constraint");
+
+    my %uniq3 = $class50->unique_constraints;
+
+    is_deeply $uniq3{primary}, ['id1', 'id2'],
+        'unique constraint promoted to primary key with uniq_to_primary';
 
     is($moniker2, 'LoaderTest2X', "moniker_map testing");
 
@@ -1436,6 +1426,14 @@ sub create {
                 a_date $self->{basic_date_datatype},
                 b_char_as_data VARCHAR(100),
                 c_char_as_data VARCHAR(100)
+            ) $self->{innodb}
+        },
+        qq{
+            CREATE TABLE loader_test50 (
+                id INTEGER NOT NULL UNIQUE,
+                id1 INTEGER NOT NULL,
+                id2 INTEGER NOT NULL,
+                UNIQUE (id1, id2)
             ) $self->{innodb}
         },
     );
