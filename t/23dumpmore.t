@@ -75,6 +75,7 @@ $t->dump_test(
 $t->cleanup;
 
 # test naming => { column_accessors => 'preserve' }
+# also test POD for unique constraint
 $t->dump_test(
     classname => 'DBICTest::Schema::_preserve_column_accessors',
     test_db_class => 'make_dbictest_db_with_unique',
@@ -88,6 +89,11 @@ $t->dump_test(
             qr/\baccessor\b/,
         ],
     },
+    regexes => {
+        Baz => [
+            qr/\n\n=head1 UNIQUE CONSTRAINTS\n\n=head2 C<baz_num_unique>\n\n=over 4\n\n=item \* L<\/baz_num>\n\n=back\n\n=cut\n\n__PACKAGE__->add_unique_constraint\("baz_num_unique"\, \["baz_num"\]\);\n\n/,
+        ],
+    }
 );
 
 $t->cleanup;
@@ -185,10 +191,11 @@ $t->dump_test(
       qr/\n=head1 ADDITIONAL BASE CLASSES\n\n=over 4\n\n=item \* L<TestAdditionalBase>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 LEFT BASE CLASSES\n\n=over 4\n\n=item \* L<TestLeftBase>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 COMPONENTS LOADED\n\n=over 4\n\n=item \* L<DBIx::Class::TestComponent>\n\n=item \* L<TestComponentFQN>\n\n=back\n\n=cut\n\n/,
+      qr/\n=head1 TABLE: C<foo>\n\n=cut\n\n__PACKAGE__->table\("foo"\);\n\n/,
       qr/\n=head1 ACCESSORS\n\n/,
       qr/\n=head2 fooid\n\n  data_type: 'integer'\n  is_auto_increment: 1\n  is_nullable: 0\n\n/,
       qr/\n=head2 footext\n\n  data_type: 'text'\n  default_value: 'footext'\n  extra: {is_footext => 1}\n  is_nullable: 1\n\n/,
-      qr/->set_primary_key/,
+      qr/\n=head1 PRIMARY KEY\n\n=over 4\n\n=item \* L<\/fooid>\n\n=back\n\n=cut\n\n__PACKAGE__->set_primary_key\("fooid"\);\n/,
       qr/\n=head1 RELATIONS\n\n/,
       qr/\n=head2 bars\n\nType: has_many\n\nRelated object: L<DBICTest::DumpMore::1::Bar>\n\n=cut\n\n/,
       qr/1;\n$/,
@@ -201,10 +208,11 @@ $t->dump_test(
       qr/\n=head1 ADDITIONAL BASE CLASSES\n\n=over 4\n\n=item \* L<TestAdditionalBase>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 LEFT BASE CLASSES\n\n=over 4\n\n=item \* L<TestLeftBase>\n\n=back\n\n=cut\n\n/,
       qr/\n=head1 COMPONENTS LOADED\n\n=over 4\n\n=item \* L<DBIx::Class::TestComponent>\n\n=item \* L<TestComponentFQN>\n\n=back\n\n=cut\n\n/,
+      qr/\n=head1 TABLE: C<bar>\n\n=cut\n\n__PACKAGE__->table\("bar"\);\n\n/,
       qr/\n=head1 ACCESSORS\n\n/,
       qr/\n=head2 barid\n\n  data_type: 'integer'\n  is_auto_increment: 1\n  is_nullable: 0\n\n/,
       qr/\n=head2 fooref\n\n  data_type: 'integer'\n  is_foreign_key: 1\n  is_nullable: 1\n\n/,
-      qr/->set_primary_key/,
+      qr/\n=head1 PRIMARY KEY\n\n=over 4\n\n=item \* L<\/barid>\n\n=back\n\n=cut\n\n__PACKAGE__->set_primary_key\("barid"\);\n/,
       qr/\n=head1 RELATIONS\n\n/,
       qr/\n=head2 fooref\n\nType: belongs_to\n\nRelated object: L<DBICTest::DumpMore::1::Foo>\n\n=cut\n\n/,
       qr/\n1;\n$/,

@@ -13,7 +13,8 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - fix a bug in Sybase ASE foreign key detection
         - generate POD for result_base_class, additional_classes,
           additional_base_classes, left_base_classes, components,
-          result_components_map, result_roles and result_roles_map
+          result_components_map, result_roles, result_roles_map, unique
+          constraints, set_primary_key and table
         - rename result_component_map to result_components_map (old name still
           works)
         - fix accessor collision detection for methods from

@@ -2175,7 +2175,12 @@ sub _make_pod {
     my $class  = shift;
     my $method = shift;
 
-    if ( $method eq 'add_columns' ) {
+    if ($method eq 'table') {
+        my $table = $_[0];
+        $self->_pod($class, "=head1 TABLE: C<$table>");
+        $self->_pod_cut($class);
+    }
+    elsif ( $method eq 'add_columns' ) {
         $self->_pod( $class, "=head1 ACCESSORS" );
         my $col_counter = 0;
         my @cols = @_;
@@ -2207,6 +2212,35 @@ sub _make_pod {
         $self->_pod( $class, "Related object: L<$rel_class>" );
         $self->_pod_cut( $class );
         $self->{_relations_started} { $class } = 1;
+    }
+    elsif ($method eq 'add_unique_constraint') {
+        $self->_pod($class, '=head1 UNIQUE CONSTRAINTS')
+            unless $self->{_uniqs_started}{$class};
+        
+        my ($name, $cols) = @_;
+
+        $self->_pod($class, "=head2 C<$name>");
+        $self->_pod($class, '=over 4');
+        
+        foreach my $col (@$cols) {
+            $self->_pod($class, "=item \* L</$col>");
+        }
+
+        $self->_pod($class, '=back');
+        $self->_pod_cut($class);
+
+        $self->{_uniqs_started}{$class} = 1;
+    }
+    elsif ($method eq 'set_primary_key') {
+        $self->_pod($class, "=head1 PRIMARY KEY");
+        $self->_pod($class, '=over 4');
+        
+        foreach my $col (@_) {
+            $self->_pod($class, "=item \* L</$col>");
+        }
+
+        $self->_pod($class, '=back');
+        $self->_pod_cut($class);
     }
 }
 
