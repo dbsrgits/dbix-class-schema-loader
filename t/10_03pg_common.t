@@ -193,6 +193,13 @@ my $tester = dbixcsl_common_tests->new(
                     five_id INTEGER UNIQUE REFERENCES "dbicsl.test".pg_loader_test5 (id)
                 )
             },
+            q{
+                CREATE TABLE "dbicsl-test".pg_loader_test7 (
+                    id SERIAL PRIMARY KEY,
+                    value VARCHAR(100),
+                    pg_loader_test6_id INTEGER NOT NULL REFERENCES "dbicsl.test".pg_loader_test6 (id)
+                )
+            },
         ],
         pre_drop_ddl => [
             'DROP SCHEMA dbicsl_test CASCADE',
@@ -201,7 +208,7 @@ my $tester = dbixcsl_common_tests->new(
             'DROP TYPE pg_loader_test_enum',
         ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 24,
+        count => 4 + 21 * 2,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -228,92 +235,104 @@ my $tester = dbixcsl_common_tests->new(
             like $code, qr/^=head1 NAME\n\n^$class\n\n=head1 DESCRIPTION\n\n^very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long comment\n\n^=cut\n/m,
                 'long table comment is in DESCRIPTION';
 
-            lives_and {
-                no_warnings {
-                    make_schema_at(
-                        'PGMultiSchema',
-                        {
-                            naming => 'current',
-                            preserve_case => 1,
-                            db_schema => ['dbicsl-test', 'dbicsl.test'],
-                        },
-                        [ $dsn, $user, $password, {
-                            on_connect_do  => [ 'SET client_min_messages=WARNING' ],
-                        } ],
-                    );
-                };
+            foreach my $db_schema (['dbicsl-test', 'dbicsl.test'], '%') {
+                lives_and {
+                    no_warnings {
+                        make_schema_at(
+                            'PGMultiSchema',
+                            {
+                                naming => 'current',
+                                preserve_case => 1,
+                                db_schema => $db_schema,
+                            },
+                            [ $dsn, $user, $password, {
+                                on_connect_do  => [ 'SET client_min_messages=WARNING' ],
+                            } ],
+                        );
+                    };
+                }
+    'created dynamic schema for "dbicsl-test" and "dbicsl.test" schemas with no warnings';
+
+                my ($rsrc, %uniqs, $rel_info);
+
+                lives_and {
+                    ok $rsrc = PGMultiSchema->source('PgLoaderTest3');
+                } 'got source for table in schema name with dash';
+
+                is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                    'column in schema name with dash';
+
+                is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                    'column in schema name with dash';
+
+                is try { $rsrc->column_info('value')->{size} }, 100,
+                    'column in schema name with dash';
+
+                $rel_info = try { $rsrc->relationship_info('pg_loader_test4') };
+
+                is_deeply $rel_info->{cond}, {
+                    'foreign.three_id' => 'self.id'
+                }, 'relationship in schema name with dash';
+
+                is $rel_info->{attrs}{accessor}, 'single',
+                    'relationship in schema name with dash';
+
+                is $rel_info->{attrs}{join_type}, 'LEFT',
+                    'relationship in schema name with dash';
+
+                lives_and {
+                    ok $rsrc = PGMultiSchema->source('PgLoaderTest4');
+                } 'got source for table in schema name with dash';
+
+                %uniqs = try { $rsrc->unique_constraints };
+
+                is keys %uniqs, 2,
+                    'got unique and primary constraint in schema name with dash';
+
+                lives_and {
+                    ok $rsrc = PGMultiSchema->source('PgLoaderTest5');
+                } 'got source for table in schema name with dot';
+
+                is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
+                    'column in schema name with dot introspected correctly';
+
+                is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
+                    'column in schema name with dash introspected correctly';
+
+                is try { $rsrc->column_info('value')->{size} }, 100,
+                    'column in schema name with dash introspected correctly';
+
+                $rel_info = try { $rsrc->relationship_info('pg_loader_test6') };
+
+                is_deeply $rel_info->{cond}, {
+                    'foreign.five_id' => 'self.id'
+                }, 'relationship in schema name with dot';
+
+                is $rel_info->{attrs}{accessor}, 'single',
+                    'relationship in schema name with dot';
+
+                is $rel_info->{attrs}{join_type}, 'LEFT',
+                    'relationship in schema name with dot';
+
+                lives_and {
+                    ok $rsrc = PGMultiSchema->source('PgLoaderTest6');
+                } 'got source for table in schema name with dot';
+
+                %uniqs = try { $rsrc->unique_constraints };
+
+                is keys %uniqs, 2,
+                    'got unique and primary constraint in schema name with dot';
+
+                lives_and {
+                    ok PGMultiSchema->source('PgLoaderTest5')
+                        ->has_relationship('pg_loader_test3');
+                } 'cross-schema relationship in multi-db_schema';
+
+                lives_and {
+                    ok PGMultiSchema->source('PgLoaderTest7')
+                        ->has_relationship('pg_loader_test6');
+                } 'cross-schema relationship in multi-db_schema';
             }
-'created dynamic schema for "dbicsl-test" and "dbicsl.test" schemas with no warnings';
-
-            my ($rsrc, %uniqs, $rel_info);
-
-            lives_and {
-                ok $rsrc = PGMultiSchema->source('PgLoaderTest3');
-            } 'got source for table in schema name with dash';
-
-            is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
-                'column in schema name with dash';
-
-            is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
-                'column in schema name with dash';
-
-            is try { $rsrc->column_info('value')->{size} }, 100,
-                'column in schema name with dash';
-
-            $rel_info = try { $rsrc->relationship_info('pg_loader_test4') };
-
-            is_deeply $rel_info->{cond}, {
-                'foreign.three_id' => 'self.id'
-            }, 'relationship in schema name with dash';
-
-            is $rel_info->{attrs}{accessor}, 'single',
-                'relationship in schema name with dash';
-
-            is $rel_info->{attrs}{join_type}, 'LEFT',
-                'relationship in schema name with dash';
-
-            lives_and {
-                ok $rsrc = PGMultiSchema->source('PgLoaderTest4');
-            } 'got source for table in schema name with dash';
-
-            %uniqs = try { $rsrc->unique_constraints };
-
-            is keys %uniqs, 2,
-                'got unique and primary constraint in schema name with dash';
-
-            lives_and {
-                ok $rsrc = PGMultiSchema->source('PgLoaderTest5');
-            } 'got source for table in schema name with dot';
-
-            is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
-                'column in schema name with dot introspected correctly';
-
-            is try { $rsrc->column_info('value')->{data_type} }, 'varchar',
-                'column in schema name with dash introspected correctly';
-
-            is try { $rsrc->column_info('value')->{size} }, 100,
-                'column in schema name with dash introspected correctly';
-
-            $rel_info = try { $rsrc->relationship_info('pg_loader_test6') };
-
-            is_deeply $rel_info->{cond}, {
-                'foreign.five_id' => 'self.id'
-            }, 'relationship in schema name with dot';
-
-            is $rel_info->{attrs}{accessor}, 'single',
-                'relationship in schema name with dot';
-
-            is $rel_info->{attrs}{join_type}, 'LEFT',
-                'relationship in schema name with dot';
-
-            lives_and {
-                ok $rsrc = PGMultiSchema->source('PgLoaderTest6');
-            } 'got source for table in schema name with dot';
-
-            %uniqs = try { $rsrc->unique_constraints };
-
-            is keys %uniqs, 2,
-                'got unique and primary constraint in schema name with dot';
         },
     },
 );
