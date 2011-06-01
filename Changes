@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - remove '$table has no primary key' warning
         - added uniq_to_primary option to promote unique keys to primary keys
           (RT#25944)
         - support arrayrefs for result_namespace and resultset_namespace
