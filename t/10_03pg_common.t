@@ -208,7 +208,7 @@ my $tester = dbixcsl_common_tests->new(
             'DROP TYPE pg_loader_test_enum',
         ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 4 + 21 * 2,
+        count => 4 + 26 * 2,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -253,10 +253,16 @@ my $tester = dbixcsl_common_tests->new(
                 }
     'created dynamic schema for "dbicsl-test" and "dbicsl.test" schemas with no warnings';
 
-                my ($rsrc, %uniqs, $rel_info);
+                my ($test_schema, $rsrc, $rs, $row, %uniqs, $rel_info);
 
                 lives_and {
-                    ok $rsrc = PGMultiSchema->source('PgLoaderTest3');
+                    ok $test_schema = PGMultiSchema->connect($dsn, $user, $password, {
+                        on_connect_do  => [ 'SET client_min_messages=WARNING' ],
+                    });
+                } 'connected test schema';
+
+                lives_and {
+                    ok $rsrc = $test_schema->source('PgLoaderTest3');
                 } 'got source for table in schema name with dash';
 
                 is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -267,6 +273,14 @@ my $tester = dbixcsl_common_tests->new(
 
                 is try { $rsrc->column_info('value')->{size} }, 100,
                     'column in schema name with dash';
+
+                lives_and {
+                    ok $rs = $test_schema->resultset('PgLoaderTest3');
+                } 'got resultset for table in schema name with dash';
+
+                lives_and {
+                    ok $row = $rs->create({ value => 'foo' });
+                } 'executed SQL on table in schema name with dash';
 
                 $rel_info = try { $rsrc->relationship_info('pg_loader_test4') };
 
@@ -281,7 +295,7 @@ my $tester = dbixcsl_common_tests->new(
                     'relationship in schema name with dash';
 
                 lives_and {
-                    ok $rsrc = PGMultiSchema->source('PgLoaderTest4');
+                    ok $rsrc = $test_schema->source('PgLoaderTest4');
                 } 'got source for table in schema name with dash';
 
                 %uniqs = try { $rsrc->unique_constraints };
@@ -302,6 +316,14 @@ my $tester = dbixcsl_common_tests->new(
                 is try { $rsrc->column_info('value')->{size} }, 100,
                     'column in schema name with dash introspected correctly';
 
+                lives_and {
+                    ok $rs = $test_schema->resultset('PgLoaderTest5');
+                } 'got resultset for table in schema name with dot';
+
+                lives_and {
+                    ok $row = $rs->create({ value => 'foo' });
+                } 'executed SQL on table in schema name with dot';
+
                 $rel_info = try { $rsrc->relationship_info('pg_loader_test6') };
 
                 is_deeply $rel_info->{cond}, {
@@ -315,7 +337,7 @@ my $tester = dbixcsl_common_tests->new(
                     'relationship in schema name with dot';
 
                 lives_and {
-                    ok $rsrc = PGMultiSchema->source('PgLoaderTest6');
+                    ok $rsrc = $test_schema->source('PgLoaderTest6');
                 } 'got source for table in schema name with dot';
 
                 %uniqs = try { $rsrc->unique_constraints };
@@ -324,12 +346,12 @@ my $tester = dbixcsl_common_tests->new(
                     'got unique and primary constraint in schema name with dot';
 
                 lives_and {
-                    ok PGMultiSchema->source('PgLoaderTest5')
+                    ok $test_schema->source('PgLoaderTest5')
                         ->has_relationship('pg_loader_test3');
                 } 'cross-schema relationship in multi-db_schema';
 
                 lives_and {
-                    ok PGMultiSchema->source('PgLoaderTest7')
+                    ok $test_schema->source('PgLoaderTest7')
                         ->has_relationship('pg_loader_test6');
                 } 'cross-schema relationship in multi-db_schema';
             }
