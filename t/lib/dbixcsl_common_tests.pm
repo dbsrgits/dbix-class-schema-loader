@@ -120,7 +120,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (207 + ($self->{skip_rels} ? 5 : $num_rescans * $col_accessor_map_tests) + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (207 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -385,7 +385,7 @@ sub test_schema {
         'resultset_namespace set correctly on Schema';
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentmap testcomponent_fqn meta test_role_method test_role_for_map_method/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentmap testcomponent_fqn meta test_role_method test_role_for_map_method crumb_crisp_coating/ ], "Column Ordering" );
 
     is $class2->column_info('can')->{accessor}, 'caught_collision_can',
         'accessor for column name that conflicts with a UNIVERSAL method renamed based on col_collision_map';
@@ -585,8 +585,11 @@ sub test_schema {
         );
     }
 
+    is( $class2->column_info('crumb_crisp_coating')->{accessor},  'trivet',
+        'col_accessor_map is being run' );
+
     SKIP: {
-        skip $self->{skip_rels}, 132 if $self->{skip_rels};
+        skip $self->{skip_rels}, 131 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -727,9 +730,6 @@ sub test_schema {
         my $obj3 = try { $rsobj3->find(1) } || $rsobj3->search({ id => 1 })->first;
         my $rs_rel4 = try { $obj3->search_related('loader_test4zes') };
         isa_ok( try { $rs_rel4->first }, $class4);
-
-        is( $class4->column_info('crumb_crisp_coating')->{accessor},  'trivet',
-            'col_accessor_map is being run' );
 
         # check rel naming with prepositions
         ok ($rsobj4->result_source->has_relationship('loader_test5s_to'),
@@ -1360,6 +1360,7 @@ sub create {
         q{ INSERT INTO loader_test1s (dat) VALUES('baz') }, 
 
         # also test method collision
+        # crumb_crisp_coating is for col_accessor_map tests
         qq{ 
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
@@ -1373,6 +1374,7 @@ sub create {
                 meta INTEGER $self->{null},
                 test_role_method INTEGER $self->{null},
                 test_role_for_map_method INTEGER $self->{null},
+                crumb_crisp_coating VARCHAR(32) $self->{null},
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
@@ -1459,7 +1461,6 @@ sub create {
                 id INTEGER NOT NULL PRIMARY KEY,
                 fkid INTEGER NOT NULL,
                 dat VARCHAR(32),
-                crumb_crisp_coating VARCHAR(32) $self->{null},
                 belongs_to INTEGER $self->{null},
                 set_primary_key INTEGER $self->{null},
                 FOREIGN KEY( fkid ) REFERENCES loader_test3 (id),
