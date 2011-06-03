@@ -694,11 +694,19 @@ sub new {
         }
     }
 
-    $self->result_components_map($self->{result_component_map})
-        if defined $self->{result_component_map};
-
-    $self->result_roles_map($self->{result_role_map})
-        if defined $self->{result_role_map};
+    if (defined $self->{result_component_map}) {
+        if (defined $self->result_components_map) {
+            croak "Specify only one of result_components_map or result_component_map";
+        }
+        $self->result_components_map($self->{result_component_map})
+    }
+    
+    if (defined $self->{result_role_map}) {
+        if (defined $self->result_roles_map) {
+            croak "Specify only one of result_roles_map or result_role_map";
+        }
+        $self->result_roles_map($self->{result_role_map})
+    }
 
     croak "the result_roles and result_roles_map options may only be used in conjunction with use_moose=1"
         if ((not defined $self->use_moose) || (not $self->use_moose))
@@ -819,6 +827,17 @@ sub new {
         }
         else {
             $self->col_collision_map({ '(.*)' => $col_collision_map });
+        }
+    }
+
+    if (my $rel_collision_map = $self->rel_collision_map) {
+        if (my $reftype = ref $rel_collision_map) {
+            if ($reftype ne 'HASH') {
+                croak "Invalid type $reftype for option 'rel_collision_map'";
+            }
+        }
+        else {
+            $self->rel_collision_map({ '(.*)' => $rel_collision_map });
         }
     }
 
