@@ -23,6 +23,7 @@ use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
 use Encode qw/encode/;
+use List::MoreUtils 'all';
 use namespace::clean;
 
 our $VERSION = '0.07010';
@@ -589,8 +590,9 @@ L</RELATIONSHIP NAME COLLISIONS>.
 
 =head2 uniq_to_primary
 
-Automatically promotes the largest unique constraints on tables to primary
-keys, assuming there is only one largest unique constraint.
+Automatically promotes the largest unique constraints with non-nullable columns
+on tables to primary keys, assuming there is only one largest unique
+constraint.
 
 =head1 METHODS
 
@@ -1976,14 +1978,23 @@ sub _setup_src_meta {
         push @uniqs, [$name, $cols];
     }
 
-    if ((not @$pks) && @uniqs && $self->uniq_to_primary) {
+    my @non_nullable_uniqs = grep {
+        all { $col_info->{$_}{is_nullable} == 0 } @{ $_->[1] }
+    } @uniqs;
+
+    if ($self->uniq_to_primary && (not @$pks) && @non_nullable_uniqs) {
         my @by_colnum = sort { $b->[0] <=> $a->[0] }
-            map [ scalar @{ $_->[1] }, $_ ], @uniqs;
+            map [ scalar @{ $_->[1] }, $_ ], @non_nullable_uniqs;
 
         if (not (@by_colnum > 1 && $by_colnum[0][0] == $by_colnum[1][0])) {
-            @uniqs = map $_->[1], @by_colnum;
+            my @keys = map $_->[1], @by_colnum;
 
-            $pks = (shift @uniqs)->[1];
+            my $pk = $keys[0];
+
+            # remove the uniq from list
+            @uniqs = grep { $_->[0] ne $pk->[0] } @uniqs;
+
+            $pks = $pk->[1];
         }
     }
 
