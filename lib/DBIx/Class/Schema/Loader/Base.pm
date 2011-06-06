@@ -304,8 +304,12 @@ decides to execute will be C<warn>-ed before execution.
 =head2 db_schema
 
 Set the name of the schema to load (schema in the sense that your database
-vendor means it).  Does not currently support loading more than one schema
-name.
+vendor means it).
+
+Can be set to an arrayref of schema names for multiple schemas, or the special
+value C<%> for all schemas.
+
+Multiple schemas have only been tested on PostgreSQL.
 
 =head2 constraint
 
@@ -845,6 +849,27 @@ sub new {
         my $reftype = ref $rel_name_map;
         if ($reftype ne 'HASH' && $reftype ne 'CODE') {
             croak "Invalid type $reftype for option 'rel_name_map', must be HASH or CODE";
+        }
+    }
+
+    if (defined $self->db_schema) {
+        if (ref $self->db_schema eq 'ARRAY') {
+            if (@{ $self->db_schema } > 1) {
+                $self->{qualify_objects} = 1;
+            }
+            elsif (@{ $self->db_schema } == 0) {
+                $self->{db_schema} = undef;
+            }
+        }
+        elsif (not ref $self->db_schema) {
+            if ($self->db_schema eq '%') {
+                $self->{qualify_objects} = 1;
+            }
+
+            $self->{db_schema} = [ $self->db_schema ];
+        }
+        else {
+            croak 'db_schema must be an array or single value';
         }
     }
 
@@ -1873,14 +1898,12 @@ sub _is_result_class_method {
 sub _resolve_col_accessor_collisions {
     my ($self, $table, $col_info) = @_;
 
-    my $table_name = ref $table ? $$table : $table;
-
     while (my ($col, $info) = each %$col_info) {
         my $accessor = $info->{accessor} || $col;
 
         next if $accessor eq 'id'; # special case (very common column)
 
-        if ($self->_is_result_class_method($accessor, $table_name)) {
+        if ($self->_is_result_class_method($accessor, $table)) {
             my $mapped = 0;
 
             if (my $map = $self->col_collision_map) {
@@ -1894,7 +1917,7 @@ sub _resolve_col_accessor_collisions {
 
             if (not $mapped) {
                 warn <<"EOF";
-Column '$col' in table '$table_name' collides with an inherited method.
+Column '$col' in table '$table' collides with an inherited method.
 See "COLUMN ACCESSOR COLLISIONS" in perldoc DBIx::Class::Schema::Loader::Base .
 EOF
                 $info->{accessor} = undef;
@@ -1983,8 +2006,8 @@ sub _setup_src_meta {
     }
 
     my $full_table_name = ($self->qualify_objects ?
-        ($self->_quote($self->db_schema) . '.') : '')
-        . (ref $table_name ? $$table_name : $table_name);
+        ($self->_quote($table->schema) . '.') : '')
+        . (ref $table_name eq 'SCALAR' ? $$table_name : $table_name);
 
     # be careful to not create refs Data::Dump can "optimize"
     $full_table_name = \do {"".$full_table_name} if ref $table_name;

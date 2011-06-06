@@ -6,8 +6,8 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
     DBIx::Class::Schema::Loader::DBI
 /;
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
+use DBIx::Class::Schema::Loader::Table ();
 
 our $VERSION = '0.07010';
 
@@ -16,18 +16,9 @@ our $VERSION = '0.07010';
 DBIx::Class::Schema::Loader::DBI::Pg - DBIx::Class::Schema::Loader::DBI
 PostgreSQL Implementation.
 
-=head1 SYNOPSIS
-
-  package My::Schema;
-  use base qw/DBIx::Class::Schema::Loader/;
-
-  __PACKAGE__->loader_options( debug => 1 );
-
-  1;
-
 =head1 DESCRIPTION
 
-See L<DBIx::Class::Schema::Loader::Base>.
+See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 
 =cut
 
@@ -36,7 +27,7 @@ sub _setup {
 
     $self->next::method(@_);
 
-    $self->{db_schema} ||= 'public';
+    $self->{db_schema} ||= ['public'];
 
     if (not defined $self->preserve_case) {
         $self->preserve_case(0);
@@ -51,18 +42,30 @@ sub _tables_list {
     my ($self, $opts) = @_;
 
     my $dbh = $self->schema->storage->dbh;
-    my @tables = $dbh->tables(undef, $self->db_schema, '%', '%');
 
-    my $schema_quoted = $tables[0] =~ /^"/;
+    my @tables;
 
-    if ($schema_quoted) {
-        s/^"[^"]+"\.// for @tables;
+    foreach my $schema (@{ $self->db_schema }) {
+        my @raw_tables = $dbh->tables(undef, $schema, '%', '%');
+
+        foreach my $table_name (@raw_tables) {
+            my $schema_quoted = $table_name =~ /^"/;
+
+            if ($schema_quoted) {
+                $table_name =~ s/^"([^"]+)"\.//;
+            }
+            else {
+                $table_name =~ s/^([^.]+)\.//;
+            }
+            my $table = DBIx::Class::Schema::Loader::Table->new(schema => $1);
+
+            $table_name =~ s/^"([^"]+)"\z/$1/;
+
+            $table->name($table_name);
+
+            push @tables, $table;
+        }
     }
-    else {
-        s/^[^.]+\.// for @tables;
-    }
-
-    s/^"([^"]+)"\z/$1/ for @tables;
 
     return $self->_filter_tables(\@tables, $opts);
 }
@@ -103,7 +106,7 @@ sub _table_uniq_info {
           c.relname     = ?}
     );
 
-    $uniq_sth->execute($self->db_schema, $table);
+    $uniq_sth->execute($table->schema, $table);
     while(my $row = $uniq_sth->fetchrow_arrayref) {
         my ($tableid, $indexname, $col_nums) = @$row;
         $col_nums =~ s/^\s+//;
@@ -134,7 +137,7 @@ sub _table_comment {
             FROM pg_class 
             WHERE relname=? AND relnamespace=(
                 SELECT oid FROM pg_namespace WHERE nspname=?)
-        }, undef, $table, $self->db_schema
+        }, undef, $table, $table->schema
         );   
     return $table_comment
 }
@@ -147,7 +150,7 @@ sub _column_comment {
             FROM pg_class 
             WHERE relname=? AND relnamespace=(
                 SELECT oid FROM pg_namespace WHERE nspname=?)
-        }, undef, $table, $self->db_schema
+        }, undef, $table, $table->schema
         );   
     return $self->schema->storage->dbh->selectrow_array('SELECT col_description(?,?)', undef, $table_oid,
     $column_number );
@@ -251,7 +254,7 @@ SELECT typtype
 FROM pg_catalog.pg_type
 WHERE typname = ?
 EOF
-            if ($typetype eq 'e') {
+            if ($typetype && $typetype eq 'e') {
                 # The following will extract a list of allowed values for the
                 # enum.
                 my $typevalues = $self->schema->storage->dbh

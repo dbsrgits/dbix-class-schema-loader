@@ -169,10 +169,10 @@ sub _table_as_sql {
 
     my $sql_maker = $self->schema->storage->sql_maker;
     my $name_sep  = $sql_maker->name_sep;
-    my $db_schema = $self->db_schema;
+    my $schema    = $table->schema;
 
-    if($db_schema) {
-        return $self->_quote($self->{db_schema})
+    if ($schema) {
+        return $self->_quote($schema)
             . $name_sep
             . $self->_quote($table);
     }

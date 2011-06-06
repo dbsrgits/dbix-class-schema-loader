@@ -574,12 +574,12 @@ sub test_schema {
         );
 
         is(
-            sprintf("%.3f", $class35->column_info('a_double')->{default_value}), '10.555',
+            sprintf("%.3f", $class35->column_info('a_double')->{default_value}||0), '10.555',
             'constant numeric default',
         );
 
         is(
-            sprintf("%.3f", $class35->column_info('a_negative_double')->{default_value}), -10.555,
+            sprintf("%.3f", $class35->column_info('a_negative_double')->{default_value}||0), -10.555,
             'constant negative numeric default',
         );
 

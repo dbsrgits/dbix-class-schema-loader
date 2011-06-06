@@ -27,7 +27,13 @@ __PACKAGE__->mk_group_accessors(simple => qw/
 /);
 
 use overload
-    '""' => 'name';
+    '""' => sub { $_[0]->name };
+
+sub new {
+    my $class = shift;
+
+    return bless { @_ }, $class;
+}
 
 =head1 SEE ALSO
 
