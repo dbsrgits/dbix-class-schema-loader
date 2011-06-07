@@ -1435,7 +1435,10 @@ sub create {
                 id INTEGER NOT NULL UNIQUE,
                 id1 INTEGER NOT NULL,
                 id2 INTEGER NOT NULL,
-                UNIQUE (id1, id2)
+                id3 INTEGER $self->{null},
+                id4 INTEGER NOT NULL,
+                UNIQUE (id1, id2),
+                UNIQUE (id3, id4)
             ) $self->{innodb}
         },
     );
