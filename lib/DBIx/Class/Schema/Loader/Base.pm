@@ -2209,6 +2209,7 @@ sub _make_pod {
 
     if ($method eq 'table') {
         my $table = $_[0];
+        $table = $$table if ref $table eq 'SCALAR';
         $self->_pod($class, "=head1 TABLE: C<$table>");
         $self->_pod_cut($class);
     }

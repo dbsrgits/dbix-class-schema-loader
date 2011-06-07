@@ -1113,8 +1113,10 @@ EOF
 
         find $find_cb, DUMP_DIR;
 
-#        system "rm -f /tmp/before_rescan/* /tmp/after_rescan/*";
-#        system "cp $tdir/common_dump/DBIXCSL_Test/Schema/*.pm /tmp/before_rescan";
+#        system "rm -rf /tmp/before_rescan /tmp/after_rescan";
+#        system "mkdir /tmp/before_rescan";
+#        system "mkdir /tmp/after_rescan";
+#        system "cp -a @{[DUMP_DIR]} /tmp/before_rescan";
 
         my $before_digest = $digest->b64digest;
 
@@ -1129,7 +1131,7 @@ EOF
 
         is_deeply(\@new, [ qw/LoaderTest30/ ], "Rescan");
 
-#        system "cp t/_common_dump/DBIXCSL_Test/Schema/*.pm /tmp/after_rescan";
+#        system "cp -a @{[DUMP_DIR]} /tmp/after_rescan";
 
         $digest = Digest::MD5->new;
         find $find_cb, DUMP_DIR;
