@@ -101,7 +101,7 @@ sub _tables_list {
     my ($table, $type) = @_ ? @_ : ('%', '%');
 
     my $dbh = $self->schema->storage->dbh;
-    my @tables = $dbh->tables(undef, $self->db_schema, $table, $type);
+    my @tables = $dbh->tables(undef, $table->schema, $table, $type);
 
     my $qt = qr/[\Q$self->{_quoter}\E"'`\[\]]/;
 
@@ -212,7 +212,7 @@ sub _table_pk_info {
     my $dbh = $self->schema->storage->dbh;
 
     my @primary = try {
-        $dbh->primary_key('', $self->db_schema, $table);
+        $dbh->primary_key('', $table->schema, $table);
     }
     catch {
         warn "Cannot find primary keys for this driver: $_";
@@ -243,7 +243,7 @@ sub _table_uniq_info {
     }
 
     my %indices;
-    my $sth = $dbh->statistics_info(undef, $self->db_schema, $table, 1, 1);
+    my $sth = $dbh->statistics_info(undef, $table->schema, $table, 1, 1);
     while(my $row = $sth->fetchrow_hashref) {
         # skip table-level stats, conditional indexes, and any index missing
         #  critical fields
@@ -274,8 +274,8 @@ sub _table_fk_info {
 
     my $dbh = $self->schema->storage->dbh;
     my $sth = try {
-        $dbh->foreign_key_info( '', $self->db_schema, '',
-                                '', $self->db_schema, $table );
+        $dbh->foreign_key_info( '', $table->schema, '',
+                                '', $table->schema, $table );
     }
     catch {
         warn "Cannot introspect relationships for this driver: $_";
@@ -323,7 +323,7 @@ sub _columns_info_for {
     my %result;
 
     if ($dbh->can('column_info')) {
-        my $sth = $self->_dbh_column_info($dbh, undef, $self->db_schema, $table, '%' );
+        my $sth = $self->_dbh_column_info($dbh, undef, $table->schema, $table, '%' );
         while ( my $info = $sth->fetchrow_hashref() ){
             my $column_info = {};
             $column_info->{data_type}     = lc $info->{TYPE_NAME};

@@ -2010,7 +2010,7 @@ sub _setup_src_meta {
         . (ref $table_name eq 'SCALAR' ? $$table_name : $table_name);
 
     # be careful to not create refs Data::Dump can "optimize"
-    $full_table_name = \do {"".$full_table_name} if ref $table_name;
+    $full_table_name = \do {"".$full_table_name} if ref $table_name eq 'SCALAR';
 
     $self->_dbic_stmt($table_class, 'table', $full_table_name);
 
