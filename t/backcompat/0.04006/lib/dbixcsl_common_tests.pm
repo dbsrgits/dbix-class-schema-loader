@@ -43,7 +43,7 @@ sub _monikerize {
 sub run_tests {
     my $self = shift;
 
-    plan tests => 98;
+    plan tests => 97;
 
     $self->create();
 
@@ -84,19 +84,9 @@ sub run_tests {
         $warn_count++ if grep /Dynamic schema detected/, @loader_warnings;
         $warn_count++ for grep /^Bad table or view/, @loader_warnings;
 
-        if($self->{skip_rels}) {
-            is(scalar(@loader_warnings), $warn_count)
-              or diag "Did not get the expected 0 warnings.  Warnings are: "
-                . join('',@loader_warnings);
-            ok(1);
-        }
-        else {
-            $warn_count++;
-            is(scalar(@loader_warnings), $warn_count)
-              or diag "Did not get the expected 1 warning.  Warnings are: "
-                . join('',@loader_warnings);
-            is(grep(/loader_test9 has no primary key/, @loader_warnings), 1);
-        }
+        is(scalar(@loader_warnings), $warn_count)
+          or diag "Did not get the expected 0 warnings.  Warnings are: "
+            . join('',@loader_warnings);
     }
 
     my $conn = $schema_class->clone;
