@@ -120,7 +120,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (207 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (209 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -587,6 +587,12 @@ sub test_schema {
 
     is( $class2->column_info('crumb_crisp_coating')->{accessor},  'trivet',
         'col_accessor_map is being run' );
+
+    is $class1->column_info('dat')->{is_nullable}, 0,
+        'is_nullable=0 detection';
+
+    is $class2->column_info('set_primary_key')->{is_nullable}, 1,
+        'is_nullable=1 detection';
 
     SKIP: {
         skip $self->{skip_rels}, 131 if $self->{skip_rels};

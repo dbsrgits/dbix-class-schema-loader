@@ -158,6 +158,26 @@ sub _adox_catalog {
     return $cat;
 }
 
+sub _adox_column {
+    my ($self, $table, $col) = @_;
+
+    my $col_obj;
+
+    my $cols = $self->_adox_catalog->Tables->Item($table)->Columns;
+
+    for my $col_idx (0..$cols->Count-1) {
+        $col_obj = $cols->Item($col_idx);
+        if ($self->preserve_case) {
+            last if $col_obj->Name eq $col;
+        }
+        else {
+            last if lc($col_obj->Name) eq lc($col);
+        }
+    }
+
+    return $col_obj;
+}
+
 sub rescan {
     my $self = shift;
 
@@ -255,6 +275,10 @@ sub _columns_info_for {
 
     while (my ($col, $info) = each %$result) {
         my $data_type = $info->{data_type};
+
+        my $col_obj = $self->_adox_column($table, $col);
+
+        $info->{is_nullable} = ($col_obj->Attributes & 2) == 2 ? 1 : 0;
 
         if ($data_type eq 'counter') {
             $info->{data_type} = 'integer';

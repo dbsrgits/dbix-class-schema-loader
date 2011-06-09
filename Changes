@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix is_nullable detection on MS Access
         - remove '$table has no primary key' warning
         - added uniq_to_primary option to promote unique keys to primary keys
           (RT#25944)
