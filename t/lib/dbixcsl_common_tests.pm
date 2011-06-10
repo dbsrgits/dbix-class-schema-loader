@@ -2122,15 +2122,16 @@ sub setup_data_type_tests {
         my %seen_col_names;
 
         while (my ($col_def, $expected_info) = each %$types) {
-            (my $type_alias = $col_def) =~ s/\( ([^)]+) \)//xg;
+            (my $type_alias = $col_def) =~ s/\( (.+) \)(?=(?:[^()]* '(?:[^']* (?:''|\\')* [^']*)* [^\\']' [^()]*)*\z)//xg;
 
             my $size = $1;
             $size = '' unless defined $size;
+            $size = '' unless $size =~ /^[\d, ]+\z/;
             $size =~ s/\s+//g;
             my @size = split /,/, $size;
 
             # some DBs don't like very long column names
-            if ($self->{vendor} =~ /^(?:firebird|sqlanywhere|oracle|db2|mysql)\z/i) {
+            if ($self->{vendor} =~ /^(?:firebird|sqlanywhere|oracle|db2)\z/i) {
                 my ($col_def, $default) = $type_alias =~ /^(.*)(default.*)?\z/i;
 
                 $type_alias = substr $col_def, 0, 15;

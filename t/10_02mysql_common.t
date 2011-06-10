@@ -10,10 +10,12 @@ my $test_innodb = $ENV{DBICTEST_MYSQL_INNODB} || 0;
 
 my $skip_rels_msg = 'You need to set the DBICTEST_MYSQL_INNODB environment variable to test relationships.';
 
+my $innodb = $test_innodb ? q{Engine=InnoDB} : '';
+
 my $tester = dbixcsl_common_tests->new(
     vendor           => 'Mysql',
     auto_inc_pk      => 'INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT',
-    innodb           => $test_innodb ? q{Engine=InnoDB} : 0,
+    innodb           => $innodb,
     dsn              => $dsn,
     user             => $user,
     password         => $password,
@@ -122,6 +124,10 @@ my $tester = dbixcsl_common_tests->new(
 
         "enum('foo','bar','baz')"
                       => { data_type => 'enum', extra => { list => [qw/foo bar baz/] } },
+        "enum('foo \\'bar\\' baz', 'foo ''bar'' quux')"
+                      => { data_type => 'enum', extra => { list => [q{foo 'bar' baz}, q{foo 'bar' quux}] } },
+        "set('foo \\'bar\\' baz', 'foo ''bar'' quux')"
+                      => { data_type => 'set', extra => { list => [q{foo 'bar' baz}, q{foo 'bar' quux}] } },
         "set('foo','bar','baz')"
                       => { data_type => 'set',  extra => { list => [qw/foo bar baz/] } },
 
@@ -135,29 +141,51 @@ my $tester = dbixcsl_common_tests->new(
     },
     extra => {
         create => [
-            q{
+            qq{
                 CREATE TABLE `mysql_loader-test1` (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     value varchar(100)
-                )
+                ) $innodb
             },
             q{
                 CREATE VIEW mysql_loader_test2 AS SELECT * FROM `mysql_loader-test1`
             },
+            # RT#68717
+            qq{
+                CREATE TABLE `mysql_loader_test3` (
+                  `ISO3_code` char(3) NOT NULL default '',
+                  `lang_pref` enum('de','en','fr','nl','dk','es','se') NOT NULL,
+                  `vat` decimal(4,2) default '16.00',
+                  `price_group` enum('EUR_DEFAULT','GBP_GBR','EUR_AUT_BEL_FRA_IRL_NLD','EUR_DNK_SWE','EUR_AUT','EUR_BEL','EUR_FIN','EUR_FRA','EUR_IRL','EUR_NLD','EUR_DNK','EUR_POL','EUR_PRT','EUR_SWE','CHF_CHE','DKK_DNK','SEK_SWE','NOK_NOR','USD_USA','CZK_CZE','PLN_POL','RUB_RUS','HUF_HUN','SKK_SVK','JPY_JPN','LVL_LVA','ROL_ROU','EEK_EST') NOT NULL default 'EUR_DEFAULT',
+                  `del_group` enum('19,90 (<500)/0 EUR','4,90 (<120)/0 EUR','7,90 (<200)/0 CHF','300 (<6000)/0 CZK','4,90 (<100)/0 EUR','39 (<900)/0 DKK','299 (<5000)/0 EEK','9,90 (<250)/0 EUR','3,90 (<100)/0 GBP','3000 (<70000)/0 HUF','4000 (<70000)/0 JPY','13,90 (<200)/0 LVL','99 (<2500)/0 NOK','39 (<1000)/0 PLN','1000 (<20000)/0 RUB','49 (<2500)/0 SEK','29 (<600)/0 USD','19,90 (<600)/0 EUR','0 EUR','0 CHF') NOT NULL default '19,90 (<500)/0 EUR',
+                  `express_del_group` enum('NO','39 EUR (EXPRESS)','59 EUR (EXPRESS)','79 CHF (EXPRESS)','49 EUR (EXPRESS)','990 CZK (EXPRESS)','19,9 EUR (EXPRESS)','290 DKK (EXPRESS)','990 EEK (EXPRESS)','39 GBP (EXPRESS)','14000 HUF (EXPRESS)','49 LVL (EXPRESS)','590 NOK (EXPRESS)','250 PLN (EXPRESS)','490 SEK (EXPRESS)') NOT NULL default 'NO',
+                  `pmethod` varchar(255) NOT NULL default 'VISA,MASTER',
+                  `delivery_time` varchar(5) default NULL,
+                  `express_delivery_time` varchar(5) default NULL,
+                  `eu` int(1) default '0',
+                  `cod_costs` varchar(12) default NULL,
+                  PRIMARY KEY (`ISO3_code`)
+                ) $innodb
+            },
         ],
         pre_drop_ddl => [ 'DROP VIEW mysql_loader_test2', ],
-        drop => [ 'mysql_loader-test1', ],
-        count => 2,
+        drop => [ 'mysql_loader-test1', 'mysql_loader_test3' ],
+        count => 3,
         run => sub {
             my ($schema, $monikers, $classes) = @_;
 
             is $monikers->{'mysql_loader-test1'}, 'MysqlLoaderTest1',
                 'table with dash correctly monikerized';
 
-            my $rsrc = $schema->resultset($monikers->{mysql_loader_test2})->result_source;
+            my $rsrc = $schema->source('MysqlLoaderTest2');
 
             is $rsrc->column_info('value')->{data_type}, 'varchar',
                 'view introspected successfully';
+
+            $rsrc = $schema->source('MysqlLoaderTest3');
+
+            is_deeply $rsrc->column_info('del_group')->{extra}{list}, ['19,90 (<500)/0 EUR','4,90 (<120)/0 EUR','7,90 (<200)/0 CHF','300 (<6000)/0 CZK','4,90 (<100)/0 EUR','39 (<900)/0 DKK','299 (<5000)/0 EEK','9,90 (<250)/0 EUR','3,90 (<100)/0 GBP','3000 (<70000)/0 HUF','4000 (<70000)/0 JPY','13,90 (<200)/0 LVL','99 (<2500)/0 NOK','39 (<1000)/0 PLN','1000 (<20000)/0 RUB','49 (<2500)/0 SEK','29 (<600)/0 USD','19,90 (<600)/0 EUR','0 EUR','0 CHF'],
+                'hairy enum introspected correctly';
         },
     },
 );
