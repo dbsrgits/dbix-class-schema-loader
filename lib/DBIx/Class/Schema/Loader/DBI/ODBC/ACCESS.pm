@@ -310,14 +310,19 @@ sub _columns_info_for {
             $info->{original}{data_type} = 'currency';
 
             if (ref $info->{size} eq 'ARRAY' && $info->{size}[0] == 19 && $info->{size}[1] == 4) {
-                # Actual money column via ODBC, otherwise we pass the sizes on to the ADO driver for decimal
-                # columns (which masquerade as money columns...)
+                # Actual money column via ODBC, otherwise we pass the sizes on to the ADO driver for
+                # decimal columns (which masquerade as money columns...)
+                delete $info->{size};
+            }
+        }
+        elsif ($data_type eq 'decimal') {
+            if (ref $info->{size} eq 'ARRAY' && $info->{size}[0] == 18 && $info->{size}[1] == 0) {
                 delete $info->{size};
             }
         }
 
 # Pass through currency (which can be decimal for ADO.)
-        if ($data_type !~ /^(?:(?:var)?(?:char|binary))\z/ && $data_type ne 'currency') {
+        if ($data_type !~ /^(?:(?:var)?(?:char|binary)|decimal)\z/ && $data_type ne 'currency') {
             delete $info->{size};
         }
     }

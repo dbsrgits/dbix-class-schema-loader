@@ -1,6 +1,8 @@
 use strict;
 use warnings;
 use Test::More;
+use DBIx::Class::Schema::Loader::DBI::ODBC::ACCESS ();
+use Win32::OLE ();
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
@@ -105,7 +107,31 @@ my $tester = dbixcsl_common_tests->new(
         'image'       => { data_type => 'image', original => { data_type => 'longbinary' } },
         'longbinary'  => { data_type => 'image', original => { data_type => 'longbinary' } },
 
-        ($ado_dsn && (not $odbc_dsn) ? %ado_extra_types : ())
+        %ado_extra_types,
+    },
+    data_types_ddl_cb => sub {
+        my $ddl = shift;
+        {
+            package DBIXCSL_Test::DummySchema;
+            use base 'DBIx::Class::Schema';
+        }
+        my @connect_info = $odbc_dsn ? ($odbc_dsn, $odbc_user, $odbc_password)
+                                     : ($ado_dsn,  $ado_user,  $ado_password);
+
+        my $schema = DBIXCSL_Test::DummySchema->connect(@connect_info);
+
+        my $loader = DBIx::Class::Schema::Loader::DBI::ODBC::ACCESS->new(
+            schema => $schema,
+            naming => 'current',
+        );
+
+        my $conn = $loader->_ado_connection;
+
+        my $comm = Win32::OLE->new('ADODB.Command');
+
+        $comm->{ActiveConnection} = $conn;
+        $comm->{CommandText}      = $ddl;
+        $comm->Execute;
     },
 );
 

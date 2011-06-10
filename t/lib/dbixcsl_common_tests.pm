@@ -156,7 +156,14 @@ sub run_only_extra_tests {
         $dbh->do($_) for @{ $self->{extra}{create} || [] };
 
         if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
-            $dbh->do($_) for @{ $self->{data_type_tests}{ddl} || []};
+            foreach my $ddl (@{ $self->{data_type_tests}{ddl} || []}) {
+                if (my $cb = $self->{data_types_ddl_cb}) {
+                    $cb->($ddl);
+                }
+                else {
+                    $dbh->do($_) 
+                }
+            }
         }
 
         $self->{_created} = 1;
@@ -1864,7 +1871,14 @@ sub create {
     $dbh->do($_) foreach (@statements);
 
     if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
-        $dbh->do($_) foreach (@{ $self->{data_type_tests}{ddl} || [] });
+        foreach my $ddl (@{ $self->{data_type_tests}{ddl} || [] }) {
+            if (my $cb = $self->{data_types_ddl_cb}) {
+                $cb->($ddl);
+            }
+            else {
+                $dbh->do($_) 
+            }
+        }
     }
 
     unless ($self->{skip_rels}) {
