@@ -133,14 +133,15 @@ sub _columns_info_for {
     my $dbh = $self->schema->storage->dbh;
 
     while (my ($col, $info) = each %$result) {
-        delete $info->{size} if $info->{data_type} !~ /^(?: (?:var)?(?:char(?:acter)?|binary) | bit | year)\z/ix;
-
         if ($info->{data_type} eq 'int') {
             $info->{data_type} = 'integer';
         }
         elsif ($info->{data_type} eq 'double') {
             $info->{data_type} = 'double precision';
         }
+        my $data_type = $info->{data_type};
+
+        delete $info->{size} if $data_type !~ /^(?: (?:var)?(?:char(?:acter)?|binary) | bit | year)\z/ix;
 
         # information_schema is available in 5.0+
         my ($precision, $scale, $column_type, $default) = eval { $dbh->selectrow_array(<<'EOF', {}, $table, $col) };
@@ -148,14 +149,14 @@ SELECT numeric_precision, numeric_scale, column_type, column_default
 FROM information_schema.columns
 WHERE table_name = ? AND column_name = ?
 EOF
-        my $has_information_schema = not defined $@;
+        my $has_information_schema = not $@;
 
         $column_type = '' if not defined $column_type;
 
-        if ($info->{data_type} eq 'bit' && (not exists $info->{size})) {
+        if ($data_type eq 'bit' && (not exists $info->{size})) {
             $info->{size} = $precision if defined $precision;
         }
-        elsif ($info->{data_type} =~ /^(?:float|double precision|decimal)\z/i) {
+        elsif ($data_type =~ /^(?:float|double precision|decimal)\z/i) {
             if (defined $precision && defined $scale) {
                 if ($precision == 10 && $scale == 0) {
                     delete $info->{size};
@@ -165,7 +166,7 @@ EOF
                 }
             }
         }
-        elsif ($info->{data_type} eq 'year') {
+        elsif ($data_type eq 'year') {
             if ($column_type =~ /\(2\)/) {
                 $info->{size} = 2;
             }
@@ -173,9 +174,18 @@ EOF
                 delete $info->{size};
             }
         }
-        elsif ($info->{data_type} =~ /^(?:date(?:time)?|timestamp)\z/) {
+        elsif ($data_type =~ /^(?:date(?:time)?|timestamp)\z/) {
             if (not (defined $self->datetime_undef_if_invalid && $self->datetime_undef_if_invalid == 0)) {
                 $info->{datetime_undef_if_invalid} = 1;
+            }
+        }
+        elsif ($data_type =~ /^(?:enum|set)\z/ && $has_information_schema
+               && $column_type =~ /^(?:enum|set)\(/) {
+
+            delete $info->{extra}{list};
+
+            while ($column_type =~ /'([^']+)',?/g) {
+                push @{ $info->{extra}{list} }, $1;
             }
         }
 
@@ -188,7 +198,7 @@ EOF
                 }
             }
             else { # just check if it's a char/text type, otherwise remove
-                delete $info->{default_value} unless $info->{data_type} =~ /char|text/i;
+                delete $info->{default_value} unless $data_type =~ /char|text/i;
             }
         }
     }

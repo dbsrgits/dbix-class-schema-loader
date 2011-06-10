@@ -124,6 +124,13 @@ my $tester = dbixcsl_common_tests->new(
                       => { data_type => 'enum', extra => { list => [qw/foo bar baz/] } },
         "set('foo','bar','baz')"
                       => { data_type => 'set',  extra => { list => [qw/foo bar baz/] } },
+
+        # RT#68717
+        "enum('11,10 (<500)/0 DUN','4,90 (<120)/0 EUR') NOT NULL default '11,10 (<500)/0 DUN'"
+                      => { data_type => 'enum', extra => { list => ['11,10 (<500)/0 DUN', '4,90 (<120)/0 EUR'] }, default_value => '11,10 (<500)/0 DUN' },
+        "set('11_10 (<500)/0 DUN','4_90 (<120)/0 EUR') NOT NULL default '11_10 (<500)/0 DUN'"
+                      => { data_type => 'set', extra => { list => ['11_10 (<500)/0 DUN', '4_90 (<120)/0 EUR'] }, default_value => '11_10 (<500)/0 DUN' },
+
     },
     extra => {
         create => [

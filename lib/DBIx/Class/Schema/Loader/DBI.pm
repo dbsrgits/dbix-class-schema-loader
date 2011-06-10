@@ -381,7 +381,7 @@ sub _columns_info_for {
             $column_info->{size}    = $2;
         }
 
-        my $extra_info = $self->_extra_column_info($table, $columns[$i], $column_info) || {};
+        my $extra_info = $self->_extra_column_info($table, $columns[$i], $column_info, $sth) || {};
         $column_info = { %$column_info, %$extra_info };
 
         $result{ $self->_lc($columns[$i]) } = $column_info;
