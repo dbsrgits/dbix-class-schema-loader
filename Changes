@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - add rel_name_map option
         - fix the decimal data type for MS Access over ODBC
         - fix enum/set detection for MySQL (RT#68717)
         - fix is_nullable detection on MS Access

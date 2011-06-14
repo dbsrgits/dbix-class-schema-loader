@@ -92,6 +92,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 preserve_case
                                 col_collision_map
                                 rel_collision_map
+                                rel_name_map
                                 real_dump_directory
                                 result_components_map
                                 result_roles_map
@@ -350,6 +351,43 @@ passed, the code is called with arguments of
       schema_class    => name of the schema class we are building,
       column_info     => hashref of column info (data_type, is_nullable, etc),
     }
+
+=head2 rel_name_map
+
+Similar in idea to moniker_map, but different in the details.  It can be
+a hashref or a code ref.
+
+If it is a hashref, keys can be either the default relationship name, or the
+moniker. The keys that are the default relationship name should map to the
+name you want to change the relationship to. Keys that are monikers should map
+to hashes mapping relationship names to their translation.  You can do both at
+once, and the more specific moniker version will be picked up first.  So, for
+instance, you could have
+
+    {
+        bar => "baz",
+        Foo => {
+            bar => "blat",
+        },
+    }
+
+and relationships that would have been named C<bar> will now be named C<baz>
+except that in the table whose moniker is C<Foo> it will be named C<blat>.
+
+If it is a coderef, the argument passed will be a hashref of this form:
+
+    {
+        name           => default relationship name,
+        type           => the relationship type eg: C<has_many>,
+        local_class    => name of the DBIC class we are building,
+        local_moniker  => moniker of the DBIC class we are building,
+        local_columns  => columns in this table in the relationship,
+        remote_class   => name of the DBIC class we are related to,
+        remote_moniker => moniker of the DBIC class we are related to,
+        remote_columns => columns in the other table in the relationship,
+    }
+
+DBICSL will try to use the value returned as the relationship name.
 
 =head2 inflect_plural
 
@@ -781,6 +819,13 @@ sub new {
         }
         else {
             $self->col_collision_map({ '(.*)' => $col_collision_map });
+        }
+    }
+
+    if (defined(my $rel_name_map = $self->rel_name_map)) {
+        my $reftype = ref $rel_name_map;
+        if ($reftype ne 'HASH' && $reftype ne 'CODE') {
+            croak "Invalid type $reftype for option 'rel_name_map', must be HASH or CODE";
         }
     }
 
@@ -1839,8 +1884,7 @@ EOF
     }
 }
 
-# use the same logic to run moniker_map, col_accessor_map, and
-# relationship_name_map
+# use the same logic to run moniker_map, col_accessor_map
 sub _run_user_map {
     my ( $self, $map, $default_code, $ident, @extra ) = @_;
 
