@@ -488,7 +488,7 @@ arcanez: Justin Hunter <justin.d.hunter@gmail.com>
 
 ash: Ash Berlin <ash@cpan.org>
 
-Ben Tilly <btilly@gmail.com>
+btilly: Ben Tilly <btilly@gmail.com>
 
 Caelum: Rafael Kitover <rkitover@cpan.org>
 
