@@ -42,6 +42,7 @@
     - add result_roles and schema_roles for use with use_moose=1
     - generate Schema/ResultBase.pm and Schema/ResultSetBase.pm
     - remove additional warnings skip in t/22dump.t for ActivePerl on Win32
+    - make 23dumpmore.t auto cleanup and remove dump warnings
 
 - Relationships
    - Re-scan relations/tables after initial relation setup to find

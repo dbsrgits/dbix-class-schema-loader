@@ -98,6 +98,23 @@ $t->dump_test(
 
 $t->cleanup;
 
+# test that rels are sorted
+$t->dump_test(
+    classname => 'DBICTest::Schema::_sorted_rels',
+    test_db_class => 'make_dbictest_db_with_unique',
+    warnings => [
+        qr/Dumping manual schema for DBICTest::Schema::_sorted_rels to directory /,
+        qr/Schema dump completed/,
+    ],
+    regexes => {
+        Baz => [
+            qr/->might_have\(\n  "quux".*->belongs_to\(\n  "station_visited"/s,
+        ],
+    }
+);
+
+$t->cleanup;
+
 # test naming => { monikers => 'plural' }
 $t->dump_test(
     classname => 'DBICTest::Schema::_plural_monikers',

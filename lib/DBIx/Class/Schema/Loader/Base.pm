@@ -2172,9 +2172,13 @@ sub _load_relationships {
     my $rel_stmts = $self->_relbuilder->generate_code(\@tables);
 
     foreach my $src_class (sort keys %$rel_stmts) {
-        my $src_stmts = $rel_stmts->{$src_class};
-        foreach my $stmt (@$src_stmts) {
-            $self->_dbic_stmt($src_class,$stmt->{method},@{$stmt->{args}});
+        # sort by rel name
+        my @src_stmts = map $_->[1],
+            sort { $a->[0] cmp $b->[0] }
+            map [ $_->{args}[0], $_ ], @{ $rel_stmts->{$src_class} };
+
+        foreach my $stmt (@src_stmts) {
+            $self->_dbic_stmt($src_class,$stmt->{method}, @{$stmt->{args}});
         }
     }
 }
