@@ -38,6 +38,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 additional_base_classes
                                 left_base_classes
                                 components
+                                schema_components
                                 skip_relationships
                                 skip_load_external
                                 moniker_map
@@ -423,9 +424,13 @@ that need to be leftmost.
 
 List of additional classes which all of your table classes will use.
 
+=head2 schema_components
+
+List of components to load into the Schema class.
+
 =head2 components
 
-List of additional components to be loaded into all of your table
+List of additional components to be loaded into all of your Result
 classes.  A good example would be
 L<InflateColumn::DateTime|DBIx::Class::InflateColumn::DateTime>
 
@@ -643,8 +648,9 @@ L<DBIx::Class::Schema::Loader>.
 my $CURRENT_V = 'v7';
 
 my @CLASS_ARGS = qw(
-    schema_base_class result_base_class additional_base_classes
-    left_base_classes additional_classes components result_roles
+    schema_components schema_base_class result_base_class
+    additional_base_classes left_base_classes additional_classes components
+    result_roles
 );
 
 # ensure that a peice of object data is a valid arrayref, creating
@@ -712,7 +718,8 @@ sub new {
         if ((not defined $self->use_moose) || (not $self->use_moose))
             && ((defined $self->result_roles) || (defined $self->result_roles_map));
 
-    $self->_ensure_arrayref(qw/additional_classes
+    $self->_ensure_arrayref(qw/schema_components
+                               additional_classes
                                additional_base_classes
                                left_base_classes
                                components
@@ -1445,6 +1452,15 @@ sub _dump_to_dir {
     }
     else {
         $schema_text .= qq|use strict;\nuse warnings;\n\nuse base '$schema_base_class';\n\n|;
+    }
+
+    my @schema_components = @{ $self->schema_components || [] };
+
+    if (@schema_components) {
+        my $schema_components = dump @schema_components;
+        $schema_components = "($schema_components)" if @schema_components == 1;
+
+        $schema_text .= "__PACKAGE__->load_components${schema_components};\n\n";
     }
 
     if ($self->use_namespaces) {
