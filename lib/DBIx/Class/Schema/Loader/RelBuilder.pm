@@ -139,8 +139,8 @@ sub new {
 
     # validate the relationship_attrs arg
     if( defined $self->relationship_attrs ) {
-	ref $self->relationship_attrs eq 'HASH'
-	    or croak "relationship_attrs must be a hashref";
+        ref $self->relationship_attrs eq 'HASH'
+            or croak "relationship_attrs must be a hashref";
     }
 
     return $self;
@@ -252,9 +252,9 @@ sub _relationship_attrs {
     );
 
     if( my $specific = $r->{$reltype} ) {
-	while( my ($k,$v) = each %$specific ) {
-	    $composite{$k} = $v;
-	}
+        while( my ($k,$v) = each %$specific ) {
+            $composite{$k} = $v;
+        }
     }
     return \%composite;
 }

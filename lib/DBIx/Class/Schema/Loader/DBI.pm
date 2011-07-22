@@ -266,6 +266,77 @@ sub _table_uniq_info {
     return \@retval;
 }
 
+sub _table_found {
+    my ( $self, $table ) = @_;
+    return grep {lc($_) eq lc($table)} $self->_tables_list({});
+}
+
+sub _table_found_cached {
+    my ( $self, $table ) = @_;
+    if (not exists ($self->{found_table}->{$table})) {
+        $self->{found_table}->{$table} = $self->_table_found($table);
+    }
+    return $self->{found_table}->{$table};
+}
+
+sub _table_columns_found {
+    my ( $self, $table, @columns ) = @_;
+    my %known_column = map {(lc($_)=>$_)} @{$self->_table_columns($table)};
+    for my $column (@columns) {
+        if (not exists $known_column{lc($column)}) {
+            return();
+        }
+    }
+    # In scalar context, whether or not all columns were found.
+    # In list context, all of the found columns.
+    return map $known_column{lc($_)}, @columns;
+}
+
+sub _table_columns_found_cached {
+    my ( $self, $table, @columns ) = @_;
+    my $key = join chr(28), $table, @columns;
+    if (not exists $self->{found_table_columns}->{$key}) {
+        $self->{found_table_columns}->{$key}
+          = [$self->_table_columns_found($table, @columns)];
+    }
+    return @{ $self->{found_table_columns}{$key} };
+}
+
+sub _table_comment {
+    my ( $self, $table ) = @_;
+    my $table_comments = $self->table_comments_table;
+    if ($self->_table_found_cached($table_comments) and
+         $self->_table_columns_found_cached(
+             $table_comments, 'table_name', 'comment_text')
+    ) {
+        my ($comment) = $self->schema->storage->dbh->selectrow_array(
+            qq{SELECT comment_text
+                FROM $table_comments
+                WHERE table_name = ?
+            }, undef, $table);
+        return $comment;
+    }
+    return undef;
+}
+
+sub _column_comment {
+    my ( $self, $table, $column_counter, $column_name ) = @_;
+    my $column_comments = $self->column_comments_table;
+    if ($self->_table_found_cached($column_comments) and
+         $self->_table_columns_found_cached(
+             $column_comments, 'table_name', 'column_name', 'comment_text')
+    ) {
+        my ($comment) = $self->schema->storage->dbh->selectrow_array(
+            qq{SELECT comment_text
+                FROM $column_comments
+                WHERE table_name = ?
+                  AND column_name = ?
+            }, undef, $table, $column_name);
+        return $comment;
+    }
+    return undef;
+}
+
 # Find relationships
 sub _table_fk_info {
     my ($self, $table) = @_;

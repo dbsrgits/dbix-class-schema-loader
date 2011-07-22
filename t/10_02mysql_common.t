@@ -1,7 +1,10 @@
 use strict;
+use File::Slurp qw(slurp);
 use Test::More;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
+use utf8;
+use Encode 'decode';
 
 my $dsn         = $ENV{DBICTEST_MYSQL_DSN} || '';
 my $user        = $ENV{DBICTEST_MYSQL_USER} || '';
@@ -143,9 +146,9 @@ my $tester = dbixcsl_common_tests->new(
         create => [
             qq{
                 CREATE TABLE `mysql_loader-test1` (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'The\15\12Column',
                     value varchar(100)
-                ) $innodb
+                ) $innodb COMMENT 'The\15\12Table'
             },
             q{
                 CREATE VIEW mysql_loader_test2 AS SELECT * FROM `mysql_loader-test1`
@@ -170,7 +173,7 @@ my $tester = dbixcsl_common_tests->new(
         ],
         pre_drop_ddl => [ 'DROP VIEW mysql_loader_test2', ],
         drop => [ 'mysql_loader-test1', 'mysql_loader_test3' ],
-        count => 3,
+        count => 5,
         run => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -186,12 +189,24 @@ my $tester = dbixcsl_common_tests->new(
 
             is_deeply $rsrc->column_info('del_group')->{extra}{list}, ['19,90 (<500)/0 EUR','4,90 (<120)/0 EUR','7,90 (<200)/0 CHF','300 (<6000)/0 CZK','4,90 (<100)/0 EUR','39 (<900)/0 DKK','299 (<5000)/0 EEK','9,90 (<250)/0 EUR','3,90 (<100)/0 GBP','3000 (<70000)/0 HUF','4000 (<70000)/0 JPY','13,90 (<200)/0 LVL','99 (<2500)/0 NOK','39 (<1000)/0 PLN','1000 (<20000)/0 RUB','49 (<2500)/0 SEK','29 (<600)/0 USD','19,90 (<600)/0 EUR','0 EUR','0 CHF'],
                 'hairy enum introspected correctly';
+
+            my $class    = $classes->{'mysql_loader-test1'};
+            my $filename = $schema->_loader->get_dump_filename($class);
+
+            my $code = decode('UTF-8', scalar slurp $filename);
+
+            like $code, qr/^=head1 NAME\n\n^$class - The\nTable\n\n^=cut\n/m,
+                'table comment';
+
+            like $code, qr/^=head2 id\n\n(.+:.+\n)+\nThe\nColumn\n\n/m,
+                'column comment and attrs';
+
         },
     },
 );
 
 if( !$dsn || !$user ) {
-    $tester->skip_tests('You need to set the DBICTEST_MYSQL_DSN, _USER, and _PASS environment variables');
+    $tester->skip_tests('You need to set the DBICTEST_MYSQL_DSN, DBICTEST_MYSQL_USER, and DBICTEST_MYSQL_PASS environment variables');
 }
 else {
     diag $skip_rels_msg if not $test_innodb;

@@ -129,28 +129,36 @@ sub _table_uniq_info {
 
 sub _table_comment {
     my ( $self, $table ) = @_;
-     my ($table_comment) = $self->schema->storage->dbh->selectrow_array(
-        q{SELECT obj_description(oid) 
-            FROM pg_class 
-            WHERE relname=? AND relnamespace=(
-                SELECT oid FROM pg_namespace WHERE nspname=?)
-        }, undef, $table, $self->db_schema
-        );   
+    my ($table_comment) = $self->next::method($table);
+    if (not $table_comment) {
+        ($table_comment) = $self->schema->storage->dbh->selectrow_array(
+            q{SELECT obj_description(oid) 
+                FROM pg_class 
+                WHERE relname=? AND relnamespace=(
+                    SELECT oid FROM pg_namespace WHERE nspname=?)
+            }, undef, $table, $self->db_schema
+            );   
+    }
     return $table_comment
 }
 
 
 sub _column_comment {
-    my ( $self, $table, $column_number ) = @_;
-     my ($table_oid) = $self->schema->storage->dbh->selectrow_array(
-        q{SELECT oid
-            FROM pg_class 
-            WHERE relname=? AND relnamespace=(
-                SELECT oid FROM pg_namespace WHERE nspname=?)
-        }, undef, $table, $self->db_schema
-        );   
-    return $self->schema->storage->dbh->selectrow_array('SELECT col_description(?,?)', undef, $table_oid,
-    $column_number );
+    my ( $self, $table, $column_number, $column_name ) = @_;
+    my ($column_comment) = $self->next::method(
+        $table, $column_number, $column_name);
+    if (not $column_comment) {
+        my ($table_oid) = $self->schema->storage->dbh->selectrow_array(
+            q{SELECT oid
+                FROM pg_class 
+                WHERE relname=? AND relnamespace=(
+                    SELECT oid FROM pg_namespace WHERE nspname=?)
+            }, undef, $table, $self->db_schema
+            );   
+        $column_comment = $self->schema->storage->dbh->selectrow_array(
+            'SELECT col_description(?,?)', undef, $table_oid, $column_number );
+    }
+    return $column_comment;
 }
 
 # Make sure data_type's that don't need it don't have a 'size' column_info, and

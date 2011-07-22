@@ -72,6 +72,8 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 loader_class
                                 qualify_objects
                                 tables
+                                table_comments_table
+                                column_comments_table
                                 class_to_table
                                 uniq_to_primary
                                 quiet
@@ -262,8 +264,23 @@ L</really_erase_my_files>.)
 By default POD will be generated for columns and relationships, using database
 metadata for the text if available and supported.
 
-Reading database metadata (e.g. C<COMMENT ON TABLE some_table ...>) is only
-supported for Postgres right now.
+Metadata can be stored in two ways.
+
+The first is that you can create two tables named C<table_comments> and
+C<column_comments> respectively.  They both need to have columns named
+C<table_name> and C<comment_text>.  The second one needs to have a column
+named C<column_name>.  Then data stored in these tables will be used as a
+source of metadata about tables and comments.
+
+(If you wish you can change the name of these tables with the parameters
+L</table_comments_table> and L</column_comments_table>.)
+
+As a fallback you can use built-in commenting mechanisms.  Currently this
+is only supported for PostgreSQL and MySQL.  To create comments in
+PostgreSQL you add statements of the form C<COMMENT ON TABLE some_table ...>.
+To create comments in MySQL you add C<COMMENT '...'> to the end of the
+column or table definition.  Note that MySQL restricts the length of comments,
+and also does not handle complex Unicode characters properly.
 
 Set this to C<0> to turn off all POD generation.
 
@@ -298,6 +315,16 @@ When pod_comment_mode is set to C<auto>, this is the length of the comment at
 which it will be forced into a separate description section.
 
 The default is C<60>
+
+=head2 table_comments_table
+
+The table to look for comments about tables in.  By default C<table_comments>.
+See L</generate_pod> for details.
+
+=head2 column_comments_table
+
+The table to look for comments about columns in.  By default C<column_comments>.
+See L</generate_pod> for details.
 
 =head2 relationship_attrs
 
@@ -783,6 +810,8 @@ sub new {
 
     $self->{schema_class} ||= ( ref $self->{schema} || $self->{schema} );
     $self->{schema} ||= $self->{schema_class};
+    $self->{table_comments_table} ||= 'table_comments';
+    $self->{column_comments_table} ||= 'column_comments';
 
     croak "dump_overwrite is deprecated.  Please read the"
         . " DBIx::Class::Schema::Loader::Base documentation"
