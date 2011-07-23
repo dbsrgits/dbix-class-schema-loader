@@ -36,6 +36,7 @@ test_requires 'IPC::Open3'    => 0;
 
 requires 'File::Spec'                  => 0;
 requires 'Scalar::Util'                => 0;
+requires 'Task::Weaken'                => 0;
 requires 'Data::Dump'                  => '1.06';
 requires 'Lingua::EN::Inflect::Number' => '1.1';
 requires 'Lingua::EN::Tagger'          => 0;
@@ -52,7 +53,6 @@ requires 'File::Slurp'                 => '9999.13';
 requires 'List::MoreUtils'             => 0;
 requires 'namespace::clean'            => '0.20';
 requires 'Scope::Guard'                => 0;
-requires 'List::MoreUtils'             => 0;
 requires 'Exporter'                    => '5.63';
 requires 'Try::Tiny'                   => 0;
 

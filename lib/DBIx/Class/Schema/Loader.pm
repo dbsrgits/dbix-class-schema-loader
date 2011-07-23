@@ -3,9 +3,10 @@ package DBIx::Class::Schema::Loader;
 use strict;
 use warnings;
 use base qw/DBIx::Class::Schema Class::Accessor::Grouped/;
-use Carp::Clan qw/^DBIx::Class/;
 use mro 'c3';
-use Scalar::Util qw/ weaken /;
+use Carp::Clan qw/^DBIx::Class/;
+use Scalar::Util 'weaken';
+use namespace::clean;
 
 # Always remember to do all digits for the version even if they're 0
 # i.e. first release of 0.XX *must* be 0.XX000. This avoids fBSD ports
@@ -106,6 +107,17 @@ the road.
 
 =head1 METHODS
 
+=head2 loader
+
+The loader object, as class data on your Schema. For methods available see L<DBIx::Class::Schema::Loader::Base> and L<DBIx::Class::Schema::Loader::DBI>.
+
+=cut
+
+sub loader {
+    my $self = shift;
+    $self->_loader(@_);
+}
+
 =head2 loader_class
 
 =over 4
@@ -177,8 +189,8 @@ sub _invoke_loader {
     eval { $self->ensure_class_loaded($impl) };
     croak qq/Could not load loader_class "$impl": "$@"/ if $@;
 
-    $self->_loader($impl->new(%$args));
-    $self->_loader->load;
+    $self->loader($impl->new(%$args));
+    $self->loader->load;
     $self->_loader_invoked(1);
 
     $self;
@@ -409,7 +421,7 @@ Returns a list of the new monikers added.
 
 =cut
 
-sub rescan { my $self = shift; $self->_loader->rescan($self) }
+sub rescan { my $self = shift; $self->loader->rescan($self) }
 
 =head2 naming
 

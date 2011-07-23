@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - $schema->loader is now a public method
         - add schema_components option
         - sort relationships so they always come out in the same order
         - add rel_name_map option
