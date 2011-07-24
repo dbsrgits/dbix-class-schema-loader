@@ -19,7 +19,7 @@ sub _relnames_and_method {
     my $local_cols  = $rel->{local_columns};
 
     # for single-column case, set the remote relname to just the column name
-    my $remote_relname =
+    my ($remote_relname) =
         scalar keys %{$cond} == 1
             ? $self->_inflect_singular( values %$cond  )
             : $self->_inflect_singular( lc $remote_table );
@@ -30,9 +30,9 @@ sub _relnames_and_method {
     if ($counters->{$remote_moniker} > 1) {
         my $colnames = '_' . join( '_', @$local_cols );
         $remote_relname .= $colnames if keys %$cond > 1;
-        $local_relname = $self->_inflect_plural( lc($local_table) . $colnames );
+        ($local_relname) = $self->_inflect_plural( lc($local_table) . $colnames );
     } else {
-        $local_relname = $self->_inflect_plural(lc $local_table);
+        ($local_relname) = $self->_inflect_plural(lc $local_table);
     }
 
     return ( $local_relname, $remote_relname, 'has_many' );

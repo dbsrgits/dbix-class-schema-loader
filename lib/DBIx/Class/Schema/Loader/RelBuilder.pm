@@ -41,7 +41,7 @@ is module is not (yet) for external use.
 
 =head2 new
 
-Arguments: $base object
+Arguments: $loader object
 
 =head2 generate_code
 
@@ -100,7 +100,7 @@ arguments, like so:
 =cut
 
 __PACKAGE__->mk_group_accessors('simple', qw/
-    base
+    loader
     schema
     inflect_plural
     inflect_singular
@@ -112,7 +112,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
 /);
 
 sub new {
-    my ( $class, $base ) = @_;
+    my ($class, $loader) = @_;
 
     # from old POD about this constructor:
     # C<$schema_class> should be a schema class name, where the source
@@ -124,17 +124,17 @@ sub new {
     # are better documented in L<DBIx::Class::Schema::Loader::Base>.
 
     my $self = {
-        base               => $base,
-        schema             => $base->schema,
-        inflect_plural     => $base->inflect_plural,
-        inflect_singular   => $base->inflect_singular,
-        relationship_attrs => $base->relationship_attrs,
-        rel_collision_map  => $base->rel_collision_map,
-        rel_name_map       => $base->rel_name_map,
+        loader             => $loader,
+        schema             => $loader->schema,
+        inflect_plural     => $loader->inflect_plural,
+        inflect_singular   => $loader->inflect_singular,
+        relationship_attrs => $loader->relationship_attrs,
+        rel_collision_map  => $loader->rel_collision_map,
+        rel_name_map       => $loader->rel_name_map,
         _temp_classes      => [],
     };
 
-    weaken $self->{base}; #< don't leak
+    weaken $self->{loader}; #< don't leak
 
     bless $self => $class;
 
@@ -334,9 +334,9 @@ sub _resolve_relname_collision {
 
     return $relname if $relname eq 'id'; # this shouldn't happen, but just in case
 
-    my $table = $self->base->tables->{$moniker};
+    my $table = $self->loader->tables->{$moniker};
 
-    if ($self->base->_is_result_class_method($relname, $table)) {
+    if ($self->loader->_is_result_class_method($relname, $table)) {
         if (my $map = $self->rel_collision_map) {
             for my $re (keys %$map) {
                 if (my @matches = $relname =~ /$re/) {
@@ -346,7 +346,7 @@ sub _resolve_relname_collision {
         }
 
         my $new_relname = $relname;
-        while ($self->base->_is_result_class_method($new_relname, $table)) {
+        while ($self->loader->_is_result_class_method($new_relname, $table)) {
             $new_relname .= '_rel'
         }
 
@@ -642,7 +642,7 @@ sub _relnames_and_method {
     if ($counters->{$remote_moniker} > 1) {
         my $relationship_exists = 0;
 
-        if (-f (my $existing_remote_file = $self->base->get_dump_filename($remote_class))) {
+        if (-f (my $existing_remote_file = $self->loader->get_dump_filename($remote_class))) {
             my $class = "${remote_class}Temporary";
 
             if (not Class::Inspector->loaded($class)) {

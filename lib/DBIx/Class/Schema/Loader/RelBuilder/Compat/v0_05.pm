@@ -44,10 +44,10 @@ sub _relnames_and_method {
         $local_relname = lc($local_table) . $colnames;
 
         $local_relname_uninflected = $local_relname;
-        $local_relname = $self->_inflect_plural( $local_relname );
+        ($local_relname) = $self->_inflect_plural( $local_relname );
     } else {
         $local_relname_uninflected = lc $local_table;
-        $local_relname = $self->_inflect_plural(lc $local_table);
+        ($local_relname) = $self->_inflect_plural(lc $local_table);
     }
 
     my $remote_method = 'has_many';
@@ -57,7 +57,7 @@ sub _relnames_and_method {
     if ($self->_array_eq([ $local_source->primary_columns ], $local_cols) ||
             grep { $self->_array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method = 'might_have';
-        $local_relname = $self->_inflect_singular($local_relname_uninflected);
+        ($local_relname) = $self->_inflect_singular($local_relname_uninflected);
     }
 
     return ( $local_relname, $remote_relname, $remote_method );
