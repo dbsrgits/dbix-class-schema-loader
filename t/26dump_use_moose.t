@@ -24,10 +24,6 @@ $t->dump_test(
     schema_base_class => 'My::SchemaBaseClass',
     result_roles => ['TestRole', 'TestRole2'],
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
@@ -58,10 +54,6 @@ $t->dump_test(
     result_base_class => 'My::ResultBaseClass',
     schema_base_class => 'My::SchemaBaseClass',
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/\nuse base 'My::SchemaBaseClass';\n/,
@@ -85,10 +77,6 @@ $t->dump_test(
     result_base_class => 'My::ResultBaseClass',
     schema_base_class => 'My::SchemaBaseClass',
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
@@ -115,10 +103,6 @@ $t->dump_test(
     result_base_class => 'My::ResultBaseClass',
     schema_base_class => 'My::SchemaBaseClass',
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/\nuse base 'My::SchemaBaseClass';\n/,
@@ -145,10 +129,6 @@ for my $supply_use_moose (1, 0) {
       result_base_class => 'My::ResultBaseClass',
       schema_base_class => 'My::SchemaBaseClass',
     },
-    warnings => [
-      qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-      qr/Schema dump completed/,
-    ],
     regexes => {
       schema => [
         qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
@@ -181,9 +161,6 @@ $t->dump_test (
     result_base_class => 'My::ResultBaseClass',
     schema_base_class => 'My::SchemaBaseClass',
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-  ],
   error => qr/\QIt is not possible to "downgrade" a schema that was loaded with use_moose => 1\E/,
 );
 

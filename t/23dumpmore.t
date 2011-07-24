@@ -13,10 +13,6 @@ $t->cleanup;
 # test loading external content
 $t->dump_test(
   classname => 'DBICTest::Schema::_no_skip_load_external',
-  warnings => [
-    qr/Dumping manual schema for DBICTest::Schema::_no_skip_load_external to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     Foo => [
       qr/package DBICTest::Schema::_no_skip_load_external::Foo;\nour \$skip_me = "bad mojo";\n1;/
@@ -28,12 +24,8 @@ $t->dump_test(
 $t->dump_test(
   classname => 'DBICTest::Schema::_skip_load_external',
   options => {
-    skip_load_external => 1
+    skip_load_external => 1,
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::Schema::_skip_load_external to directory /,
-    qr/Schema dump completed/,
-  ],
   neg_regexes => {
     Foo => [
       qr/package DBICTest::Schema::_skip_load_external::Foo;\nour \$skip_me = "bad mojo";\n1;/
@@ -52,10 +44,6 @@ $t->cleanup;
   $t->dump_test(
     classname => 'DBICTest::Schema::_config_file',
     options => { config_file => "$config_file" },
-    warnings => [
-      qr/Dumping manual schema for DBICTest::Schema::_config_file to directory /,
-      qr/Schema dump completed/,
-    ],
     neg_regexes => {
       Foo => [
         qr/has_many/,
@@ -80,10 +68,6 @@ $t->dump_test(
     classname => 'DBICTest::Schema::_preserve_column_accessors',
     test_db_class => 'make_dbictest_db_with_unique',
     options => { naming => { column_accessors => 'preserve' } },
-    warnings => [
-        qr/Dumping manual schema for DBICTest::Schema::_preserve_column_accessors to directory /,
-        qr/Schema dump completed/,
-    ],
     neg_regexes => {
         RouteChange => [
             qr/\baccessor\b/,
@@ -102,10 +86,6 @@ $t->cleanup;
 $t->dump_test(
     classname => 'DBICTest::Schema::_sorted_rels',
     test_db_class => 'make_dbictest_db_with_unique',
-    warnings => [
-        qr/Dumping manual schema for DBICTest::Schema::_sorted_rels to directory /,
-        qr/Schema dump completed/,
-    ],
     regexes => {
         Baz => [
             qr/->might_have\(\n  "quux".*->belongs_to\(\n  "station_visited"/s,
@@ -119,10 +99,6 @@ $t->cleanup;
 $t->dump_test(
     classname => 'DBICTest::Schema::_plural_monikers',
     options => { naming => { monikers => 'plural' } },
-    warnings => [
-        qr/Dumping manual schema for DBICTest::Schema::_plural_monikers to directory /,
-        qr/Schema dump completed/,
-    ],
     regexes => {
         Foos => [
             qr/\n=head1 NAME\n\nDBICTest::Schema::_plural_monikers::Foos\n\n=cut\n\n/,
@@ -140,10 +116,6 @@ $t->dump_test(
     classname => 'DBICTest::Schema::_singular_monikers',
     test_db_class => 'make_dbictest_db_plural_tables',
     options => { naming => { monikers => 'singular' } },
-    warnings => [
-        qr/Dumping manual schema for DBICTest::Schema::_singular_monikers to directory /,
-        qr/Schema dump completed/,
-    ],
     regexes => {
         Foo => [
             qr/\n=head1 NAME\n\nDBICTest::Schema::_singular_monikers::Foo\n\n=cut\n\n/,
@@ -161,10 +133,6 @@ $t->dump_test(
     classname => 'DBICTest::Schema::_preserve_monikers',
     test_db_class => 'make_dbictest_db_plural_tables',
     options => { naming => { monikers => 'preserve' } },
-    warnings => [
-        qr/Dumping manual schema for DBICTest::Schema::_preserve_monikers to directory /,
-        qr/Schema dump completed/,
-    ],
     regexes => {
         Foos => [
             qr/\n=head1 NAME\n\nDBICTest::Schema::_preserve_monikers::Foos\n\n=cut\n\n/,
@@ -191,10 +159,6 @@ $t->dump_test(
     left_base_classes => 'TestLeftBase',
     components => [ 'TestComponent', '+TestComponentFQN' ],
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/package DBICTest::DumpMore::1;/,
@@ -242,10 +206,6 @@ $t->append_to_class('DBICTest::DumpMore::1::Foo',q{# XXX This is my custom conte
 
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/package DBICTest::DumpMore::1;/,
@@ -270,13 +230,6 @@ $t->dump_test(
   options => {
     really_erase_my_files => 1 
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Deleting existing file /,
-    qr/Deleting existing file /,
-    qr/Deleting existing file /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/package DBICTest::DumpMore::1;/,
@@ -310,10 +263,6 @@ $t->dump_test(
     use_namespaces => 1,
     generate_pod => 0
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   neg_regexes => {
     'Result/Foo' => [
       qr/^=/m,
@@ -329,10 +278,6 @@ $t->dump_test(
     qualify_objects => 1,
     use_namespaces => 1
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     'Result/Foo' => [
       qr/^\Q__PACKAGE__->table("foo_schema.foo");\E/m,
@@ -347,10 +292,6 @@ $t->dump_test(
   options => {
     use_namespaces => 1
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/package DBICTest::DumpMore::1;/,
@@ -378,10 +319,6 @@ $t->dump_test(
     resultset_namespace => 'RSet',
     default_resultset_class => 'RSetBase',
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/package DBICTest::DumpMore::1;/,
@@ -414,10 +351,6 @@ $t->dump_test(
     result_base_class => 'My::ResultBaseClass',
     schema_base_class => 'My::SchemaBaseClass',
   },
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
-  ],
   regexes => {
     schema => [
       qr/package DBICTest::DumpMore::1;/,
@@ -442,7 +375,6 @@ $t->dump_test(
   },
 );
 
-
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
   options => {
@@ -459,10 +391,6 @@ $t->dump_test(
     '',
     '',
     { quote_char => '"' },
-  ],
-  warnings => [
-    qr/Dumping manual schema for DBICTest::DumpMore::1 to directory /,
-    qr/Schema dump completed/,
   ],
 );
 

@@ -44,7 +44,10 @@ sub _dump_directly {
 
     no strict 'refs';
     @{$schema_class . '::ISA'} = ('DBIx::Class::Schema::Loader');
-    $schema_class->loader_options(%{$tdata{options}});
+    $schema_class->loader_options(
+      quiet => 1,
+      %{$tdata{options}},
+    );
 
     my @warns;
     eval {
@@ -66,6 +69,8 @@ sub _dump_dbicdump {
 
     # use $^X so we execute ./script/dbicdump with the same perl binary that the tests were executed with
     my @cmd = ($^X, qw(script/dbicdump));
+
+    $tdata{options}{quiet} = 1 unless exists $tdata{options}{quiet};
 
     while (my ($opt, $val) = each(%{ $tdata{options} })) {
         $val = dumper_squashed $val if ref $val;
@@ -135,7 +140,6 @@ sub _check_error {
     is $got, $expected, 'error matches';
 }
 
-
 sub _test_dumps {
     my ($tdata, @warns) = @_;
 
@@ -143,10 +147,12 @@ sub _test_dumps {
 
     my $schema_class = $tdata{classname};
     my $check_warns = $tdata{warnings};
-    is(@warns, @$check_warns, "$schema_class warning count");
+
+    is(@warns, @$check_warns, "$schema_class warning count")
+      or diag @warns;
 
     for(my $i = 0; $i <= $#$check_warns; $i++) {
-        like($warns[$i], $check_warns->[$i], "$schema_class warning $i");
+        like(($warns[$i] || ''), $check_warns->[$i], "$schema_class warning $i");
     }
 
     my $file_regexes = $tdata{regexes};

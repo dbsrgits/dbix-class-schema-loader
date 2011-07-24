@@ -75,6 +75,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 tables
                                 class_to_table
                                 uniq_to_primary
+                                quiet
 /);
 
 
@@ -239,6 +240,12 @@ Or if you prefer to use 0.07XXX features but insure that nothing breaks in the
 next major version upgrade:
 
     __PACKAGE__->naming('v7');
+
+=head2 quiet
+
+If true, will not print the usual C<Dumping manual schema ... Schema dump
+completed.> messages. Does not affect warnings (except for warnings related to
+L</really_erase_my_files>.)
 
 =head2 generate_pod
 
@@ -1283,11 +1290,10 @@ sub _load_tables {
 
     if(!$self->skip_relationships) {
         # The relationship loader needs a working schema
-        $self->{quiet} = 1;
+        local $self->{quiet} = 1;
         local $self->{dump_directory} = $self->{temp_directory};
         $self->_reload_classes(\@tables);
         $self->_load_relationships(\@tables);
-        $self->{quiet} = 0;
 
         # Remove that temp dir from INC so it doesn't get reloaded
         @INC = grep $_ ne $self->dump_directory, @INC;
@@ -1440,7 +1446,7 @@ sub _dump_to_dir {
 
     my $target_dir = $self->dump_directory;
     warn "Dumping manual schema for $schema_class to directory $target_dir ...\n"
-        unless $self->{dynamic} or $self->{quiet};
+        unless $self->dynamic or $self->quiet;
 
     my $schema_text =
           qq|package $schema_class;\n\n|
@@ -1539,7 +1545,7 @@ sub _dump_to_dir {
         }
     }
 
-    warn "Schema dump completed.\n" unless $self->{dynamic} or $self->{quiet};
+    warn "Schema dump completed.\n" unless $self->dynamic or $self->quiet;
 
 }
 
@@ -1559,7 +1565,7 @@ sub _write_classfile {
 
     if (-f $filename && $self->really_erase_my_files) {
         warn "Deleting existing file '$filename' due to "
-            . "'really_erase_my_files' setting\n" unless $self->{quiet};
+            . "'really_erase_my_files' setting\n" unless $self->quiet;
         unlink($filename);
     }
 
