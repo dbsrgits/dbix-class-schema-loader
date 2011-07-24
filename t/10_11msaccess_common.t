@@ -2,7 +2,6 @@ use strict;
 use warnings;
 use Test::More;
 use DBIx::Class::Schema::Loader::DBI::ODBC::ACCESS ();
-use Win32::OLE ();
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
@@ -127,6 +126,7 @@ my $tester = dbixcsl_common_tests->new(
 
         my $conn = $loader->_ado_connection;
 
+        require Win32::OLE;
         my $comm = Win32::OLE->new('ADODB.Command');
 
         $comm->{ActiveConnection} = $conn;
