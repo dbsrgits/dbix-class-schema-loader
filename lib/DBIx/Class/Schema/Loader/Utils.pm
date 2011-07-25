@@ -5,16 +5,20 @@ use strict;
 use warnings;
 use Data::Dumper ();
 use Test::More;
+use File::Slurp 'read_file';
 use namespace::clean;
 use Exporter 'import';
 
-our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent/;
+our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file/;
 
 use constant BY_CASE_TRANSITION =>
     qr/(?<=[[:lower:]\d])[\W_]*(?=[[:upper:]])|[\W_]+/;
 
 use constant BY_NON_ALPHANUM =>
     qr/[\W_]+/;
+
+my $LF   = "\x0a";
+my $CRLF = "\x0d\x0a";
 
 sub split_name($) {
     my $name = shift;
@@ -132,6 +136,13 @@ sub warnings_exist_silent(&$$) {
     ok $matched, $test_name;
 }
 
+sub slurp_file($) {
+    my $data = read_file(shift, binmode => ':encoding(UTF-8)');
+
+    $data =~ s/$CRLF|$LF/\n/g;
+
+    return $data;
+}
 
 1;
 # vim:et sts=4 sw=4 tw=0:

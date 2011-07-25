@@ -1,14 +1,14 @@
 use strict;
-use lib qw(t/lib);
+use warnings;
+use utf8;
 use DBIx::Class::Schema::Loader 'make_schema_at';
-use DBIx::Class::Schema::Loader::Utils 'no_warnings';
-use dbixcsl_common_tests;
+use DBIx::Class::Schema::Loader::Utils qw/no_warnings slurp_file/;
 use Test::More;
 use Test::Exception;
-use File::Slurp 'slurp';
-use utf8;
-use Encode 'decode';
 use Try::Tiny;
+use namespace::clean;
+use lib qw(t/lib);
+use dbixcsl_common_tests ();
 
 my $dsn      = $ENV{DBICTEST_PG_DSN} || '';
 my $user     = $ENV{DBICTEST_PG_USER} || '';
@@ -211,7 +211,7 @@ my $tester = dbixcsl_common_tests->new(
             my $class    = $classes->{pg_loader_test1};
             my $filename = $schema->_loader->get_dump_filename($class);
 
-            my $code = decode('UTF-8', scalar slurp $filename);
+            my $code = slurp_file $filename;
 
             like $code, qr/^=head1 NAME\n\n^$class - The\nTable ∑\n\n^=cut\n/m,
                 'table comment';
@@ -222,7 +222,7 @@ my $tester = dbixcsl_common_tests->new(
             $class    = $classes->{pg_loader_test2};
             $filename = $schema->_loader->get_dump_filename($class);
 
-            $code = decode('UTF-8', scalar slurp $filename);
+            $code = slurp_file $filename;
 
             like $code, qr/^=head1 NAME\n\n^$class\n\n=head1 DESCRIPTION\n\n^very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long comment\n\n^=cut\n/m,
                 'long table comment is in DESCRIPTION';

@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - support DOS line endings on *nix and *nix line ending on Win32
         - add quiet option
         - $schema->loader is now a public method
         - add schema_components option

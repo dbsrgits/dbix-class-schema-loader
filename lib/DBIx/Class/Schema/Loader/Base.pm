@@ -17,8 +17,7 @@ use File::Temp qw//;
 use Class::Unload;
 use Class::Inspector ();
 use Scalar::Util 'looks_like_number';
-use File::Slurp 'read_file';
-use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path/;
+use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path slurp_file/;
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
@@ -102,6 +101,17 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 _result_class_methods
                                 naming_set
 /);
+
+my $CURRENT_V = 'v7';
+
+my @CLASS_ARGS = qw(
+    schema_components schema_base_class result_base_class
+    additional_base_classes left_base_classes additional_classes components
+    result_roles
+);
+
+my $LF   = "\x0a";
+my $CRLF = "\x0d\x0a";
 
 =head1 NAME
 
@@ -652,14 +662,6 @@ L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-my $CURRENT_V = 'v7';
-
-my @CLASS_ARGS = qw(
-    schema_components schema_base_class result_base_class
-    additional_base_classes left_base_classes additional_classes components
-    result_roles
-);
-
 # ensure that a peice of object data is a valid arrayref, creating
 # an empty one or encapsulating whatever's there.
 sub _ensure_arrayref {
@@ -1116,7 +1118,7 @@ sub _load_external {
         warn qq/# Loaded external class definition for '$class'\n/
             if $self->debug;
 
-        my $code = $self->_rewrite_old_classnames(scalar read_file($real_inc_path, binmode => ':encoding(UTF-8)'));
+        my $code = $self->_rewrite_old_classnames(slurp_file $real_inc_path);
 
         if ($self->dynamic) { # load the class too
             eval_package_without_redefine_warnings($class, $code);
@@ -1139,7 +1141,7 @@ sub _load_external {
     }
 
     if ($old_real_inc_path) {
-        my $code = read_file($old_real_inc_path, binmode => ':encoding(UTF-8)');
+        my $code = slurp_file $old_real_inc_path;
 
         $self->_ext_stmt($class, <<"EOF");
 
@@ -1392,7 +1394,7 @@ sub _reload_class {
         eval_package_without_redefine_warnings ($class, "require $class");
     }
     catch {
-        my $source = read_file($self->_get_dump_filename($class), binmode => ':encoding(UTF-8)');
+        my $source = slurp_file $self->_get_dump_filename($class);
         die "Failed to reload class $class: $_.\n\nCLASS SOURCE:\n\n$source";
     };
 }
@@ -1685,7 +1687,7 @@ sub _parse_generated_file {
         or croak "Cannot open '$fn' for reading: $!";
 
     my $mark_re =
-        qr{^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\n};
+        qr{^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\r?\n};
 
     my ($md5, $ts, $ver, $gen);
     while(<$fh>) {
@@ -1694,7 +1696,7 @@ sub _parse_generated_file {
             $md5 = $2;
 
             # Pull out the version and timestamp from the line above
-            ($ver, $ts) = $gen =~ m/^# Created by DBIx::Class::Schema::Loader v(.*?) @ (.*?)\Z/m;
+            ($ver, $ts) = $gen =~ m/^# Created by DBIx::Class::Schema::Loader v(.*?) @ (.*?)\r?\Z/m;
 
             $gen .= $pre_md5;
             croak "Checksum mismatch in '$fn', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n"
@@ -1710,7 +1712,10 @@ sub _parse_generated_file {
     my $custom = do { local $/; <$fh> }
         if $md5;
 
-    close ($fh);
+    $custom ||= '';
+    $custom =~ s/$CRLF|$LF/\n/g;
+
+    close $fh;
 
     return ($gen, $md5, $ver, $ts, $custom);
 }

@@ -12,11 +12,10 @@ use DBI;
 use Digest::MD5;
 use File::Find 'find';
 use Class::Unload ();
-use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
+use DBIx::Class::Schema::Loader::Utils qw/dumper_squashed slurp_file/;
 use List::MoreUtils 'apply';
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
-use File::Slurp 'read_file';
 use File::Spec::Functions 'catfile';
 use File::Basename 'basename';
 use namespace::clean;
@@ -383,7 +382,7 @@ sub test_schema {
         'Result files dumped to first entry in result_namespace';
 
     # parse out the resultset_namespace
-    my $schema_code = read_file($conn->_loader->get_dump_filename(SCHEMA_CLASS), binmode => ':encoding(UTF-8)');
+    my $schema_code = slurp_file $conn->_loader->get_dump_filename(SCHEMA_CLASS);
 
     my ($schema_resultset_namespace) = $schema_code =~ /\bresultset_namespace => (.*)/;
     $schema_resultset_namespace = eval $schema_resultset_namespace;
@@ -824,7 +823,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
 			$class6->column_info('Id2');
         ok($id2_info->{is_foreign_key}, 'Foreign key detected');
 
-        unlike read_file($conn->_loader->get_dump_filename($class6), binmode => ':encoding(UTF-8)'),
+        unlike slurp_file $conn->_loader->get_dump_filename($class6),
 qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
     \s+ "(\w+?)"
     .*?
@@ -832,7 +831,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
     \s+ "\1"/xs,
 'did not create two relationships with the same name';
 
-        unlike read_file($conn->_loader->get_dump_filename($class8), binmode => ':encoding(UTF-8)'),
+        unlike slurp_file $conn->_loader->get_dump_filename($class8),
 qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
     \s+ "(\w+?)"
     .*?

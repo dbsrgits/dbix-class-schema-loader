@@ -8,8 +8,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
 use Lingua::EN::Inflect::Phrase ();
 use Lingua::EN::Tagger ();
-use DBIx::Class::Schema::Loader::Utils 'split_name';
-use File::Slurp 'read_file';
+use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file/;
 use Try::Tiny;
 use Class::Unload ();
 use Class::Inspector ();
@@ -646,7 +645,7 @@ sub _relnames_and_method {
             my $class = "${remote_class}Temporary";
 
             if (not Class::Inspector->loaded($class)) {
-                my $code = read_file($existing_remote_file, binmode => ':encoding(UTF-8)');
+                my $code = slurp_file $existing_remote_file;
 
                 $code =~ s/(?<=package $remote_class)/Temporary/g;
 
