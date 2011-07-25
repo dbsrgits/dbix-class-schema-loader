@@ -5,12 +5,15 @@ use Test::More;
 use File::Path;
 use IPC::Open3;
 use IO::Handle;
+use List::MoreUtils 'any';
 use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use DBIx::Class::Schema::Loader ();
+use namespace::clean;
 
-use dbixcsl_test_dir qw/$tdir/;
+use dbixcsl_test_dir '$tdir';
 
 my $DUMP_PATH = "$tdir/dump";
+
 sub cleanup {
     rmtree($DUMP_PATH, 1, 1);
 }
@@ -31,7 +34,14 @@ sub dump_test {
     $tdata{options}{dump_directory} = $DUMP_PATH;
     $tdata{options}{use_namespaces} ||= 0;
 
-    for my $dumper (\&_dump_directly, \&_dump_dbicdump) {
+    SKIP: for my $dumper (\&_dump_directly, \&_dump_dbicdump) {
+        skip 'fucking pigs broke my Win32 perl', 1,
+            if $dumper == \&_dump_dbicdump
+                && $^O eq 'MSWin32'
+                && $ENV{FUCKING_PIGS}
+                && (  (any { ref $_ } values %{ $tdata{options} })
+                    || any { ref $_ } _get_connect_info(\%tdata));
+
         _test_dumps(\%tdata, $dumper->(%tdata));
     }
 }
