@@ -6,9 +6,12 @@ dbicdump - Dump a schema using DBIx::Class::Schema::Loader
 
 =head1 SYNOPSIS
 
+  dbicdump <configuration_file>
   dbicdump [-o <loader_option>=<value> ] <schema_class> <connect_info>
 
 Examples:
+
+  $ dbicdump schema.conf
 
   $ dbicdump -o dump_directory=./lib \
     -o components='["InflateColumn::DateTime"]' \
@@ -29,6 +32,24 @@ On Windows that would be:
     -o components="[q{InflateColumn::DateTime}]" ^
     -o preserve_case=1 ^
     MyApp::Schema dbi:mysql:database=foo user pass "{ quote_char => q{`} }"
+    
+Configuration Files must have schema_class and connect_info sections,
+an example of a general config file is as follows:
+
+    schema_class MyApp::Schema
+    
+    # connection string
+    <connect_info>
+        dsn     dbi:mysql:example
+        user    root
+        pass    secret
+    </connect_info>
+    
+    # dbic loader options
+    <loader_options>
+        components  InflateColumn::DateTime
+        components  TimeStamp
+    </loader_options>
 
 =head1 DESCRIPTION
 
@@ -65,6 +86,7 @@ under the same terms as Perl itself.
 use strict;
 use warnings;
 use Getopt::Long;
+use Config::Any;
 
 use Pod::Usage;
 
@@ -76,21 +98,49 @@ my $loader_options;
 GetOptions( 'loader-option|o=s%' => \&handle_option );
 $loader_options->{dump_directory} ||= '.';
 
-my ($schema_class, @loader_connect_info) = @ARGV
-    or pod2usage(1);
-
-my $dsn = shift @loader_connect_info;
-
-my ($user, $pass) = $dsn =~ /sqlite/i ? ('', '')
-    : splice @loader_connect_info, 0, 2;
-
-my @extra_connect_info_opts = map parse_value($_), @loader_connect_info;
-
-make_schema_at(
-    $schema_class,
-    $loader_options,
-    [ $dsn, $user, $pass, @extra_connect_info_opts ],
-);
+if (@ARGV == 1) {
+    my $configuration_file = shift @ARGV;
+    my $configurations =
+      Config::Any->load_files( {
+            use_ext => 1,
+            flatten_to_hash => 1,
+            files => [$configuration_file] } );
+    
+    my $c = (values %$configurations)[0];
+    
+    unless (keys %{$c->{connect_info}} && $c->{schema_class}) {
+        pod2usage(1);
+    }
+    
+    my ($dsn, $user, $pass, $options) =
+        map { $c->{connect_info}->{$_} } qw/dsn user pass options/;
+        $options ||= {};
+        $c->{loader_options}->{dump_directory} ||=
+            $loader_options->{dump_directory};
+    
+    make_schema_at(
+        $c->{schema_class},
+        $c->{loader_options} || {},
+        [ $dsn, $user, $pass, %{$options} ],
+    );
+}
+else {
+    my ($schema_class, @loader_connect_info) = @ARGV
+        or pod2usage(1);
+    
+    my $dsn = shift @loader_connect_info;
+    
+    my ($user, $pass) = $dsn =~ /sqlite/i ? ('', '')
+        : splice @loader_connect_info, 0, 2;
+    
+    my @extra_connect_info_opts = map parse_value($_), @loader_connect_info;
+    
+    make_schema_at(
+        $schema_class,
+        $loader_options,
+        [ $dsn, $user, $pass, @extra_connect_info_opts ],
+    );
+}
 
 exit 0;
 

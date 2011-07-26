@@ -540,6 +540,8 @@ spb: Stephen Bennett <spb@exherbo.org>
 
 Matias E. Fernandez <mfernandez@pisco.ch>
 
+Al Newkirk <awncorp@cpan.org>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
