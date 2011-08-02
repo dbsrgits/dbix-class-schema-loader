@@ -25,6 +25,6 @@ plan tests => 1;
 my $foo = slurp("$dump_path/DBICTest/Schema/1/Result/Foo.pm");
 my $bar = slurp("$dump_path/DBICTest/Schema/1/Result/Bar.pm");
 
-like($foo, qr/Result::Foo\n/, 'No error from no comments');
+like($foo, qr/Result::Foo\n/, 'No error from lack of comment tables');
 
 END { rmtree($dump_path, 1, 1); }

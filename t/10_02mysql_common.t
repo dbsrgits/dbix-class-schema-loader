@@ -1,10 +1,8 @@
 use strict;
-use File::Slurp qw(slurp);
+use DBIx::Class::Schema::Loader::Utils 'slurp_file';
 use Test::More;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
-use utf8;
-use Encode 'decode';
 
 my $dsn         = $ENV{DBICTEST_MYSQL_DSN} || '';
 my $user        = $ENV{DBICTEST_MYSQL_USER} || '';
@@ -191,9 +189,9 @@ my $tester = dbixcsl_common_tests->new(
                 'hairy enum introspected correctly';
 
             my $class    = $classes->{'mysql_loader-test1'};
-            my $filename = $schema->_loader->get_dump_filename($class);
+            my $filename = $schema->loader->get_dump_filename($class);
 
-            my $code = decode('UTF-8', scalar slurp $filename);
+            my $code = slurp_file $filename;
 
             like $code, qr/^=head1 NAME\n\n^$class - The\nTable\n\n^=cut\n/m,
                 'table comment';

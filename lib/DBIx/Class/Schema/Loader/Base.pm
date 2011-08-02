@@ -264,7 +264,7 @@ L</really_erase_my_files>.)
 By default POD will be generated for columns and relationships, using database
 metadata for the text if available and supported.
 
-Metadata can be stored in two ways.
+Comment metadata can be stored in two ways.
 
 The first is that you can create two tables named C<table_comments> and
 C<column_comments> respectively.  They both need to have columns named
@@ -275,12 +275,13 @@ source of metadata about tables and comments.
 (If you wish you can change the name of these tables with the parameters
 L</table_comments_table> and L</column_comments_table>.)
 
-As a fallback you can use built-in commenting mechanisms.  Currently this
-is only supported for PostgreSQL and MySQL.  To create comments in
-PostgreSQL you add statements of the form C<COMMENT ON TABLE some_table ...>.
-To create comments in MySQL you add C<COMMENT '...'> to the end of the
-column or table definition.  Note that MySQL restricts the length of comments,
-and also does not handle complex Unicode characters properly.
+As a fallback you can use built-in commenting mechanisms.  Currently this is
+only supported for PostgreSQL, Oracle and MySQL.  To create comments in
+PostgreSQL you add statements of the form C<COMMENT ON TABLE some_table IS
+'...'>, the same syntax is used in Oracle. To create comments in MySQL you add
+C<COMMENT '...'> to the end of the column or table definition.  Note that MySQL
+restricts the length of comments, and also does not handle complex Unicode
+characters properly.
 
 Set this to C<0> to turn off all POD generation.
 

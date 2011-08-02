@@ -122,8 +122,14 @@ sub _table_uniq_info {
 }
 
 sub _table_comment {
-    my ( $self, $table ) = @_;
-     my ($table_comment) = $self->schema->storage->dbh->selectrow_array(
+    my $self = shift;
+    my ($table) = @_;
+
+    my $table_comment = $self->next::method(@_);
+
+    return $table_comment if $table_comment;
+
+    ($table_comment) = $self->schema->storage->dbh->selectrow_array(
         q{
             SELECT comments FROM all_tab_comments
             WHERE owner = ? 
@@ -136,8 +142,14 @@ sub _table_comment {
 }
 
 sub _column_comment {
-    my ( $self, $table, $column_number, $column_name ) = @_;
-    my ($column_comment) = $self->schema->storage->dbh->selectrow_array(
+    my $self = shift;
+    my ($table, $column_number, $column_name) = @_;
+
+    my $column_comment = $self->next::method(@_);
+
+    return $column_comment if $column_comment;
+
+    ($column_comment) = $self->schema->storage->dbh->selectrow_array(
         q{
             SELECT comments FROM all_col_comments
             WHERE owner = ? 

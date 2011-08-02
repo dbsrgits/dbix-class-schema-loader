@@ -5,6 +5,7 @@ use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI';
 use mro 'c3';
 use List::Util 'first';
+use Try::Tiny;
 use namespace::clean;
 
 our $VERSION = '0.07010';
@@ -245,12 +246,13 @@ sub _table_comment {
     my ( $self, $table ) = @_;
     my $comment = $self->next::method($table);
     if (not $comment) {
-        ($comment) = $self->schema->storage->dbh->selectrow_array(
+        ($comment) = try { $self->schema->storage->dbh->selectrow_array(
             qq{SELECT table_comment
                 FROM information_schema.tables
                 WHERE table_schema = schema()
                   AND table_name = ?
             }, undef, $table);
+        };
         # InnoDB likes to auto-append crap.
         if (not $comment) {
             # Do nothing.
@@ -262,20 +264,21 @@ sub _table_comment {
             $comment =~ s/; InnoDB.*//;
         }
     }
-    return $comment || "Gotcha $table?";
+    return $comment;
 }
 
 sub _column_comment {
     my ( $self, $table, $column_number, $column_name ) = @_;
     my $comment = $self->next::method($table, $column_number, $column_name);
     if (not $comment) {
-        ($comment) = $self->schema->storage->dbh->selectrow_array(
+        ($comment) = try { $self->schema->storage->dbh->selectrow_array(
             qq{SELECT column_comment
                 FROM information_schema.columns
                 WHERE table_schema = schema()
                   AND table_name = ?
                   AND column_name = ?
             }, undef, $table, $column_name);
+        };
     }
     return $comment;
 }
