@@ -77,6 +77,8 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 class_to_table
                                 uniq_to_primary
                                 quiet
+
+                                filter_generated_text
 /);
 
 
@@ -681,6 +683,21 @@ L</RELATIONSHIP NAME COLLISIONS>.
 Automatically promotes the largest unique constraints with non-nullable columns
 on tables to primary keys, assuming there is only one largest unique
 constraint.
+
+=head2 filter_generated_text
+
+An optional hook that lets you filter the generated text for various classes through
+a function that change it in any way that you want.  The function will receive the class
+and text, and returns the new text to use instead.  For instance you could add
+custom comment, run C<perltidy>, or do anything else that you want.
+
+If this exists but fails to return text matching C</package/>, no file will be generated.
+
+    filter_generated_base => sub {
+        my ($class, $text) = @_;
+	...
+	return $new_text;
+    }
 
 =head1 METHODS
 
@@ -1655,7 +1672,15 @@ sub _write_classfile {
     $text .= qq|$_\n|
         for @{$self->{_dump_storage}->{$class} || []};
 
-    # Check and see if the dump is infact differnt
+    if ($self->{filter_generated_text}) {
+        $text = $self->{filter_generated_text}->($class, $text);
+	if (not $text or not $text =~ /package/) {
+	    warn("$class skipped due to filter") if $self->debug;
+	    return;
+	}
+    }
+
+    # Check and see if the dump is in fact different
 
     my $compare_to;
     if ($old_md5) {
