@@ -35,10 +35,10 @@ sub dump_test {
     $tdata{options}{use_namespaces} ||= 0;
 
     SKIP: for my $dumper (\&_dump_directly, \&_dump_dbicdump) {
-        skip 'flying pigs broke my Win32 perl', 1,
+        skip 'fucking pigs broke my Win32 perl', 1,
             if $dumper == \&_dump_dbicdump
                 && $^O eq 'MSWin32'
-                && $ENV{FLYING_PIGS}
+                && $ENV{FUCKING_PIGS}
                 && (  (any { ref $_ } values %{ $tdata{options} })
                     || any { ref $_ } _get_connect_info(\%tdata));
 
