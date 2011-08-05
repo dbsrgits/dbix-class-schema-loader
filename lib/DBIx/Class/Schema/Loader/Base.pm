@@ -21,8 +21,10 @@ use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_packag
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
-use Encode qw/encode/;
+use Encode qw/encode decode/;
 use List::MoreUtils 'all';
+use IPC::Open2;
+use Symbol 'gensym';
 use namespace::clean;
 
 our $VERSION = '0.07010';
@@ -77,8 +79,6 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 class_to_table
                                 uniq_to_primary
                                 quiet
-
-                                filter_generated_text
 /);
 
 
@@ -104,6 +104,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 datetime_undef_if_invalid
                                 _result_class_methods
                                 naming_set
+                                filter_generated_code
 /);
 
 my $CURRENT_V = 'v7';
@@ -114,6 +115,7 @@ my @CLASS_ARGS = qw(
     result_roles
 );
 
+my $CR   = "\x0d";
 my $LF   = "\x0a";
 my $CRLF = "\x0d\x0a";
 
@@ -684,19 +686,24 @@ Automatically promotes the largest unique constraints with non-nullable columns
 on tables to primary keys, assuming there is only one largest unique
 constraint.
 
-=head2 filter_generated_text
+=head2 filter_generated_code
 
-An optional hook that lets you filter the generated text for various classes through
-a function that change it in any way that you want.  The function will receive the class
-and text, and returns the new text to use instead.  For instance you could add
-custom comment, run C<perltidy>, or do anything else that you want.
+An optional hook that lets you filter the generated text for various classes
+through a function that change it in any way that you want.  The function will
+receive the type of file, C<schema> or C<result>, class and code; and returns
+the new code to use instead.  For instance you could add custom comments, or do
+anything else that you want.
 
-If this exists but fails to return text matching C</package/>, no file will be generated.
+The option can also be set to a string, which is then used as a filter program,
+e.g. C<perltidy>.
 
-    filter_generated_base => sub {
-        my ($class, $text) = @_;
+If this exists but fails to return text matching C</\bpackage\b/>, no file will
+be generated.
+
+    filter_generated_code => sub {
+        my ($type, $class, $text) = @_;
 	...
-	return $new_text;
+	return $new_code;
     }
 
 =head1 METHODS
@@ -908,6 +915,13 @@ sub new {
         my $reftype = ref $rel_name_map;
         if ($reftype ne 'HASH' && $reftype ne 'CODE') {
             croak "Invalid type $reftype for option 'rel_name_map', must be HASH or CODE";
+        }
+    }
+
+    if (defined(my $filter = $self->filter_generated_code)) {
+        my $reftype = ref $filter;
+        if ($reftype && $reftype ne 'CODE') {
+            croak "Invalid type $reftype for option 'filter_generated_code, must be a scalar or a CODE reference";
         }
     }
 
@@ -1672,9 +1686,39 @@ sub _write_classfile {
     $text .= qq|$_\n|
         for @{$self->{_dump_storage}->{$class} || []};
 
-    if ($self->{filter_generated_text}) {
-        $text = $self->{filter_generated_text}->($class, $text);
-	if (not $text or not $text =~ /package/) {
+    if ($self->filter_generated_code) {
+        my $filter = $self->filter_generated_code;
+
+        if (ref $filter eq 'CODE') {
+            $text = $filter->(
+                ($is_schema ? 'schema' : 'result'),
+                $class,
+                $text
+            );
+        }
+        else {
+            my ($out, $in) = (gensym, gensym);
+
+            my $pid = open2($out, $in, $filter)
+                or croak "Could not open pipe to $filter: $!";
+
+            print $in $text;
+
+            close $in;
+
+            $text = decode('UTF-8', do { local $/; <$out> });
+
+            $text =~ s/$CR?$LF/\n/g;
+
+            waitpid $pid, 0;
+
+            my $exit_code = $? >> 8;
+
+            if ($exit_code != 0) {
+                croak "filter '$filter' exited non-zero: $exit_code";
+            }
+        }
+	if (not $text or not $text =~ /\bpackage\b/) {
 	    warn("$class skipped due to filter") if $self->debug;
 	    return;
 	}

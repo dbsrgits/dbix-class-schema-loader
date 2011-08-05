@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - added filter_generated_code option (RT#53841)
         - generic table and column comments support
         - MySQL table and column comments support
         - support DOS line endings on *nix and *nix line ending on Win32
