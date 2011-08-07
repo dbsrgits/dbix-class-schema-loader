@@ -14,21 +14,42 @@ use Carp;
 # Makefile.PL in $AUTHOR mode
 
 my $reqs = {
-  dist => {
-    #'Module::Install::Pod::Inherit' => '0.01',
-  },
+    dist => {
+        #'Module::Install::Pod::Inherit' => '0.01',
+    },
 
-  use_moose => {
-    req => {
-      'Moose' => '1.12',
-      'MooseX::NonMoose' => '0.16',
-      'namespace::autoclean' => '0.09',
+    use_moose => {
+        req => {
+            'Moose' => '1.12',
+            'MooseX::NonMoose' => '0.16',
+            'namespace::autoclean' => '0.09',
+        },
+        pod => {
+            title => 'use_moose',
+            desc  => 'Modules required for the use_moose option',
+        },
     },
-    pod => {
-      title => 'use_moose',
-      desc => 'Modules required for the use_moose option',
+
+    dbicdump_config => {
+        req => {
+            'Config::Any' => '0',
+        },
+        pod => {
+            title => 'dbicdump config file',
+            desc  => 'Modules required for using a config file with dbicdump',
+        },
     },
-  },
+
+    test_dbicdump_config => {
+        req => {
+            'Config::Any'     => '0',
+            'Config::General' => '0',
+        },
+        pod => {
+            title => 'dbicdump config file testing',
+            desc  => 'Modules required for using testing using a config file with dbicdump',
+        },
+    },
 };
 
 sub req_list_for {
