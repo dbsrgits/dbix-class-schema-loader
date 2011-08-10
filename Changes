@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - config file support for dbicdump script
         - added filter_generated_code option (RT#53841)
         - generic table and column comments support
         - MySQL table and column comments support
