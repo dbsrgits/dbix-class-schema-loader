@@ -1370,7 +1370,7 @@ sub create {
 
     $self->drop_tables;
 
-    my $make_auto_inc = $self->{auto_inc_cb} || sub {};
+    my $make_auto_inc = $self->{auto_inc_cb} || sub { return () };
     @statements = (
         qq{
             CREATE TABLE loader_test1s (
