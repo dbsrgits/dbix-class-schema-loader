@@ -16,6 +16,7 @@ my $dump_path = "$tdir/dump";
     use base qw/ DBIx::Class::Schema::Loader /;
     __PACKAGE__->loader_options(
         dump_directory => $dump_path,
+        quiet => 1,
     );
 }
 
