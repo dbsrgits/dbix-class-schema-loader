@@ -2250,6 +2250,10 @@ sub _setup_src_meta {
     $self->_dbic_stmt($table_class, 'set_primary_key', @$pks)
         if @$pks;
 
+    # Sort unique constraints by constraint name for repeatable results (rels
+    # are sorted as well elsewhere.)
+    @uniqs = sort { $a->[0] cmp $b->[0] } @uniqs;
+
     foreach my $uniq (@uniqs) {
         my ($name, $cols) = @$uniq;
         $self->_dbic_stmt($table_class,'add_unique_constraint', $name, $cols);

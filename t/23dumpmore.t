@@ -95,6 +95,18 @@ $t->dump_test(
 
 $t->cleanup;
 
+$t->dump_test(
+    classname => 'DBICTest::Schema::_sorted_uniqs',
+    test_db_class => 'make_dbictest_db_multi_unique',
+    regexes => {
+        Bar => [
+            qr/->add_unique_constraint\("uniq1_unique".*->add_unique_constraint\("uniq2_unique"/s,
+        ],
+    },
+);
+
+$t->cleanup;
+
 # test naming => { monikers => 'plural' }
 $t->dump_test(
     classname => 'DBICTest::Schema::_plural_monikers',

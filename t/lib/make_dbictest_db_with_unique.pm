@@ -65,6 +65,6 @@ $dbh->do($_) for (
     q|INSERT INTO RouteChange VALUES (1,1,3)|,
 );
 
-END { unlink($fn); }
+END { unlink($fn) unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}; }
 
 1;

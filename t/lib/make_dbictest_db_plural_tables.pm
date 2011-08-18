@@ -35,6 +35,6 @@ $dbh->do($_) for (
     q|INSERT INTO bars VALUES (4,1)|,
 );
 
-END { unlink($fn); }
+END { unlink($fn) unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}; }
 
 1;

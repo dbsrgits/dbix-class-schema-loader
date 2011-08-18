@@ -45,7 +45,6 @@
     - make 23dumpmore.t auto cleanup and remove dump warnings
     - generate POD for schema class with class list
     - remove implicit rels from common tests so all tests work on MySQL
-    - sort unique keys by name
     - server link support for Oracle and MSSQL
     - add -I support to dbicdump
 
