@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - handle <type> DEFAULT NULL for Pg
+        - handle boolean DEFAULT 0::boolean for Pg
         - config file support for dbicdump script
         - added filter_generated_code option (RT#53841)
         - generic table and column comments support
