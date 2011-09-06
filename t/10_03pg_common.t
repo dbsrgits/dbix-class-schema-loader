@@ -39,6 +39,12 @@ my $tester = dbixcsl_common_tests->new(
 	bool        => { data_type => 'boolean' },
         'bool default false'
                     => { data_type => 'boolean', default_value => \'false' },
+        'bool default true'
+                    => { data_type => 'boolean', default_value => \'true' },
+        'bool default 0::bool'
+                    => { data_type => 'boolean', default_value => \'false' },
+        'bool default 1::bool'
+                    => { data_type => 'boolean', default_value => \'true' },
 
 	bigint      => { data_type => 'bigint' },
 	int8        => { data_type => 'bigint' },
@@ -100,6 +106,9 @@ my $tester = dbixcsl_common_tests->new(
         # varchar with no size has unlimited size, we rewrite to 'text'
 	varchar                          => { data_type => 'text',
                                               original => { data_type => 'varchar' } },
+        # check that default NULL is correctly rewritten
+        'varchar(3) default NULL'        => { data_type => 'varchar', size => 3,
+                                              default_value => \'null' },
 
         # Datetime Types
 	date                             => { data_type => 'date' },

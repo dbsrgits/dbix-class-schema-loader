@@ -151,7 +151,7 @@ sub _columns_info_for {
         # these types are fixed size
         # XXX should this be a negative match?
         if ($data_type =~
-/^(?:bigint|int8|bigserial|serial8|boolean|bool|box|bytea|cidr|circle|date|double precision|float8|inet|integer|int|int4|line|lseg|macaddr|money|path|point|polygon|real|float4|smallint|int2|serial|serial4|text)\z/i) {
+/^(?:bigint|int8|bigserial|serial8|bool(?:ean)?|box|bytea|cidr|circle|date|double precision|float8|inet|integer|int|int4|line|lseg|macaddr|money|path|point|polygon|real|float4|smallint|int2|serial|serial4|text)\z/i) {
             delete $info->{size};
         }
 # for datetime types, check if it has a precision or not
@@ -271,6 +271,18 @@ EOF
 
             my $now = 'now()';
             $info->{original}{default_value} = \$now;
+        }
+
+# detect 0/1 for booleans and rewrite
+        if ($data_type =~ /^bool/i && exists $info->{default_value}) {
+            if ($info->{default_value} eq '0') {
+                my $false = 'false';
+                $info->{default_value} = \$false;
+            }
+            elsif ($info->{default_value} eq '1') {
+                my $true = 'true';
+                $info->{default_value} = \$true;
+            }
         }
     }
 

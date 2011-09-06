@@ -34,9 +34,18 @@ sub _columns_info_for {
             if ($def =~ /^["'](.*?)['"](?:::[\w\s]+)?\z/) {
                 $info->{default_value} = $1;
             }
+# Some DBs (eg. Pg) put parenthesis around negative number defaults
+            elsif ($def =~ /^\((-?\d.*?)\)(?:::[\w\s]+)?\z/) {
+                $info->{default_value} = $1;
+            }
+            elsif ($def =~ /^(\d.*?)(?:::[\w\s]+)?\z/) {
+                $info->{default_value} = $1;
+            }
+            elsif ($def =~ /^NULL:?/i) {
+                $info->{default_value} = \'null';
+            }
             else {
-                # Some DBs (eg. Pg) put brackets around negative number defaults
-                $info->{default_value} = $def =~ /^\(?(-?\d.*?)\)?$/ ? $1 : \$def;
+                $info->{default_value} = \$def;
             }
         }
     }
