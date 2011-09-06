@@ -2552,7 +2552,7 @@ sub _pod_class_list {
 sub _base_class_pod {
     my ($self, $base_class) = @_;
 
-    return unless $self->generate_pod;
+    return '' unless $self->generate_pod;
 
     return <<"EOF"
 =head1 BASE CLASS: L<$base_class>
