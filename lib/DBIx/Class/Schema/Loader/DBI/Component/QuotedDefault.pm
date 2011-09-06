@@ -38,7 +38,7 @@ sub _columns_info_for {
             elsif ($def =~ /^\((-?\d.*?)\)(?:::[\w\s]+)?\z/) {
                 $info->{default_value} = $1;
             }
-            elsif ($def =~ /^(\d.*?)(?:::[\w\s]+)?\z/) {
+            elsif ($def =~ /^(-?\d.*?)(?:::[\w\s]+)?\z/) {
                 $info->{default_value} = $1;
             }
             elsif ($def =~ /^NULL:?/i) {
