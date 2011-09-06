@@ -42,7 +42,8 @@ sub _columns_info_for {
                 $info->{default_value} = $1;
             }
             elsif ($def =~ /^NULL:?/i) {
-                $info->{default_value} = \'null';
+                my $null = 'null';
+                $info->{default_value} = \$null;
             }
             else {
                 $info->{default_value} = \$def;

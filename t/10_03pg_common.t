@@ -100,14 +100,17 @@ my $tester = dbixcsl_common_tests->new(
 	'varchar(2)'                     => { data_type => 'varchar', size => 2 },
 	'character(2)'                   => { data_type => 'char', size => 2 },
 	'char(2)'                        => { data_type => 'char', size => 2 },
+        # check that default null is correctly rewritten
+        'char(3) default null'           => { data_type => 'char', size => 3,
+                                              default_value => \'null' },
 	'character'                      => { data_type => 'char', size => 1 },
 	'char'                           => { data_type => 'char', size => 1 },
 	text                             => { data_type => 'text' },
         # varchar with no size has unlimited size, we rewrite to 'text'
 	varchar                          => { data_type => 'text',
                                               original => { data_type => 'varchar' } },
-        # check that default NULL is correctly rewritten
-        'varchar(3) default NULL'        => { data_type => 'varchar', size => 3,
+        # check default null again (to make sure ref is safe)
+        'varchar(3) default null'        => { data_type => 'varchar', size => 3,
                                               default_value => \'null' },
 
         # Datetime Types
