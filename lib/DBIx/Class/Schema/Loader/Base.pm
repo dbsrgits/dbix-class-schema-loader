@@ -1992,7 +1992,12 @@ sub _make_src_class {
             );
         }
 
-        my $old_class = join(q{::}, @result_namespace, $table_moniker);
+        my $old_table_moniker = do {
+            local $self->naming->{monikers} = $upgrading_v;
+            $self->_table2moniker($table);
+        };
+
+        my $old_class = join(q{::}, @result_namespace, $old_table_moniker);
 
         $self->_upgrading_classes->{$table_class} = $old_class
             unless $table_class eq $old_class;
