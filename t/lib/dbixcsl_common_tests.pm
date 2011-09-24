@@ -1295,7 +1295,7 @@ sub monikers_and_classes {
         $monikers->{$table_name} = $source_name;
         $classes->{$table_name} = $result_class;
 
-        # some DBs (Firebird) uppercase everything
+        # some DBs (Firebird, Oracle) uppercase everything
         $monikers->{lc $table_name} = $source_name;
         $classes->{lc $table_name} = $result_class;
     }

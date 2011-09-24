@@ -93,9 +93,16 @@ sub run_tests {
     my $monikers = {};
     my $classes = {};
     foreach my $source_name ($schema_class->sources) {
-        my $table_name = $schema_class->source($source_name)->from;
+        my $table_name = $schema_class->loader->moniker_to_table->{$source_name};
+
+        my $result_class = $schema_class->source($source_name)->result_class;
+
         $monikers->{$table_name} = $source_name;
-        $classes->{$table_name} = $schema_class . q{::} . $source_name;
+        $classes->{$table_name} = $result_class;
+
+        # some DBs (Firebird, Oracle) uppercase everything
+        $monikers->{lc $table_name} = $source_name;
+        $classes->{lc $table_name} = $result_class;
     }
 
 # for debugging...
