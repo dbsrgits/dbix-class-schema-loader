@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix Oracle common tests fail with multi_schema due to not resetting
+          the preserve_case option after the preserve_case tests (RT#70829)
         - handle <type> DEFAULT NULL for Pg
         - handle boolean DEFAULT 0::boolean for Pg
         - config file support for dbicdump script

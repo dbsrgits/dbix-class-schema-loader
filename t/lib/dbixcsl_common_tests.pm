@@ -114,7 +114,7 @@ sub run_tests {
     my $extra_count = $self->{extra}{count} || 0;
 
     my $col_accessor_map_tests = 5;
-    my $num_rescans = 5;
+    my $num_rescans = 6;
     $num_rescans++ if $self->{vendor} eq 'mssql';
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
@@ -1254,9 +1254,10 @@ qq| INSERT INTO ${oqt}${table41_name}${cqt} VALUES (1, 1) |,
     );
     $conn->storage->disconnect;
 
-    local $conn->loader->{preserve_case} = 1;
-    $conn->loader->_setup;
+    my $orig_preserve_case = $conn->loader->preserve_case;
 
+    $conn->loader->preserve_case(1);
+    $conn->loader->_setup;
     $self->rescan_without_warnings($conn);
 
     if (not $self->{skip_rels}) {
@@ -1273,6 +1274,13 @@ qq| INSERT INTO ${oqt}${table41_name}${cqt} VALUES (1, 1) |,
         is try { $conn->resultset('LoaderTest40')->find(1)->foo3_bar }, 'foo',
             'accessor for mixed-case column name in mixed case table';
     }
+
+    # Further tests may expect preserve_case to be unset, so reset it to the
+    # original value and rescan again.
+
+    $conn->loader->preserve_case($orig_preserve_case);
+    $conn->loader->_setup;
+    $self->rescan_without_warnings($conn);
 }
 
 sub monikers_and_classes {
