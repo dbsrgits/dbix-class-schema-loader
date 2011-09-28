@@ -190,11 +190,20 @@ my $tester = dbixcsl_common_tests->new(
                 CREATE TABLE "dbicsl-test".pg_loader_test5 (
                     id SERIAL PRIMARY KEY,
                     value VARCHAR(100),
-                    four_id INTEGER UNIQUE REFERENCES "dbicsl-test".pg_loader_test4 (id)
+                    four_id INTEGER REFERENCES "dbicsl-test".pg_loader_test4 (id),
+                    CONSTRAINT loader_test5_uniq UNIQUE (four_id)
                 )
             },
             q{
                 CREATE SCHEMA "dbicsl.test"
+            },
+            q{
+                CREATE TABLE "dbicsl.test".pg_loader_test5 (
+                    pk SERIAL PRIMARY KEY,
+                    value VARCHAR(100),
+                    four_id INTEGER REFERENCES "dbicsl-test".pg_loader_test4 (id),
+                    CONSTRAINT loader_test5_uniq UNIQUE (four_id)
+                )
             },
             q{
                 CREATE TABLE "dbicsl.test".pg_loader_test6 (
@@ -225,7 +234,7 @@ my $tester = dbixcsl_common_tests->new(
             'DROP TYPE pg_loader_test_enum',
         ],
         drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 4 + 28 * 2,
+        count => 4 + 30 * 2,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -266,6 +275,7 @@ my $tester = dbixcsl_common_tests->new(
                         {
                             naming => 'current',
                             db_schema => $db_schema,
+                            moniker_parts => [qw/schema name/],
                             preserve_case => 1,
                             dump_directory => EXTRA_DUMP_DIR,
                             quiet => 1,
@@ -289,7 +299,7 @@ my $tester = dbixcsl_common_tests->new(
                 } 'connected test schema';
 
                 lives_and {
-                    ok $rsrc = $test_schema->source('PgLoaderTest4');
+                    ok $rsrc = $test_schema->source('DbicslDashTestPgLoaderTest4');
                 } 'got source for table in schema name with dash';
 
                 is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -302,14 +312,14 @@ my $tester = dbixcsl_common_tests->new(
                     'column in schema name with dash';
 
                 lives_and {
-                    ok $rs = $test_schema->resultset('PgLoaderTest4');
+                    ok $rs = $test_schema->resultset('DbicslDashTestPgLoaderTest4');
                 } 'got resultset for table in schema name with dash';
 
                 lives_and {
                     ok $row = $rs->create({ value => 'foo' });
                 } 'executed SQL on table in schema name with dash';
 
-                $rel_info = try { $rsrc->relationship_info('pg_loader_test5') };
+                $rel_info = try { $rsrc->relationship_info('dbicsl_dash_test_pg_loader_test5') };
 
                 is_deeply $rel_info->{cond}, {
                     'foreign.four_id' => 'self.id'
@@ -322,7 +332,7 @@ my $tester = dbixcsl_common_tests->new(
                     'relationship in schema name with dash';
 
                 lives_and {
-                    ok $rsrc = $test_schema->source('PgLoaderTest5');
+                    ok $rsrc = $test_schema->source('DbicslDashTestPgLoaderTest5');
                 } 'got source for table in schema name with dash';
 
                 %uniqs = try { $rsrc->unique_constraints };
@@ -330,8 +340,13 @@ my $tester = dbixcsl_common_tests->new(
                 is keys %uniqs, 2,
                     'got unique and primary constraint in schema name with dash';
 
+                delete $uniqs{primary};
+
+                is_deeply ((values %uniqs)[0], ['four_id'],
+                    'unique constraint is correct in schema name with dash');
+
                 lives_and {
-                    ok $rsrc = $test_schema->source('PgLoaderTest6');
+                    ok $rsrc = $test_schema->source('DbicslDotTestPgLoaderTest6');
                 } 'got source for table in schema name with dot';
 
                 is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -344,7 +359,7 @@ my $tester = dbixcsl_common_tests->new(
                     'column in schema name with dot introspected correctly';
 
                 lives_and {
-                    ok $rs = $test_schema->resultset('PgLoaderTest6');
+                    ok $rs = $test_schema->resultset('DbicslDotTestPgLoaderTest6');
                 } 'got resultset for table in schema name with dot';
 
                 lives_and {
@@ -364,7 +379,7 @@ my $tester = dbixcsl_common_tests->new(
                     'relationship in schema name with dot';
 
                 lives_and {
-                    ok $rsrc = $test_schema->source('PgLoaderTest7');
+                    ok $rsrc = $test_schema->source('DbicslDotTestPgLoaderTest7');
                 } 'got source for table in schema name with dot';
 
                 %uniqs = try { $rsrc->unique_constraints };
@@ -372,23 +387,28 @@ my $tester = dbixcsl_common_tests->new(
                 is keys %uniqs, 2,
                     'got unique and primary constraint in schema name with dot';
 
+                delete $uniqs{primary};
+
+                is_deeply ((values %uniqs)[0], ['six_id'],
+                    'unique constraint is correct in schema name with dot');
+
                 lives_and {
-                    ok $test_schema->source('PgLoaderTest6')
+                    ok $test_schema->source('DbicslDotTestPgLoaderTest6')
                         ->has_relationship('pg_loader_test4');
                 } 'cross-schema relationship in multi-db_schema';
 
                 lives_and {
-                    ok $test_schema->source('PgLoaderTest4')
+                    ok $test_schema->source('DbicslDashTestPgLoaderTest4')
                         ->has_relationship('pg_loader_test6s');
                 } 'cross-schema relationship in multi-db_schema';
 
                 lives_and {
-                    ok $test_schema->source('PgLoaderTest8')
+                    ok $test_schema->source('DbicslDashTestPgLoaderTest8')
                         ->has_relationship('pg_loader_test7');
                 } 'cross-schema relationship in multi-db_schema';
 
                 lives_and {
-                    ok $test_schema->source('PgLoaderTest7')
+                    ok $test_schema->source('DbicslDotTestPgLoaderTest7')
                         ->has_relationship('pg_loader_test8s');
                 } 'cross-schema relationship in multi-db_schema';
             }

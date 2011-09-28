@@ -8,10 +8,12 @@ use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
 use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file/;
 use Try::Tiny;
-use List::MoreUtils 'apply';
+use List::MoreUtils qw/apply uniq any/;
 use namespace::clean;
 use Lingua::EN::Inflect::Phrase ();
 use Lingua::EN::Tagger ();
+use String::ToIdentifier::EN ();
+use String::ToIdentifier::EN::Unicode ();
 use Class::Unload ();
 use Class::Inspector ();
 
@@ -501,11 +503,56 @@ sub _adjectives {
     return @adjectives;
 }
 
+sub _name_to_identifier {
+    my ($self, $name) = @_;
+
+    my $to_identifier = $self->loader->naming->{force_ascii} ?
+        \&String::ToIdentifier::EN::to_identifier
+        : \&String::ToIdentifier::EN::Unicode::to_identifier;
+
+    return join '_', map lc, split_name $to_identifier->($name, '_');
+}
+
 sub _disambiguate {
     my ($self, $all_rels, $dups) = @_;
 
-    foreach my $dup (keys %$dups) {
+    DUP: foreach my $dup (keys %$dups) {
         my @rels = @{ $dups->{$dup} };
+
+        # Check if there are rels to the same table name in different
+        # schemas/databases, if so qualify them.
+        my @tables = map $self->loader->moniker_to_table->{$_->{extra}{remote_moniker}},
+                        @rels;
+
+        # databases are different, prepend database
+        if ($tables[0]->can('database') && (uniq map $_->database||'', @tables) > 1) {
+            # If any rels are in the same database, we have to distinguish by
+            # both schema and database.
+            my %db_counts;
+            $db_counts{$_}++ for map $_->database, @tables;
+            my $use_schema = any { $_ > 1 } values %db_counts;
+
+            foreach my $i (0..$#rels) {
+                my $rel   = $rels[$i];
+                my $table = $tables[$i];
+
+                $rel->{args}[0] = $self->_name_to_identifier($table->database)
+                    . ($use_schema ? ('_' . $self->name_to_identifier($table->schema)) : '')
+                    . '_' . $rel->{args}[0];
+            }
+            next DUP;
+        }
+        # schemas are different, prepend schema
+        elsif ((uniq map $_->schema||'', @tables) > 1) {
+            foreach my $i (0..$#rels) {
+                my $rel   = $rels[$i];
+                my $table = $tables[$i];
+
+                $rel->{args}[0] = $self->_name_to_identifier($table->schema)
+                    . '_' . $rel->{args}[0];
+            }
+            next DUP;
+        }
 
         foreach my $rel (@rels) {
             next if $rel->{method} eq 'belongs_to';

@@ -91,10 +91,12 @@ sub _table_uniq_info {
     my ($self, $table) = @_;
 
     my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
-SELECT constraint_name, acc.column_name
-FROM all_constraints
-JOIN all_cons_columns acc USING (constraint_name)
-WHERE acc.table_name=? and acc.owner = ? AND constraint_type='U'
+SELECT ac.constraint_name, acc.column_name
+FROM all_constraints ac, all_cons_columns acc
+WHERE acc.table_name=? AND acc.owner = ?
+    AND ac.table_name = acc.table_name AND ac.owner = acc.owner
+    AND acc.constraint_name = ac.constraint_name
+    AND ac.constraint_type='U'
 ORDER BY acc.position
 EOF
 
@@ -158,26 +160,26 @@ sub _columns_info_for {
     local $self->dbh->{LongTruncOk} = 1;
 
     my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
-SELECT atc.column_name, ut.trigger_body
-FROM all_triggers ut
-JOIN all_trigger_cols atc USING (trigger_name)
-WHERE atc.table_name = ?
-AND lower(column_usage) LIKE '%new%' AND lower(column_usage) LIKE '%out%'
+SELECT trigger_body
+FROM all_triggers
+WHERE table_name = ? AND table_owner = ?
 AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIKE '%insert%'
 EOF
 
-    $sth->execute($table->name);
+    $sth->execute($table->name, $table->schema);
 
-    while (my ($col_name, $trigger_body) = $sth->fetchrow_array) {
-        $col_name = $self->_lc($col_name);
-
-        $result->{$col_name}{is_auto_increment} = 1;
-
+    while (my ($trigger_body) = $sth->fetchrow_array) {
         if (my ($seq_schema, $seq_name) = $trigger_body =~ /(?:\."?(\w+)"?)?"?(\w+)"?\.nextval/i) {
-            $seq_schema = $self->_lc($seq_schema || $table->schema);
-            $seq_name   = $self->_lc($seq_name);
+            if (my ($col_name) = $trigger_body =~ /:new\.(\w+)/i) {
+                $col_name = $self->_lc($col_name);
 
-            $result->{$col_name}{sequence} = ($self->qualify_objects ? ($seq_schema . '.') : '') . $seq_name;
+                $result->{$col_name}{is_auto_increment} = 1;
+
+                $seq_schema = $self->_lc($seq_schema || $table->schema);
+                $seq_name   = $self->_lc($seq_name);
+
+                $result->{$col_name}{sequence} = ($self->qualify_objects ? ($seq_schema . '.') : '') . $seq_name;
+            }
         }
     }
 

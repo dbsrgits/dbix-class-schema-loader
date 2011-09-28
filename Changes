@@ -3,6 +3,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - remove dependency on File::Slurp
         - allow the constraint and exclude options to be used simultaneously
           (bphillips)
+        - fix Oracle multi-db_schema unique detection (RT#70851)
         - fix Oracle common tests fail with multi_schema due to not resetting
           the preserve_case option after the preserve_case tests (RT#70829)
         - handle <type> DEFAULT NULL for Pg
@@ -56,7 +57,6 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - for dynamic schemas, if the naming option is set, will automatically
           turn on use_namespaces=1 as well. Set use_namespaces=0 to disable
           this behavior (RT#59849)
-        - bump File::Slurp dependency to 9999.14 - minimum supporting binmode
 
 0.07010  2011-03-04 08:26:31
         - add result_component_map option

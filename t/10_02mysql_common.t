@@ -183,7 +183,7 @@ my $tester = dbixcsl_common_tests->new(
         ],
         pre_drop_ddl => [ 'DROP VIEW mysql_loader_test2', ],
         drop => [ 'mysql_loader-test1', 'mysql_loader_test3' ],
-        count => 5 + 28 * 2,
+        count => 5 + 30 * 2,
         run => sub {
             my ($monikers, $classes);
             ($schema, $monikers, $classes) = @_;
@@ -219,7 +219,7 @@ my $tester = dbixcsl_common_tests->new(
                     $dbh->do('CREATE DATABASE `dbicsl-test`');
                 }
                 catch {
-                    skip "no CREATE DATABASE privileges", 28 * 2;
+                    skip "no CREATE DATABASE privileges", 30 * 2;
                 };
 
                 $dbh->do(<<"EOF");
@@ -232,11 +232,27 @@ EOF
                     CREATE TABLE `dbicsl-test`.mysql_loader_test5 (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         value VARCHAR(100),
-                        four_id INTEGER UNIQUE,
+                        four_id INTEGER,
+                        CONSTRAINT loader_test5_uniq UNIQUE (four_id),
                         FOREIGN KEY (four_id) REFERENCES `dbicsl-test`.mysql_loader_test4 (id)
                     ) $innodb
 EOF
+
                 $dbh->do('CREATE DATABASE `dbicsl.test`');
+
+                # Test that keys are correctly cached by naming the primary and
+                # unique keys in this table with the same name as a table in
+                # the `dbicsl-test` schema differently.
+                $dbh->do(<<"EOF");
+                    CREATE TABLE `dbicsl.test`.mysql_loader_test5 (
+                        pk INT AUTO_INCREMENT PRIMARY KEY,
+                        value VARCHAR(100),
+                        four_id INTEGER,
+                        CONSTRAINT loader_test5_uniq UNIQUE (four_id),
+                        FOREIGN KEY (four_id) REFERENCES `dbicsl-test`.mysql_loader_test4 (id)
+                    ) $innodb
+EOF
+
                 $dbh->do(<<"EOF");
                     CREATE TABLE `dbicsl.test`.mysql_loader_test6 (
                         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -303,6 +319,7 @@ EOF
                             {
                                 naming => 'current',
                                 db_schema => $db_schema,
+                                moniker_parts => ['schema', 'name'],
                                 dump_directory => EXTRA_DUMP_DIR,
                                 quiet => 1,
                             },
@@ -321,7 +338,7 @@ EOF
                     } 'connected test schema';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('MysqlLoaderTest4');
+                        ok $rsrc = $test_schema->source('DbicslDashTestMysqlLoaderTest4');
                     } 'got source for table in database name with dash';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -334,7 +351,7 @@ EOF
                         'column in database name with dash';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('MysqlLoaderTest4');
+                        ok $rs = $test_schema->resultset('DbicslDashTestMysqlLoaderTest4');
                     } 'got resultset for table in database name with dash';
 
                     lives_and {
@@ -344,7 +361,7 @@ EOF
                     SKIP: {
                         skip 'set the environment variable DBICTEST_MYSQL_INNODB=1 to test relationships', 3 unless $test_innodb;
 
-                        $rel_info = try { $rsrc->relationship_info('mysql_loader_test5') };
+                        $rel_info = try { $rsrc->relationship_info('dbicsl_dash_test_mysql_loader_test5') };
 
                         is_deeply $rel_info->{cond}, {
                             'foreign.four_id' => 'self.id'
@@ -358,7 +375,7 @@ EOF
                     }
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('MysqlLoaderTest5');
+                        ok $rsrc = $test_schema->source('DbicslDashTestMysqlLoaderTest5');
                     } 'got source for table in database name with dash';
 
                     %uniqs = try { $rsrc->unique_constraints };
@@ -366,8 +383,13 @@ EOF
                     is keys %uniqs, 2,
                         'got unique and primary constraint in database name with dash';
 
+                    delete $uniqs{primary};
+
+                    is_deeply ((values %uniqs)[0], ['four_id'],
+                        'unique constraint is correct in database name with dash');
+
                     lives_and {
-                        ok $rsrc = $test_schema->source('MysqlLoaderTest6');
+                        ok $rsrc = $test_schema->source('DbicslDotTestMysqlLoaderTest6');
                     } 'got source for table in database name with dot';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -380,7 +402,7 @@ EOF
                         'column in database name with dot introspected correctly';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('MysqlLoaderTest6');
+                        ok $rs = $test_schema->resultset('DbicslDotTestMysqlLoaderTest6');
                     } 'got resultset for table in database name with dot';
 
                     lives_and {
@@ -404,7 +426,7 @@ EOF
                     }
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('MysqlLoaderTest7');
+                        ok $rsrc = $test_schema->source('DbicslDotTestMysqlLoaderTest7');
                     } 'got source for table in database name with dot';
 
                     %uniqs = try { $rsrc->unique_constraints };
@@ -412,26 +434,31 @@ EOF
                     is keys %uniqs, 2,
                         'got unique and primary constraint in database name with dot';
 
+                    delete $uniqs{primary};
+
+                    is_deeply ((values %uniqs)[0], ['six_id'],
+                        'unique constraint is correct in database name with dot');
+
                     SKIP: {
                         skip 'set the environment variable DBICTEST_MYSQL_INNODB=1 to test relationships', 4 unless $test_innodb;
 
                         lives_and {
-                            ok $test_schema->source('MysqlLoaderTest6')
+                            ok $test_schema->source('DbicslDotTestMysqlLoaderTest6')
                                 ->has_relationship('mysql_loader_test4');
                         } 'cross-database relationship in multi-db_schema';
 
                         lives_and {
-                            ok $test_schema->source('MysqlLoaderTest4')
+                            ok $test_schema->source('DbicslDashTestMysqlLoaderTest4')
                                 ->has_relationship('mysql_loader_test6s');
                         } 'cross-database relationship in multi-db_schema';
 
                         lives_and {
-                            ok $test_schema->source('MysqlLoaderTest8')
+                            ok $test_schema->source('DbicslDashTestMysqlLoaderTest8')
                                 ->has_relationship('mysql_loader_test7');
                         } 'cross-database relationship in multi-db_schema';
 
                         lives_and {
-                            ok $test_schema->source('MysqlLoaderTest7')
+                            ok $test_schema->source('DbicslDotTestMysqlLoaderTest7')
                                 ->has_relationship('mysql_loader_test8s');
                         } 'cross-database relationship in multi-db_schema';
                     }
@@ -457,6 +484,7 @@ END {
                                '`dbicsl-test`.mysql_loader_test8',
                                '`dbicsl.test`.mysql_loader_test7',
                                '`dbicsl.test`.mysql_loader_test6',
+                               '`dbicsl.test`.mysql_loader_test5',
                                '`dbicsl-test`.mysql_loader_test5',
                                '`dbicsl-test`.mysql_loader_test4') {
                 try {

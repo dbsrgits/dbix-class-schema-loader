@@ -5,6 +5,7 @@ use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
 use DBIx::Class::Schema::Loader 'make_schema_at';
+use namespace::clean;
 use DBI ();
 
 use lib qw(t/lib);
@@ -105,7 +106,7 @@ my $tester = dbixcsl_common_tests->new(
             },
         ],
         drop => [ qw/sybase_loader_test1 sybase_loader_test2/ ],
-        count => 28 * 4,
+        count => 30 * 4,
         run => sub {
             $schema = shift;
 
@@ -116,7 +117,7 @@ my $tester = dbixcsl_common_tests->new(
                     $dbh->do('USE master');
                 }
                 catch {
-                    skip "these tests require the sysadmin role", 28 * 4;
+                    skip "these tests require the sysadmin role", 30 * 4;
                 };
 
                 try {
@@ -124,7 +125,7 @@ my $tester = dbixcsl_common_tests->new(
                     $dbh->do('CREATE DATABASE [dbicsl_test2]');
                 }
                 catch {
-                    skip "cannot create databases: $_", 28 * 4;
+                    skip "cannot create databases: $_", 30 * 4;
                 };
 
                 try {
@@ -150,7 +151,7 @@ my $tester = dbixcsl_common_tests->new(
                     $dbh->do("GRANT ALL TO dbicsl_user1");
                 }
                 catch {
-                    skip "cannot add logins: $_", 28 * 4;
+                    skip "cannot add logins: $_", 30 * 4;
                 };
 
                 my ($dbh1, $dbh2);
@@ -184,8 +185,18 @@ EOF
                     CREATE TABLE sybase_loader_test5 (
                         id INT IDENTITY PRIMARY KEY,
                         value VARCHAR(100) NULL,
-                        four_id INTEGER UNIQUE,
+                        four_id INTEGER,
+                        CONSTRAINT loader_test5_uniq UNIQUE (four_id),
                         FOREIGN KEY (four_id) REFERENCES sybase_loader_test4 (id)
+                    )
+EOF
+                $dbh2->do(<<"EOF");
+                    CREATE TABLE sybase_loader_test5 (
+                        pk INT IDENTITY PRIMARY KEY,
+                        value VARCHAR(100) NULL,
+                        four_id INTEGER,
+                        CONSTRAINT loader_test5_uniq UNIQUE (four_id),
+                        FOREIGN KEY (four_id) REFERENCES [dbicsl_test1].dbicsl_user1.sybase_loader_test4 (id)
                     )
 EOF
                 $dbh2->do(<<"EOF");
@@ -242,6 +253,7 @@ EOF
                                 {
                                     naming => 'current',
                                     db_schema => $db_schema,
+                                    moniker_parts => [qw/database name/],
                                     dump_directory => EXTRA_DUMP_DIR,
                                     quiet => 1,
                                 },
@@ -260,7 +272,7 @@ EOF
                         } 'connected test schema';
 
                         lives_and {
-                            ok $rsrc = $test_schema->source('SybaseLoaderTest4');
+                            ok $rsrc = $test_schema->source('DbicslTest1SybaseLoaderTest4');
                         } 'got source for table in database one';
 
                         is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -273,14 +285,14 @@ EOF
                             'column in database one';
 
                         lives_and {
-                            ok $rs = $test_schema->resultset('SybaseLoaderTest4');
+                            ok $rs = $test_schema->resultset('DbicslTest1SybaseLoaderTest4');
                         } 'got resultset for table in database one';
 
                         lives_and {
                             ok $row = $rs->create({ value => 'foo' });
                         } 'executed SQL on table in database one';
 
-                        $rel_info = try { $rsrc->relationship_info('sybase_loader_test5') };
+                        $rel_info = try { $rsrc->relationship_info('dbicsl_test1_sybase_loader_test5') };
 
                         is_deeply $rel_info->{cond}, {
                             'foreign.four_id' => 'self.id'
@@ -293,7 +305,7 @@ EOF
                             'relationship in database one';
 
                         lives_and {
-                            ok $rsrc = $test_schema->source('SybaseLoaderTest5');
+                            ok $rsrc = $test_schema->source('DbicslTest1SybaseLoaderTest5');
                         } 'got source for table in database one';
 
                         %uniqs = try { $rsrc->unique_constraints };
@@ -301,8 +313,13 @@ EOF
                         is keys %uniqs, 2,
                             'got unique and primary constraint in database one';
 
+                        delete $uniqs{primary};
+
+                        is_deeply ((values %uniqs)[0], ['four_id'],
+                            'correct unique constraint in database one');
+
                         lives_and {
-                            ok $rsrc = $test_schema->source('SybaseLoaderTest6');
+                            ok $rsrc = $test_schema->source('DbicslTest2SybaseLoaderTest6');
                         } 'got source for table in database two';
 
                         is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -315,7 +332,7 @@ EOF
                             'column in database two introspected correctly';
 
                         lives_and {
-                            ok $rs = $test_schema->resultset('SybaseLoaderTest6');
+                            ok $rs = $test_schema->resultset('DbicslTest2SybaseLoaderTest6');
                         } 'got resultset for table in database two';
 
                         lives_and {
@@ -335,7 +352,7 @@ EOF
                             'relationship in database two';
 
                         lives_and {
-                            ok $rsrc = $test_schema->source('SybaseLoaderTest7');
+                            ok $rsrc = $test_schema->source('DbicslTest2SybaseLoaderTest7');
                         } 'got source for table in database two';
 
                         %uniqs = try { $rsrc->unique_constraints };
@@ -343,23 +360,28 @@ EOF
                         is keys %uniqs, 2,
                             'got unique and primary constraint in database two';
 
+                        delete $uniqs{primary};
+
+                        is_deeply ((values %uniqs)[0], ['six_id'],
+                            'correct unique constraint in database two');
+
                         lives_and {
-                            ok $test_schema->source('SybaseLoaderTest6')
+                            ok $test_schema->source('DbicslTest2SybaseLoaderTest6')
                                 ->has_relationship('sybase_loader_test4');
                         } 'cross-database relationship in multi database schema';
 
                         lives_and {
-                            ok $test_schema->source('SybaseLoaderTest4')
+                            ok $test_schema->source('DbicslTest1SybaseLoaderTest4')
                                 ->has_relationship('sybase_loader_test6s');
                         } 'cross-database relationship in multi database schema';
 
                         lives_and {
-                            ok $test_schema->source('SybaseLoaderTest8')
+                            ok $test_schema->source('DbicslTest1SybaseLoaderTest8')
                                 ->has_relationship('sybase_loader_test7');
                         } 'cross-database relationship in multi database schema';
 
                         lives_and {
-                            ok $test_schema->source('SybaseLoaderTest7')
+                            ok $test_schema->source('DbicslTest2SybaseLoaderTest7')
                                 ->has_relationship('sybase_loader_test8s');
                         } 'cross-database relationship in multi database schema';
                     }
@@ -399,6 +421,7 @@ END {
             foreach my $table ('[dbicsl_test1].dbicsl_user1.sybase_loader_test8',
                                '[dbicsl_test2].dbicsl_user2.sybase_loader_test7',
                                '[dbicsl_test2].dbicsl_user2.sybase_loader_test6',
+                               '[dbicsl_test2].dbicsl_user2.sybase_loader_test5',
                                '[dbicsl_test1].dbicsl_user1.sybase_loader_test5',
                                '[dbicsl_test1].dbicsl_user1.sybase_loader_test4') {
                 try {

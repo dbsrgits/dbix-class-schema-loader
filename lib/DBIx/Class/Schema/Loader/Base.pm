@@ -5,15 +5,17 @@ use warnings;
 use base qw/Class::Accessor::Grouped Class::C3::Componentised/;
 use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
-use DBIx::Class::Schema::Loader::RelBuilder;
-use Data::Dump qw/ dump /;
-use POSIX qw//;
-use File::Spec qw//;
-use Cwd qw//;
-use Digest::MD5 qw//;
-use Lingua::EN::Inflect::Number qw//;
-use Lingua::EN::Inflect::Phrase qw//;
-use File::Temp qw//;
+use DBIx::Class::Schema::Loader::RelBuilder ();
+use Data::Dump 'dump';
+use POSIX ();
+use File::Spec ();
+use Cwd ();
+use Digest::MD5 ();
+use Lingua::EN::Inflect::Number ();
+use Lingua::EN::Inflect::Phrase ();
+use String::ToIdentifier::EN ();
+use String::ToIdentifier::EN::Unicode ();
+use File::Temp ();
 use Class::Unload;
 use Class::Inspector ();
 use Scalar::Util 'looks_like_number';
@@ -184,6 +186,12 @@ How to name Result classes.
 
 How to name column accessors in Result classes.
 
+=item force_ascii
+
+For L</v8> mode and later, uses L<String::ToIdentifier::EN> instead of
+L<String::ToIdentifier::EM::Unicode> to force monikers and other identifiers
+such as relationship names to ASCII.
+
 =back
 
 The values can be:
@@ -227,6 +235,17 @@ transition instead of just being lowercased, so C<FooId> becomes C<foo_id>.
 
 If you don't have any CamelCase table or column names, you can upgrade without
 breaking any of your code.
+
+=item v8
+
+(EXPERIMENTAL)
+
+The default mode is L</v7>, to get L</v8> mode, you have to specify it in
+L</naming> explictly until C<0.08> comes out.
+
+L</monikers> are created using L<String::ToIdentifier::EN::Unicode> or
+L<String::ToIdentifier::EN> if L</force_ascii> is set; this is only significant
+for table names with non C<\w> characters such as C<.>.
 
 =item preserve
 
@@ -1425,7 +1444,8 @@ sub _load_tables {
 
     if (@clashes) {
       die   'Unable to load schema - chosen moniker/class naming style results in moniker clashes. '
-          . 'Either change the naming style, or supply an explicit moniker_map: '
+          . 'In multi db_schema configurations you may need to set moniker_parts, '
+          . 'otherwise change the naming style, or supply an explicit moniker_map: '
           . join ('; ', @clashes)
           . "\n"
       ;
@@ -2297,41 +2317,51 @@ sub tables {
 
 # Make a moniker from a table
 sub _default_table2moniker {
-    no warnings 'uninitialized';
     my ($self, $table) = @_;
+
+    my ($v) = ($self->naming->{monikers}||$CURRENT_V) =~ /^v(\d+)\z/;
 
     my @name_parts = map $table->$_, @{ $self->moniker_parts };
 
     my $name_idx = firstidx { $_ eq 'name' } @{ $self->moniker_parts };
 
-    if ($self->naming->{monikers} eq 'v4') {
-        return join '', map ucfirst, map split(/[\W_]+/, lc $_), @name_parts;
+    my $to_identifier = $self->naming->{force_ascii} ?
+        \&String::ToIdentifier::EN::to_identifier
+        : \&String::ToIdentifier::EN::Unicode::to_identifier;
+
+    my @all_parts;
+
+    foreach my $i (0 .. $#name_parts) {
+        my $part = $name_parts[$i];
+
+        if ($i != $name_idx || $v > 7) {
+            $part = $to_identifier->($part, '_');
+        }
+
+        if ($i == $name_idx && $v == 5) {
+            $part = Lingua::EN::Inflect::Number::to_S($part);
+        }
+
+        my @part_parts = map lc, $v > 6 ? split_name $part : split /[\W_]+/, $part;
+
+        if ($i == $name_idx && $v >= 6) {
+            my $as_phrase = join ' ', @part_parts;
+
+            my $inflected = ($self->naming->{monikers}||'') eq 'plural' ?
+                Lingua::EN::Inflect::Phrase::to_PL($as_phrase)
+                :
+                ($self->naming->{monikers}||'') eq 'preserve' ?
+                    $as_phrase
+                    :
+                    Lingua::EN::Inflect::Phrase::to_S($as_phrase);
+
+            @part_parts = split /\s+/, $inflected;
+        }
+
+        push @all_parts, map ucfirst, @part_parts;
     }
-    elsif ($self->naming->{monikers} eq 'v5') {
-        my @parts = map lc, @name_parts;
-        $parts[$name_idx] = Lingua::EN::Inflect::Number::to_S($parts[$name_idx]);
 
-        return join '', map ucfirst, map split(/[\W_]+/, $_), @parts;
-    }
-    elsif ($self->naming->{monikers} eq 'v6') {
-        (my $as_phrase = join '', map lc, @name_parts) =~ s/_+/ /g;
-        my $inflected = Lingua::EN::Inflect::Phrase::to_S($as_phrase);
-
-        return join '', map ucfirst, split /\W+/, $inflected;
-    }
-
-    my @words = map lc, map split_name $_, @name_parts;
-    my $as_phrase = join ' ', @words;
-
-    my $inflected = $self->naming->{monikers} eq 'plural' ?
-        Lingua::EN::Inflect::Phrase::to_PL($as_phrase)
-        :
-        $self->naming->{monikers} eq 'preserve' ?
-            $as_phrase
-            :
-            Lingua::EN::Inflect::Phrase::to_S($as_phrase);
-
-    return join '', map ucfirst, split /\W+/, $inflected;
+    return join '', @all_parts;
 }
 
 sub _table2moniker {

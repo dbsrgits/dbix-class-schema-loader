@@ -144,7 +144,7 @@ my $tester = dbixcsl_common_tests->new(
         'ntext'        => { data_type => 'ntext' },
     },
     extra => {
-        count => 28 * 2,
+        count => 30 * 2,
         run => sub {
             SKIP: {
                 $schema  = $_[0];
@@ -159,7 +159,7 @@ my $tester = dbixcsl_common_tests->new(
                 }
                 catch {
                     $schemas_created = 0;
-                    skip "no CREATE USER privileges", 28 * 2;
+                    skip "no CREATE USER privileges", 30 * 2;
                 };
 
                 $dbh->do(<<"EOF");
@@ -172,11 +172,21 @@ EOF
                     CREATE TABLE dbicsl_test1.sqlanywhere_loader_test5 (
                         id INT IDENTITY NOT NULL PRIMARY KEY,
                         value VARCHAR(100),
-                        four_id INTEGER NOT NULL UNIQUE,
+                        four_id INTEGER NOT NULL,
+                        CONSTRAINT loader_test5_uniq UNIQUE (four_id),
                         FOREIGN KEY (four_id) REFERENCES dbicsl_test1.sqlanywhere_loader_test4 (id)
                     )
 EOF
                 $dbh->do("CREATE USER dbicsl_test2 identified by 'dbicsl'");
+                $dbh->do(<<"EOF");
+                    CREATE TABLE dbicsl_test2.sqlanywhere_loader_test5 (
+                        pk INT IDENTITY NOT NULL PRIMARY KEY,
+                        value VARCHAR(100),
+                        four_id INTEGER NOT NULL,
+                        CONSTRAINT loader_test5_uniq UNIQUE (four_id),
+                        FOREIGN KEY (four_id) REFERENCES dbicsl_test1.sqlanywhere_loader_test4 (id)
+                    )
+EOF
                 $dbh->do(<<"EOF");
                     CREATE TABLE dbicsl_test2.sqlanywhere_loader_test6 (
                         id INT IDENTITY NOT NULL PRIMARY KEY,
@@ -220,6 +230,7 @@ EOF
                             {
                                 naming => 'current',
                                 db_schema => $db_schema,
+                                moniker_parts => [qw/schema name/],
                                 dump_directory => EXTRA_DUMP_DIR,
                                 quiet => 1,
                             },
@@ -238,7 +249,7 @@ EOF
                     } 'connected test schema';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('SqlanywhereLoaderTest4');
+                        ok $rsrc = $test_schema->source('DbicslTest1SqlanywhereLoaderTest4');
                     } 'got source for table in schema one';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -251,14 +262,14 @@ EOF
                         'column in schema one';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('SqlanywhereLoaderTest4');
+                        ok $rs = $test_schema->resultset('DbicslTest1SqlanywhereLoaderTest4');
                     } 'got resultset for table in schema one';
 
                     lives_and {
                         ok $row = $rs->create({ value => 'foo' });
                     } 'executed SQL on table in schema one';
 
-                    $rel_info = try { $rsrc->relationship_info('sqlanywhere_loader_test5') };
+                    $rel_info = try { $rsrc->relationship_info('dbicsl_test1_sqlanywhere_loader_test5') };
 
                     is_deeply $rel_info->{cond}, {
                         'foreign.four_id' => 'self.id'
@@ -271,7 +282,7 @@ EOF
                         'relationship in schema one';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('SqlanywhereLoaderTest5');
+                        ok $rsrc = $test_schema->source('DbicslTest1SqlanywhereLoaderTest5');
                     } 'got source for table in schema one';
 
                     %uniqs = try { $rsrc->unique_constraints };
@@ -279,8 +290,13 @@ EOF
                     is keys %uniqs, 2,
                         'got unique and primary constraint in schema one';
 
+                    delete $uniqs{primary};
+
+                    is_deeply ((values %uniqs)[0], ['four_id'],
+                        'correct unique constraint in schema one');
+
                     lives_and {
-                        ok $rsrc = $test_schema->source('SqlanywhereLoaderTest6');
+                        ok $rsrc = $test_schema->source('DbicslTest2SqlanywhereLoaderTest6');
                     } 'got source for table in schema two';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -293,7 +309,7 @@ EOF
                         'column in schema two introspected correctly';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('SqlanywhereLoaderTest6');
+                        ok $rs = $test_schema->resultset('DbicslTest2SqlanywhereLoaderTest6');
                     } 'got resultset for table in schema two';
 
                     lives_and {
@@ -313,7 +329,7 @@ EOF
                         'relationship in schema two';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('SqlanywhereLoaderTest7');
+                        ok $rsrc = $test_schema->source('DbicslTest2SqlanywhereLoaderTest7');
                     } 'got source for table in schema two';
 
                     %uniqs = try { $rsrc->unique_constraints };
@@ -321,23 +337,28 @@ EOF
                     is keys %uniqs, 2,
                         'got unique and primary constraint in schema two';
 
+                    delete $uniqs{primary};
+
+                    is_deeply ((values %uniqs)[0], ['six_id'],
+                        'correct unique constraint in schema two');
+
                     lives_and {
-                        ok $test_schema->source('SqlanywhereLoaderTest6')
+                        ok $test_schema->source('DbicslTest2SqlanywhereLoaderTest6')
                             ->has_relationship('sqlanywhere_loader_test4');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('SqlanywhereLoaderTest4')
+                        ok $test_schema->source('DbicslTest1SqlanywhereLoaderTest4')
                             ->has_relationship('sqlanywhere_loader_test6s');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('SqlanywhereLoaderTest8')
+                        ok $test_schema->source('DbicslTest1SqlanywhereLoaderTest8')
                             ->has_relationship('sqlanywhere_loader_test7');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('SqlanywhereLoaderTest7')
+                        ok $test_schema->source('DbicslTest2SqlanywhereLoaderTest7')
                             ->has_relationship('sqlanywhere_loader_test8s');
                     } 'cross-schema relationship in multi-db_schema';
                 }
@@ -359,6 +380,7 @@ sub extra_cleanup {
             foreach my $table ('dbicsl_test1.sqlanywhere_loader_test8',
                                'dbicsl_test2.sqlanywhere_loader_test7',
                                'dbicsl_test2.sqlanywhere_loader_test6',
+                               'dbicsl_test2.sqlanywhere_loader_test5',
                                'dbicsl_test1.sqlanywhere_loader_test5',
                                'dbicsl_test1.sqlanywhere_loader_test4') {
                 try {
