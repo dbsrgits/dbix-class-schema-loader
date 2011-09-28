@@ -203,8 +203,8 @@ sub _filter_tables {
     my $constraint   = $opts->{constraint};
     my $exclude      = $opts->{exclude};
 
-    @tables = grep { /$constraint/ } @$tables if defined $constraint;
-    @tables = grep { ! /$exclude/  } @$tables if defined $exclude;
+    @tables = grep { /$constraint/ } @tables if defined $constraint;
+    @tables = grep { ! /$exclude/  } @tables if defined $exclude;
 
     TABLE: for my $table (@tables) {
         try {
