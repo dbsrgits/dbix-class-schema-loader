@@ -6,8 +6,8 @@ use File::Path qw/rmtree make_path/;
 use Class::Unload;
 use File::Temp qw/tempfile tempdir/;
 use IO::File;
-use File::Slurp 'slurp';
 use DBIx::Class::Schema::Loader ();
+use DBIx::Class::Schema::Loader::Utils 'slurp_file';
 use Lingua::EN::Inflect::Number ();
 use lib qw(t/lib);
 use make_dbictest_db_with_unique;
@@ -735,7 +735,7 @@ sub class_content_like;
     my $schema = $res->{schema};
 
     my $file = $schema->loader->get_dump_filename($SCHEMA_CLASS);
-    my $code = slurp $file;
+    my $code = slurp_file $file;
 
     my ($dumped_ver) =
         $code =~ /^# Created by DBIx::Class::Schema::Loader v(\S+)/m;
@@ -1302,7 +1302,7 @@ sub class_content_like {
     my ($schema, $class, $re, $test_name) = @_;
 
     my $file = $schema->loader->get_dump_filename($class);
-    my $code = slurp $file;
+    my $code = slurp_file $file;
 
     like $code, $re, $test_name;
 }

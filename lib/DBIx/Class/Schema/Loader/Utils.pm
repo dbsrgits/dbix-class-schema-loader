@@ -5,7 +5,6 @@ use strict;
 use warnings;
 use Data::Dumper ();
 use Test::More;
-use File::Slurp 'read_file';
 use namespace::clean;
 use Exporter 'import';
 
@@ -137,7 +136,9 @@ sub warnings_exist_silent(&$$) {
 }
 
 sub slurp_file($) {
-    my $data = read_file(shift, binmode => ':encoding(UTF-8)');
+    open my $fh, '<:encoding(UTF-8)', shift;
+    my $data = do { local $/; <$fh> };
+    close $fh;
 
     $data =~ s/$CRLF|$LF/\n/g;
 

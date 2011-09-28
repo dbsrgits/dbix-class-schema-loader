@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - remove dependency on File::Slurp
         - allow the constraint and exclude options to be used simultaneously
           (bphillips)
         - fix Oracle common tests fail with multi_schema due to not resetting
