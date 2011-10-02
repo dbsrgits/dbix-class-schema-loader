@@ -26,20 +26,39 @@ $t->dump_test(
   },
   regexes => {
     schema => [
-      qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+      qr/\nuse Moose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::SchemaBaseClass';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable\(inline_constructor => 0\);\n1;(?!\n1;\n)\n.*/,
     ],
     Foo => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::ResultBaseClass';\n\n/,
       qr/=head1 L<Moose> ROLES APPLIED\n\n=over 4\n\n=item \* L<TestRole>\n\n=item \* L<TestRole2>\n\n=back\n\n=cut\n\n/,
       qr/\nwith 'TestRole', 'TestRole2';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
     ],
     Bar => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::ResultBaseClass';\n\n/,
       qr/=head1 L<Moose> ROLES APPLIED\n\n=over 4\n\n=item \* L<TestRole>\n\n=item \* L<TestRole2>\n\n=back\n\n=cut\n\n/,
       qr/\nwith 'TestRole', 'TestRole2';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
+    ],
+  },
+);
+
+$t->cleanup;
+
+# check protect_overloads works as expected
+$t->dump_test(
+  classname => 'DBICTest::DumpMore::1',
+  options => {
+    use_moose      => 1,
+    only_autoclean => 1,
+  },
+  regexes => {
+    schema => [
+      qr/\nuse namespace::autoclean;\n/,
+    ],
+    Foo => [
+      qr/\nuse namespace::autoclean;\n/,
     ],
   },
 );
@@ -79,16 +98,16 @@ $t->dump_test(
   },
   regexes => {
     schema => [
-      qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+      qr/\nuse Moose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::SchemaBaseClass';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable\(inline_constructor => 0\);\n1;(?!\n1;\n)\n.*/,
     ],
     Foo => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::ResultBaseClass';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
       qr/# XXX This is my custom content XXX/,
     ],
     Bar => [
-      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+      qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::ResultBaseClass';\n\n/,
       qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
     ],
   },
@@ -131,15 +150,15 @@ for my $supply_use_moose (1, 0) {
     },
     regexes => {
       schema => [
-        qr/\nuse Moose;\nuse namespace::autoclean;\nextends 'My::SchemaBaseClass';\n\n/,
+        qr/\nuse Moose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::SchemaBaseClass';\n\n/,
         qr/\n__PACKAGE__->meta->make_immutable\(inline_constructor => 0\);\n1;(?!\n1;\n)\n.*/,
       ],
       Foo => [
-        qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+        qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::ResultBaseClass';\n\n/,
         qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
       ],
       Bar => [
-        qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;\nextends 'My::ResultBaseClass';\n\n/,
+        qr/\nuse Moose;\nuse MooseX::NonMoose;\nuse MooseX::MarkAsMethods autoclean => 1;\nextends 'My::ResultBaseClass';\n\n/,
         qr/\n__PACKAGE__->meta->make_immutable;\n1;(?!\n1;\n)\n.*/,
       ],
     },

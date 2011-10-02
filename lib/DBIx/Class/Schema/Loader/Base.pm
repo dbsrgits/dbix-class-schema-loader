@@ -59,6 +59,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 result_base_class
                                 result_roles
                                 use_moose
+                                only_autoclean
                                 overwrite_modifications
 
                                 relationship_attrs
@@ -740,10 +741,26 @@ __PACKAGE__->table >> calls, and to some other things like Oracle sequences.
 =head2 use_moose
 
 Creates Schema and Result classes that use L<Moose>, L<MooseX::NonMoose> and
-L<namespace::autoclean>. The default content after the md5 sum also makes the
-classes immutable.
+L<namespace::autoclean> (or L<MooseX::MarkAsMethods>, see below). The default
+content after the md5 sum also makes the classes immutable.
 
 It is safe to upgrade your existing Schema to this option.
+
+=head2 only_autoclean
+
+By default, we use L<MooseX::MarkAsMethods> to remove imported functions from
+your generated classes.  It uses L<namespace::autoclean> to do this, after
+telling your object's metaclass that any L<overload>s in your class are
+methods, which will cause namespace::autoclean to spare them from removal.
+
+This prevents the "Hey, where'd my overloads go?!" effect.
+
+If you don't care about overloads, enabling this option falls back to just using
+L<namespace::autoclean> itself.
+
+If none of the above made any sense, or you don't have some pressing need to
+only use L<namespace::autoclean>, leaving this set to the default is
+recommended.
 
 =head2 col_collision_map
 
@@ -1649,8 +1666,15 @@ sub _dump_to_dir {
         . qq|# Created by DBIx::Class::Schema::Loader\n|
         . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|;
 
+    my $autoclean
+        = $self->only_autoclean
+        ? 'namespace::autoclean'
+        : 'MooseX::MarkAsMethods autoclean => 1'
+        ;
+
     if ($self->use_moose) {
-        $schema_text.= qq|use Moose;\nuse namespace::autoclean;\nextends '$schema_base_class';\n\n|;
+
+        $schema_text.= qq|use Moose;\nuse $autoclean;\nextends '$schema_base_class';\n\n|;
     }
     else {
         $schema_text .= qq|use strict;\nuse warnings;\n\nuse base '$schema_base_class';\n\n|;
@@ -1708,7 +1732,7 @@ sub _dump_to_dir {
             unless $result_base_class eq 'DBIx::Class::Core';
 
         if ($self->use_moose) {
-            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse namespace::autoclean;|;
+            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse $autoclean;|;
 
             # these options 'use base' which is compile time
             if (@{ $self->left_base_classes } || @{ $self->additional_base_classes }) {
