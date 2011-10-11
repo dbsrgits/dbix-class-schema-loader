@@ -261,6 +261,22 @@ EOF
                         FOREIGN KEY (mysql_loader_test7_id) REFERENCES `dbicsl.test`.mysql_loader_test7 (id)
                     ) $innodb
 EOF
+                # Test dumping a rel to a table that's not part of the dump.
+                $dbh->do('CREATE DATABASE `dbicsl_test_ignored`');
+                $dbh->do(<<"EOF");
+                    CREATE TABLE `dbicsl_test_ignored`.mysql_loader_test9 (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        value VARCHAR(100)
+                    ) $innodb
+EOF
+                $dbh->do(<<"EOF");
+                    CREATE TABLE `dbicsl-test`.mysql_loader_test10 (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        value VARCHAR(100),
+                        mysql_loader_test9_id INTEGER,
+                        FOREIGN KEY (mysql_loader_test9_id) REFERENCES `dbicsl_test_ignored`.mysql_loader_test9 (id)
+                    ) $innodb
+EOF
 
                 $databases_created = 1;
 
@@ -436,7 +452,9 @@ else {
 END {
     if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
         if ($databases_created && (my $dbh = try { $schema->storage->dbh })) {
-            foreach my $table ('`dbicsl-test`.mysql_loader_test8',
+            foreach my $table ('`dbicsl-test`.mysql_loader_test10',
+                               'dbicsl_test_ignored.mysql_loader_test9',
+                               '`dbicsl-test`.mysql_loader_test8',
                                '`dbicsl.test`.mysql_loader_test7',
                                '`dbicsl.test`.mysql_loader_test6',
                                '`dbicsl-test`.mysql_loader_test5',
@@ -449,7 +467,7 @@ END {
                 };
             }
 
-            foreach my $db (qw/dbicsl-test dbicsl.test/) {
+            foreach my $db (qw/dbicsl-test dbicsl.test dbicsl_test_ignored/) {
                 try {
                     $dbh->do("DROP DATABASE `$db`");
                 }

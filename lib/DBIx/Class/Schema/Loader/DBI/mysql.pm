@@ -9,6 +9,7 @@ use List::Util 'first';
 use List::MoreUtils 'any';
 use Try::Tiny;
 use namespace::clean;
+use DBIx::Class::Schema::Loader::Table ();
 
 our $VERSION = '0.07010';
 
@@ -88,10 +89,28 @@ sub _table_fk_info {
         my @f_cols = map { s/$qt//g; $self->_lc($_) }
             split(/$qt?\s*$qt?,$qt?\s*$qt?/, $f_cols);
 
-        my $remote_table = first {
-               lc($_->name) eq lc($f_table)
-            && ((not $f_schema) || lc($_->schema) eq lc($f_schema))
-        } $self->_tables_list;
+        my $remote_table = do {
+            # Get ->tables_list to return tables from the remote schema, in case it is not in the db_schema list.
+            local $self->{db_schema} = [ $f_schema ] if $f_schema;
+
+            first {
+                   lc($_->name) eq lc($f_table)
+                && ((not $f_schema) || lc($_->schema) eq lc($f_schema))
+            } $self->_tables_list;
+        };
+
+        # The table may not be in any database, or it may not have been found by the previous code block for whatever reason.
+        if (not $remote_table) {
+            my $remote_schema = $f_schema || $self->db_schema && @{ $self->db_schema } == 1 && $self->db_schema->[0];
+
+            $remote_table = DBIx::Class::Schema::Loader::Table->new(
+                loader => $self,
+                name   => $f_table,
+                ($remote_schema ? (
+                    schema => $remote_schema,
+                ) : ()),
+            );
+        }
 
         push(@rels, {
             local_columns => \@cols,
