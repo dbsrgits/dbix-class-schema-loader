@@ -143,7 +143,7 @@ sub _table_fk_info {
 sub _mysql_table_get_keys {
     my ($self, $table) = @_;
 
-    if(!exists($self->{_cache}->{_mysql_keys}->{$table})) {
+    if(!exists($self->{_cache}->{_mysql_keys}->{$table->sql_name})) {
         my %keydata;
         my $sth = $self->dbh->prepare('SHOW INDEX FROM '.$table->sql_name);
         $sth->execute;
@@ -158,10 +158,10 @@ sub _mysql_table_get_keys {
                 @{$keydata{$keyname}};
             $keydata{$keyname} = \@ordered_cols;
         }
-        $self->{_cache}->{_mysql_keys}->{$table} = \%keydata;
+        $self->{_cache}->{_mysql_keys}->{$table->sql_name} = \%keydata;
     }
 
-    return $self->{_cache}->{_mysql_keys}->{$table};
+    return $self->{_cache}->{_mysql_keys}->{$table->sql_name};
 }
 
 sub _table_pk_info {
