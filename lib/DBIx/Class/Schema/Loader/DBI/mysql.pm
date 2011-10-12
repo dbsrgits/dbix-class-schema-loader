@@ -37,7 +37,7 @@ sub _setup {
 
     if ($self->db_schema && $self->db_schema->[0] eq '%') {
         my @schemas = try {
-            map $_->[0], @{ $self->dbh->selectall_arrayref('SHOW DATABASES') };
+            $self->_show_databases;
         }
         catch {
             croak "no SHOW DATABASES privileges: $_";
@@ -45,11 +45,17 @@ sub _setup {
 
         @schemas = grep {
             my $schema = $_;
-            not any { $schema eq $_ } $self->_system_schemas
+            not any { lc($schema) eq lc($_) } $self->_system_schemas
         } @schemas;
 
         $self->db_schema(\@schemas);
     }
+}
+
+sub _show_databases {
+    my $self = shift;
+
+    return map $_->[0], @{ $self->dbh->selectall_arrayref('SHOW DATABASES') };
 }
 
 sub _system_schemas {
@@ -88,6 +94,16 @@ sub _table_fk_info {
 
         my @f_cols = map { s/$qt//g; $self->_lc($_) }
             split(/$qt?\s*$qt?,$qt?\s*$qt?/, $f_cols);
+
+        # Match case of remote schema to that in SHOW DATABASES, if it's there
+        # and we have permissions to run SHOW DATABASES.
+        if ($f_schema) {
+            my $matched = first {
+                lc($_) eq lc($f_schema)
+            } try { $self->_show_databases };
+
+            $f_schema = $matched if $matched;
+        }
 
         my $remote_table = do {
             # Get ->tables_list to return tables from the remote schema, in case it is not in the db_schema list.
