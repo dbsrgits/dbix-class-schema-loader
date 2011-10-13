@@ -126,7 +126,7 @@ DBIx::Class::Schema::Loader::Base - Base DBIx::Class::Schema::Loader Implementat
 
 =head1 SYNOPSIS
 
-See L<DBIx::Class::Schema::Loader>
+See L<DBIx::Class::Schema::Loader>.
 
 =head1 DESCRIPTION
 
@@ -2686,6 +2686,18 @@ definitions, or what-have-you).
 Returns a hashref of table to class mappings.  In some cases it will
 contain multiple entries per table for the original and normalized table
 names, as above in L</monikers>.
+
+=head1 NON-ENGLISH DATABASES
+
+If you use the loader on a database with table and column names in a language
+other than English, you will want to turn off the English language specific
+heuristics.
+
+To do so, use something like this in your laoder options:
+
+    naming           => { monikers => 'v4' },
+    inflect_singular => sub { "$_[0]_rel" },
+    inflect_plural   => sub { "$_[0]_rel" },
 
 =head1 COLUMN ACCESSOR COLLISIONS
 
