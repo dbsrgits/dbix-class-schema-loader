@@ -157,7 +157,7 @@ $t->dump_test(
 
 $t->cleanup;
 
-# test out the POD
+# test out the POD and "use utf8;"
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
   options => {
@@ -173,10 +173,12 @@ $t->dump_test(
   },
   regexes => {
     schema => [
+      qr/^use utf8;\n/,
       qr/package DBICTest::DumpMore::1;/,
       qr/->load_classes/,
     ],
     Foo => [
+      qr/^use utf8;\n/,
       qr/package DBICTest::DumpMore::1::Foo;/,
       qr/\n=head1 NAME\n\nDBICTest::DumpMore::1::Foo\n\n=cut\n\nuse strict;\nuse warnings;\n\n/,
       qr/\n=head1 BASE CLASS: L<My::ResultBaseClass>\n\n=cut\n\nuse base 'My::ResultBaseClass';\n\n/,
@@ -194,6 +196,7 @@ $t->dump_test(
       qr/1;\n$/,
     ],
     Bar => [
+      qr/^use utf8;\n/,
       qr/package DBICTest::DumpMore::1::Bar;/,
       qr/\n=head1 NAME\n\nDBICTest::DumpMore::1::Bar\n\n=cut\n\nuse strict;\nuse warnings;\n\n/,
       qr/\n=head1 BASE CLASS: L<My::ResultBaseClass>\n\n=cut\n\nuse base 'My::ResultBaseClass';\n\n/,

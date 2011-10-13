@@ -1594,7 +1594,8 @@ sub _dump_to_dir {
         unless $self->dynamic or $self->quiet;
 
     my $schema_text =
-          qq|package $schema_class;\n\n|
+          qq|use utf8;\n|
+        . qq|package $schema_class;\n\n|
         . qq|# Created by DBIx::Class::Schema::Loader\n|
         . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|;
 
@@ -1644,7 +1645,8 @@ sub _dump_to_dir {
 
     foreach my $src_class (@classes) {
         my $src_text = 
-              qq|package $src_class;\n\n|
+              qq|use utf8;\n|
+            . qq|package $src_class;\n\n|
             . qq|# Created by DBIx::Class::Schema::Loader\n|
             . qq|# DO NOT MODIFY THE FIRST PART OF THIS FILE\n\n|;
 
