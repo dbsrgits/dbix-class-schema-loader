@@ -504,7 +504,9 @@ sub _columns_info_for {
 sub _dbh_type_info_type_name {
     my ($self, $type_num) = @_;
 
-    my $type_info = $self->dbh->type_info($type_num);
+    # We wrap it in a try block for MSSQL+DBD::Sybase, which can have issues.
+    # TODO investigate further
+    my $type_info = try { $self->dbh->type_info($type_num) };
     
     return $type_info ? $type_info->{TYPE_NAME} : undef;
 }
