@@ -226,7 +226,7 @@ EOF
                     $info->{data_type} = 'blob';
                 }
                 elsif ($sub_type_name eq 'TEXT') {
-                    if ($char_set_id == 3) {
+                    if (defined $char_set_id && $char_set_id == 3) {
                         $info->{data_type} = 'blob sub_type text character set unicode_fss';
                     }
                     else {
@@ -275,7 +275,7 @@ EOF
         if ($data_type =~ /^(?:char|varchar)\z/) {
             $info->{size} = $char_length;
 
-            if ($char_set_id == 3) {
+            if (defined $char_set_id && $char_set_id == 3) {
                 $info->{data_type} .= '(x) character set unicode_fss';
             }
         }
