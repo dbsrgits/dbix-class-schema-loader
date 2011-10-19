@@ -326,10 +326,10 @@ sub _table_comment {
 
     my $comments_table = $self->table_comments_table;
 
-    my ($comment) = try { $self->dbh->selectrow_array(<<"EOF", {}, $table->name) };
+    my ($comment) = try { $self->dbh->selectrow_array(<<"EOF") };
 SELECT comment_text
 FROM $comments_table
-WHERE table_name = ?
+WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
 EOF
 
     return $comment;
@@ -340,11 +340,11 @@ sub _column_comment {
 
     my $comments_table = $self->column_comments_table;
 
-    my ($comment) = try { $self->dbh->selectrow_array(<<"EOF", {}, $table->name, $column_name) };
+    my ($comment) = try { $self->dbh->selectrow_array(<<"EOF") };
 SELECT comment_text
 FROM $comments_table
-WHERE table_name = ?
-AND column_name = ?
+WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
+AND column_name = @{[ $self->dbh->quote($column_name) ]}
 EOF
         
     return $comment;
