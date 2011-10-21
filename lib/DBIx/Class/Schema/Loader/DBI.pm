@@ -324,11 +324,12 @@ sub _table_uniq_info {
 sub _table_comment {
     my ($self, $table) = @_;
 
-    my $comments_table = $self->table_comments_table;
+    my $comments_table = $table->clone;
+    $comments_table->name($self->table_comments_table);
 
     my ($comment) = try { $self->dbh->selectrow_array(<<"EOF") };
 SELECT comment_text
-FROM $comments_table
+FROM @{[ $comments_table->sql_name ]}
 WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
 EOF
 
@@ -336,13 +337,14 @@ EOF
 }
 
 sub _column_comment {
-    my ($self, $table, $column_counter, $column_name) = @_;
+    my ($self, $table, $column_number, $column_name) = @_;
 
-    my $comments_table = $self->column_comments_table;
+    my $comments_table = $table->clone;
+    $comments_table->name($self->column_comments_table);
 
     my ($comment) = try { $self->dbh->selectrow_array(<<"EOF") };
 SELECT comment_text
-FROM $comments_table
+FROM @{[ $comments_table->sql_name ]}
 WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
 AND column_name = @{[ $self->dbh->quote($column_name) ]}
 EOF

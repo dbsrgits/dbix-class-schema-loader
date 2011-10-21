@@ -295,10 +295,11 @@ metadata for the text if available and supported.
 Comment metadata can be stored in two ways.
 
 The first is that you can create two tables named C<table_comments> and
-C<column_comments> respectively.  They both need to have columns named
-C<table_name> and C<comment_text>.  The second one needs to have a column
-named C<column_name>.  Then data stored in these tables will be used as a
-source of metadata about tables and comments.
+C<column_comments> respectively. These tables must exist in the same database
+and schema as the tables they describe. They both need to have columns named
+C<table_name> and C<comment_text>. The second one needs to have a column named
+C<column_name>. Then data stored in these tables will be used as a source of
+metadata about tables and comments.
 
 (If you wish you can change the name of these tables with the parameters
 L</table_comments_table> and L</column_comments_table>.)
@@ -350,10 +351,16 @@ The default is C<60>
 The table to look for comments about tables in.  By default C<table_comments>.
 See L</generate_pod> for details.
 
+This must not be a fully qualified name, the table will be looked for in the
+same database and schema as the table whose comment is being retrieved.
+
 =head2 column_comments_table
 
 The table to look for comments about columns in.  By default C<column_comments>.
 See L</generate_pod> for details.
+
+This must not be a fully qualified name, the table will be looked for in the
+same database and schema as the table/column whose comment is being retrieved.
 
 =head2 relationship_attrs
 

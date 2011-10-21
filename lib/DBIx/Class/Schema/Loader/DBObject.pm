@@ -56,6 +56,18 @@ sub new {
     return bless $self, $class;
 }
 
+=head2 clone
+
+Make a shallow copy of the object.
+
+=cut
+
+sub clone {
+    my $self = shift;
+
+    return bless { %$self }, ref $self;
+}
+
 =head2 schema
 
 The schema (or owner) of the object. Returns nothing if L</ignore_schema> is
