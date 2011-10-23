@@ -189,8 +189,8 @@ How to name column accessors in Result classes.
 =item force_ascii
 
 For L</v8> mode and later, uses L<String::ToIdentifier::EN> instead of
-L<String::ToIdentifier::EM::Unicode> to force monikers and other identifiers
-such as relationship names to ASCII.
+L<String::ToIdentifier::EM::Unicode> to force monikers and other identifiers to
+ASCII.
 
 =back
 
@@ -243,9 +243,10 @@ breaking any of your code.
 The default mode is L</v7>, to get L</v8> mode, you have to specify it in
 L</naming> explictly until C<0.08> comes out.
 
-L</monikers> are created using L<String::ToIdentifier::EN::Unicode> or
-L<String::ToIdentifier::EN> if L</force_ascii> is set; this is only significant
-for table names with non-C<\w> characters such as C<.>.
+L</monikers> and L</column_accessors> are created using
+L<String::ToIdentifier::EN::Unicode> or L<String::ToIdentifier::EN> if
+L</force_ascii> is set; this is only significant for names with non-C<\w>
+characters such as C<.>.
 
 For relationships, belongs_to accessors are made from column names by stripping
 postfixes other than C<_id> as well, just C<id>, C<_?ref>, C<_?cd>, C<_?code>
@@ -2164,8 +2165,10 @@ sub _run_user_map {
 sub _default_column_accessor_name {
     my ( $self, $column_name ) = @_;
 
-    my $accessor_name = $column_name;
-    $accessor_name =~ s/\W+/_/g;
+    my $accessor_name = $self->_to_identifier('column_accessors', $column_name, '_');
+
+    $accessor_name =~ s/\W+/_/g; # only if naming < v8, otherwise to_identifier
+                                 # takes care of it
 
     if ((($self->naming->{column_accessors}||'') =~ /(\d+)/ && $1 < 7) || (not $self->preserve_case)) {
         # older naming just lc'd the col accessor and that's all.
@@ -2324,6 +2327,18 @@ sub tables {
     return values %{$self->_tables};
 }
 
+sub _to_identifier {
+    my ($self, $naming_key, $name, $sep_char) = @_;
+
+    my ($v) = ($self->naming->{$naming_key}||$CURRENT_V) =~ /^v(\d+)\z/;
+
+    my $to_identifier = $self->naming->{force_ascii} ?
+        \&String::ToIdentifier::EN::to_identifier
+        : \&String::ToIdentifier::EN::Unicode::to_identifier;
+
+    return $v >= 8 ? $to_identifier->($name, $sep_char) : $name;
+}
+
 # Make a moniker from a table
 sub _default_table2moniker {
     my ($self, $table) = @_;
@@ -2334,17 +2349,13 @@ sub _default_table2moniker {
 
     my $name_idx = firstidx { $_ eq 'name' } @{ $self->moniker_parts };
 
-    my $to_identifier = $self->naming->{force_ascii} ?
-        \&String::ToIdentifier::EN::to_identifier
-        : \&String::ToIdentifier::EN::Unicode::to_identifier;
-
     my @all_parts;
 
     foreach my $i (0 .. $#name_parts) {
         my $part = $name_parts[$i];
 
-        if ($i != $name_idx || $v > 7) {
-            $part = $to_identifier->($part, '_');
+        if ($i != $name_idx || $v >= 8) {
+            $part = $self->_to_identifier->('monikers', $part, '_');
         }
 
         if ($i == $name_idx && $v == 5) {

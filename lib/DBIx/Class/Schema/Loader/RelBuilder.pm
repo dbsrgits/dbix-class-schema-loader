@@ -304,7 +304,9 @@ sub _remote_attrs {
 sub _sanitize_name {
     my ($self, $name) = @_;
 
-    $name =~ s/\W+/_/g;
+    $name = $self->loader->_to_identifier('relationships', $name, '_');
+
+    $name =~ s/\W+/_/g; # if naming >= 8 to_identifier takes care of it
 
     return $name;
 }
