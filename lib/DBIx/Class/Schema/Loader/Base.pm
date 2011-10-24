@@ -168,11 +168,25 @@ overwriting a dump made with an earlier version.
 
 The option also takes a hashref:
 
-    naming => { relationships => 'v8', monikers => 'v8' }
+    naming => {
+        relationships    => 'v8',
+        monikers         => 'v8',
+        column_accessors => 'v8',
+        force_ascii      => 1,
+    }
+
+or
+
+    naming => { ALL => 'v8', force_ascii => 1 }
 
 The keys are:
 
 =over 4
+
+=item ALL
+
+Set L</relationships>, L</monikers> and L</column_accessors> to the specified
+value.
 
 =item relationships
 
@@ -947,10 +961,16 @@ sub new {
             column_accessors => $naming_ver,
         };
     }
+    elsif (ref $self->naming eq 'HASH' && exists $self->naming->{ALL}) {
+        my $val = delete $self->naming->{ALL};
+
+        $self->naming->{$_} = $val
+            foreach qw/relationships monikers column_accessors/;
+    }
 
     if ($self->naming) {
-        for (values %{ $self->naming }) {
-            $_ = $CURRENT_V if $_ eq 'current';
+        foreach my $key (qw/relationships monikers column_accessors/) {
+            $self->naming->{$key} = $CURRENT_V if $self->naming->{$key} eq 'current';
         }
     }
     $self->{naming} ||= {};
