@@ -44,6 +44,7 @@ requires 'Lingua::EN::Inflect::Phrase' => '0.02';
 requires 'Digest::MD5'                 => '2.36';
 requires 'Class::Accessor::Grouped'    => '0.10002';
 requires 'MRO::Compat'                 => '0.09';
+requires 'Sub::Name'                   => 0;
 requires 'Class::C3::Componentised'    => '1.0008';
 requires 'Carp::Clan'                  => 0;
 requires 'Class::Inspector'            => 0;

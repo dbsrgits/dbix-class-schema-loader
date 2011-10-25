@@ -3,9 +3,11 @@ package DBIx::Class::Schema::Loader;
 use strict;
 use warnings;
 use base qw/DBIx::Class::Schema Class::Accessor::Grouped/;
+use MRO::Compat;
 use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
+use Sub::Name 'subname';
 use namespace::clean;
 
 # Always remember to do all digits for the version even if they're 0
@@ -219,7 +221,7 @@ sub connection {
     my $self = shift;
 
     if($_[-1] && ref $_[-1] eq 'HASH') {
-        for my $option (qw/ loader_class loader_options result_base_class schema_base_class/) {
+        for my $option (qw/loader_class loader_options/) {
             if(my $value = delete $_[-1]->{$option}) {
                 $self->$option($value);
             }
@@ -227,7 +229,34 @@ sub connection {
         pop @_ if !keys %{$_[-1]};
     }
 
-    $self = $self->next::method(@_);
+    # Make sure we inherit from schema_base_class and load schema_components
+    # before connecting.
+    require DBIx::Class::Schema::Loader::Base;
+    my $temp_loader = DBIx::Class::Schema::Loader::Base->new(
+        %{ $self->_loader_args }
+    );
+
+    if ($temp_loader->schema_base_class || $temp_loader->schema_components) {
+        my @components = @{ $temp_loader->schema_components }
+            if $temp_loader->schema_components;
+
+        push @components, ('+'.$temp_loader->schema_base_class)
+            if $temp_loader->schema_base_class;
+
+        $self->load_components(@components);
+    }
+
+    # This hack is necessary if we changed @ISA of $self through ->load_components.
+    {
+        no warnings 'redefine';
+
+        local *connection = subname __PACKAGE__.'::connection' => sub {
+            my $self = shift;
+            $self->next::method(@_);
+        };
+
+        $self = $self->connection(@_);
+    }
 
     my $class = ref $self || $self;
     if(!$class->_loader_invoked) {
