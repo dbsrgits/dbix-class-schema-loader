@@ -244,10 +244,9 @@ sub connection {
             if $temp_loader->schema_base_class;
 
         $self->load_components(@components);
-    }
 
-    # This hack is necessary if we changed @ISA of $self through ->load_components.
-    {
+        # This hack is necessary because we changed @ISA of $self through
+        # ->load_components.
         no warnings 'redefine';
 
         local *connection = subname __PACKAGE__.'::connection' => sub {
@@ -256,6 +255,9 @@ sub connection {
         };
 
         $self = $self->connection(@_);
+    }
+    else {
+        $self = $self->next::method(@_);
     }
 
     my $class = ref $self || $self;

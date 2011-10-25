@@ -545,6 +545,19 @@ Default behavior is to utilize L<Lingua::EN::Inflect::Phrase/to_S>.
 
 Base class for your schema classes. Defaults to 'DBIx::Class::Schema'.
 
+B<WARNING>: if you define schema_base_class for a dynamic schema, you cannot
+define a L<connection|DBIx::Class::Schema/connection> method in your schema
+class, it must be in the schema base class, due to the limits of L<mro>.
+
+=head2 schema_components
+
+List of components to load into the Schema class.
+
+B<WARNING>: if you define schema_components for a dynamic schema, you cannot
+define a L<connection|DBIx::Class::Schema/connection> method in your schema
+class, it must be in L</schema_base_class> or a component, due to the limits of
+L<mro>.
+
 =head2 result_base_class
 
 Base class for your table classes (aka result classes). Defaults to
@@ -562,10 +575,6 @@ that need to be leftmost.
 =head2 additional_classes
 
 List of additional classes which all of your table classes will use.
-
-=head2 schema_components
-
-List of components to load into the Schema class.
 
 =head2 components
 
