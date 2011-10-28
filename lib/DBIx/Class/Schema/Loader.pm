@@ -236,6 +236,8 @@ sub connection {
     my $temp_loader = DBIx::Class::Schema::Loader::Base->new(
         %{ $self->_loader_args },
         schema => $self,
+        naming => 'current',
+        use_namespaces => 1,
     );
 
     if ($temp_loader->schema_base_class || $temp_loader->schema_components) {
