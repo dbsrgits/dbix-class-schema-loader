@@ -234,7 +234,8 @@ sub connection {
     # before connecting.
     require DBIx::Class::Schema::Loader::Base;
     my $temp_loader = DBIx::Class::Schema::Loader::Base->new(
-        %{ $self->_loader_args }
+        %{ $self->_loader_args },
+        schema => $self,
     );
 
     if ($temp_loader->schema_base_class || $temp_loader->schema_components) {
