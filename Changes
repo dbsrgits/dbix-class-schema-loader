@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - implement schema_base_class and schema_components for dynamic and
+          working schemas
         - remove dependency on File::Slurp
         - allow the constraint and exclude options to be used simultaneously
           (bphillips)
