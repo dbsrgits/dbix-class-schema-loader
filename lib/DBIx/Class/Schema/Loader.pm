@@ -218,7 +218,8 @@ as soon as the connection information is defined.
 =cut
 
 sub connection {
-    my $self = shift;
+    my $self  = shift;
+    my $class = ref $self || $self;
 
     if($_[-1] && ref $_[-1] eq 'HASH') {
         for my $option (qw/loader_class loader_options/) {
@@ -243,10 +244,10 @@ sub connection {
         push @components, ('+'.$temp_loader->schema_base_class)
             if $temp_loader->schema_base_class;
 
-        $self->load_components(@components);
+        $class->load_components(@components);
 
         # This hack is necessary because we changed @ISA of $self through
-        # ->load_components.
+        # ->load_components and we are now in a different place in the mro.
         no warnings 'redefine';
 
         local *connection = subname __PACKAGE__.'::connection' => sub {
@@ -254,13 +255,22 @@ sub connection {
             $self->next::method(@_);
         };
 
-        $self = $self->connection(@_);
+        my @linear_isa = @{ mro::get_linear_isa($class) };
+
+        my $next_method;
+
+        foreach my $i (1..$#linear_isa) {
+            no strict 'refs';
+            $next_method = *{$linear_isa[$i].'::connection'}{CODE};
+            last if $next_method;
+        }
+
+        $self = $self->$next_method(@_);
     }
     else {
         $self = $self->next::method(@_);
     }
 
-    my $class = ref $self || $self;
     if(!$class->_loader_invoked) {
         $self->_invoke_loader
     }
