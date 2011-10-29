@@ -13,4 +13,6 @@ sub connection {
     return $self->next::method(@info);
 }
 
+sub testschemabaseclass { 'TestSchemaBaseClass works' }
+
 1;

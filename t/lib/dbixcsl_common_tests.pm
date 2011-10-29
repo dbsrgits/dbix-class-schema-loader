@@ -119,7 +119,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (210 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (214 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -229,6 +229,7 @@ sub setup_schema {
           qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i,
         result_namespace        => RESULT_NAMESPACE,
         resultset_namespace     => RESULTSET_NAMESPACE,
+        schema_base_class       => 'TestSchemaBaseClass',
         schema_components       => [ 'TestSchemaComponent', '+TestSchemaComponentFQN' ],
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
@@ -392,8 +393,21 @@ sub test_schema {
         'resultset_namespace set correctly on Schema';
 
     like $schema_code,
+qr/\nuse base 'TestSchemaBaseClass';\n\n|\nextends 'TestSchemaBaseClass';\n\n/,
+        'schema_base_class works';
+
+    is $conn->testschemabaseclass, 'TestSchemaBaseClass works',
+        'schema base class works';
+
+    like $schema_code,
 qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponentFQN"\);\n\n__PACKAGE__->load_namespaces/,
         'schema_components works';
+
+    is $conn->dbix_class_testschemacomponent, 'dbix_class_testschemacomponent works',
+        'schema component works';
+
+    is $conn->testschemacomponent_fqn, 'TestSchemaComponentFQN works',
+        'fully qualified schema component works';
 
     my @columns_lt2 = $class2->columns;
     is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentmap testcomponent_fqn meta test_role_method test_role_for_map_method crumb_crisp_coating/ ], "Column Ordering" );
