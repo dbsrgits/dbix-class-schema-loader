@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - use MooseX::MarkAsMethods instead of namespace::autoclean for the
+          use_moose option, this protects operator overloads, only_autoclean
+          option added for the old behavior
         - add experimental naming=v8 mode with better CamelCase identifier
           support, relationship naming and conversion of non-identifier chars
           (RT#71945)
