@@ -263,9 +263,12 @@ L<String::ToIdentifier::EN::Unicode> or L<String::ToIdentifier::EN> if
 L</force_ascii> is set; this is only significant for names with non-C<\w>
 characters such as C<.>.
 
+CamelCase identifiers with words in all caps, e.g. C<VLANValidID> are supported
+correctly in this mode.
+
 For relationships, belongs_to accessors are made from column names by stripping
-postfixes other than C<_id> as well, just C<id>, C<_?ref>, C<_?cd>, C<_?code>
-and C<_num>.
+postfixes other than C<_id> as well, for example just C<Id>, C<_?ref>, C<_?cd>,
+C<_?code> and C<_?num>, case insensitively.
 
 =item preserve
 
@@ -723,15 +726,16 @@ loader options.
 
 =head2 preserve_case
 
-Usually column names are lowercased, to make them easier to work with in
-L<DBIx::Class>. This option lets you turn this behavior off, if the driver
-supports it.
+Normally database names are lowercased and split by underscore, use this option
+if you have CamelCase database names.
 
 Drivers for case sensitive databases like Sybase ASE or MSSQL with a
 case-sensitive collation will turn this option on unconditionally.
 
-Currently the drivers for SQLite, mysql, MSSQL and Firebird/InterBase support
-setting this option.
+B<NOTE:> L</naming> = C<v8> is highly recommended with this option as the
+semantics of this mode are much improved for CamelCase database names.
+
+L</naming> = C<v7> or greater is required with this option.
 
 =head2 qualify_objects
 
@@ -2209,20 +2213,27 @@ sub _run_user_map {
 sub _default_column_accessor_name {
     my ( $self, $column_name ) = @_;
 
-    my $accessor_name = $self->_to_identifier('column_accessors', $column_name, '_');
+    my $preserve = ($self->naming->{column_accessors}||'') eq 'preserve';
+
+    my $v = $self->_get_naming_v('column_accessors');
+
+    my $accessor_name = $preserve ?
+        $self->_to_identifier('column_accessors', $column_name) # assume CamelCase
+        :
+        $self->_to_identifier('column_accessors', $column_name, '_');
 
     $accessor_name =~ s/\W+/_/g; # only if naming < v8, otherwise to_identifier
                                  # takes care of it
 
-    if ((($self->naming->{column_accessors}||'') =~ /(\d+)/ && $1 < 7) || (not $self->preserve_case)) {
+    if ($preserve) {
+        return $accessor_name;
+    }
+    elsif ($v < 7 || (not $self->preserve_case)) {
         # older naming just lc'd the col accessor and that's all.
         return lc $accessor_name;
     }
-    elsif (($self->naming->{column_accessors}||'') eq 'preserve') {
-        return $accessor_name;
-    }
 
-    return join '_', map lc, split_name $column_name;
+    return join '_', map lc, split_name $column_name, $v;
 }
 
 sub _make_column_accessor_name {
@@ -2387,7 +2398,7 @@ sub _get_naming_v {
 }
 
 sub _to_identifier {
-    my ($self, $naming_key, $name, $sep_char) = @_;
+    my ($self, $naming_key, $name, $sep_char, $force) = @_;
 
     my $v = $self->_get_naming_v($naming_key);
 
@@ -2395,7 +2406,7 @@ sub _to_identifier {
         \&String::ToIdentifier::EN::to_identifier
         : \&String::ToIdentifier::EN::Unicode::to_identifier;
 
-    return $v >= 8 ? $to_identifier->($name, $sep_char) : $name;
+    return $v >= 8 || $force ? $to_identifier->($name, $sep_char) : $name;
 }
 
 # Make a moniker from a table
@@ -2414,14 +2425,17 @@ sub _default_table2moniker {
         my $part = $name_parts[$i];
 
         if ($i != $name_idx || $v >= 8) {
-            $part = $self->_to_identifier('monikers', $part, '_');
+            $part = $self->_to_identifier('monikers', $part, '_', 1);
         }
 
         if ($i == $name_idx && $v == 5) {
             $part = Lingua::EN::Inflect::Number::to_S($part);
         }
 
-        my @part_parts = map lc, $v > 6 ? split_name $part : split /[\W_]+/, $part;
+        my @part_parts = map lc, $v > 6 ?
+            # use v8 semantics for all moniker parts except name
+            ($i == $name_idx ? split_name $part, $v : split_name $part)
+            : split /[\W_]+/, $part;
 
         if ($i == $name_idx && $v >= 6) {
             my $as_phrase = join ' ', @part_parts;

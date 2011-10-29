@@ -316,7 +316,7 @@ sub _normalize_name {
 
     $name = $self->_sanitize_name($name);
 
-    my @words = split_name $name;
+    my @words = split_name $name, $self->loader->_get_naming_v('relationships');
 
     return join '_', map lc, @words;
 }

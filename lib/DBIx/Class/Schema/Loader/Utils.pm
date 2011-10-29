@@ -3,14 +3,15 @@ package # hide from PAUSE
 
 use strict;
 use warnings;
-use Data::Dumper ();
 use Test::More;
+use String::CamelCase 'wordsplit';
 use namespace::clean;
 use Exporter 'import';
+use Data::Dumper ();
 
 our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file/;
 
-use constant BY_CASE_TRANSITION =>
+use constant BY_CASE_TRANSITION_V7 =>
     qr/(?<=[[:lower:]\d])[\W_]*(?=[[:upper:]])|[\W_]+/;
 
 use constant BY_NON_ALPHANUM =>
@@ -19,10 +20,16 @@ use constant BY_NON_ALPHANUM =>
 my $LF   = "\x0a";
 my $CRLF = "\x0d\x0a";
 
-sub split_name($) {
-    my $name = shift;
+sub split_name($;$) {
+    my ($name, $v) = @_;
 
-    split $name =~ /[[:upper:]]/ && $name =~ /[[:lower:]]/ ? BY_CASE_TRANSITION : BY_NON_ALPHANUM, $name;
+    my $is_camel_case = $name =~ /[[:upper:]]/ && $name =~ /[[:lower:]]/;
+
+    if ((not $v) || $v >= 8) {
+        return map split(BY_NON_ALPHANUM, $_), wordsplit($name);
+    }
+
+    return split $is_camel_case ? BY_CASE_TRANSITION_V7 : BY_NON_ALPHANUM, $name;
 }
 
 sub dumper($) {

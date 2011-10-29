@@ -1,6 +1,5 @@
 use strict;
 use warnings;
-no warnings 'once';
 use Test::More tests => 8;
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use lib 't/lib';
