@@ -6,6 +6,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - add experimental naming=v8 mode with better CamelCase identifier
           support, relationship naming and conversion of non-identifier chars
           (RT#71945)
+        - add naming => { force_ascii => 1 } option for Unicode database names
         - implement schema_base_class and schema_components for dynamic and
           working schemas
         - remove dependency on File::Slurp
@@ -16,7 +17,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           the preserve_case option after the preserve_case tests (RT#70829)
         - handle <type> DEFAULT NULL for Pg
         - handle boolean DEFAULT 0::boolean for Pg
-        - config file support for dbicdump script
+        - config file support for dbicdump script (alnewkirk)
         - added filter_generated_code option (RT#53841)
         - generic table and column comments support
         - MySQL table and column comments support
