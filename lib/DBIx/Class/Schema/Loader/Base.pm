@@ -970,7 +970,7 @@ sub new {
 
     if ($self->naming) {
         foreach my $key (qw/relationships monikers column_accessors/) {
-            $self->naming->{$key} = $CURRENT_V if $self->naming->{$key} eq 'current';
+            $self->naming->{$key} = $CURRENT_V if ($self->naming->{$key}||'') eq 'current';
         }
     }
     $self->{naming} ||= {};
@@ -2347,10 +2347,25 @@ sub tables {
     return values %{$self->_tables};
 }
 
+sub _get_naming_v {
+    my ($self, $naming_key) = @_;
+
+    my $v;
+
+    if (($self->naming->{$naming_key}||'') =~ /^v(\d+)\z/) {
+        $v = $1;
+    }
+    else {
+        ($v) = $CURRENT_V =~ /^v(\d+)\z/;
+    }
+
+    return $v;
+}
+
 sub _to_identifier {
     my ($self, $naming_key, $name, $sep_char) = @_;
 
-    my ($v) = ($self->naming->{$naming_key}||$CURRENT_V) =~ /^v(\d+)\z/;
+    my $v = $self->_get_naming_v($naming_key);
 
     my $to_identifier = $self->naming->{force_ascii} ?
         \&String::ToIdentifier::EN::to_identifier
@@ -2363,7 +2378,7 @@ sub _to_identifier {
 sub _default_table2moniker {
     my ($self, $table) = @_;
 
-    my ($v) = ($self->naming->{monikers}||$CURRENT_V) =~ /^v(\d+)\z/;
+    my $v = $self->_get_naming_v('monikers');
 
     my @name_parts = map $table->$_, @{ $self->moniker_parts };
 
@@ -2375,7 +2390,7 @@ sub _default_table2moniker {
         my $part = $name_parts[$i];
 
         if ($i != $name_idx || $v >= 8) {
-            $part = $self->_to_identifier->('monikers', $part, '_');
+            $part = $self->_to_identifier('monikers', $part, '_');
         }
 
         if ($i == $name_idx && $v == 5) {
