@@ -741,7 +741,7 @@ __PACKAGE__->table >> calls, and to some other things like Oracle sequences.
 =head2 use_moose
 
 Creates Schema and Result classes that use L<Moose>, L<MooseX::NonMoose> and
-L<namespace::autoclean> (or L<MooseX::MarkAsMethods>, see below). The default
+L<MooseX::MarkAsMethods> (or L<namespace::autoclean>, see below). The default
 content after the md5 sum also makes the classes immutable.
 
 It is safe to upgrade your existing Schema to this option.
@@ -750,13 +750,13 @@ It is safe to upgrade your existing Schema to this option.
 
 By default, we use L<MooseX::MarkAsMethods> to remove imported functions from
 your generated classes.  It uses L<namespace::autoclean> to do this, after
-telling your object's metaclass that any L<overload>s in your class are
-methods, which will cause namespace::autoclean to spare them from removal.
+telling your object's metaclass that any operator L<overload>s in your class
+are methods, which will cause namespace::autoclean to spare them from removal.
 
 This prevents the "Hey, where'd my overloads go?!" effect.
 
-If you don't care about overloads, enabling this option falls back to just using
-L<namespace::autoclean> itself.
+If you don't care about operator overloads, enabling this option falls back to
+just using L<namespace::autoclean> itself.
 
 If none of the above made any sense, or you don't have some pressing need to
 only use L<namespace::autoclean>, leaving this set to the default is
