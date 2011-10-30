@@ -18,12 +18,24 @@ sub cleanup {
     rmtree($DUMP_PATH, 1, 1);
 }
 
-sub append_to_class {
-    my ($self, $class, $string) = @_;
+sub class_file {
+    my ($self, $class) = @_;
+
     $class =~ s{::}{/}g;
     $class = $DUMP_PATH . '/' . $class . '.pm';
+
+    return $class;
+}
+
+sub append_to_class {
+    my ($self, $class, $string) = @_;
+
+    $class = $self->class_file($class);
+
     open(my $appendfh, '>>', $class) or die "Failed to open '$class' for append: $!";
+
     print $appendfh $string;
+
     close($appendfh);
 }
 

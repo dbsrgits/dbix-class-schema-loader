@@ -1,9 +1,9 @@
-use warnings;
 use strict;
-
-use File::Temp ();
+use warnings;
 use Test::More;
-
+use DBIx::Class::Schema::Loader::Utils qw/slurp_file write_file/;
+use namespace::clean;
+use File::Temp ();
 use lib qw(t/lib);
 use dbixcsl_dumper_tests;
 my $t = 'dbixcsl_dumper_tests';
@@ -431,6 +431,36 @@ $t->dump_test(
     '',
     { quote_char => '"' },
   ],
+);
+
+# test fix for RT#70507 (end comment and 1; gets lost if left with actual
+# custom content)
+
+$t->dump_test(
+    classname => 'DBICTest::DumpMore::Upgrade',
+    options => {
+        use_namespaces => 0,
+    },
+);
+
+my $file = $t->class_file('DBICTest::DumpMore::Upgrade::Foo');
+
+my $code = slurp_file $file;
+
+$code =~ s/(?=# You can replace)/sub custom_method { 'custom_method works' }\n0;\n\n/;
+
+write_file $file, $code;
+
+$t->dump_test(
+    classname => 'DBICTest::DumpMore::Upgrade',
+    options => {
+        use_namespaces => 1,
+    },
+    regexes => {
+        'Result/Foo' => [
+            qr/sub custom_method { 'custom_method works' }\n0;\n\n# You can replace.*\n1;\n\z/,
+        ],
+    },
 );
 
 done_testing;

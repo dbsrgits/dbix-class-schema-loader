@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - do not delete default custom content comment and ending 1; from custom
+          content in files that are being renamed (RT#70507)
         - use MooseX::MarkAsMethods instead of namespace::autoclean for the
           use_moose option, this protects operator overloads, only_autoclean
           option added for the old behavior

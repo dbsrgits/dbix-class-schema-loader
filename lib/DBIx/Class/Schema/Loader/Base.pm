@@ -1803,17 +1803,13 @@ sub _write_classfile {
 
     my $custom_content = $old_custom || '';
 
-    # prepend extra custom content from a *renamed* class (singularization effect)
+    # Use custom content from a renamed class, the class names in it are
+    # rewritten below.
     if (my $renamed_class = $self->_upgrading_classes->{$class}) {
         my $old_filename = $self->_get_dump_filename($renamed_class);
 
         if (-f $old_filename) {
-            my $extra_custom = ($self->_parse_generated_file ($old_filename))[4];
-
-            $extra_custom =~ s/\n\n# You can replace.*\n1;\n//;
-
-            $custom_content = join ("\n", '', $extra_custom, $custom_content)
-                if $extra_custom;
+            $custom_content = ($self->_parse_generated_file ($old_filename))[4];
 
             unlink $old_filename;
         }

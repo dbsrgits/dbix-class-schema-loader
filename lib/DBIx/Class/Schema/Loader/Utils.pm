@@ -9,7 +9,7 @@ use namespace::clean;
 use Exporter 'import';
 use Data::Dumper ();
 
-our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file/;
+our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file write_file/;
 
 use constant BY_CASE_TRANSITION_V7 =>
     qr/(?<=[[:lower:]\d])[\W_]*(?=[[:upper:]])|[\W_]+/;
@@ -150,6 +150,12 @@ sub slurp_file($) {
     $data =~ s/$CRLF|$LF/\n/g;
 
     return $data;
+}
+
+sub write_file($$) {
+    open my $fh, '>:encoding(UTF-8)', shift;
+    print $fh shift;
+    close $fh;
 }
 
 1;
