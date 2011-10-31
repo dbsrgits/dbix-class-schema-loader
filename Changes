@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - add -I option to dbicdump
         - do not delete default custom content comment and ending 1; from custom
           content in files that are being renamed (RT#70507)
         - use MooseX::MarkAsMethods instead of namespace::autoclean for the

@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Test::More;
 use String::CamelCase 'wordsplit';
+use Carp::Clan qw/^DBIx::Class/;
 use namespace::clean;
 use Exporter 'import';
 use Data::Dumper ();
@@ -143,8 +144,13 @@ sub warnings_exist_silent(&$$) {
 }
 
 sub slurp_file($) {
-    open my $fh, '<:encoding(UTF-8)', shift;
+    my $file_name = shift;
+
+    open my $fh, '<:encoding(UTF-8)', $file_name,
+        or croak "Can't open '$file_name' for reading: $!";
+
     my $data = do { local $/; <$fh> };
+
     close $fh;
 
     $data =~ s/$CRLF|$LF/\n/g;
@@ -153,7 +159,11 @@ sub slurp_file($) {
 }
 
 sub write_file($$) {
-    open my $fh, '>:encoding(UTF-8)', shift;
+    my $file_name = shift;
+
+    open my $fh, '>:encoding(UTF-8)', $file_name,
+        or croak "Can't open '$file_name' for writing: $!";
+
     print $fh shift;
     close $fh;
 }
