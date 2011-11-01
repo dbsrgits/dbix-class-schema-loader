@@ -29,7 +29,7 @@ use IPC::Open2;
 use Symbol 'gensym';
 use namespace::clean;
 
-our $VERSION = '0.07010';
+our $VERSION = '0.07011';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema

@@ -9,7 +9,7 @@ use List::MoreUtils 'any';
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07010';
+our $VERSION = '0.07011';
 
 __PACKAGE__->mk_group_accessors('simple', qw/
     _disable_pk_detection
