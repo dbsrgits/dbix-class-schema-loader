@@ -497,6 +497,12 @@ EOF
             }
 
             SKIP: {
+                # for ADO
+                my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+                local $SIG{__WARN__} = sub {
+                    $warn_handler->(@_) unless $_[0] =~ /Changed database context/;
+                };
+
                 my $dbh = $schema->storage->dbh;
 
                 try {
@@ -721,6 +727,12 @@ sub cleanup_schemas {
 
 sub cleanup_databases {
     return if $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
+
+    # for ADO
+    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+    local $SIG{__WARN__} = sub {
+        $warn_handler->(@_) unless $_[0] =~ /Changed database context/;
+    };
 
     my $dbh = $schema->storage->dbh;
 

@@ -21,6 +21,18 @@ Proxy for L<DBIx::Class::Schema::Loader::DBI::MSSQL> when using L<DBD::ADO>.
 
 See L<DBIx::Class::Schema::Loader::Base> for usage information.
 
+=cut
+
+sub _table_comment {
+    local $^W = 0; # invalid object warnings
+    shift->next::method(@_);
+}
+
+sub _column_comment {
+    local $^W = 0; # invalid object warnings
+    shift->next::method(@_);
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader::DBI::ADO>,
