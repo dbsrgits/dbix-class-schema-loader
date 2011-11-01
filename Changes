@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - previous version referred to the wrong RT# for the uniq_to_primary
+          change, it is actually (RT#51696)
+
 0.07011  2011-11-01 09:00:00
         - add -I option to dbicdump
         - do not delete default custom content comment and ending 1; from custom
