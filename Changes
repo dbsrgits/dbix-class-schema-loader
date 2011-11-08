@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - use a temp file for filter_generated_code with a string program name
+          instead of IPC::Open2, which hangs on Win32 (RT#72226)
         - previous version referred to the wrong RT# for the uniq_to_primary
           change, it is actually (RT#51696)
 

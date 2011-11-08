@@ -25,8 +25,7 @@ use Try::Tiny;
 use DBIx::Class ();
 use Encode qw/encode decode/;
 use List::MoreUtils qw/all firstidx/;
-use IPC::Open2;
-use Symbol 'gensym';
+use File::Temp 'tempfile';
 use namespace::clean;
 
 our $VERSION = '0.07011';
@@ -1854,22 +1853,25 @@ sub _write_classfile {
             );
         }
         else {
-            my ($out, $in) = (gensym, gensym);
+            my ($fh, $temp_file) = tempfile();
 
-            my $pid = open2($out, $in, $filter)
+            binmode $fh, ':encoding(UTF-8)';
+            print $fh $text;
+            close $fh;
+
+            open my $out, qq{$filter < "$temp_file"|}
                 or croak "Could not open pipe to $filter: $!";
-
-            print $in $text;
-
-            close $in;
 
             $text = decode('UTF-8', do { local $/; <$out> });
 
             $text =~ s/$CR?$LF/\n/g;
 
-            waitpid $pid, 0;
+            close $out;
 
             my $exit_code = $? >> 8;
+
+            unlink $temp_file
+                or croak "Could not remove temporary file '$temp_file': $!";
 
             if ($exit_code != 0) {
                 croak "filter '$filter' exited non-zero: $exit_code";
