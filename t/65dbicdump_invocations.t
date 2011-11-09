@@ -5,6 +5,8 @@ use warnings;
 
 use Test::More;
 use DBIx::Class::Schema::Loader::Utils 'slurp_file';
+use File::Path 'rmtree';
+use namespace::clean;
 use lib 't/lib';
 use make_dbictest_db ();
 use dbixcsl_test_dir '$tdir';
@@ -40,3 +42,5 @@ sub dbicdump {
     is $? >> 8, 0,
         'dbicdump executed successfully';
 }
+
+END { rmtree $tdir }
