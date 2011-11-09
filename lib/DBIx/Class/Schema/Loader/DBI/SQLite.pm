@@ -9,7 +9,7 @@ use base qw/
 use mro 'c3';
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07011';
+our $VERSION = '0.07012';
 
 =head1 NAME
 

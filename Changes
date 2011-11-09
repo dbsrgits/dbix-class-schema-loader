@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07012  2011-11-09 15:16:29
         - as of 0.07011 all callbacks receive a ::Loader::Table or
           interface-compatible object instead of the table name, this object
           stringifies to the table name (RT#72260)
