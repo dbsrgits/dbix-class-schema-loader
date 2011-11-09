@@ -602,7 +602,8 @@ the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-L<DBIx::Class>, L<DBIx::Class::Manual::ExampleSchema>
+L<DBIx::Class>, L<DBIx::Class::Manual::Intro>, L<DBIx::Class::Tutorial>,
+L<DBIx::Class::Schema::Loader::Base>
 
 =cut
 
