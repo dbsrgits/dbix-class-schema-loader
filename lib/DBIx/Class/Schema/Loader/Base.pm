@@ -460,12 +460,12 @@ Exclude tables matching regex.  Best specified as a qr// regex.
 
 =head2 moniker_map
 
-Overrides the default table name to moniker translation.  Can be either
-a hashref of table keys and moniker values, or a coderef for a translator
-function taking a single scalar table name argument and returning
-a scalar moniker.  If the hash entry does not exist, or the function
-returns a false value, the code falls back to default behavior
-for that table name.
+Overrides the default table name to moniker translation.  Can be either a
+hashref of table keys and moniker values, or a coderef for a translator
+function taking a L<table object|DBIx::Class::Schema::Loader::Table> argument
+and returning a scalar moniker.  If the hash entry does not exist, or the
+function returns a false value, the code falls back to default behavior for
+that table name.
 
 The default behavior is to split on case transition and non-alphanumeric
 boundaries, singularize the resulting phrase, then join the titlecased words
@@ -489,7 +489,7 @@ passed, the code is called with arguments of
    {
       table_class     => name of the DBIC class we are building,
       table_moniker   => calculated moniker for this table (after moniker_map if present),
-      table_name      => name of the database table,
+      table           => table object of interface DBIx::Class::Schema::Loader::Table,
       full_table_name => schema-qualified name of the database table (RDBMS specific),
       schema_class    => name of the schema class we are building,
       column_info     => hashref of column info (data_type, is_nullable, etc),
@@ -684,12 +684,13 @@ L<column_info|DBIx::Class::ResultSource/column_info> for a column.
 
 Must be a coderef that returns a hashref with the extra attributes.
 
-Receives the table name, column name and column_info.
+Receives the L<table object|DBIx::Class::Schema::Loader::Table>, column name
+and column_info.
 
 For example:
 
   custom_column_info => sub {
-      my ($table_name, $column_name, $column_info) = @_;
+      my ($table, $column_name, $column_info) = @_;
 
       if ($column_name eq 'dog' && $column_info->{default_value} eq 'snoopy') {
           return { is_snoopy => 1 };
@@ -740,6 +741,8 @@ L</naming> = C<v7> or greater is required with this option.
 
 Set to true to prepend the L</db_schema> to table names for C<<
 __PACKAGE__->table >> calls, and to some other things like Oracle sequences.
+
+This attribute is automatically set to true for multi db_schema configurations.
 
 =head2 use_moose
 
@@ -2816,7 +2819,7 @@ If you use the loader on a database with table and column names in a language
 other than English, you will want to turn off the English language specific
 heuristics.
 
-To do so, use something like this in your laoder options:
+To do so, use something like this in your loader options:
 
     naming           => { monikers => 'v4' },
     inflect_singular => sub { "$_[0]_rel" },
@@ -2851,7 +2854,7 @@ You can also control the renaming with the L</rel_collision_map> option.
 
 =head1 SEE ALSO
 
-L<DBIx::Class::Schema::Loader>
+L<DBIx::Class::Schema::Loader>, L<dbicdump>
 
 =head1 AUTHOR
 

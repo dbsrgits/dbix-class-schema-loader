@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - as of 0.07011 all callbacks receive a ::Loader::Table or
+          interface-compatible object instead of the table name, this object
+          stringifies to the table name (RT#72260)
         - fix a bug in dynamic schema_base_class/schema_components
           implementation that ran the connection method twice on subsequent
           connects
