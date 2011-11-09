@@ -6,11 +6,12 @@ use warnings;
 use Test::More;
 use String::CamelCase 'wordsplit';
 use Carp::Clan qw/^DBIx::Class/;
+use Scalar::Util 'looks_like_number';
 use namespace::clean;
 use Exporter 'import';
 use Data::Dumper ();
 
-our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file write_file/;
+our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file write_file array_eq/;
 
 use constant BY_CASE_TRANSITION_V7 =>
     qr/(?<=[[:lower:]\d])[\W_]*(?=[[:upper:]])|[\W_]+/;
@@ -166,6 +167,23 @@ sub write_file($$) {
 
     print $fh shift;
     close $fh;
+}
+
+sub array_eq($$) {
+    no warnings 'uninitialized';
+    my ($a, $b) = @_;
+
+    return unless @$a == @$b;
+
+    for (my $i = 0; $i < @$a; $i++) {
+        if (looks_like_number $a->[$i]) {
+            return unless $a->[$i] == $b->[$i];
+        }
+        else {
+            return unless $a->[$i] eq $b->[$i];
+        }
+    }
+    return 1;
 }
 
 1;

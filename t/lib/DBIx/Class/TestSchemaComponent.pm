@@ -8,7 +8,7 @@ our $test_component_ok = 0;
 sub connection {
     my ($self, @info) = @_;
 
-    $test_component_ok = 1;
+    $test_component_ok++;
 
     return $self->next::method(@info);
 }

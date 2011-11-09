@@ -7,7 +7,7 @@ sub connection {
     my ($self, @info) = @_;
 
     if ($info[0] =~ /^dbi/) {
-        $test_ok = 1;
+        $test_ok++;
     }
 
     return $self->next::method(@info);

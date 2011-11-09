@@ -6,7 +6,7 @@ use base 'Class::Accessor::Grouped';
 use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
-use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file/;
+use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file array_eq/;
 use Try::Tiny;
 use List::MoreUtils qw/apply uniq any/;
 use namespace::clean;
@@ -274,17 +274,6 @@ sub _strip_id_postfix {
     $name =~ s/_?(?:id|ref|cd|code|num)\z//i;
 
     return $name;
-}
-
-sub _array_eq {
-    my ($self, $a, $b) = @_;
-
-    return unless @$a == @$b;
-
-    for (my $i = 0; $i < @$a; $i++) {
-        return unless $a->[$i] eq $b->[$i];
-    }
-    return 1;
 }
 
 sub _remote_attrs {
@@ -685,8 +674,8 @@ sub _relnames_and_method {
     my $remote_method = 'has_many';
 
     # If the local columns have a UNIQUE constraint, this is a one-to-one rel
-    if ($self->_array_eq([ $local_source->primary_columns ], $local_cols) ||
-            grep { $self->_array_eq($_->[1], $local_cols) } @$uniqs) {
+    if (array_eq([ $local_source->primary_columns ], $local_cols) ||
+            grep { array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method   = 'might_have';
         ($local_relname) = $self->_inflect_singular($local_relname_uninflected);
     }
@@ -716,7 +705,7 @@ sub _relnames_and_method {
                 my $rel_cols = [ sort { $a cmp $b } apply { s/^foreign\.//i }
                     (keys %{ $class->relationship_info($local_relname)->{cond} }) ];
 
-                $relationship_exists = 1 if $self->_array_eq([ sort @$local_cols ], $rel_cols);
+                $relationship_exists = 1 if array_eq([ sort @$local_cols ], $rel_cols);
             }
         }
 

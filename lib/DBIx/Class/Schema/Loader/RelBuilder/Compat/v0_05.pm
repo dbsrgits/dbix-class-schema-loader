@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06';
 use mro 'c3';
+use DBIx::Class::Schema::Loader::Utils 'array_eq';
+use namespace::clean;
 use Lingua::EN::Inflect::Number ();
 
 our $VERSION = '0.07011';
@@ -53,8 +55,8 @@ sub _relnames_and_method {
 
     # If the local columns have a UNIQUE constraint, this is a one-to-one rel
     my $local_source = $self->{schema}->source($local_moniker);
-    if ($self->_array_eq([ $local_source->primary_columns ], $local_cols) ||
-            grep { $self->_array_eq($_->[1], $local_cols) } @$uniqs) {
+    if (array_eq([ $local_source->primary_columns ], $local_cols) ||
+            grep { array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method = 'might_have';
         ($local_relname) = $self->_inflect_singular($local_relname_uninflected);
     }
