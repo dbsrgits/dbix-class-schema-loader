@@ -467,9 +467,9 @@ Exclude tables matching regex.  Best specified as a qr// regex.
 Overrides the default table name to moniker translation.  Can be either a
 hashref of table keys and moniker values, or a coderef for a translator
 function taking a L<table object|DBIx::Class::Schema::Loader::Table> argument
-and returning a scalar moniker.  If the hash entry does not exist, or the
-function returns a false value, the code falls back to default behavior for
-that table name.
+(which stringifies to the unqualified table name) and returning a scalar
+moniker.  If the hash entry does not exist, or the function returns a false
+value, the code falls back to default behavior for that table name.
 
 The default behavior is to split on case transition and non-alphanumeric
 boundaries, singularize the resulting phrase, then join the titlecased words
@@ -497,7 +497,10 @@ passed, the code is called with arguments of
       full_table_name => schema-qualified name of the database table (RDBMS specific),
       schema_class    => name of the schema class we are building,
       column_info     => hashref of column info (data_type, is_nullable, etc),
-    }
+   }
+
+the L<table object|DBIx::Class::Schema::Loader::Table> stringifies to the
+unqualified table name.
 
 =head2 rel_name_map
 
@@ -688,8 +691,8 @@ L<column_info|DBIx::Class::ResultSource/column_info> for a column.
 
 Must be a coderef that returns a hashref with the extra attributes.
 
-Receives the L<table object|DBIx::Class::Schema::Loader::Table>, column name
-and column_info.
+Receives the L<table object|DBIx::Class::Schema::Loader::Table> (which
+stringifies to the unqualified table name), column name and column_info.
 
 For example:
 

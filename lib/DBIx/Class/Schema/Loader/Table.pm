@@ -11,7 +11,8 @@ L<DBIx::Class::Schema::Loader>
 
 =head1 DESCRIPTION
 
-Inherits from L<DBIx::Class::Schema::Loader::DBObject>.
+Inherits from L<DBIx::Class::Schema::Loader::DBObject>. Stringifies to
+C<< $table->name >>.
 
 =head1 SEE ALSO
 
