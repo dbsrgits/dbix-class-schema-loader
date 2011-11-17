@@ -19,6 +19,8 @@ my $dsn      = $ENV{DBICTEST_SYBASE_DSN} || '';
 my $user     = $ENV{DBICTEST_SYBASE_USER} || '';
 my $password = $ENV{DBICTEST_SYBASE_PASS} || '';
 
+BEGIN { $ENV{DBIC_SYBASE_FREETDS_NOWARN} = 1 }
+
 my ($schema, $databases_created); # for cleanup in END for extra tests
 
 my $tester = dbixcsl_common_tests->new(
@@ -253,7 +255,6 @@ EOF
                                 {
                                     naming => 'current',
                                     db_schema => $db_schema,
-                                    moniker_parts => [qw/database name/],
                                     dump_directory => EXTRA_DUMP_DIR,
                                     quiet => 1,
                                 },
@@ -272,7 +273,7 @@ EOF
                         } 'connected test schema';
 
                         lives_and {
-                            ok $rsrc = $test_schema->source('DbicslTest1SybaseLoaderTest4');
+                            ok $rsrc = $test_schema->source('SybaseLoaderTest4');
                         } 'got source for table in database one';
 
                         is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -285,7 +286,7 @@ EOF
                             'column in database one';
 
                         lives_and {
-                            ok $rs = $test_schema->resultset('DbicslTest1SybaseLoaderTest4');
+                            ok $rs = $test_schema->resultset('SybaseLoaderTest4');
                         } 'got resultset for table in database one';
 
                         lives_and {
@@ -319,7 +320,7 @@ EOF
                             'correct unique constraint in database one');
 
                         lives_and {
-                            ok $rsrc = $test_schema->source('DbicslTest2SybaseLoaderTest6');
+                            ok $rsrc = $test_schema->source('SybaseLoaderTest6');
                         } 'got source for table in database two';
 
                         is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -332,7 +333,7 @@ EOF
                             'column in database two introspected correctly';
 
                         lives_and {
-                            ok $rs = $test_schema->resultset('DbicslTest2SybaseLoaderTest6');
+                            ok $rs = $test_schema->resultset('SybaseLoaderTest6');
                         } 'got resultset for table in database two';
 
                         lives_and {
@@ -352,7 +353,7 @@ EOF
                             'relationship in database two';
 
                         lives_and {
-                            ok $rsrc = $test_schema->source('DbicslTest2SybaseLoaderTest7');
+                            ok $rsrc = $test_schema->source('SybaseLoaderTest7');
                         } 'got source for table in database two';
 
                         %uniqs = try { $rsrc->unique_constraints };
@@ -366,22 +367,22 @@ EOF
                             'correct unique constraint in database two');
 
                         lives_and {
-                            ok $test_schema->source('DbicslTest2SybaseLoaderTest6')
+                            ok $test_schema->source('SybaseLoaderTest6')
                                 ->has_relationship('sybase_loader_test4');
                         } 'cross-database relationship in multi database schema';
 
                         lives_and {
-                            ok $test_schema->source('DbicslTest1SybaseLoaderTest4')
+                            ok $test_schema->source('SybaseLoaderTest4')
                                 ->has_relationship('sybase_loader_test6s');
                         } 'cross-database relationship in multi database schema';
 
                         lives_and {
-                            ok $test_schema->source('DbicslTest1SybaseLoaderTest8')
+                            ok $test_schema->source('SybaseLoaderTest8')
                                 ->has_relationship('sybase_loader_test7');
                         } 'cross-database relationship in multi database schema';
 
                         lives_and {
-                            ok $test_schema->source('DbicslTest2SybaseLoaderTest7')
+                            ok $test_schema->source('SybaseLoaderTest7')
                                 ->has_relationship('sybase_loader_test8s');
                         } 'cross-database relationship in multi database schema';
                     }

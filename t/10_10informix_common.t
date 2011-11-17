@@ -205,7 +205,6 @@ EOF
                             {
                                 naming => 'current',
                                 db_schema => $db_schema,
-                                moniker_parts => [qw/database name/],
                                 dump_directory => EXTRA_DUMP_DIR,
                                 quiet => 1,
                             },
@@ -226,7 +225,7 @@ EOF
                     my ($rsrc, $rs, $row, $rel_info, %uniqs);
 
                     lives_and {
-                        ok $rsrc = $test_schema->source("${db1_moniker}InformixLoaderTest4");
+                        ok $rsrc = $test_schema->source("InformixLoaderTest4");
                     } 'got source for table in database one';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -239,7 +238,7 @@ EOF
                         'column in database one';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset("${db1_moniker}InformixLoaderTest4");
+                        ok $rs = $test_schema->resultset("InformixLoaderTest4");
                     } 'got resultset for table in database one';
 
                     lives_and {
@@ -273,7 +272,7 @@ EOF
                         'correct unique constraint in database one');
 
                     lives_and {
-                        ok $rsrc = $test_schema->source("${db2_moniker}InformixLoaderTest6");
+                        ok $rsrc = $test_schema->source("InformixLoaderTest6");
                     } 'got source for table in database two';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -286,7 +285,7 @@ EOF
                         'column in database two introspected correctly';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset("${db2_moniker}InformixLoaderTest6");
+                        ok $rs = $test_schema->resultset("InformixLoaderTest6");
                     } 'got resultset for table in database two';
 
                     lives_and {
@@ -306,7 +305,7 @@ EOF
                         'relationship in database two';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source("${db2_moniker}InformixLoaderTest7");
+                        ok $rsrc = $test_schema->source("InformixLoaderTest7");
                     } 'got source for table in database two';
 
                     %uniqs = try { $rsrc->unique_constraints };

@@ -275,7 +275,6 @@ my $tester = dbixcsl_common_tests->new(
                         {
                             naming => 'current',
                             db_schema => $db_schema,
-                            moniker_parts => [qw/schema name/],
                             preserve_case => 1,
                             dump_directory => EXTRA_DUMP_DIR,
                             quiet => 1,
@@ -299,7 +298,7 @@ my $tester = dbixcsl_common_tests->new(
                 } 'connected test schema';
 
                 lives_and {
-                    ok $rsrc = $test_schema->source('DbicslDashTestPgLoaderTest4');
+                    ok $rsrc = $test_schema->source('PgLoaderTest4');
                 } 'got source for table in schema name with dash';
 
                 is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -312,7 +311,7 @@ my $tester = dbixcsl_common_tests->new(
                     'column in schema name with dash';
 
                 lives_and {
-                    ok $rs = $test_schema->resultset('DbicslDashTestPgLoaderTest4');
+                    ok $rs = $test_schema->resultset('PgLoaderTest4');
                 } 'got resultset for table in schema name with dash';
 
                 lives_and {
@@ -346,7 +345,7 @@ my $tester = dbixcsl_common_tests->new(
                     'unique constraint is correct in schema name with dash');
 
                 lives_and {
-                    ok $rsrc = $test_schema->source('DbicslDotTestPgLoaderTest6');
+                    ok $rsrc = $test_schema->source('PgLoaderTest6');
                 } 'got source for table in schema name with dot';
 
                 is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -359,7 +358,7 @@ my $tester = dbixcsl_common_tests->new(
                     'column in schema name with dot introspected correctly';
 
                 lives_and {
-                    ok $rs = $test_schema->resultset('DbicslDotTestPgLoaderTest6');
+                    ok $rs = $test_schema->resultset('PgLoaderTest6');
                 } 'got resultset for table in schema name with dot';
 
                 lives_and {
@@ -379,7 +378,7 @@ my $tester = dbixcsl_common_tests->new(
                     'relationship in schema name with dot';
 
                 lives_and {
-                    ok $rsrc = $test_schema->source('DbicslDotTestPgLoaderTest7');
+                    ok $rsrc = $test_schema->source('PgLoaderTest7');
                 } 'got source for table in schema name with dot';
 
                 %uniqs = try { $rsrc->unique_constraints };
@@ -393,22 +392,22 @@ my $tester = dbixcsl_common_tests->new(
                     'unique constraint is correct in schema name with dot');
 
                 lives_and {
-                    ok $test_schema->source('DbicslDotTestPgLoaderTest6')
+                    ok $test_schema->source('PgLoaderTest6')
                         ->has_relationship('pg_loader_test4');
                 } 'cross-schema relationship in multi-db_schema';
 
                 lives_and {
-                    ok $test_schema->source('DbicslDashTestPgLoaderTest4')
+                    ok $test_schema->source('PgLoaderTest4')
                         ->has_relationship('pg_loader_test6s');
                 } 'cross-schema relationship in multi-db_schema';
 
                 lives_and {
-                    ok $test_schema->source('DbicslDashTestPgLoaderTest8')
+                    ok $test_schema->source('PgLoaderTest8')
                         ->has_relationship('pg_loader_test7');
                 } 'cross-schema relationship in multi-db_schema';
 
                 lives_and {
-                    ok $test_schema->source('DbicslDotTestPgLoaderTest7')
+                    ok $test_schema->source('PgLoaderTest7')
                         ->has_relationship('pg_loader_test8s');
                 } 'cross-schema relationship in multi-db_schema';
             }

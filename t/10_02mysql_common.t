@@ -219,6 +219,7 @@ my $tester = dbixcsl_common_tests->new(
                     $dbh->do('CREATE DATABASE `dbicsl-test`');
                 }
                 catch {
+                    diag "CREATE DATABASE returned error: '$_'";
                     skip "no CREATE DATABASE privileges", 30 * 2;
                 };
 
@@ -319,7 +320,6 @@ EOF
                             {
                                 naming => 'current',
                                 db_schema => $db_schema,
-                                moniker_parts => ['schema', 'name'],
                                 dump_directory => EXTRA_DUMP_DIR,
                                 quiet => 1,
                             },
@@ -338,7 +338,7 @@ EOF
                     } 'connected test schema';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslDashTestMysqlLoaderTest4');
+                        ok $rsrc = $test_schema->source('MysqlLoaderTest4');
                     } 'got source for table in database name with dash';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -351,7 +351,7 @@ EOF
                         'column in database name with dash';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('DbicslDashTestMysqlLoaderTest4');
+                        ok $rs = $test_schema->resultset('MysqlLoaderTest4');
                     } 'got resultset for table in database name with dash';
 
                     lives_and {
@@ -389,7 +389,7 @@ EOF
                         'unique constraint is correct in database name with dash');
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslDotTestMysqlLoaderTest6');
+                        ok $rsrc = $test_schema->source('MysqlLoaderTest6');
                     } 'got source for table in database name with dot';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -402,7 +402,7 @@ EOF
                         'column in database name with dot introspected correctly';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('DbicslDotTestMysqlLoaderTest6');
+                        ok $rs = $test_schema->resultset('MysqlLoaderTest6');
                     } 'got resultset for table in database name with dot';
 
                     lives_and {
@@ -426,7 +426,7 @@ EOF
                     }
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslDotTestMysqlLoaderTest7');
+                        ok $rsrc = $test_schema->source('MysqlLoaderTest7');
                     } 'got source for table in database name with dot';
 
                     %uniqs = try { $rsrc->unique_constraints };
@@ -443,22 +443,22 @@ EOF
                         skip 'set the environment variable DBICTEST_MYSQL_INNODB=1 to test relationships', 4 unless $test_innodb;
 
                         lives_and {
-                            ok $test_schema->source('DbicslDotTestMysqlLoaderTest6')
+                            ok $test_schema->source('MysqlLoaderTest6')
                                 ->has_relationship('mysql_loader_test4');
                         } 'cross-database relationship in multi-db_schema';
 
                         lives_and {
-                            ok $test_schema->source('DbicslDashTestMysqlLoaderTest4')
+                            ok $test_schema->source('MysqlLoaderTest4')
                                 ->has_relationship('mysql_loader_test6s');
                         } 'cross-database relationship in multi-db_schema';
 
                         lives_and {
-                            ok $test_schema->source('DbicslDashTestMysqlLoaderTest8')
+                            ok $test_schema->source('MysqlLoaderTest8')
                                 ->has_relationship('mysql_loader_test7');
                         } 'cross-database relationship in multi-db_schema';
 
                         lives_and {
-                            ok $test_schema->source('DbicslDotTestMysqlLoaderTest7')
+                            ok $test_schema->source('MysqlLoaderTest7')
                                 ->has_relationship('mysql_loader_test8s');
                         } 'cross-database relationship in multi-db_schema';
                     }

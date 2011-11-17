@@ -230,7 +230,6 @@ EOF
                             {
                                 naming => 'current',
                                 db_schema => $db_schema,
-                                moniker_parts => [qw/schema name/],
                                 dump_directory => EXTRA_DUMP_DIR,
                                 quiet => 1,
                             },
@@ -249,7 +248,7 @@ EOF
                     } 'connected test schema';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslTest1SqlanywhereLoaderTest4');
+                        ok $rsrc = $test_schema->source('SqlanywhereLoaderTest4');
                     } 'got source for table in schema one';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -262,7 +261,7 @@ EOF
                         'column in schema one';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('DbicslTest1SqlanywhereLoaderTest4');
+                        ok $rs = $test_schema->resultset('SqlanywhereLoaderTest4');
                     } 'got resultset for table in schema one';
 
                     lives_and {
@@ -296,7 +295,7 @@ EOF
                         'correct unique constraint in schema one');
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslTest2SqlanywhereLoaderTest6');
+                        ok $rsrc = $test_schema->source('SqlanywhereLoaderTest6');
                     } 'got source for table in schema two';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -309,7 +308,7 @@ EOF
                         'column in schema two introspected correctly';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('DbicslTest2SqlanywhereLoaderTest6');
+                        ok $rs = $test_schema->resultset('SqlanywhereLoaderTest6');
                     } 'got resultset for table in schema two';
 
                     lives_and {
@@ -329,7 +328,7 @@ EOF
                         'relationship in schema two';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslTest2SqlanywhereLoaderTest7');
+                        ok $rsrc = $test_schema->source('SqlanywhereLoaderTest7');
                     } 'got source for table in schema two';
 
                     %uniqs = try { $rsrc->unique_constraints };
@@ -343,22 +342,22 @@ EOF
                         'correct unique constraint in schema two');
 
                     lives_and {
-                        ok $test_schema->source('DbicslTest2SqlanywhereLoaderTest6')
+                        ok $test_schema->source('SqlanywhereLoaderTest6')
                             ->has_relationship('sqlanywhere_loader_test4');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('DbicslTest1SqlanywhereLoaderTest4')
+                        ok $test_schema->source('SqlanywhereLoaderTest4')
                             ->has_relationship('sqlanywhere_loader_test6s');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('DbicslTest1SqlanywhereLoaderTest8')
+                        ok $test_schema->source('SqlanywhereLoaderTest8')
                             ->has_relationship('sqlanywhere_loader_test7');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('DbicslTest2SqlanywhereLoaderTest7')
+                        ok $test_schema->source('SqlanywhereLoaderTest7')
                             ->has_relationship('sqlanywhere_loader_test8s');
                     } 'cross-schema relationship in multi-db_schema';
                 }

@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - automatically prefix database/schema to clashing monikers for
+          the same table name in multischema configurations
+
 0.07012  2011-11-09 15:16:29
         - as of 0.07011 all callbacks receive a ::Loader::Table or
           interface-compatible object instead of the table name, this object

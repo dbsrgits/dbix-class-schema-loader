@@ -276,12 +276,8 @@ EOF
                 my $schema2_moniker = join '', map ucfirst lc, split_name to_identifier $schema2;
 
                 my %monikers;
-                $monikers{'1.4'} = $schema1_moniker . 'OracleLoaderTest4';
                 $monikers{'1.5'} = $schema1_moniker . 'OracleLoaderTest5';
                 $monikers{'2.5'} = $schema2_moniker . 'OracleLoaderTest5';
-                $monikers{'2.6'} = $schema2_moniker . 'OracleLoaderTest6';
-                $monikers{'2.7'} = $schema2_moniker . 'OracleLoaderTest7';
-                $monikers{'1.8'} = $schema1_moniker . 'OracleLoaderTest8';
 
                 foreach my $db_schema ([$schema1, $schema2], '%') {
                     lives_and {
@@ -297,7 +293,6 @@ EOF
                             {
                                 naming => 'current',
                                 db_schema => $db_schema,
-                                moniker_parts => [qw/schema name/],
                                 dump_directory => EXTRA_DUMP_DIR,
                                 quiet => 1,
                             },
@@ -316,7 +311,7 @@ EOF
                     } 'connected test schema';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source($monikers{'1.4'});
+                        ok $rsrc = $test_schema->source('OracleLoaderTest4');
                     } 'got source for table in schema1';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -329,7 +324,7 @@ EOF
                         'column in schema1';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset($monikers{'1.4'});
+                        ok $rs = $test_schema->resultset('OracleLoaderTest4');
                     } 'got resultset for table in schema1';
 
                     lives_and {
@@ -367,7 +362,7 @@ EOF
                         'correct unique constraint in schema1');
 
                     lives_and {
-                        ok $rsrc = $test_schema->source($monikers{'2.6'});
+                        ok $rsrc = $test_schema->source('OracleLoaderTest6');
                     } 'got source for table in schema2';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -380,7 +375,7 @@ EOF
                         'column in schema2 introspected correctly';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset($monikers{'2.6'});
+                        ok $rs = $test_schema->resultset('OracleLoaderTest6');
                     } 'got resultset for table in schema2';
 
                     lives_and {
@@ -400,7 +395,7 @@ EOF
                         'relationship in schema2';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source($monikers{'2.7'});
+                        ok $rsrc = $test_schema->source('OracleLoaderTest7');
                     } 'got source for table in schema2';
 
                     %uniqs = try { $rsrc->unique_constraints };
@@ -414,22 +409,22 @@ EOF
                         'correct unique constraint in schema2');
 
                     lives_and {
-                        ok $test_schema->source($monikers{'2.6'})
+                        ok $test_schema->source('OracleLoaderTest6')
                             ->has_relationship('oracle_loader_test4');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source($monikers{'1.4'})
+                        ok $test_schema->source('OracleLoaderTest4')
                             ->has_relationship('oracle_loader_test6s');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source($monikers{'1.8'})
+                        ok $test_schema->source('OracleLoaderTest8')
                             ->has_relationship('oracle_loader_test7');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source($monikers{'2.7'})
+                        ok $test_schema->source('OracleLoaderTest7')
                             ->has_relationship('oracle_loader_test8s');
                     } 'cross-schema relationship in multi-db_schema';
                 }

@@ -362,7 +362,6 @@ EOF
                             {
                                 naming => 'current',
                                 db_schema => $db_schema,
-                                moniker_parts => [qw/schema name/],
                                 dump_directory => EXTRA_DUMP_DIR,
                                 quiet => 1,
                             },
@@ -381,7 +380,7 @@ EOF
                     } 'connected test schema';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslDashTestMssqlLoaderTest8');
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest8');
                     } 'got source for table in schema name with dash';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -394,7 +393,7 @@ EOF
                         'column in schema name with dash';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('DbicslDashTestMssqlLoaderTest8');
+                        ok $rs = $test_schema->resultset('MssqlLoaderTest8');
                     } 'got resultset for table in schema name with dash';
 
                     lives_and {
@@ -428,7 +427,7 @@ EOF
                         'correct unique constraint in schema name with dash');
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslDotTestMssqlLoaderTest10');
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest10');
                     } 'got source for table in schema name with dot';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -441,7 +440,7 @@ EOF
                         'column in schema name with dot introspected correctly';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('DbicslDotTestMssqlLoaderTest10');
+                        ok $rs = $test_schema->resultset('MssqlLoaderTest10');
                     } 'got resultset for table in schema name with dot';
 
                     lives_and {
@@ -461,7 +460,7 @@ EOF
                         'relationship in schema name with dot';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslDotTestMssqlLoaderTest11');
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest11');
                     } 'got source for table in schema name with dot';
 
                     %uniqs = try { $rsrc->unique_constraints };
@@ -475,22 +474,22 @@ EOF
                         'correct unique constraint in schema name with dot');
 
                     lives_and {
-                        ok $test_schema->source('DbicslDotTestMssqlLoaderTest10')
+                        ok $test_schema->source('MssqlLoaderTest10')
                             ->has_relationship('mssql_loader_test8');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('DbicslDashTestMssqlLoaderTest8')
+                        ok $test_schema->source('MssqlLoaderTest8')
                             ->has_relationship('mssql_loader_test10s');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('DbicslDashTestMssqlLoaderTest12')
+                        ok $test_schema->source('MssqlLoaderTest12')
                             ->has_relationship('mssql_loader_test11');
                     } 'cross-schema relationship in multi-db_schema';
 
                     lives_and {
-                        ok $test_schema->source('DbicslDotTestMssqlLoaderTest11')
+                        ok $test_schema->source('MssqlLoaderTest11')
                             ->has_relationship('mssql_loader_test12s');
                     } 'cross-schema relationship in multi-db_schema';
                 }
@@ -510,6 +509,7 @@ EOF
                     $dbh->do('CREATE DATABASE dbicsl_test1');
                 }
                 catch {
+                    diag "no CREATE DATABASE privileges: '$_'";
                     skip "no CREATE DATABASE privileges", 26 * 2;
                 };
 
@@ -571,7 +571,6 @@ EOF
                             {
                                 naming => 'current',
                                 db_schema => $db_schema,
-                                moniker_parts => [qw/database name/],
                                 dump_directory => EXTRA_DUMP_DIR,
                                 quiet => 1,
                             },
@@ -592,7 +591,7 @@ EOF
                     my ($rsrc, $rs, $row, $rel_info, %uniqs);
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslTest1MssqlLoaderTest13');
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest13');
                     } 'got source for table in database one';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -605,7 +604,7 @@ EOF
                         'column in database one';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('DbicslTest1MssqlLoaderTest13');
+                        ok $rs = $test_schema->resultset('MssqlLoaderTest13');
                     } 'got resultset for table in database one';
 
                     lives_and {
@@ -639,7 +638,7 @@ EOF
                         'correct unique constraint in database one');
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslTest2MssqlLoaderTest15');
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest15');
                     } 'got source for table in database two';
 
                     is try { $rsrc->column_info('id')->{is_auto_increment} }, 1,
@@ -652,7 +651,7 @@ EOF
                         'column in database two introspected correctly';
 
                     lives_and {
-                        ok $rs = $test_schema->resultset('DbicslTest2MssqlLoaderTest15');
+                        ok $rs = $test_schema->resultset('MssqlLoaderTest15');
                     } 'got resultset for table in database two';
 
                     lives_and {
@@ -672,7 +671,7 @@ EOF
                         'relationship in database two';
 
                     lives_and {
-                        ok $rsrc = $test_schema->source('DbicslTest2MssqlLoaderTest16');
+                        ok $rsrc = $test_schema->source('MssqlLoaderTest16');
                     } 'got source for table in database two';
 
                     %uniqs = try { $rsrc->unique_constraints };

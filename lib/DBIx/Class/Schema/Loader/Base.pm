@@ -24,7 +24,7 @@ use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
 use Encode qw/encode decode/;
-use List::MoreUtils qw/all firstidx/;
+use List::MoreUtils qw/all any firstidx uniq/;
 use File::Temp 'tempfile';
 use namespace::clean;
 
@@ -415,8 +415,12 @@ keys and arrays of owners as values, set to the value:
 
 for all owners in all databases.
 
-You may need to control naming of monikers with L</moniker_parts> if you have
-name clashes for tables in different schemas/databases.
+Name clashes resulting from the same table name in different databases/schemas
+will be resolved automatically by prefixing the moniker with the database
+and/or schema.
+
+To prefix/suffix all monikers with the database and/or schema, see
+L</moniker_parts>.
 
 =head2 moniker_parts
 
@@ -1471,38 +1475,91 @@ sub _relbuilder {
 sub _load_tables {
     my ($self, @tables) = @_;
 
-    # Save the new tables to the tables list
+    # Save the new tables to the tables list and compute monikers
     foreach (@tables) {
-        $self->_tables->{$_->sql_name} = $_;
+        $self->_tables->{$_->sql_name}  = $_;
+        $self->monikers->{$_->sql_name} = $self->_table2moniker($_);
     }
 
-    $self->_make_src_class($_) for @tables;
-
-    # sanity-check for moniker clashes
+    # check for moniker clashes
     my $inverse_moniker_idx;
     foreach my $table (values %{ $self->_tables }) {
-      push @{ $inverse_moniker_idx->{$self->monikers->{$table->sql_name}} }, $table;
+        push @{ $inverse_moniker_idx->{$self->monikers->{$table->sql_name}} }, $table;
     }
 
     my @clashes;
     foreach my $moniker (keys %$inverse_moniker_idx) {
-      my $tables = $inverse_moniker_idx->{$moniker};
-      if (@$tables > 1) {
-        push @clashes, sprintf ("tables %s reduced to the same source moniker '%s'",
-          join (', ', map $_->sql_name, @$tables),
-          $moniker,
-        );
-      }
+        my $tables = $inverse_moniker_idx->{$moniker};
+        if (@$tables > 1) {
+            my $different_databases =
+                $tables->[0]->can('database') && (uniq map $_->database||'', @$tables) > 1;
+
+            my $different_schemas =
+                (uniq map $_->schema||'', @$tables) > 1;
+
+            if ($different_databases || $different_schemas) {
+                my ($use_schema, $use_database) = (1, 0);
+
+                if ($different_databases) {
+                    $use_database = 1;
+
+                    # If any monikers are in the same database, we have to distinguish by
+                    # both schema and database.
+                    my %db_counts;
+                    $db_counts{$_}++ for map $_->database, @$tables;
+                    $use_schema = any { $_ > 1 } values %db_counts;
+                }
+
+                delete $self->monikers->{$_->sql_name} for @$tables;
+
+                my $moniker_parts = $self->{moniker_parts};
+
+                my $have_schema   = 1 if any { $_ eq 'schema'   } @{ $self->moniker_parts };
+                my $have_database = 1 if any { $_ eq 'database' } @{ $self->moniker_parts };
+
+                unshift @$moniker_parts, 'schema'   if $use_schema   && !$have_schema;
+                unshift @$moniker_parts, 'database' if $use_database && !$have_database;
+
+                local $self->{moniker_parts} = $moniker_parts;
+
+                my %new_monikers;
+
+                $new_monikers{$_->sql_name} = $self->_table2moniker($_) for @$tables;
+
+                $self->monikers->{$_} = $new_monikers{$_} for map $_->sql_name, @$tables;
+
+                # check if there are still clashes
+                my %by_moniker;
+                
+                while (my ($t, $m) = each %new_monikers) {
+                    push @{ $by_moniker{$m} }, $t; 
+                }
+
+                foreach my $m (grep @{ $by_moniker{$_} } > 1, keys %by_moniker) {
+                    push @clashes, sprintf ("tried disambiguating by moniker_parts, but tables %s still reduced to the same source moniker '%s'",
+                        join (', ', @{ $by_moniker{$m} }),
+                        $m,
+                    );
+                }
+            }
+            else {
+                push @clashes, sprintf ("tables %s reduced to the same source moniker '%s'",
+                    join (', ', map $_->sql_name, @$tables),
+                    $moniker,
+                );
+            }
+        }
     }
 
     if (@clashes) {
-      die   'Unable to load schema - chosen moniker/class naming style results in moniker clashes. '
-          . 'In multi db_schema configurations you may need to set moniker_parts, '
-          . 'otherwise change the naming style, or supply an explicit moniker_map: '
-          . join ('; ', @clashes)
-          . "\n"
-      ;
+        die 'Unable to load schema - chosen moniker/class naming style results in moniker clashes. '
+        . 'Change the naming style, or supply an explicit moniker_map: '
+        . join ('; ', @clashes)
+        . "\n"
+        ;
     }
+
+    $self->_make_src_class($_) for @tables;
 
     $self->_setup_src_meta($_) for @tables;
 
@@ -2040,7 +2097,7 @@ sub _make_src_class {
     my $schema       = $self->schema;
     my $schema_class = $self->schema_class;
 
-    my $table_moniker = $self->_table2moniker($table);
+    my $table_moniker = $self->monikers->{$table->sql_name};
     my @result_namespace = ($schema_class);
     if ($self->use_namespaces) {
         my $result_namespace = $self->result_namespace || 'Result';
@@ -2085,7 +2142,6 @@ sub _make_src_class {
     }
 
     $self->classes->{$table->sql_name}  = $table_class;
-    $self->monikers->{$table->sql_name} = $table_moniker;
     $self->moniker_to_table->{$table_moniker} = $table;
     $self->class_to_table->{$table_class} = $table;
 
