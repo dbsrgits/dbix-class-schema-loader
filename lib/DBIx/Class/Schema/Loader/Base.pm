@@ -28,7 +28,7 @@ use List::MoreUtils qw/all any firstidx uniq/;
 use File::Temp 'tempfile';
 use namespace::clean;
 
-our $VERSION = '0.07013';
+our $VERSION = '0.07014';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
