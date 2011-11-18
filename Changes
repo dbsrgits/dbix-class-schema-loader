@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix a bug in the automatic multischema clashing moniker disambiguation
+          code that overwrote $loader->moniker_parts
+
 0.07013  2011-11-17 23:12:47
         - automatically prefix database/schema to clashing monikers for
           the same table name in multischema configurations

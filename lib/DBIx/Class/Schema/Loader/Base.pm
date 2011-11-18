@@ -1515,7 +1515,7 @@ sub _load_tables {
 
                 delete $self->monikers->{$_->sql_name} for @$tables;
 
-                my $moniker_parts = $self->{moniker_parts};
+                my $moniker_parts = [ @{ $self->moniker_parts } ];
 
                 my $have_schema   = 1 if any { $_ eq 'schema'   } @{ $self->moniker_parts };
                 my $have_database = 1 if any { $_ eq 'database' } @{ $self->moniker_parts };
