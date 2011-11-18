@@ -5,7 +5,7 @@ use warnings;
 use base qw/DBIx::Class::Schema::Loader::DBI::InterBase/;
 use mro 'c3';
 
-our $VERSION = '0.07012';
+our $VERSION = '0.07013';
 
 =head1 NAME
 
