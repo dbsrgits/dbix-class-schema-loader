@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07015  2011-12-09 10:36:17
         - generate many_to_many bridges for targets of link tables
 
 0.07014  2011-11-18 17:06:34

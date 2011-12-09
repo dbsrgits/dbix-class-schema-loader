@@ -10,7 +10,7 @@ use Try::Tiny;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07014';
+our $VERSION = '0.07015';
 
 __PACKAGE__->mk_group_accessors('simple', qw/
     __ado_connection

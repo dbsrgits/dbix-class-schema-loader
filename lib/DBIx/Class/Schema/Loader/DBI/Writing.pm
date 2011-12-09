@@ -1,7 +1,7 @@
 package DBIx::Class::Schema::Loader::DBI::Writing;
 use strict;
 
-our $VERSION = '0.07014';
+our $VERSION = '0.07015';
 
 # Empty. POD only.
 
