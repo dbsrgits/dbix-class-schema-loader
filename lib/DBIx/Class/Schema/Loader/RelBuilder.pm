@@ -8,6 +8,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
 use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file array_eq/;
 use Try::Tiny;
+use List::Util 'first';
 use List::MoreUtils qw/apply uniq any/;
 use namespace::clean;
 use Lingua::EN::Inflect::Phrase ();
@@ -282,9 +283,9 @@ sub _remote_attrs {
     # get our base set of attrs from _relationship_attrs, if present
     my $attrs = $self->_relationship_attrs('belongs_to') || {};
 
-    # If the referring column is nullable, make 'belongs_to' an
+    # If any referring column is nullable, make 'belongs_to' an
     # outer join, unless explicitly set by relationship_attrs
-    my $nullable = grep { $self->schema->source($local_moniker)->column_info($_)->{is_nullable} } @$local_cols;
+    my $nullable = first { $self->schema->source($local_moniker)->column_info($_)->{is_nullable} } @$local_cols;
     $attrs->{join_type} = 'LEFT' if $nullable && !defined $attrs->{join_type};
 
     return $attrs;
@@ -445,16 +446,140 @@ sub generate_code {
         }
     }
 
+    $self->_generate_m2ms($all_code);
+
     # disambiguate rels with the same name
     foreach my $class (keys %$all_code) {
         my $dups = $self->_duplicates($all_code->{$class});
 
-        $self->_disambiguate($all_code->{$class}, $dups) if $dups;
+        $self->_disambiguate($all_code, $class, $dups) if $dups;
     }
 
     $self->_cleanup;
 
     return $all_code;
+}
+
+# Find classes with only 2 FKs which are the PK and make many_to_many bridges for them.
+sub _generate_m2ms {
+    my ($self, $all_code) = @_;
+
+    while (my ($class, $rels) = each %$all_code) {
+        next unless (grep $_->{method} eq 'belongs_to', @$rels) == 2;
+
+        my $class1_local_moniker  = $rels->[0]{extra}{remote_moniker};
+        my $class1_remote_moniker = $rels->[1]{extra}{remote_moniker};
+
+        my $class2_local_moniker  = $rels->[1]{extra}{remote_moniker};
+        my $class2_remote_moniker = $rels->[0]{extra}{remote_moniker};
+
+        my $class1 = $rels->[0]{args}[1];
+        my $class2 = $rels->[1]{args}[1];
+
+        my $class1_to_link_table_rel = first {
+            $_->{method} eq 'has_many' && $_->{args}[1] eq $class
+        } @{ $all_code->{$class1} };
+
+        my $class1_to_link_table_rel_name = $class1_to_link_table_rel->{args}[0];
+
+        my $class2_to_link_table_rel = first {
+            $_->{method} eq 'has_many' && $_->{args}[1] eq $class
+        } @{ $all_code->{$class2} };
+
+        my $class2_to_link_table_rel_name = $class2_to_link_table_rel->{args}[0];
+
+        my $class1_link_rel = $rels->[1]{args}[0];
+        my $class2_link_rel = $rels->[0]{args}[0];
+
+        my @class1_from_cols = apply { s/^self\.//i } values %{
+            $class1_to_link_table_rel->{args}[2]
+        };
+
+        my @class1_link_cols = apply { s/^self\.//i } values %{ $rels->[1]{args}[2] };
+
+        my @class1_to_cols = apply { s/^foreign\.//i } keys %{ $rels->[1]{args}[2] };
+
+        my @class2_from_cols = apply { s/^self\.//i } values %{
+            $class2_to_link_table_rel->{args}[2]
+        };
+
+        my @class2_link_cols = apply { s/^self\.//i } values %{ $rels->[0]{args}[2] };
+
+        my @class2_to_cols = apply { s/^foreign\.//i } keys %{ $rels->[0]{args}[2] };
+
+        my @link_table_cols =
+            @{[ $self->schema->source($rels->[0]{extra}{local_moniker})->columns ]};
+
+        my @link_table_primary_cols =
+            @{[ $self->schema->source($rels->[0]{extra}{local_moniker})->primary_columns ]};
+
+        next unless @class1_link_cols + @class2_link_cols == @link_table_cols
+            && @link_table_cols == @link_table_primary_cols;
+
+        my ($class1_to_class2_relname) = $self->_rel_name_map(
+            ($self->_inflect_plural($class1_link_rel))[0],
+            'many_to_many',
+            $class1,
+            $class1_local_moniker,
+            \@class1_from_cols,
+            $class2,
+            $class1_remote_moniker,
+            \@class1_to_cols,
+        );
+
+        $class1_to_class2_relname = $self->_resolve_relname_collision(
+            $class1_local_moniker,
+            \@class1_from_cols,
+            $class1_to_class2_relname,
+        );
+
+        my ($class2_to_class1_relname) = $self->_rel_name_map(
+            ($self->_inflect_plural($class2_link_rel))[0],
+            'many_to_many',
+            $class1,
+            $class2_local_moniker,
+            \@class2_from_cols,
+            $class2,
+            $class2_remote_moniker,
+            \@class2_to_cols,
+        );
+
+        $class2_to_class1_relname = $self->_resolve_relname_collision(
+            $class2_local_moniker,
+            \@class2_from_cols,
+            $class2_to_class1_relname,
+        );
+
+        push @{$all_code->{$class1}}, {
+            method => 'many_to_many',
+            args   => [
+                $class1_to_class2_relname,
+                $class1_to_link_table_rel_name,
+                $class1_link_rel,
+            ],
+            extra  => {
+                local_class    => $class1,
+                link_class     => $class,
+                local_moniker  => $class1_local_moniker,
+                remote_moniker => $class1_remote_moniker,
+            },
+        };
+
+        push @{$all_code->{$class2}}, {
+            method => 'many_to_many',
+            args   => [
+                $class2_to_class1_relname,
+                $class2_to_link_table_rel_name,
+                $class2_link_rel,
+            ],
+            extra  => {
+                local_class    => $class2,
+                link_class     => $class,
+                local_moniker  => $class2_local_moniker,
+                remote_moniker => $class2_remote_moniker,
+            },
+        };
+    }
 }
 
 sub _duplicates {
@@ -512,7 +637,7 @@ sub _name_to_identifier {
 }
 
 sub _disambiguate {
-    my ($self, $all_rels, $dups) = @_;
+    my ($self, $all_code, $in_class, $dups) = @_;
 
     DUP: foreach my $dup (keys %$dups) {
         my @rels = @{ $dups->{$dup} };
@@ -553,7 +678,7 @@ sub _disambiguate {
         }
 
         foreach my $rel (@rels) {
-            next if $rel->{method} eq 'belongs_to';
+            next if $rel->{method} =~ /^(?:belongs_to|many_to_many)\z/;
 
             my @to_cols = apply { s/^foreign\.//i }
                 keys %{ $rel->{args}[2] };
@@ -567,7 +692,7 @@ sub _disambiguate {
 
             if ((not @adjectives)
                 && (grep { $_->{method} eq 'might_have'
-                           && $_->{args}[1] eq $to_class } @$all_rels) == 1) {
+                           && $_->{args}[1] eq $to_class } @{ $all_code->{$in_class} }) == 1) {
 
                 @adjectives = 'active';
             }
@@ -598,17 +723,22 @@ sub _disambiguate {
 
     # Check again for duplicates, since the heuristics above may not have resolved them all.
 
-    if ($dups = $self->_duplicates($all_rels)) {
+    if ($dups = $self->_duplicates($all_code->{$in_class})) {
         foreach my $dup (keys %$dups) {
             # sort by method
             my @rels = map $_->[1], sort { $a->[0] <=> $b->[0] } map [
-                ($_->{method} eq 'belongs_to' ? 3 : $_->{method} eq 'has_many' ? 2 : 1), $_
+                {
+                    belongs_to   => 3,
+                    has_many     => 2,
+                    might_have   => 1,
+                    many_to_many => 0,
+                }->{$_->{method}}, $_
             ], @{ $dups->{$dup} };
 
             my $rel_num = 2;
 
             foreach my $rel (@rels[1 .. $#rels]) {
-                my $inflect_type = $rel->{method} eq 'has_many' ?
+                my $inflect_type = $rel->{method} =~ /^(?:many_to_many|has_many)\z/ ?
                     'inflect_plural'
                     :
                     'inflect_singular';
@@ -623,13 +753,25 @@ sub _disambiguate {
                     = @{ $rel->{extra} }
                         {qw/local_class local_moniker remote_moniker/};
 
-                my @from_cols = apply { s/^self\.//i }
-                    values %{ $rel->{args}[2] };
+                my (@from_cols, @to_cols, $to_class);
 
-                my @to_cols = apply { s/^foreign\.//i }
-                    keys %{ $rel->{args}[2] };
-
-                my $to_class = $rel->{args}[1];
+                if ($rel->{method} eq 'many_to_many') {
+                    @from_cols = apply { s/^self\.//i } values %{
+                        (first { $_->{args}[0] eq $rel->{args}[1] } @{ $all_code->{$local_class} })
+                            ->{args}[2]
+                    };
+                    @to_cols   = apply { s/^foreign\.//i } keys %{
+                        (first { $_->{args}[0] eq $rel->{args}[2] }
+                            @{ $all_code->{ $rel->{extra}{link_class} } })
+                                ->{args}[2]
+                    };
+                    $to_class  = $self->schema->source($remote_moniker)->result_class;
+                }
+                else {
+                    @from_cols = apply { s/^self\.//i }    values %{ $rel->{args}[2] };
+                    @to_cols   = apply { s/^foreign\.//i } keys   %{ $rel->{args}[2] };
+                    $to_class  = $rel->{args}[1];
+                }
 
                 my ($relname_new, $inflect_mapped) =
                     $self->$inflect_method($relname_new_uninflected);
@@ -643,8 +785,8 @@ sub _disambiguate {
                 warn <<"EOF" unless $mapped;
 Could not find a proper name for relationship '$relname_new' in source
 '$local_moniker' for columns '@{[ join ',', @from_cols ]}'. Supply a value in
-'$inflect_type' or 'rel_name_map' for '$relname_new_uninflected' to name this
-relationship.
+'$inflect_type' for '$relname_new_uninflected' or 'rel_name_map' for
+'$relname_new' to name this relationship.
 EOF
 
                 $relname_new = $self->_resolve_relname_collision($local_moniker, \@from_cols, $relname_new);
@@ -675,7 +817,7 @@ sub _relnames_and_method {
 
     # If the local columns have a UNIQUE constraint, this is a one-to-one rel
     if (array_eq([ $local_source->primary_columns ], $local_cols) ||
-            grep { array_eq($_->[1], $local_cols) } @$uniqs) {
+            first { array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method   = 'might_have';
         ($local_relname) = $self->_inflect_singular($local_relname_uninflected);
     }

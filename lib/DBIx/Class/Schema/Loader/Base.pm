@@ -239,16 +239,13 @@ In general, there is very little difference between v5 and v6 schemas.
 =item v7
 
 This mode is identical to C<v6> mode, except that monikerization of CamelCase
-table names is also done correctly.
+table names is also done better (but best in v8.)
 
-CamelCase column names in case-preserving mode will also be handled correctly
-for relationship name inflection. See L</preserve_case>.
+CamelCase column names in case-preserving mode will also be handled better
+for relationship name inflection (but best in v8.) See L</preserve_case>.
 
 In this mode, CamelCase L</column_accessors> are normalized based on case
 transition instead of just being lowercased, so C<FooId> becomes C<foo_id>.
-
-If you don't have any CamelCase table or column names, you can upgrade without
-breaking any of your code.
 
 =item v8
 
@@ -2552,9 +2549,16 @@ sub _load_relationships {
 
     foreach my $src_class (sort keys %$rel_stmts) {
         # sort by rel name
-        my @src_stmts = map $_->[1],
-            sort { $a->[0] cmp $b->[0] }
-            map [ $_->{args}[0], $_ ], @{ $rel_stmts->{$src_class} };
+        my @src_stmts = map $_->[2],
+            sort {
+                $a->[0] <=> $b->[0]
+                ||
+                $a->[1] cmp $b->[1]
+            } map [
+                ($_->{method} eq 'many_to_many' ? 1 : 0),
+                $_->{args}[0],
+                $_,
+            ], @{ $rel_stmts->{$src_class} };
 
         foreach my $stmt (@src_stmts) {
             $self->_dbic_stmt($src_class,$stmt->{method}, @{$stmt->{args}});
@@ -2683,12 +2687,20 @@ sub _make_pod {
             }
         }
         $self->_pod_cut( $class );
-    } elsif ( $method =~ /^(belongs_to|has_many|might_have)$/ ) {
+    } elsif ( $method =~ /^(?:belongs_to|has_many|might_have)\z/ ) {
         $self->_pod( $class, "=head1 RELATIONS" ) unless $self->{_relations_started} { $class } ;
         my ( $accessor, $rel_class ) = @_;
         $self->_pod( $class, "=head2 $accessor" );
         $self->_pod( $class, 'Type: ' . $method );
         $self->_pod( $class, "Related object: L<$rel_class>" );
+        $self->_pod_cut( $class );
+        $self->{_relations_started} { $class } = 1;
+    } elsif ( $method eq 'many_to_many' ) {
+        $self->_pod( $class, "=head1 RELATIONS" ) unless $self->{_relations_started} { $class } ;
+        my ( $accessor, $rel1, $rel2 ) = @_;
+        $self->_pod( $class, "=head2 $accessor" );
+        $self->_pod( $class, 'Type: many_to_many' );
+        $self->_pod( $class, "Composing rels: L</$rel1> -> $rel2" );
         $self->_pod_cut( $class );
         $self->{_relations_started} { $class } = 1;
     }

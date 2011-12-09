@@ -119,7 +119,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (214 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (220 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -234,7 +234,7 @@ sub setup_schema {
         additional_classes      => 'TestAdditional',
         additional_base_classes => 'TestAdditionalBase',
         left_base_classes       => [ qw/TestLeftBase/ ],
-        components              => [ qw/TestComponent +TestComponentFQN/ ],
+        components              => [ qw/TestComponent +TestComponentFQN IntrospectableM2M/ ],
         inflect_plural          => { loader_test4_fkid => 'loader_test4zes' },
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
@@ -620,7 +620,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         'is_nullable=1 detection';
 
     SKIP: {
-        skip $self->{skip_rels}, 131 if $self->{skip_rels};
+        skip $self->{skip_rels}, 137 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
@@ -903,6 +903,19 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
         # XXX test double-fk m:m 21 <- 22 -> 21
         ok($class22->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
         ok($class22->column_info('child')->{is_foreign_key}, 'Foreign key detected');
+
+        # test many_to_many detection 18 -> 20 -> 19 and 19 -> 20 -> 18
+        my $m2m;
+
+        ok($m2m = (try { $class18->_m2m_metadata->{children} }), 'many_to_many created');
+
+        is $m2m->{relation}, 'loader_test20s', 'm2m near rel';
+        is $m2m->{foreign_relation}, 'child', 'm2m far rel';
+
+        ok($m2m = (try { $class19->_m2m_metadata->{parents} }), 'many_to_many created');
+
+        is $m2m->{relation}, 'loader_test20s', 'm2m near rel';
+        is $m2m->{foreign_relation}, 'parent', 'm2m far rel';
 
         # test double multi-col fk 26 -> 25
         my $obj26 = try { $rsobj26->find(33) } || $rsobj26->search({ id => 33 })->first;

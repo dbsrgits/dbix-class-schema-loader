@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - generate many_to_many bridges for targets of link tables
+
 0.07014  2011-11-18 17:06:34
         - fix a bug in the automatic multischema clashing moniker disambiguation
           code that overwrote $loader->moniker_parts

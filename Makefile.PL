@@ -33,6 +33,7 @@ test_requires 'File::Copy';
 test_requires 'File::Temp'    => '0.16';
 test_requires 'File::Path'    => '2.07';
 test_requires 'IPC::Open3'    => 0;
+test_requires 'DBIx::Class::IntrospectableM2M' => 0;
 
 requires 'File::Spec'                  => 0;
 requires 'Scalar::Util'                => 0;
