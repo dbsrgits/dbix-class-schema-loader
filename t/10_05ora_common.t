@@ -81,6 +81,12 @@ my $tester = dbixcsl_common_tests->new(
         'int'          => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
         'smallint'     => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
 
+        # very long DEFAULT throws an ORA-24345
+        "number(15) DEFAULT to_number(decode(substrb(userenv('CLIENT_INFO'),1,1),' ',null,substrb(userenv('CLIENT_INFO'),1,10)))" => {
+            data_type => 'numeric', size => [15,0], original => { data_type => 'number' },
+            default_value => \"to_number(decode(substrb(userenv('CLIENT_INFO'),1,1),' ',null,substrb(userenv('CLIENT_INFO'),1,10)))"
+        },
+
         'decimal'      => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
         'dec'          => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },
         'numeric'      => { data_type => 'integer', original => { data_type => 'number', size => [38,0] } },

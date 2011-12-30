@@ -256,10 +256,12 @@ sub _table_columns {
 
     my $sth = $self->_sth_for($table, undef, \'1 = 0');
     $sth->execute;
-    my $retval = $self->preserve_case ? \@{$sth->{NAME}} : \@{$sth->{NAME_lc}};
+
+    my $retval = [ map $self->_lc($_), @{$sth->{NAME}} ];
+
     $sth->finish;
 
-    $retval;
+    return $retval;
 }
 
 # Returns arrayref of pk col names
@@ -364,9 +366,10 @@ EOF
 
     # Failback: try the REMARKS column on column_info
     if (!$comment && $dbh->can('column_info')) {
-        my $sth = $self->_dbh_column_info( $dbh, undef, $table->schema, $table->name, $column_name );
-        my $info = $sth->fetchrow_hashref();
-        $comment = $info->{REMARKS};
+        if (my $sth = try { $self->_dbh_column_info( $dbh, undef, $table->schema, $table->name, $column_name ) }) {
+            my $info = $sth->fetchrow_hashref();
+            $comment = $info->{REMARKS};
+        }
     }
 
     return $comment;
@@ -443,9 +446,10 @@ sub _columns_info_for {
 
     my %result;
 
-    if ($dbh->can('column_info')) {
-        my $sth = $self->_dbh_column_info($dbh, undef, $table->schema, $table->name, '%' );
-        while ( my $info = $sth->fetchrow_hashref() ){
+    if (my $sth = try { $self->_dbh_column_info($dbh, undef, $table->schema, $table->name, '%' ) }) {
+        COL_INFO: while (my $info = try { $sth->fetchrow_hashref } catch { +{} }) {
+            next COL_INFO unless %$info;
+
             my $column_info = {};
             $column_info->{data_type}     = lc $info->{TYPE_NAME};
 
@@ -473,8 +477,6 @@ sub _columns_info_for {
             $result{$col_name} = $column_info;
         }
         $sth->finish;
-
-        return \%result if %result;
     }
 
     my $sth = $self->_sth_for($table, undef, \'1 = 0');
@@ -482,7 +484,9 @@ sub _columns_info_for {
 
     my @columns = @{ $sth->{NAME} };
 
-    for my $i (0 .. $#columns) {
+    COL: for my $i (0 .. $#columns) {
+        next COL if %{ $result{ $self->_lc($columns[$i]) }||{} };
+
         my $column_info = {};
         $column_info->{data_type} = lc $sth->{TYPE}[$i];
 

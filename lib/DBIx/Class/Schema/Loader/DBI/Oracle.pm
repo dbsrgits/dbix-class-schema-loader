@@ -7,6 +7,8 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI
 /;
 use mro 'c3';
+use Try::Tiny;
+use namespace::clean;
 
 our $VERSION = '0.07017';
 
@@ -79,14 +81,6 @@ sub _filter_tables {
     return $self->next::method(@_);
 }
 
-sub _table_columns {
-    my ($self, $table) = @_;
-
-    my $sth = $self->dbh->column_info(undef, $table->schema, $table, '%');
-
-    return [ map $self->_lc($_->{COLUMN_NAME}), @{ $sth->fetchall_arrayref({ COLUMN_NAME => 1 }) || [] } ];
-}
-
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
@@ -156,7 +150,7 @@ sub _columns_info_for {
 
     my $result = $self->next::method(@_);
 
-    local $self->dbh->{LongReadLen} = 100000;
+    local $self->dbh->{LongReadLen} = 1_000_000;
     local $self->dbh->{LongTruncOk} = 1;
 
     my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
@@ -186,18 +180,46 @@ EOF
     while (my ($col, $info) = each %$result) {
         no warnings 'uninitialized';
 
+        my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
+SELECT data_type, data_length
+FROM all_tab_columns
+WHERE column_name = ? AND table_name = ? AND owner = ?
+EOF
+        $sth->execute($self->_uc($col), $table->name, $table->schema);
+        my ($data_type, $data_length) = $sth->fetchrow_array;
+        $sth->finish;
+        $data_type = lc $data_type;
+
+        if ($data_type =~ /^(?:n(?:var)?char2?|u?rowid|nclob|timestamp\(\d+\)(?: with(?: local)? time zone)?|binary_(?:float|double))\z/i) {
+            $info->{data_type} = $data_type;
+
+            if ($data_type =~ /^u?rowid\z/i) {
+                $info->{size} = $data_length;
+            }
+        }
+
         if ($info->{data_type} =~ /^(?:n?[cb]lob|long(?: raw)?|bfile|date|binary_(?:float|double)|rowid)\z/i) {
             delete $info->{size};
         }
 
         if ($info->{data_type} =~ /^n(?:var)?char2?\z/i) {
-            $info->{size} = $info->{size} / 2;
+            if (ref $info->{size}) {
+                $info->{size} = $info->{size}[0] / 8;
+            }
+            else {
+                $info->{size} = $info->{size} / 2;
+            }
         }
-        elsif (lc($info->{data_type}) eq 'number') {
+        elsif ($info->{data_type} =~ /^(?:var)?char2?\z/i) {
+            if (ref $info->{size}) {
+                $info->{size} = $info->{size}[0];
+            }
+        }
+        elsif (lc($info->{data_type}) =~ /^(?:number|decimal)\z/i) {
             $info->{original}{data_type} = 'number';
             $info->{data_type}           = 'numeric';
 
-            if (eval { $info->{size}[0] == 38 && $info->{size}[1] == 0 }) {
+            if (try { $info->{size}[0] == 38 && $info->{size}[1] == 0 }) {
                 $info->{original}{size} = $info->{size};
 
                 $info->{data_type} = 'integer';
@@ -213,6 +235,11 @@ EOF
             else {
                 $info->{size} = $precision;
             }
+        }
+        elsif ($info->{data_type} =~ /timestamp/i && ref $info->{size} && $info->{size}[0] == 0) {
+            my $size = $info->{size}[1];
+            delete $info->{size};
+            $info->{size} = $size unless $size == 6;
         }
         elsif (($precision) = $info->{data_type} =~ /^interval year\((\d+)\) to month\z/i) {
             $info->{data_type} = join ' ', $info->{data_type} =~ /[a-z]+/ig;
@@ -234,6 +261,21 @@ EOF
                 $info->{size} = [ $day_precision, $second_precision ];
             }
         }
+        elsif ($info->{data_type} =~ /^interval year to month\z/i && ref $info->{size}) {
+            my $precision = $info->{size}[0];
+
+            if ($precision == 2) {
+                delete $info->{size};
+            }
+            else {
+                $info->{size} = $precision;
+            }
+        }
+        elsif ($info->{data_type} =~ /^interval day to second\z/i && ref $info->{size}) {
+            if ($info->{size}[0] == 2 && $info->{size}[1] == 6) {
+                delete $info->{size};
+            }
+        }
         elsif (lc($info->{data_type}) eq 'float') {
             $info->{original}{data_type} = 'float';
             $info->{original}{size}      = $info->{size};
@@ -246,8 +288,28 @@ EOF
             }
             delete $info->{size};
         }
+        elsif (lc($info->{data_type}) eq 'double precision') {
+            $info->{original}{data_type} = 'float';
+
+            my $size = try { $info->{size}[0] };
+
+            $info->{original}{size} = $size;
+
+            if ($size <= 63) {
+                $info->{data_type} = 'real';
+            }
+            delete $info->{size};
+        }
         elsif (lc($info->{data_type}) eq 'urowid' && $info->{size} == 4000) {
             delete $info->{size};
+        }
+        elsif ($info->{data_type} eq '-9104') {
+            $info->{data_type} = 'rowid';
+            delete $info->{size};
+        }
+        elsif ($info->{data_type} eq '-2') {
+            $info->{data_type} = 'raw';
+            $info->{size} = try { $info->{size}[0] / 2 };
         }
         elsif (lc($info->{data_type}) eq 'date') {
             $info->{data_type}           = 'datetime';
@@ -260,9 +322,43 @@ EOF
         elsif (lc($info->{data_type}) eq 'binary_double') {
             $info->{data_type}           = 'double precision';
             $info->{original}{data_type} = 'binary_double';
-        } 
+        }
 
-        if ((eval { lc(${ $info->{default_value} }) }||'') eq 'sysdate') {
+        # DEFAULT could be missed by ::DBI because of ORA-24345
+        if (not defined $info->{default_value}) {
+            local $self->dbh->{LongReadLen} = 1_000_000;
+            local $self->dbh->{LongTruncOk} = 1;
+            my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
+SELECT data_default
+FROM all_tab_columns
+WHERE column_name = ? AND table_name = ? AND owner = ?
+EOF
+            $sth->execute($self->_uc($col), $table->name, $table->schema);
+            my ($default) = $sth->fetchrow_array;
+            $sth->finish;
+
+            # this is mostly copied from ::DBI::QuotedDefault
+            if (defined $default) {
+                s/^\s+//, s/\s+\z// for $default;
+
+                if ($default =~ /^'(.*?)'\z/) {
+                    $info->{default_value} = $1;
+                }
+                elsif ($default =~ /^(-?\d.*?)\z/) {
+                    $info->{default_value} = $1;
+                }
+                elsif ($default =~ /^NULL\z/i) {
+                    my $null = 'null';
+                    $info->{default_value} = \$null;
+                }
+                elsif ($default ne '') {
+                    my $val = $default;
+                    $info->{default_value} = \$val;
+                }
+            }
+        }
+
+        if ((try { lc(${ $info->{default_value} }) }||'') eq 'sysdate') {
             my $current_timestamp  = 'current_timestamp';
             $info->{default_value} = \$current_timestamp;
 
@@ -272,6 +368,17 @@ EOF
     }
 
     return $result;
+}
+
+sub _dbh_column_info {
+    my $self  = shift;
+    my ($dbh) = @_;
+
+    # try to avoid ORA-24345
+    local $dbh->{LongReadLen} = 1_000_000;
+    local $dbh->{LongTruncOk} = 1;
+
+    return $self->next::method(@_);
 }
 
 =head1 SEE ALSO
