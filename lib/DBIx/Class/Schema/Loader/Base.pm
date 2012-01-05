@@ -1483,19 +1483,19 @@ sub _load_tables {
 
     # check for moniker clashes
     my $inverse_moniker_idx;
-    foreach my $table (values %{ $self->_tables }) {
-        push @{ $inverse_moniker_idx->{$self->monikers->{$table->sql_name}} }, $table;
+    foreach my $imtable (values %{ $self->_tables }) {
+        push @{ $inverse_moniker_idx->{$self->monikers->{$imtable->sql_name}} }, $imtable;
     }
 
     my @clashes;
     foreach my $moniker (keys %$inverse_moniker_idx) {
-        my $tables = $inverse_moniker_idx->{$moniker};
-        if (@$tables > 1) {
+        my $imtables = $inverse_moniker_idx->{$moniker};
+        if (@$imtables > 1) {
             my $different_databases =
-                $tables->[0]->can('database') && (uniq map $_->database||'', @$tables) > 1;
+                $imtables->[0]->can('database') && (uniq map $_->database||'', @$imtables) > 1;
 
             my $different_schemas =
-                (uniq map $_->schema||'', @$tables) > 1;
+                (uniq map $_->schema||'', @$imtables) > 1;
 
             if ($different_databases || $different_schemas) {
                 my ($use_schema, $use_database) = (1, 0);
@@ -1506,11 +1506,11 @@ sub _load_tables {
                     # If any monikers are in the same database, we have to distinguish by
                     # both schema and database.
                     my %db_counts;
-                    $db_counts{$_}++ for map $_->database, @$tables;
+                    $db_counts{$_}++ for map $_->database, @$imtables;
                     $use_schema = any { $_ > 1 } values %db_counts;
                 }
 
-                delete $self->monikers->{$_->sql_name} for @$tables;
+                foreach my $tbl (@$imtables) { delete $self->monikers->{$tbl->sql_name}; }
 
                 my $moniker_parts = [ @{ $self->moniker_parts } ];
 
@@ -1524,9 +1524,8 @@ sub _load_tables {
 
                 my %new_monikers;
 
-                $new_monikers{$_->sql_name} = $self->_table2moniker($_) for @$tables;
-
-                $self->monikers->{$_} = $new_monikers{$_} for map $_->sql_name, @$tables;
+                foreach my $tbl  (@$imtables)                   { $new_monikers{$tbl->sql_name} = $self->_table2moniker($tbl); }
+                foreach my $name (map $_->sql_name, @$imtables) { $self->monikers->{$name} = $new_monikers{$name}; }
 
                 # check if there are still clashes
                 my %by_moniker;
@@ -1544,7 +1543,7 @@ sub _load_tables {
             }
             else {
                 push @clashes, sprintf ("tables %s reduced to the same source moniker '%s'",
-                    join (', ', map $_->sql_name, @$tables),
+                    join (', ', map $_->sql_name, @$imtables),
                     $moniker,
                 );
             }
@@ -1559,9 +1558,8 @@ sub _load_tables {
         ;
     }
 
-    $self->_make_src_class($_) for @tables;
-
-    $self->_setup_src_meta($_) for @tables;
+    foreach my $tbl (@tables) { $self->_make_src_class($tbl); }
+    foreach my $tbl (@tables) { $self->_setup_src_meta($tbl); }
 
     if(!$self->skip_relationships) {
         # The relationship loader needs a working schema
@@ -1574,10 +1572,8 @@ sub _load_tables {
         @INC = grep $_ ne $self->dump_directory, @INC;
     }
 
-    $self->_load_roles($_) for @tables;
-
-    $self->_load_external($_)
-        for map { $self->classes->{$_->sql_name} } @tables;
+    foreach my $tbl                                        (@tables) { $self->_load_roles($tbl); }
+    foreach my $tbl (map { $self->classes->{$_->sql_name} } @tables) { $self->_load_external($tbl); }
 
     # Reload without unloading first to preserve any symbols from external
     # packages.
