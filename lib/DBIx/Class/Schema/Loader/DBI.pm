@@ -333,6 +333,14 @@ FROM @{[ $comments_table->sql_name ]}
 WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
 EOF
 
+    # Failback: try the REMARKS column on table_info
+    my $dbh = $self->dbh;
+    if (!$comment && $dbh->can('table_info')) {
+        my $sth = $self->_dbh_table_info( $dbh, undef, $table->schema, $table->name );
+        my $info = $sth->fetchrow_hashref();
+        $comment = $info->{REMARKS};
+    }
+
     return $comment;
 }
 
@@ -348,7 +356,15 @@ FROM @{[ $comments_table->sql_name ]}
 WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
 AND column_name = @{[ $self->dbh->quote($column_name) ]}
 EOF
-        
+
+    # Failback: try the REMARKS column on column_info
+    my $dbh = $self->dbh;
+    if (!$comment && $dbh->can('column_info')) {
+        my $sth = $self->_dbh_column_info( $dbh, undef, $table->schema, $table->name, $column_name );
+        my $info = $sth->fetchrow_hashref();
+        $comment = $info->{REMARKS};
+    }
+
     return $comment;
 }
 
@@ -515,6 +531,13 @@ sub _dbh_type_info_type_name {
 
 # do not use this, override _columns_info_for instead
 sub _extra_column_info {}
+
+# override to mask warnings if needed
+sub _dbh_table_info {
+    my ($self, $dbh) = (shift, shift);
+
+    return $dbh->table_info(@_);
+}
 
 # override to mask warnings if needed (see mysql)
 sub _dbh_column_info {
