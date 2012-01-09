@@ -323,18 +323,18 @@ sub _table_uniq_info {
 
 sub _table_comment {
     my ($self, $table) = @_;
+    my $dbh = $self->dbh;
 
     my $comments_table = $table->clone;
     $comments_table->name($self->table_comments_table);
 
-    my ($comment) = try { $self->dbh->selectrow_array(<<"EOF") };
+    my ($comment) = try { $dbh->selectrow_array(<<"EOF") };
 SELECT comment_text
 FROM @{[ $comments_table->sql_name ]}
-WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
+WHERE table_name = @{[ $dbh->quote($table->name) ]}
 EOF
 
     # Failback: try the REMARKS column on table_info
-    my $dbh = $self->dbh;
     if (!$comment && $dbh->can('table_info')) {
         my $sth = $self->_dbh_table_info( $dbh, undef, $table->schema, $table->name );
         my $info = $sth->fetchrow_hashref();
@@ -346,19 +346,19 @@ EOF
 
 sub _column_comment {
     my ($self, $table, $column_number, $column_name) = @_;
+    my $dbh = $self->dbh;
 
     my $comments_table = $table->clone;
     $comments_table->name($self->column_comments_table);
 
-    my ($comment) = try { $self->dbh->selectrow_array(<<"EOF") };
+    my ($comment) = try { $dbh->selectrow_array(<<"EOF") };
 SELECT comment_text
 FROM @{[ $comments_table->sql_name ]}
-WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
-AND column_name = @{[ $self->dbh->quote($column_name) ]}
+WHERE table_name = @{[ $dbh->quote($table->name) ]}
+AND column_name = @{[ $dbh->quote($column_name) ]}
 EOF
 
     # Failback: try the REMARKS column on column_info
-    my $dbh = $self->dbh;
     if (!$comment && $dbh->can('column_info')) {
         my $sth = $self->_dbh_column_info( $dbh, undef, $table->schema, $table->name, $column_name );
         my $info = $sth->fetchrow_hashref();
