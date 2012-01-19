@@ -8,7 +8,8 @@
 /pm_to_blib
 /Makefile
 /MANIFEST
-/META.yml
+/META.*
+/MYMETA.*
 /README
 lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod
 t/var
