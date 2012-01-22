@@ -578,6 +578,8 @@ bphillips: Brian Phillips <bphillips@cpan.org>
 
 schwern: Michael G. Schwern <mschwern@cpan.org>
 
+SineSwiper: Brendan Byrd <byrd.b@insightcom.com>
+
 hobbs: Andrew Rodland <arodland@cpan.org>
 
 domm: Thomas Klausner <domm@plix.at>
