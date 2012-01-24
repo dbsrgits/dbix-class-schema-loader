@@ -364,13 +364,11 @@ sub _columns_info_for {
 
     local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
     my $sth = $self->dbh->prepare(<<"EOF");
-SELECT c.name name, bt.name base_type, ut.name user_type, cm.text deflt, c.prec prec, c.scale scale, c.length len
+SELECT c.name, bt.name base_type, ut.name user_type, c.prec prec, c.scale scale, c.length len, c.cdefault dflt_id, c.computedcol comp_id, (c.status & 0x80) is_id
 FROM [$db].dbo.syscolumns c
-JOIN [$db].dbo.sysobjects o ON c.id = o.id
-LEFT JOIN [$db].dbo.systypes bt ON c.type     = bt.type 
-LEFT JOIN [$db].dbo.systypes ut ON c.usertype = ut.usertype
-LEFT JOIN [$db].dbo.syscomments cm
-    ON cm.id = CASE WHEN c.cdefault = 0 THEN c.computedcol ELSE c.cdefault END
+LEFT JOIN [$db].dbo.sysobjects o  ON c.id       = o.id
+LEFT JOIN [$db].dbo.systypes   bt ON c.type     = bt.type
+LEFT JOIN [$db].dbo.systypes   ut ON c.usertype = ut.usertype
 WHERE o.name = @{[ $self->dbh->quote($table) ]}
     AND o.uid = $uid
     AND o.type IN ('U', 'V')
@@ -379,35 +377,45 @@ EOF
     my $info = $sth->fetchall_hashref('name');
 
     while (my ($col, $res) = each %$result) {
-        my $data_type = $res->{data_type} = $info->{$col}{user_type} || $info->{$col}{base_type};
- 
-        # check if it's an IDENTITY column
-        my $sth = $self->dbh->prepare(<<"EOF");
-SELECT name
-FROM [$db].dbo.syscolumns
-WHERE id = (
-    SELECT id
-    FROM [$db].dbo.sysobjects
-    WHERE name = @{[ $self->dbh->quote($table->name) ]}
-        AND uid = $uid
-)
-    AND (status & 0x80) = 0x80
-    AND name = @{[ $self->dbh->quote($col) ]}
-EOF
-        $sth->execute;
+        $res->{data_type} = $info->{$col}{user_type} || $info->{$col}{base_type};
 
-        if ($sth->fetchrow_array) {
+        if ($info->{$col}{is_id}) {
             $res->{is_auto_increment} = 1;
         }
         $sth->finish;
 
-        if ($data_type && $data_type =~ /^timestamp\z/i) {
-            $res->{inflate_datetime} = 0;
+        # column has default value
+        if (my $default_id = $info->{$col}{dflt_id}) {
+            my $sth = $self->dbh->prepare(<<"EOF");
+SELECT cm.id, cm.text
+FROM [$db].dbo.syscomments cm
+WHERE cm.id = $default_id
+EOF
+            $sth->execute;
+
+            if (my ($d_id, $default) = $sth->fetchrow_array) {
+                my $constant_default = ($default =~ /^DEFAULT \s+ (\S.*\S)/ix)
+                    ? $1
+                    : $default;
+
+                $constant_default = substr($constant_default, 1, length($constant_default) - 2)
+                    if (   substr($constant_default, 0, 1) =~ m{['"\[]}
+                        && substr($constant_default, -1)   =~ m{['"\]]});
+
+                $res->{default_value} = $constant_default;
+            }
         }
 
-        if (my $default = $info->{$col}{deflt}) {
-            if ($default =~ /^AS \s+ (\S+)/ix) {
-                my $function = $1;
+        # column is a computed value
+        if (my $comp_id = $info->{$col}{comp_id}) {
+            my $sth = $self->dbh->prepare(<<"EOF");
+SELECT cm.id, cm.text
+FROM [$db].dbo.syscomments cm
+WHERE cm.id = $comp_id
+EOF
+            $sth->execute;
+            if (my ($c_id, $comp) = $sth->fetchrow_array) {
+                my $function = ($comp =~ /^AS \s+ (\S+)/ix) ? $1 : $comp;
                 $res->{default_value} = \$function;
 
                 if ($function =~ /^getdate\b/) {
@@ -416,10 +424,6 @@ EOF
 
                 delete $res->{size};
                 $res->{data_type} = undef;
-            }
-            elsif ($default =~ /^DEFAULT \s+ (\S+)/ix) {
-                my ($constant_default) = $1 =~ /^['"\[\]]?(.*?)['"\[\]]?\z/;
-                $res->{default_value} = $constant_default;
             }
         }
 
@@ -430,6 +434,14 @@ EOF
             elsif ($data_type eq 'decimal') {
                 $data_type = $res->{data_type} = 'numeric';
             }
+            elsif ($data_type eq 'float') {
+                $data_type = $res->{data_type}
+                    = ($info->{$col}{len} <= 4 ? 'real' : 'double precision');
+            }
+
+            if ($data_type eq 'timestamp') {
+                $res->{inflate_datetime} = 0;
+            }
 
             if ($data_type =~ /^(?:text|unitext|image|bigint|integer|smallint|tinyint|real|double|double precision|float|date|time|datetime|smalldatetime|money|smallmoney|timestamp|bit)\z/i) {
                 delete $res->{size};
@@ -437,7 +449,11 @@ EOF
             elsif ($data_type eq 'numeric') {
                 my ($prec, $scale) = @{$info->{$col}}{qw/prec scale/};
 
-                if ($prec == 18 && $scale == 0) {
+                if (!defined $prec && !defined $scale) {
+                    $data_type = $res->{data_type} = 'integer';
+                    delete $res->{size};
+                }
+                elsif ($prec == 18 && $scale == 0) {
                     delete $res->{size};
                 }
                 else {
@@ -456,10 +472,6 @@ EOF
                     $res->{size} /= $nchar_size;
                 }
             }
-        }
-
-        if ($data_type eq 'float') {
-            $res->{data_type} = $info->{$col}{len} <= 4 ? 'real' : 'double precision';
         }
     }
 

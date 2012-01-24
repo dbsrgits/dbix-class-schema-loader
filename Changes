@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - do separate queries for default_value on Sybase ASE as some servers
+          can't join to that table (pcmantz) (RT#74170)
         - set correct size for nchar/nvarchar columns for Sybase ASE,
           depending on @@ncharsize
 

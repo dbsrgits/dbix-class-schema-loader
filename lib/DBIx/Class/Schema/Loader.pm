@@ -667,6 +667,8 @@ Matias E. Fernandez <mfernandez@pisco.ch>
 
 alnewkirk: Al Newkirk <awncorp@cpan.org>
 
+angelixd: Paul C. Mantz <pcmantz@cpan.org>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
