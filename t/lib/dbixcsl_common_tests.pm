@@ -119,7 +119,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (220 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (221 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -1215,6 +1215,25 @@ EOF
 
     # run extra tests
     $self->{extra}{run}->($conn, $monikers, $classes, $self) if $self->{extra}{run};
+
+    ## Create a SL from existing $dbh
+
+    ok eval {
+    my %opts = (
+      naming => { ALL => 'v7'},
+      use_namespaces => 1,
+      debug => $ENV{DBIC_SL_SCHEMA_FROM_DEBUG}||0);
+
+    my $guard = $schema_class->txn_scope_guard;
+
+    my $schema_from = DBIx::Class::Schema::Loader::make_schema_at(
+        "TestSchemFromAnother", \%opts, [ sub {$schema_class->storage->dbh} ]);
+
+    $guard->commit;
+
+    1 }, 'Making a schema from another schema inside a transaction worked';
+
+    diag $@ if $@;
 
     $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 
