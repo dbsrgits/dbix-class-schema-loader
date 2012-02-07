@@ -210,6 +210,11 @@ my (@statements, @statements_reltests, @statements_advanced,
     @statements_advanced_sqlite, @statements_inline_rels,
     @statements_implicit_rels);
 
+sub CONSTRAINT {
+    my $self = shift;
+return qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i;
+}
+
 sub setup_schema {
     my ($self, $connect_info, $expected_count) = @_;
 
@@ -225,8 +230,7 @@ sub setup_schema {
     }
 
     my %loader_opts = (
-        constraint              =>
-          qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i,
+        constraint              => $self->CONSTRAINT,
         result_namespace        => RESULT_NAMESPACE,
         resultset_namespace     => RESULTSET_NAMESPACE,
         schema_base_class       => 'TestSchemaBaseClass',
@@ -1216,24 +1220,40 @@ EOF
     # run extra tests
     $self->{extra}{run}->($conn, $monikers, $classes, $self) if $self->{extra}{run};
 
-    ## Create a SL from existing $dbh
+    ## Create a dump from an existing $dbh in a transaction
+
+TODO: {
+    local $TODO = 'dumping in a txn is experimental and Pg-only right now'
+        unless $self->{vendor} eq 'Pg';
 
     ok eval {
-    my %opts = (
-      naming => { ALL => 'v7'},
-      use_namespaces => 1,
-      debug => $ENV{DBIC_SL_SCHEMA_FROM_DEBUG}||0);
+        my %opts = (
+          naming         => 'current',
+          constraint     => $self->CONSTRAINT,
+          dump_directory => DUMP_DIR,
+          debug          => ($ENV{SCHEMA_LOADER_TESTS_DEBUG}||0)
+        );
 
-    my $guard = $schema_class->txn_scope_guard;
+        my $guard = $conn->txn_scope_guard;
 
-    my $schema_from = DBIx::Class::Schema::Loader::make_schema_at(
-        "TestSchemFromAnother", \%opts, [ sub {$schema_class->storage->dbh} ]);
+        my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+        local $SIG{__WARN__} = sub {
+            $warn_handler->(@_)
+                unless $_[0] =~ RESCAN_WARNINGS
+                    || $_[0] =~ /commit ineffective with AutoCommit enabled/; # FIXME
+        };
 
-    $guard->commit;
+        my $schema_from = DBIx::Class::Schema::Loader::make_schema_at(
+            "TestSchemaFromAnother", \%opts, [ sub { $conn->storage->dbh } ]
+        );
 
-    1 }, 'Making a schema from another schema inside a transaction worked';
+        $guard->commit;
 
-    diag $@ if $@;
+        1;
+    }, 'Making a schema from another schema inside a transaction worked';
+
+    diag $@ if $@ && (not $TODO);
+}
 
     $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 

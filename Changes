@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - *EXPERIMENTAL* support for dumping PostgreSQL schemas inside of a
+          transaction
+
 0.07015  2011-12-09 10:36:17
         - generate many_to_many bridges for targets of link tables
 

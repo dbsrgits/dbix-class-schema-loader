@@ -328,7 +328,9 @@ sub _table_comment {
     my $comments_table = $table->clone;
     $comments_table->name($self->table_comments_table);
 
-    my ($comment) = try { $dbh->selectrow_array(<<"EOF") };
+    my ($comment) =
+        (exists $self->_tables->{$comments_table->sql_name} || undef)
+        && try { $dbh->selectrow_array(<<"EOF") };
 SELECT comment_text
 FROM @{[ $comments_table->sql_name ]}
 WHERE table_name = @{[ $dbh->quote($table->name) ]}
@@ -351,7 +353,9 @@ sub _column_comment {
     my $comments_table = $table->clone;
     $comments_table->name($self->column_comments_table);
 
-    my ($comment) = try { $dbh->selectrow_array(<<"EOF") };
+    my ($comment) =
+        (exists $self->_tables->{$comments_table->sql_name} || undef)
+        && try { $dbh->selectrow_array(<<"EOF") };
 SELECT comment_text
 FROM @{[ $comments_table->sql_name ]}
 WHERE table_name = @{[ $dbh->quote($table->name) ]}

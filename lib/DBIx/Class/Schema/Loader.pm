@@ -560,6 +560,8 @@ gugu: Andrey Kostenko <a.kostenko@rambler-co.ru>
 
 jhannah: Jay Hannah <jay@jays.net>
 
+jnap: John Napiorkowski <jjn1056@yahoo.com>
+
 rbuels: Robert Buels <rmb32@cornell.edu>
 
 timbunce: Tim Bunce <timb@cpan.org>
