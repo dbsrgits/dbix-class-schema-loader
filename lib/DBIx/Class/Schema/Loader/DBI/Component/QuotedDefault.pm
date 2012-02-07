@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use mro 'c3';
 
-our $VERSION = '0.07015';
+our $VERSION = '0.07017';
 
 =head1 NAME
 
