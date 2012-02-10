@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix spelling mistake in Base POD (RT#74796)
+
 0.07017  2012-02-07 07:23:48
         - *EXPERIMENTAL* support for dumping PostgreSQL schemas inside of a
           transaction
