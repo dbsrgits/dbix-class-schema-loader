@@ -405,7 +405,7 @@ sub _table_fk_info {
         my $relid   = ($raw_rel->[11] || ( "__dcsld__" . $i++ ));
 
         foreach my $var ($uk_scm, $uk_tbl, $uk_col, $fk_scm, $fk_col, $relid) {
-            $var =~ s/[\Q$self->{quote_char}\E]//g;
+            $var =~ s/[\Q$self->{quote_char}\E]//g if defined $var;
         }
 
         if ($self->db_schema && $self->db_schema->[0] ne '%'
