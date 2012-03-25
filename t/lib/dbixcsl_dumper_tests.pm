@@ -47,12 +47,8 @@ sub dump_test {
     $tdata{options}{use_namespaces} ||= 0;
 
     SKIP: for my $dumper (\&_dump_directly, \&_dump_dbicdump) {
-        skip 'fucking pigs broke my Win32 perl', 1,
-            if $dumper == \&_dump_dbicdump
-                && $^O eq 'MSWin32'
-                && $ENV{FUCKING_PIGS}
-                && (  (any { ref $_ } values %{ $tdata{options} })
-                    || any { ref $_ } _get_connect_info(\%tdata));
+        skip 'skipping dbicdump tests on Win32', 1,
+            if $dumper == \&_dump_dbicdump && $^O eq 'MSWin32';
 
         _test_dumps(\%tdata, $dumper->(%tdata));
     }
@@ -96,7 +92,14 @@ sub _dump_dbicdump {
 
     while (my ($opt, $val) = each(%{ $tdata{options} })) {
         $val = dumper_squashed $val if ref $val;
-        push @cmd, '-o', "$opt=$val";
+
+        my $param = "$opt=$val";
+
+        if ($^O eq 'MSWin32') {
+            $param = q{"} . $param . q{"}; # that's not nearly enough...
+        }
+
+        push @cmd, '-o', $param;
     }
 
     my @connect_info = _get_connect_info(\%tdata);

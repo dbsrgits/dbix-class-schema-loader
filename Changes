@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - skip dbicdump tests on Win32 due to test fails (RT#75732)
         - fix undefined warnings for DBDs without schemas
         - work around ORA-24345 from $dbh->column_info
         - fix spelling mistake in Base POD (RT#74796)
