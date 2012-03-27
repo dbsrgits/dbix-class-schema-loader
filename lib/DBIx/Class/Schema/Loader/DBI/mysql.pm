@@ -11,7 +11,7 @@ use Try::Tiny;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07017';
+our $VERSION = '0.07018';
 
 =head1 NAME
 
