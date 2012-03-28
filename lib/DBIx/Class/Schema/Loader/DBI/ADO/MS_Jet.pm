@@ -191,33 +191,6 @@ sub _columns_info_for {
     return $result;
 }
 
-# Trap and ignore OLE warnings from nonexistant comments tables.
-
-sub _table_comment {
-    my $self = shift;
-
-    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-
-    local $SIG{__WARN__} = sub {
-        $warn_handler->(@_) unless $_[0] =~ /cannot find the input table/;
-    };
-
-    $self->next::method(@_);
-}
-
-sub _column_comment {
-    my $self = shift;
-
-    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-
-    local $SIG{__WARN__} = sub {
-        $warn_handler->(@_) unless $_[0] =~ /cannot find the input table/;
-    };
-
-    $self->next::method(@_);
-}
-
-
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader::DBI::ODBC::ACCESS>,

@@ -71,15 +71,22 @@ sub _columns_info_for {
     $sth->execute;
     my $cols = $sth->fetchall_hashref('name');
 
+    # copy and case according to preserve_case mode
+    # no need to check for collisions, SQLite does not allow them
+    my %cols;
+    while (my ($col, $info) = each %$cols) {
+        $cols{ $self->_lc($col) } = $info;
+    }
+
     my ($num_pk, $pk_col) = (0);
     # SQLite doesn't give us the info we need to do this nicely :(
     # If there is exactly one column marked PK, and its type is integer,
     # set it is_auto_increment. This isn't 100%, but it's better than the
     # alternatives.
     while (my ($col_name, $info) = each %$result) {
-      if ($cols->{$col_name}{pk}) {
-        $num_pk ++;
-        if (lc($cols->{$col_name}{type}) eq 'integer') {
+      if ($cols{$col_name}{pk}) {
+        $num_pk++;
+        if (lc($cols{$col_name}{type}) eq 'integer') {
           $pk_col = $col_name;
         }
       }

@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix some errors due to case issues (RT#75805)
+
 0.07018  2012-03-27 05:55:10
         - skip dbicdump tests on Win32 due to test fails (RT#75732)
         - fix undefined warnings for DBDs without schemas

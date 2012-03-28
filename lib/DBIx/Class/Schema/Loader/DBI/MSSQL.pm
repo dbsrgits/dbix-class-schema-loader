@@ -75,12 +75,22 @@ EOF
     return grep !/^(?:#|guest|INFORMATION_SCHEMA|sys)/, @$owners;
 }
 
+sub _current_db {
+    my $self = shift;
+    return ($self->dbh->selectrow_array('SELECT db_name()'))[0];
+}
+
+sub _switch_db {
+    my ($self, $db) = @_;
+    $self->dbh->do("use [$db]");
+}
+
 sub _setup {
     my $self = shift;
 
     $self->next::method(@_);
 
-    my ($current_db) = $self->dbh->selectrow_array('SELECT db_name()');
+    my $current_db = $self->_current_db;
 
     if (ref $self->db_schema eq 'HASH') {
         if (keys %{ $self->db_schema } < 2) {
@@ -168,9 +178,16 @@ EOF
             # XXX why does databasepropertyex() not work over DBD::ODBC ?
             #
             # more on collations here: http://msdn.microsoft.com/en-us/library/ms143515.aspx
-            my ($collation_name) =
-                   eval { $self->dbh->selectrow_array("SELECT collation_name FROM sys.databases WHERE name = @{[ $self->dbh->quote($db) ]}") }
-                || eval { $self->dbh->selectrow_array("SELECT CAST(databasepropertyex(@{[ $self->dbh->quote($db) ]}, 'Collation') AS VARCHAR)") };
+
+            my $current_db = $self->_current_db;
+
+            $self->_switch_db($db);
+
+            my $collation_name =
+                   (eval { $self->dbh->selectrow_array("SELECT collation_name FROM [$db].sys.databases WHERE name = @{[ $self->dbh->quote($db) ]}") })[0]
+                || (eval { $self->dbh->selectrow_array("SELECT CAST(databasepropertyex(@{[ $self->dbh->quote($db) ]}, 'Collation') AS VARCHAR)") })[0];
+
+            $self->_switch_db($current_db);
 
             if (not $collation_name) {
                 warn <<"EOF";
@@ -232,7 +249,7 @@ sub _table_pk_info {
 
     my $db = $table->database;
 
-    return $self->dbh->selectcol_arrayref(<<"EOF")
+    my $pk = $self->dbh->selectcol_arrayref(<<"EOF");
 SELECT kcu.column_name
 FROM [$db].INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
 JOIN [$db].INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
@@ -244,6 +261,10 @@ WHERE tc.table_name = @{[ $self->dbh->quote($table->name) ]}
     AND tc.constraint_type = 'PRIMARY KEY'
 ORDER BY kcu.ordinal_position
 EOF
+
+    $pk = [ map $self->_lc($_), @$pk ];
+
+    return $pk;
 }
 
 sub _table_fk_info {
@@ -279,8 +300,8 @@ EOF
     my %rels;
 
     while (my ($fk, $remote_schema, $remote_table, $col, $remote_col) = $sth->fetchrow_array) {
-        push @{ $rels{$fk}{local_columns}  }, $col;
-        push @{ $rels{$fk}{remote_columns} }, $remote_col;
+        push @{ $rels{$fk}{local_columns}  }, $self->_lc($col);
+        push @{ $rels{$fk}{remote_columns} }, $self->_lc($remote_col);
         
         $rels{$fk}{remote_table} = DBIx::Class::Schema::Loader::Table::Sybase->new(
             loader   => $self,
@@ -338,7 +359,10 @@ SELECT character_maximum_length, data_type, datetime_precision, column_default
 FROM [$db].INFORMATION_SCHEMA.COLUMNS
 WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
     AND table_schema = @{[ $self->dbh->quote($table->schema) ]}
-    AND column_name = @{[ $self->dbh->quote($col) ]}
+    AND @{[ $self->preserve_case ?
+        "column_name = @{[ $self->dbh->quote($col) ]}"
+        :
+        "lower(column_name) = @{[ $self->dbh->quote(lc $col) ]}" ]}
 EOF
 
         $info->{data_type} = $data_type;
@@ -361,7 +385,10 @@ WHERE object_id = (
             FROM [$db].sys.schemas
             WHERE name = @{[ $self->dbh->quote($table->schema) ]}
         )
-) AND name = @{[ $self->dbh->quote($col) ]}
+) AND @{[ $self->preserve_case ?
+    "name = @{[ $self->dbh->quote($col) ]}"
+    :
+    "lower(name) = @{[ $self->dbh->quote(lc $col) ]}" ]}
 EOF
         if ($is_identity) {
             $info->{is_auto_increment} = 1;

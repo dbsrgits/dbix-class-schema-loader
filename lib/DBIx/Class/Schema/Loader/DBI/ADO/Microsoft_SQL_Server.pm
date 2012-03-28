@@ -23,14 +23,14 @@ See L<DBIx::Class::Schema::Loader::Base> for usage information.
 
 =cut
 
-sub _table_comment {
-    local $^W = 0; # invalid object warnings
-    shift->next::method(@_);
-}
-
-sub _column_comment {
-    local $^W = 0; # invalid object warnings
-    shift->next::method(@_);
+# Silence ADO "Changed database context" warnings
+sub _switch_db {
+    my $self = shift;
+    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
+    local $SIG{__WARN__} = sub {
+        $warn_handler->(@_) unless $_[0] =~ /Changed database context/;
+    };
+    return $self->next::method(@_);
 }
 
 =head1 SEE ALSO

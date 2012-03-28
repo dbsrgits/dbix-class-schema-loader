@@ -240,7 +240,7 @@ EOF
 sub _idx_colnames {
     my ($self, $idx_info, $table_cols_by_colno) = @_;
 
-    return [ map $self->_lc($table_cols_by_colno->{$_}), grep $_, map $idx_info->{$_}, map "part$_", (1..16) ];
+    return [ map $table_cols_by_colno->{$_}, grep $_, map $idx_info->{$_}, map "part$_", (1..16) ];
 }
 
 sub _colnames_by_colno {
@@ -259,7 +259,7 @@ WHERE t.tabname = ?
 EOF
     $sth->execute($table);
     my $cols = $sth->fetchall_hashref('colno');
-    $cols = { map +($_, $cols->{$_}{colname}), keys %$cols };
+    $cols = { map +($_, $self->_lc($cols->{$_}{colname})), keys %$cols };
 
     return $cols;
 }

@@ -78,7 +78,7 @@ sub _table_uniq_info {
           c.relname     = ?}
     );
 
-    $uniq_sth->execute($table->schema, $table);
+    $uniq_sth->execute($table->schema, $table->name);
     while(my $row = $uniq_sth->fetchrow_arrayref) {
         my ($tableid, $indexname, $col_nums) = @$row;
         $col_nums =~ s/^\s+//;
@@ -88,7 +88,7 @@ sub _table_uniq_info {
         foreach (@col_nums) {
             $attr_sth->execute($tableid, $_);
             my $name_aref = $attr_sth->fetchrow_arrayref;
-            push(@col_names, $name_aref->[0]) if $name_aref;
+            push(@col_names, $self->_lc($name_aref->[0])) if $name_aref;
         }
 
         if(!@col_names) {
@@ -164,7 +164,7 @@ sub _columns_info_for {
             }
 
             my ($precision) = $self->schema->storage->dbh
-                ->selectrow_array(<<EOF, {}, $table, $col);
+                ->selectrow_array(<<EOF, {}, $table->name, $col);
 SELECT datetime_precision
 FROM information_schema.columns
 WHERE table_name = ? and column_name = ?
@@ -199,7 +199,7 @@ EOF
         elsif ($data_type =~ /^(?:bit(?: varying)?|varbit)\z/i) {
             $info->{data_type} = 'varbit' if $data_type =~ /var/i;
 
-            my ($precision) = $self->dbh->selectrow_array(<<EOF, {}, $table, $col);
+            my ($precision) = $self->dbh->selectrow_array(<<EOF, {}, $table->name, $col);
 SELECT character_maximum_length
 FROM information_schema.columns
 WHERE table_name = ? and column_name = ?

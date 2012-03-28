@@ -94,7 +94,7 @@ sub _columns_info_for {
             $info->{is_auto_increment} = 1;
         }
 
-        my ($user_type) = $dbh->selectrow_array(<<'EOF', {}, $table->schema, $table->name, $col);
+        my ($user_type) = $dbh->selectrow_array(<<'EOF', {}, $table->schema, $table->name, lc($col));
 SELECT ut.type_name
 FROM systabcol tc
 JOIN systab t
@@ -103,7 +103,7 @@ JOIN sysuser u
     ON t.creator = u.user_id
 JOIN sysusertype ut
     ON tc.user_type = ut.type_id
-WHERE u.user_name = ? AND t.table_name = ? AND tc.column_name = ?
+WHERE u.user_name = ? AND t.table_name = ? AND lower(tc.column_name) = ?
 EOF
         $info->{data_type} = $user_type if defined $user_type;
 
@@ -125,9 +125,9 @@ JOIN systab t
     ON t.table_id = tc.table_id
 JOIN sysuser u
     ON t.creator = u.user_id
-WHERE u.user_name = ? AND t.table_name = ? AND tc.column_name = ?
+WHERE u.user_name = ? AND t.table_name = ? AND lower(tc.column_name) = ?
 EOF
-        $sth->execute($table->schema, $table->name, $col);
+        $sth->execute($table->schema, $table->name, lc($col));
         my ($width, $scale) = $sth->fetchrow_array;
         $sth->finish;
 
