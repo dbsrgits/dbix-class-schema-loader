@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07019  2012-03-28 17:23:09
         - fix some errors due to case issues (RT#75805)
 
 0.07018  2012-03-27 05:55:10

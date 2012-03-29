@@ -10,7 +10,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07018';
+our $VERSION = '0.07019';
 
 __PACKAGE__->mk_group_accessors('simple', qw/
     _disable_pk_detection
@@ -484,7 +484,7 @@ sub _columns_info_for {
     my @columns = @{ $sth->{NAME} };
 
     COL: for my $i (0 .. $#columns) {
-        next COL if %{ $result{ $self->_lc($columns[$i]) }||{} };
+        next COL if %{ $result{ $columns[$i] }||{} };
 
         my $column_info = {};
         $column_info->{data_type} = lc $sth->{TYPE}[$i];

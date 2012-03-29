@@ -8,10 +8,11 @@ use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
 use List::MoreUtils 'any';
 use Try::Tiny;
+use Scalar::Util 'blessed';
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07018';
+our $VERSION = '0.07019';
 
 =head1 NAME
 
@@ -279,7 +280,8 @@ sub _extra_column_info {
     if ($dbi_info->{mysql_values}) {
         $extra_info{extra}{list} = $dbi_info->{mysql_values};
     }
-    if (   lc($dbi_info->{COLUMN_DEF})      eq 'current_timestamp'
+    if ((not blessed $dbi_info) # isa $sth
+        && lc($dbi_info->{COLUMN_DEF})      eq 'current_timestamp'
         && lc($dbi_info->{mysql_type_name}) eq 'timestamp') {
 
         my $current_timestamp = 'current_timestamp';
