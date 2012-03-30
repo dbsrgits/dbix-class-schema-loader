@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::Table::Sybase;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBObject::Sybase';
+use mro 'c3';
 
 =head1 NAME
 

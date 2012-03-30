@@ -2,6 +2,7 @@ package DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault;
 
 use strict;
 use warnings;
+use base 'DBIx::Class::Schema::Loader::DBI';
 use mro 'c3';
 
 our $VERSION = '0.07019';

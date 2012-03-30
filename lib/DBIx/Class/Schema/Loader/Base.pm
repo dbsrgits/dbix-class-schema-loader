@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::Base;
 use strict;
 use warnings;
 use base qw/Class::Accessor::Grouped Class::C3::Componentised/;
+use MRO::Compat;
 use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use DBIx::Class::Schema::Loader::RelBuilder ();

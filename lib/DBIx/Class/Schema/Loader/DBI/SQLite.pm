@@ -2,10 +2,7 @@ package DBIx::Class::Schema::Loader::DBI::SQLite;
 
 use strict;
 use warnings;
-use base qw/
-    DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault
-    DBIx::Class::Schema::Loader::DBI
-/;
+use base 'DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault';
 use mro 'c3';
 use DBIx::Class::Schema::Loader::Table ();
 

@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::Table;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBObject';
+use mro 'c3';
 
 =head1 NAME
 

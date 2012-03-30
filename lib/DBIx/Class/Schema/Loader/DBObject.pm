@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::DBObject;
 use strict;
 use warnings;
 use base 'Class::Accessor::Grouped';
+use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
 use namespace::clean;

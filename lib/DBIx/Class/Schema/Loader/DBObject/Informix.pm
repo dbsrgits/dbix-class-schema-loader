@@ -3,6 +3,7 @@ package DBIx::Class::Schema::Loader::DBObject::Informix;
 use strict;
 use warnings;
 use base 'DBIx::Class::Schema::Loader::DBObject';
+use mro 'c3';
 use namespace::clean;
 
 =head1 NAME

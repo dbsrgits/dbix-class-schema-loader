@@ -2,8 +2,8 @@ package DBIx::Class::Schema::Loader::DBI::InterBase;
 
 use strict;
 use warnings;
-use mro 'c3';
 use base qw/DBIx::Class::Schema::Loader::DBI/;
+use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
 use namespace::clean;
