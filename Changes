@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07020  2012-03-31 21:34:06
         - fix some mro issues under perl 5.8
 
 0.07019  2012-03-28 17:23:09
