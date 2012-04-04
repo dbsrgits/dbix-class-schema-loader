@@ -29,7 +29,7 @@ use List::MoreUtils qw/all any firstidx uniq/;
 use File::Temp 'tempfile';
 use namespace::clean;
 
-our $VERSION = '0.07020';
+our $VERSION = '0.07021';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
