@@ -8,6 +8,7 @@ use IO::Handle;
 use List::MoreUtils 'any';
 use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use DBIx::Class::Schema::Loader ();
+use Class::Unload ();
 use namespace::clean;
 
 use dbixcsl_test_dir '$tdir';
@@ -74,8 +75,7 @@ sub _dump_directly {
     };
     my $err = $@;
 
-    $schema_class->storage->disconnect if !$err && $schema_class->storage;
-    undef *{$schema_class};
+    Class::Unload->unload($schema_class);
 
     _check_error($err, $tdata{error});
 

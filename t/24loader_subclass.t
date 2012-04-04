@@ -14,6 +14,7 @@ my %invocations = (
     loader_class => sub {
         package DBICTest::Schema::1;
         use base qw/ DBIx::Class::Schema::Loader /;
+        __PACKAGE__->_loader_invoked(0);
         __PACKAGE__->naming('current');
         __PACKAGE__->loader_class(shift);
         __PACKAGE__->connect($make_dbictest_db::dsn);
@@ -21,6 +22,7 @@ my %invocations = (
     connect_info => sub {
         package DBICTeset::Schema::2;
         use base qw/ DBIx::Class::Schema::Loader /;
+        __PACKAGE__->_loader_invoked(0);
         __PACKAGE__->naming('current');
         __PACKAGE__->connect($make_dbictest_db::dsn, { loader_class => shift });
     },

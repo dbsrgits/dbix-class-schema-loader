@@ -9,6 +9,8 @@ use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
 use Sub::Name 'subname';
 use DBIx::Class::Schema::Loader::Utils 'array_eq';
+use Try::Tiny;
+use Hash::Merge 'merge';
 use namespace::clean;
 
 # Always remember to do all digits for the version even if they're 0
@@ -170,10 +172,15 @@ sub _invoke_loader {
 
     my $args = $self->_loader_args;
 
-    # set up the schema/schema_class arguments
-    $args->{schema} = $self;
+    # temporarily copy $self's storage to class
+    my $class_storage = $class->storage;
+    if (ref $self) {
+        $class->storage($self->storage);
+        $class->storage->set_schema($class);
+    }
+
+    $args->{schema} = $class;
     $args->{schema_class} = $class;
-    weaken($args->{schema}) if ref $self;
     $args->{dump_directory} ||= $self->dump_to_dir;
     $args->{naming} = $self->naming if $self->naming;
     $args->{use_namespaces} = $self->use_namespaces if defined $self->use_namespaces;
@@ -186,14 +193,76 @@ sub _invoke_loader {
     };
 
     my $impl = $loader_class || "DBIx::Class::Schema::Loader" . $self->storage_type;
-    eval { $self->ensure_class_loaded($impl) };
-    croak qq/Could not load loader_class "$impl": "$@"/ if $@;
+    try {
+        $self->ensure_class_loaded($impl)
+    }
+    catch {
+        croak qq/Could not load loader_class "$impl": "$_"/;
+    };
 
-    $self->loader($impl->new(%$args));
-    $self->loader->load;
-    $self->_loader_invoked(1);
+    $class->loader($impl->new(%$args));
+    $class->loader->load;
+    $class->_loader_invoked(1);
 
-    $self;
+    # copy to $self
+    if (ref $self) {
+        $self->loader($class->loader);
+        $self->_loader_invoked(1);
+
+        $self->_merge_state_from($class);
+    }
+
+    # restore $class's storage
+    $class->storage($class_storage);
+
+    return $self;
+}
+
+# FIXME This needs to be moved into DBIC at some point, otherwise we are
+# maintaining things to do with DBIC guts, which we have no business of
+# maintaining. But at the moment it would be just dead code in DBIC, so we'll
+# maintain it here.
+sub _merge_state_from {
+    my ($self, $from) = @_;
+
+    my $orig_class_mappings       = $self->class_mappings;
+    my $orig_source_registrations = $self->source_registrations;
+
+    $self->_copy_state_from($from);
+
+    $self->class_mappings(merge($orig_class_mappings, $self->class_mappings))
+        if $orig_class_mappings;
+
+    $self->source_registrations(merge($orig_source_registrations, $self->source_registrations))
+        if $orig_source_registrations;
+}
+
+sub _copy_state_from {
+    my $self = shift;
+    my ($from) = @_;
+
+    # older DBIC's do not have this method
+    if (try { DBIx::Class->VERSION('0.08197'); 1 }) {
+        return $self->next::method(@_);
+    }
+    else {
+        # this is a copy from DBIC git master pre 0.08197
+        $self->class_mappings({ %{$from->class_mappings} });
+        $self->source_registrations({ %{$from->source_registrations} });
+
+        foreach my $moniker ($from->sources) {
+            my $source = $from->source($moniker);
+            my $new = $source->new($source);
+            # we use extra here as we want to leave the class_mappings as they are
+            # but overwrite the source_registrations entry with the new source
+            $self->register_extra_source($moniker => $new);
+        }
+
+        if ($from->storage) {
+            $self->storage($from->storage);
+            $self->storage->set_schema($self);
+        }
+    }
 }
 
 =head2 connection
@@ -457,10 +526,16 @@ sub make_schema_at {
         @{$target . '::ISA'} = qw/DBIx::Class::Schema::Loader/;
     }
 
-    eval { $target->_loader_invoked(0) };
+    $target->_loader_invoked(0);
 
     $target->loader_options($opts);
-    $target->connection(@$connect_info);
+
+    my $temp_schema = $target->connect(@$connect_info);
+
+    $target->storage($temp_schema->storage);
+    $target->storage->set_schema($target);
+
+    return $target;
 }
 
 =head2 rescan

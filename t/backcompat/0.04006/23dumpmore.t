@@ -4,6 +4,7 @@ use lib qw(t/backcompat/0.04006/lib);
 use File::Path;
 use make_dbictest_db;
 use dbixcsl_test_dir qw/$tdir/;
+use Class::Unload ();
 
 require DBIx::Class::Schema::Loader;
 
@@ -30,8 +31,8 @@ sub do_dump_test {
         $schema_class->connect($make_dbictest_db::dsn);
     };
     my $err = $@;
-    $schema_class->storage->disconnect if !$err && $schema_class->storage;
-    undef *{$schema_class};
+
+    Class::Unload->unload($schema_class);
 
     is($err, $tdata{error});
 

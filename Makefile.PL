@@ -58,6 +58,7 @@ requires 'Exporter'                    => '5.63';
 requires 'Try::Tiny'                   => 0;
 requires 'String::ToIdentifier::EN'    => '0.05';
 requires 'String::CamelCase'           => '0.02';
+requires 'Hash::Merge'                 => 0;
 
 if ($Module::Install::AUTHOR && ! $args->{skip_author_deps}) {
     eval { require Module::Install::ReadmeFromPod }

@@ -1,5 +1,10 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - use ::Schema::connect instead of ::Schema::connection in
+          make_schema_at (RT#74175)
+        - register sources on the schema class, never the instance, regardless
+          of how the connection is made for dynamic schemas
+
 0.07020  2012-03-31 21:34:06
         - fix some mro issues under perl 5.8
 
