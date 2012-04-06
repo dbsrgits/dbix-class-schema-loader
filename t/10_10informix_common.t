@@ -144,7 +144,6 @@ my $tester = dbixcsl_common_tests->new(
                 });
 
                 my $dbh1 = $schema->storage->dbh;
-                my $dbh2 = $extra_schema->storage->dbh;
 
                 $dbh1->do(<<'EOF');
                     CREATE TABLE informix_loader_test4 (
@@ -162,6 +161,13 @@ EOF
                 $dbh1->do(<<'EOF');
 ALTER TABLE informix_loader_test5 ADD CONSTRAINT UNIQUE (four_id) CONSTRAINT loader_test5_uniq
 EOF
+
+                my $db1 = db_name($schema);
+
+                $dbh1->disconnect;
+
+                my $dbh2 = $extra_schema->storage->dbh;
+
                 $dbh2->do(<<'EOF');
                     CREATE TABLE informix_loader_test5 (
                         pk SERIAL PRIMARY KEY,
@@ -186,8 +192,9 @@ EOF
                     )
 EOF
 
-                my $db1 = db_name($schema);
                 my $db2 = db_name($extra_schema);
+
+                $dbh2->disconnect;
 
                 my $db1_moniker = join '', map ucfirst lc, split_name to_identifier $db1;
                 my $db2_moniker = join '', map ucfirst lc, split_name to_identifier $db2;
@@ -210,6 +217,8 @@ EOF
                             },
                             [ $dsn, $user, $password ],
                         );
+
+                        InformixMultiDatabase->storage->disconnect;
 
                         diag join "\n", @warns if @warns;
 
@@ -338,23 +347,37 @@ sub db_name {
     local $schema->loader->{schema} = $schema;
 
     return $schema->loader->_current_db;
+
+    $schema->storage->disconnect;
 }
 
 END {
     if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
         if (my $dbh2 = try { $extra_schema->storage->dbh }) {
-            my $dbh1 = $schema->storage->dbh;
 
             try {
                 $dbh2->do('DROP TABLE informix_loader_test7');
                 $dbh2->do('DROP TABLE informix_loader_test6');
                 $dbh2->do('DROP TABLE informix_loader_test5');
+            }
+            catch {
+                die "Error dropping test tables: $_";
+            };
+
+            $dbh2->disconnect;
+        }
+
+        if (my $dbh1 = try { $schema->storage->dbh }) {
+            
+            try {
                 $dbh1->do('DROP TABLE informix_loader_test5');
                 $dbh1->do('DROP TABLE informix_loader_test4');
             }
             catch {
                 die "Error dropping test tables: $_";
             };
+
+            $dbh1->disconnect;
         }
 
         rmtree EXTRA_DUMP_DIR;

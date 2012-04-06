@@ -1297,7 +1297,7 @@ sub test_preserve_case {
 
     my ($oqt, $cqt) = $self->get_oqt_cqt(always => 1); # open quote, close quote
 
-    my $dbh = $self->dbconnect;
+    my $dbh = $conn->storage->dbh;
 
     my ($table40_name, $table41_name) = @{ $self->{preserve_case_tests_table_names} };
 
