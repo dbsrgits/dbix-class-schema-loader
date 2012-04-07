@@ -570,11 +570,11 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
     ok(!$@, "Inserting new record using a PK::Auto key didn't die") or diag $@;
     ok($saved_id, "Got PK::Auto-generated id");
 
-    my $new_obj1 = $rsobj1->search({ dat => 'newthing' })->first;
+    my $new_obj1 = $rsobj1->search({ dat => 'newthing' })->single;
     ok($new_obj1, "Found newly inserted PK::Auto record");
     is($new_obj1->id, $saved_id, "Correct PK::Auto-generated id");
 
-    my ($obj2) = $rsobj2->search({ dat => 'bbb' })->first;
+    my ($obj2) = $rsobj2->search({ dat => 'bbb' })->single;
     is( $obj2->id, 2 );
 
     SKIP: {
@@ -748,7 +748,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         isa_ok( $rsobj36, "DBIx::Class::ResultSet" );
 
         # basic rel test
-        my $obj4 = try { $rsobj4->find(123) } || $rsobj4->search({ id => 123 })->first;
+        my $obj4 = try { $rsobj4->find(123) } || $rsobj4->search({ id => 123 })->single;
         isa_ok( try { $obj4->fkid_singular }, $class3);
 
         # test renaming rel that conflicts with a class method
@@ -762,9 +762,9 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
 
         ok($class4->column_info('fkid')->{is_foreign_key}, 'Foreign key detected');
 
-        my $obj3 = try { $rsobj3->find(1) } || $rsobj3->search({ id => 1 })->first;
+        my $obj3 = try { $rsobj3->find(1) } || $rsobj3->search({ id => 1 })->single;
         my $rs_rel4 = try { $obj3->search_related('loader_test4zes') };
-        isa_ok( try { $rs_rel4->first }, $class4);
+        isa_ok( try { $rs_rel4->single }, $class4);
 
         # check rel naming with prepositions
         ok ($rsobj4->result_source->has_relationship('loader_test5s_to'),
@@ -830,7 +830,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         }
 
         # mulit-col fk def
-        my $obj6 = try { $rsobj6->find(1) } || $rsobj6->search({ id => 1 })->first;
+        my $obj6 = try { $rsobj6->find(1) } || $rsobj6->search({ id => 1 })->single;
         isa_ok( try { $obj6->loader_test2 }, $class2);
         isa_ok( try { $obj6->loader_test5 }, $class5);
 
@@ -875,13 +875,13 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
             'ambiguous relationship named correctly');
 
         # fk that references a non-pk key (UNIQUE)
-        my $obj8 = try { $rsobj8->find(1) } || $rsobj8->search({ id => 1 })->first;
+        my $obj8 = try { $rsobj8->find(1) } || $rsobj8->search({ id => 1 })->single;
         isa_ok( try { $obj8->loader_test7 }, $class7);
 
         ok($class8->column_info('loader_test7')->{is_foreign_key}, 'Foreign key detected');
 
         # test double-fk 17 ->-> 16
-        my $obj17 = try { $rsobj17->find(33) } || $rsobj17->search({ id => 33 })->first;
+        my $obj17 = try { $rsobj17->find(33) } || $rsobj17->search({ id => 33 })->single;
 
         my $rs_rel16_one = try { $obj17->loader16_one };
         isa_ok($rs_rel16_one, $class16);
@@ -895,10 +895,10 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         ok($class17->column_info('loader16_two')->{is_foreign_key}, 'Foreign key detected');
 
-        my $obj16 = try { $rsobj16->find(2) } || $rsobj16->search({ id => 2 })->first;
+        my $obj16 = try { $rsobj16->find(2) } || $rsobj16->search({ id => 2 })->single;
         my $rs_rel17 = try { $obj16->search_related('loader_test17_loader16_ones') };
-        isa_ok(try { $rs_rel17->first }, $class17);
-        is(try { $rs_rel17->first->id }, 3, "search_related with multiple FKs from same table");
+        isa_ok(try { $rs_rel17->single }, $class17);
+        is(try { $rs_rel17->single->id }, 3, "search_related with multiple FKs from same table");
         
         # XXX test m:m 18 <- 20 -> 19
         ok($class20->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
@@ -922,7 +922,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
         is $m2m->{foreign_relation}, 'parent', 'm2m far rel';
 
         # test double multi-col fk 26 -> 25
-        my $obj26 = try { $rsobj26->find(33) } || $rsobj26->search({ id => 33 })->first;
+        my $obj26 = try { $rsobj26->find(33) } || $rsobj26->search({ id => 33 })->single;
 
         my $rs_rel25_one = try { $obj26->loader_test25_id_rel1 };
         isa_ok($rs_rel25_one, $class25);
@@ -936,13 +936,13 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
         isa_ok($rs_rel25_two, $class25);
         is(try { $rs_rel25_two->dat }, 'y25', "Multiple multi-col FKs to same table");
 
-        my $obj25 = try { $rsobj25->find(3,42) } || $rsobj25->search({ id1 => 3, id2 => 42 })->first;
+        my $obj25 = try { $rsobj25->find(3,42) } || $rsobj25->search({ id1 => 3, id2 => 42 })->single;
         my $rs_rel26 = try { $obj25->search_related('loader_test26_id_rel1s') };
-        isa_ok(try { $rs_rel26->first }, $class26);
-        is(try { $rs_rel26->first->id }, 3, "search_related with multiple multi-col FKs from same table");
+        isa_ok(try { $rs_rel26->single }, $class26);
+        is(try { $rs_rel26->single->id }, 3, "search_related with multiple multi-col FKs from same table");
 
         # test one-to-one rels
-        my $obj27 = try { $rsobj27->find(1) } || $rsobj27->search({ id => 1 })->first;
+        my $obj27 = try { $rsobj27->find(1) } || $rsobj27->search({ id => 1 })->single;
         my $obj28 = try { $obj27->loader_test28 };
         isa_ok($obj28, $class28);
         is(try { $obj28->get_column('id') }, 1, "One-to-one relationship with PRIMARY FK");
@@ -955,7 +955,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         ok($class29->column_info('fk')->{is_foreign_key}, 'Foreign key detected');
 
-        $obj27 = try { $rsobj27->find(2) } || $rsobj27->search({ id => 2 })->first;
+        $obj27 = try { $rsobj27->find(2) } || $rsobj27->search({ id => 2 })->single;
         is(try { $obj27->loader_test28 }, undef, "Undef for missing one-to-one row");
         is(try { $obj27->loader_test29 }, undef, "Undef for missing one-to-one row");
 
@@ -967,12 +967,12 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
         ok($class32->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
         
         my $obj32 = try { $rsobj32->find(1, { prefetch => [qw/rel1 rel2/] }) }
-            || try { $rsobj32->search({ id => 1 }, { prefetch => [qw/rel1 rel2/] })->first }
-            || $rsobj32->search({ id => 1 })->first;
+            || try { $rsobj32->search({ id => 1 }, { prefetch => [qw/rel1 rel2/] })->single }
+            || $rsobj32->search({ id => 1 })->single;
 
         my $obj34 = eval { $rsobj34->find(1, { prefetch => [qw/loader_test33_id_rel1 loader_test33_id_rel2/] }) }
-            || eval { $rsobj34->search({ id => 1 }, { prefetch => [qw/loader_test33_id_rel1 loader_test33_id_rel2/] })->first }
-            || $rsobj34->search({ id => 1 })->first;
+            || eval { $rsobj34->search({ id => 1 }, { prefetch => [qw/loader_test33_id_rel1 loader_test33_id_rel2/] })->single }
+            || $rsobj34->search({ id => 1 })->single;
         diag $@ if $@;
 
         isa_ok($obj32,$class32);
@@ -1030,7 +1030,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
             my $results = $rsobj10->search({ subject => 'xyzzy' });
             is( $results->count(), 1, 'No duplicate row created' );
 
-            my $obj10_3 = $results->first();
+            my $obj10_3 = $results->single();
             isa_ok( $obj10_3, $class10 );
             is( $obj10_3->loader_test11()->id(), $obj11->id(),
                 'Circular rel leads back to same row' );
@@ -1055,12 +1055,12 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
             ok($class13->column_info('loader_test12')->{is_foreign_key}, 'Foreign key detected');
             ok($class13->column_info('dat')->{is_foreign_key}, 'Foreign key detected');
 
-            my $obj13 = try { $rsobj13->find(1) } || $rsobj13->search({ id => 1 })->first;
+            my $obj13 = try { $rsobj13->find(1) } || $rsobj13->search({ id => 1 })->single;
             isa_ok( $obj13->id, $class12 );
             isa_ok( $obj13->loader_test12, $class12);
             isa_ok( $obj13->dat, $class12);
 
-            my $obj12 = try { $rsobj12->find(1) } || $rsobj12->search({ id => 1 })->first;
+            my $obj12 = try { $rsobj12->find(1) } || $rsobj12->search({ id => 1 })->single;
             isa_ok( try { $obj12->loader_test13 }, $class13 );
         }
 
@@ -1109,7 +1109,7 @@ EOF
 
             ok($class15->column_info('loader_test14')->{is_foreign_key}, 'Foreign key detected');
 
-            my $obj15 = try { $rsobj15->find(1) } || $rsobj15->search({ id => 1 })->first;
+            my $obj15 = try { $rsobj15->find(1) } || $rsobj15->search({ id => 1 })->single;
             isa_ok( $obj15->loader_test14, $class14 );
         }
     }
@@ -1194,7 +1194,7 @@ EOF
         SKIP: {
             skip 'no rels', 2 if $self->{skip_rels};
 
-            my $obj30 = try { $rsobj30->find(123) } || $rsobj30->search({ id => 123 })->first;
+            my $obj30 = try { $rsobj30->find(123) } || $rsobj30->search({ id => 123 })->single;
             isa_ok( $obj30->loader_test2, $class2);
 
             ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key},
