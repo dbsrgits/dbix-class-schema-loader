@@ -261,6 +261,8 @@ EOF
                                 [ $dsn, $user, $password ],
                             );
 
+                            SybaseMultiSchema->storage->disconnect;
+
                             diag join "\n", @warns if @warns;
 
                             is @warns, 0;

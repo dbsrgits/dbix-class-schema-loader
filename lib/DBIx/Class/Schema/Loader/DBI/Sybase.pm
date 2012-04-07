@@ -399,6 +399,7 @@ EOF
         if ($sth->fetchrow_array) {
             $res->{is_auto_increment} = 1;
         }
+        $sth->finish;
 
         if ($data_type && $data_type =~ /^timestamp\z/i) {
             $res->{inflate_datetime} = 0;
@@ -448,6 +449,11 @@ EOF
 
                 if ($data_type =~ /^(?:unichar|univarchar)\z/i) {
                     $res->{size} /= 2;
+                }
+                elsif ($data_type =~ /^n(?:var)?char\z/i) {
+                    my ($nchar_size) = $self->dbh->selectrow_array('SELECT @@ncharsize');
+
+                    $res->{size} /= $nchar_size;
                 }
             }
         }

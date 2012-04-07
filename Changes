@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - set correct size for nchar/nvarchar columns for Sybase ASE,
+          depending on @@ncharsize
+
 0.07021  2012-04-04 23:47:34
         - use ::Schema::connect instead of ::Schema::connection in
           make_schema_at (RT#74175)
