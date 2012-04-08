@@ -12,7 +12,7 @@ use Scalar::Util 'blessed';
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07021';
+our $VERSION = '0.07022';
 
 =head1 NAME
 
