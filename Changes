@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - bump Class::Inspector dep to 1.27 due to test failures with earlier
+          versions on perl >= 5.15.7 (RT#74236)
+
 0.07022  2012-04-08 12:11:00
         - do separate queries for default_value on Sybase ASE as some servers
           can't join to that table (pcmantz) (RT#74170)
