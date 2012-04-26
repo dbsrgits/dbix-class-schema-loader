@@ -169,7 +169,7 @@ EOF
         }
     }
 
-    if (not defined $self->preserve_case) {
+    if (not $self->preserve_case) {
         foreach my $db (keys %{ $self->db_schema }) {
             # We use the sys.databases query for the general case, and fallback to
             # databasepropertyex() if for some reason sys.databases is not available,
@@ -281,7 +281,7 @@ JOIN [$db].INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
 JOIN [$db].INFORMATION_SCHEMA.KEY_COLUMN_USAGE fk_kcu
     ON fk_kcu.constraint_name = fk_tc.constraint_name
         AND fk_kcu.table_name = fk_tc.table_name
-        AND fk_kcu.table_schema = fk_tc.table_schema 
+        AND fk_kcu.table_schema = fk_tc.table_schema
 JOIN [$db].INFORMATION_SCHEMA.TABLE_CONSTRAINTS uk_tc
     ON uk_tc.constraint_name = rc.unique_constraint_name
         AND uk_tc.table_schema = rc.unique_constraint_schema
@@ -302,7 +302,7 @@ EOF
     while (my ($fk, $remote_schema, $remote_table, $col, $remote_col) = $sth->fetchrow_array) {
         push @{ $rels{$fk}{local_columns}  }, $self->_lc($col);
         push @{ $rels{$fk}{remote_columns} }, $self->_lc($remote_col);
-        
+
         $rels{$fk}{remote_table} = DBIx::Class::Schema::Loader::Table::Sybase->new(
             loader   => $self,
             name     => $remote_table,

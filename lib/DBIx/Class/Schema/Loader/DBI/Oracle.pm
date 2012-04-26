@@ -11,7 +11,7 @@ our $VERSION = '0.07022';
 
 =head1 NAME
 
-DBIx::Class::Schema::Loader::DBI::Oracle - DBIx::Class::Schema::Loader::DBI 
+DBIx::Class::Schema::Loader::DBI::Oracle - DBIx::Class::Schema::Loader::DBI
 Oracle Implementation.
 
 =head1 DESCRIPTION
@@ -34,7 +34,7 @@ sub _setup {
         $self->dbh->do('ALTER SESSION SET current_schema=' . $self->db_schema->[0]);
     }
 
-    if (not defined $self->preserve_case) {
+    if (not $self->preserve_case) {
         $self->preserve_case(0);
     }
     elsif ($self->preserve_case) {
@@ -100,7 +100,7 @@ EOF
         my $constr_col  = $self->_lc($constr->[1]);
         push @{$constr_names{$constr_name}}, $constr_col;
     }
-    
+
     my @uniqs = map { [ $_ => $constr_names{$_} ] } keys %constr_names;
     return \@uniqs;
 }
@@ -115,7 +115,7 @@ sub _table_comment {
 
     ($table_comment) = $self->dbh->selectrow_array(<<'EOF', {}, $table->schema, $table->name);
 SELECT comments FROM all_tab_comments
-WHERE owner = ? 
+WHERE owner = ?
   AND table_name = ?
   AND (table_type = 'TABLE' OR table_type = 'VIEW')
 EOF
@@ -133,7 +133,7 @@ sub _column_comment {
 
     ($column_comment) = $self->dbh->selectrow_array(<<'EOF', {}, $table->schema, $table->name, $self->_uc($column_name));
 SELECT comments FROM all_col_comments
-WHERE owner = ? 
+WHERE owner = ?
   AND table_name = ?
   AND column_name = ?
 EOF
@@ -315,7 +315,7 @@ EOF
         elsif (lc($info->{data_type}) eq 'binary_float') {
             $info->{data_type}           = 'real';
             $info->{original}{data_type} = 'binary_float';
-        } 
+        }
         elsif (lc($info->{data_type}) eq 'binary_double') {
             $info->{data_type}           = 'double precision';
             $info->{original}{data_type} = 'binary_double';

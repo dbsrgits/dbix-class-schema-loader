@@ -65,7 +65,7 @@ sub _setup {
 
     $self->next::method(@_);
 
-    if (not defined $self->preserve_case) {
+    if (not $self->preserve_case) {
         $self->preserve_case(0);
     }
     elsif ($self->preserve_case) {
@@ -464,7 +464,7 @@ EOF
 #        if (lc($data_type) eq 'varchar') {
 #            $result->{$col}{size}[1] = $info->{colmin};
 #        }
-       
+
         my ($default_type, $default) = @{$info}{qw/deflt_type deflt/};
 
         next unless $default_type;

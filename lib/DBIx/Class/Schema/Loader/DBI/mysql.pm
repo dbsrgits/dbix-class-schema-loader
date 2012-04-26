@@ -32,7 +32,7 @@ sub _setup {
 
     $self->next::method(@_);
 
-    if (not defined $self->preserve_case) {
+    if (not $self->preserve_case) {
         $self->preserve_case(0);
     }
 
@@ -65,7 +65,7 @@ sub _system_schemas {
     return ($self->next::method(@_), 'mysql');
 }
 
-sub _tables_list { 
+sub _tables_list {
     my ($self, $opts) = @_;
 
     return $self->next::method($opts, undef, undef);

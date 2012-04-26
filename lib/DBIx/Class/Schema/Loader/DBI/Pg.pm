@@ -25,7 +25,7 @@ sub _setup {
 
     $self->{db_schema} ||= ['public'];
 
-    if (not defined $self->preserve_case) {
+    if (not $self->preserve_case) {
         $self->preserve_case(0);
     }
     elsif ($self->preserve_case) {
@@ -108,8 +108,8 @@ sub _table_comment {
     return $table_comment if $table_comment;
 
     ($table_comment) = $self->dbh->selectrow_array(<<'EOF', {}, $table->name, $table->schema);
-SELECT obj_description(oid) 
-FROM pg_class 
+SELECT obj_description(oid)
+FROM pg_class
 WHERE relname=? AND relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=?)
 EOF
 
@@ -127,7 +127,7 @@ sub _column_comment {
 
     my ($table_oid) = $self->dbh->selectrow_array(<<'EOF', {}, $table->name, $table->schema);
 SELECT oid
-FROM pg_class 
+FROM pg_class
 WHERE relname=? AND relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=?)
 EOF
 
@@ -248,7 +248,7 @@ EOF
                 $info->{extra}{custom_type_name} = $info->{data_type};
 
                 $info->{data_type} = 'enum';
-                
+
                 delete $info->{size};
             }
         }

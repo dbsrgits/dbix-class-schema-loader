@@ -31,7 +31,7 @@ sub _setup {
     $self->next::method(@_);
 
     $self->preserve_case(1)
-        unless defined $self->preserve_case;
+        unless $self->preserve_case;
 
     $self->schema->storage->sql_maker->quote_char('"');
     $self->schema->storage->sql_maker->name_sep('.');
@@ -180,9 +180,9 @@ JOIN systab    fkt
     ON fk.foreign_table_id = fkt.table_id
 JOIN sysuser   fku
     ON fkt.creator = fku.user_id
-JOIN sysidx    pki 
+JOIN sysidx    pki
     ON fk.primary_table_id = pki.table_id  AND fk.primary_index_id    = pki.index_id
-JOIN sysidx    fki 
+JOIN sysidx    fki
     ON fk.foreign_table_id = fki.table_id  AND fk.foreign_index_id    = fki.index_id
 JOIN sysidxcol fkic
     ON fkt.table_id        = fkic.table_id AND fki.index_id           = fkic.index_id

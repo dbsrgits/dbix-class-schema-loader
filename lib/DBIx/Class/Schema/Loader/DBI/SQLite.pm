@@ -33,10 +33,10 @@ sub _setup {
 
     $self->next::method(@_);
 
-    if (not defined $self->preserve_case) {
+    if (not $self->preserve_case) {
         $self->preserve_case(0);
     }
-    
+
     if ($self->db_schema) {
         warn <<'EOF';
 db_schema is not supported on SQLite, the option is implemented only for qualify_objects testing.

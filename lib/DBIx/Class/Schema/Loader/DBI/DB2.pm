@@ -44,7 +44,7 @@ sub _setup {
 SELECT CURRENT_SCHEMA FROM sysibm${ns}sysdummy1
 EOF
 
-    if (not defined $self->preserve_case) {
+    if (not $self->preserve_case) {
         $self->preserve_case(0);
     }
     elsif ($self->preserve_case) {
@@ -82,7 +82,7 @@ EOF
     }
 
     $sth->finish;
-    
+
     return \@uniqs;
 }
 

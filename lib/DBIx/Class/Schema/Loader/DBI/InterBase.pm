@@ -25,7 +25,7 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 =head1 COLUMN NAME CASE ISSUES
 
 By default column names from unquoted DDL will be generated in lowercase, for
-consistency with other backends. 
+consistency with other backends.
 
 Set the L<preserve_case|DBIx::Class::Schema::Loader::Base/preserve_case> option
 to true if you would like to have column names in the internal case, which is
@@ -50,7 +50,7 @@ sub _setup {
 
     $self->next::method(@_);
 
-    if (not defined $self->preserve_case) {
+    if (not $self->preserve_case) {
         $self->preserve_case(0);
     }
     elsif ($self->preserve_case) {
