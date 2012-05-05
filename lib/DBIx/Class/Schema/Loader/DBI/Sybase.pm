@@ -9,7 +9,7 @@ use namespace::clean;
 
 use DBIx::Class::Schema::Loader::Table::Sybase ();
 
-our $VERSION = '0.07022';
+our $VERSION = '0.07023';
 
 =head1 NAME
 
