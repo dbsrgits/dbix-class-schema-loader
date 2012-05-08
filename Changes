@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - work around broken keyseq in DBD::Pg foreign_key_info (RT#77062)
+
 0.07023  2012-05-05 11:44:15
         - properly order FK columns when using base ::DBI loader (SineSwiper)
         - bump Class::Inspector dep to 1.27 due to test failures with earlier

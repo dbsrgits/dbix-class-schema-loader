@@ -435,8 +435,8 @@ sub _table_fk_info {
     my @rels;
     foreach my $relid (keys %rels) {
         push(@rels, {
-            remote_columns => $rels{$relid}{rcols},
-            local_columns  => $rels{$relid}{lcols},
+            remote_columns => [ grep defined, @{ $rels{$relid}{rcols} } ],
+            local_columns  => [ grep defined, @{ $rels{$relid}{lcols} } ],
             remote_table   => $rels{$relid}->{tbl},
         });
     }
