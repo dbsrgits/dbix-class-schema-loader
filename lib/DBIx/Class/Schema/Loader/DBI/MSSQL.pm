@@ -351,19 +351,42 @@ sub _columns_info_for {
 
     my $result = $self->next::method(@_);
 
-    while (my ($col, $info) = each %$result) {
-# get type info
-        my ($char_max_length, $data_type, $datetime_precision, $default) =
-            $self->dbh->selectrow_array(<<"EOF");
-SELECT character_maximum_length, data_type, datetime_precision, column_default
-FROM [$db].INFORMATION_SCHEMA.COLUMNS
-WHERE table_name = @{[ $self->dbh->quote($table->name) ]}
-    AND table_schema = @{[ $self->dbh->quote($table->schema) ]}
-    AND @{[ $self->preserve_case ?
-        "column_name = @{[ $self->dbh->quote($col) ]}"
-        :
-        "lower(column_name) = @{[ $self->dbh->quote(lc $col) ]}" ]}
+    # SQL Server: Ancient as time itself, but still out in the wild
+    my $is_2k = $self->schema->storage->_server_info->{normalized_dbms_version} < 9;
+    
+    # get type info (and identity)
+    my $rows = $self->dbh->selectall_arrayref($is_2k ? <<"EOF2K" : <<"EOF");
+SELECT c.column_name, c.character_maximum_length, c.data_type, c.datetime_precision, c.column_default, (sc.status & 0x80) is_identity
+FROM [$db].INFORMATION_SCHEMA.COLUMNS c
+JOIN [$db].dbo.sysusers ss ON
+    c.table_schema = ss.name
+JOIN [$db].dbo.sysobjects so ON
+    c.table_name = so.name
+    AND so.uid = ss.uid
+JOIN [$db].dbo.syscolumns sc ON
+    c.column_name = sc.name
+    AND sc.id = so.Id
+WHERE c.table_schema = @{[ $self->dbh->quote($table->schema) ]}
+    AND c.table_name = @{[ $self->dbh->quote($table->name) ]}
+EOF2K
+SELECT c.column_name, c.character_maximum_length, c.data_type, c.datetime_precision, c.column_default, sc.is_identity
+FROM [$db].INFORMATION_SCHEMA.COLUMNS c
+JOIN [$db].sys.schemas ss ON
+    c.table_schema = ss.name
+JOIN [$db].sys.objects so ON
+      c.table_name   = so.name
+    AND so.schema_id = ss.schema_id
+JOIN [$db].sys.columns sc ON
+    c.column_name = sc.name
+    AND sc.object_id = so.object_id
+WHERE c.table_schema = @{[ $self->dbh->quote($table->schema) ]}
+    AND c.table_name = @{[ $self->dbh->quote($table->name) ]}
 EOF
+
+    foreach my $row (@$rows) {
+        my ($col, $char_max_length, $data_type, $datetime_precision, $default, $is_identity) = @$row;
+        $col = lc $col unless $self->preserve_case;
+        my $info = $result->{$col} || next;
 
         $info->{data_type} = $data_type;
 
@@ -372,31 +395,13 @@ EOF
             $info->{size} = 0 if $char_max_length < 0;
         }
 
-# find identities
-        my ($is_identity) = $self->dbh->selectrow_array(<<"EOF");
-SELECT is_identity
-FROM [$db].sys.columns
-WHERE object_id = (
-    SELECT object_id
-    FROM [$db].sys.objects
-    WHERE name = @{[ $self->dbh->quote($table->name) ]}
-        AND schema_id = (
-            SELECT schema_id
-            FROM [$db].sys.schemas
-            WHERE name = @{[ $self->dbh->quote($table->schema) ]}
-        )
-) AND @{[ $self->preserve_case ?
-    "name = @{[ $self->dbh->quote($col) ]}"
-    :
-    "lower(name) = @{[ $self->dbh->quote(lc $col) ]}" ]}
-EOF
         if ($is_identity) {
             $info->{is_auto_increment} = 1;
             $info->{data_type} =~ s/\s*identity//i;
             delete $info->{size};
         }
 
-# fix types
+        # fix types
         if ($data_type eq 'int') {
             $info->{data_type} = 'integer';
         }
