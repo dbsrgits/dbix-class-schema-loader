@@ -1,6 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07025  2012-06-08 22:48:05
         - support SQL Server 2000 again (broken in 0.07011)
+        - some slight optimization for SQL Server driver
 
 0.07024  2012-05-08 15:35:16
         - work around broken keyseq in DBD::Pg foreign_key_info (RT#77062)
