@@ -637,7 +637,7 @@ jhannah: Jay Hannah <jay@jays.net>
 
 jnap: John Napiorkowski <jjn1056@yahoo.com>
 
-rbuels: Robert Buels <rmb32@cornell.edu>
+rbuels: Robert Buels <rbuels@gmail.com>
 
 timbunce: Tim Bunce <timb@cpan.org>
 
