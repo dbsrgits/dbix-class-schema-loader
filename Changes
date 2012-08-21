@@ -1,5 +1,10 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - MySQL: introspect ON DELETE/UPDATE clauses for foreign keys.
+        - MySQL WARNING: the default on_delete/on_update attributes for
+          belongs_to relationships is now RESTRICT, *NOT* CASCADE! This is
+          overridable via the relationship_attrs option.
+
 0.07025  2012-06-08 22:48:05
         - support SQL Server 2000 again (broken in 0.07011)
         - some slight optimization for SQL Server driver
@@ -470,7 +475,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Workaround for new incompatible changes in DBD::mysql's "tables"
           method, which was causing us to find no tables w/ DBD::mysql
           4.002+
-        - Fixed quoting problem in _table_columns (could cause crash when 
+        - Fixed quoting problem in _table_columns (could cause crash when
           dumping/doing a static create) (from ash)
 
 0.03009  Wed Nov 15 14:03:37 UTC 2006

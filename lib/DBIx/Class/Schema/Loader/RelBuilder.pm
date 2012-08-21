@@ -47,8 +47,8 @@ Arguments: $loader object
 
 =head2 generate_code
 
-Arguments: 
-    
+Arguments:
+
     [
         [ local_moniker1 (scalar), fk_info1 (arrayref), uniq_info1 (arrayref) ]
         [ local_moniker2 (scalar), fk_info2 (arrayref), uniq_info2 (arrayref) ]
@@ -249,24 +249,25 @@ sub _default_relationship_attrs { +{
     },
 } }
 
-# accessor for options to be passed to each generated relationship
-# type.  take single argument, the relationship type name, and returns
-# either a hashref (if some options are set), or nothing
+# Accessor for options to be passed to each generated relationship type. takes
+# the relationship type name and optionally any attributes from the database
+# (such as FK ON DELETE/UPDATE and DEFERRABLE clauses), and returns a
+# hashref or undef if nothing is set.
+#
+# The attributes from the database override the default attributes, which in
+# turn are overridden by user supplied attributes.
 sub _relationship_attrs {
-    my ( $self, $reltype ) = @_;
+    my ( $self, $reltype, $db_attrs ) = @_;
     my $r = $self->relationship_attrs;
 
     my %composite = (
         %{ $self->_default_relationship_attrs->{$reltype} || {} },
-        %{ $r->{all} || {} }
+        %{ $db_attrs || {} },
+        %{ $r->{all} || {} },
+        %{ $r->{$reltype} || {} },
     );
 
-    if( my $specific = $r->{$reltype} ) {
-        while( my ($k,$v) = each %$specific ) {
-            $composite{$k} = $v;
-        }
-    }
-    return \%composite;
+    return %composite ? \%composite : undef;
 }
 
 sub _strip_id_postfix {
@@ -278,10 +279,10 @@ sub _strip_id_postfix {
 }
 
 sub _remote_attrs {
-    my ($self, $local_moniker, $local_cols) = @_;
+    my ($self, $local_moniker, $local_cols, $fk_attrs) = @_;
 
-    # get our base set of attrs from _relationship_attrs, if present
-    my $attrs = $self->_relationship_attrs('belongs_to') || {};
+    # get our set of attrs from _relationship_attrs, which uses the FK attrs if available
+    my $attrs = $self->_relationship_attrs('belongs_to', $fk_attrs) || {};
 
     # If any referring column is nullable, make 'belongs_to' an
     # outer join, unless explicitly set by relationship_attrs
@@ -363,7 +364,7 @@ EOF
 
 sub generate_code {
     my ($self, $tables) = @_;
-    
+
     # make a copy to destroy
     my @tables = @$tables;
 
@@ -413,7 +414,7 @@ sub generate_code {
                   args => [ $remote_relname,
                             $remote_class,
                             \%cond,
-                            $self->_remote_attrs($local_moniker, $local_cols),
+                            $self->_remote_attrs($local_moniker, $local_cols, $rel->{attrs}),
                   ],
                   extra => {
                       local_class    => $local_class,
@@ -779,7 +780,7 @@ sub _disambiguate {
                 my $rel_name_mapped;
 
                 ($relname_new, $rel_name_mapped) = $self->_rel_name_map($relname_new, $rel->{method}, $local_class, $local_moniker, \@from_cols, $to_class, $remote_moniker, \@to_cols);
-                
+
                 my $mapped = $inflect_mapped || $rel_name_mapped;
 
                 warn <<"EOF" unless $mapped;

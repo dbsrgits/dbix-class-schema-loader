@@ -448,7 +448,7 @@ C<schema>, C<name>
 
 =item * Informix, MSSQL, Sybase ASE
 
-C<database>, C<schema>, C<name>    
+C<database>, C<schema>, C<name>
 
 =back
 
@@ -594,7 +594,7 @@ load certain components for specified Result classes. For example:
                             'InflateColumn::DateTime',
                         ],
   }
-  
+
 You may use this in conjunction with L</components>.
 
 =head2 result_roles
@@ -614,7 +614,7 @@ certain roles for specified Result classes. For example:
                         ],
       RouteChange    => 'YourApp::Role::TripEvent',
   }
-  
+
 You may use this in conjunction with L</result_roles>.
 
 =head2 use_namespaces
@@ -885,7 +885,7 @@ sub new {
         }
         $self->result_components_map($self->{result_component_map})
     }
-    
+
     if (defined $self->{result_role_map}) {
         if (defined $self->result_roles_map) {
             croak "Specify only one of result_roles_map or result_role_map";
@@ -1530,9 +1530,9 @@ sub _load_tables {
 
                 # check if there are still clashes
                 my %by_moniker;
-                
+
                 while (my ($t, $m) = each %new_monikers) {
-                    push @{ $by_moniker{$m} }, $t; 
+                    push @{ $by_moniker{$m} }, $t;
                 }
 
                 foreach my $m (grep @{ $by_moniker{$_} } > 1, keys %by_moniker) {
@@ -1600,7 +1600,7 @@ sub _reload_classes {
     $self->_dump_to_dir(map { $self->classes->{$_->sql_name} } @tables);
 
     unshift @INC, $self->dump_directory;
-    
+
     my @to_register;
     my %have_source = map { $_ => $self->schema->source($_) }
         $self->schema->sources;
@@ -1608,7 +1608,7 @@ sub _reload_classes {
     for my $table (@tables) {
         my $moniker = $self->monikers->{$table->sql_name};
         my $class = $self->classes->{$table->sql_name};
-        
+
         {
             no warnings 'redefine';
             local *Class::C3::reinitialize = sub {};  # to speed things up, reinitialized below
@@ -1778,7 +1778,7 @@ sub _dump_to_dir {
     my $result_base_class = $self->result_base_class || 'DBIx::Class::Core';
 
     foreach my $src_class (@classes) {
-        my $src_text = 
+        my $src_text =
               qq|use utf8;\n|
             . qq|package $src_class;\n\n|
             . qq|# Created by DBIx::Class::Schema::Loader\n|
@@ -1833,7 +1833,7 @@ sub _sig_comment {
     my ($self, $version, $ts) = @_;
     return qq|\n\n# Created by DBIx::Class::Schema::Loader|
          . qq| v| . $version
-         . q| @ | . $ts 
+         . q| @ | . $ts
          . qq|\n# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:|;
 }
 
@@ -1978,7 +1978,7 @@ sub _default_moose_custom_content {
     if (not $is_schema) {
         return qq|\n__PACKAGE__->meta->make_immutable;|;
     }
-    
+
     return qq|\n__PACKAGE__->meta->make_immutable(inline_constructor => 0);|;
 }
 
@@ -2704,12 +2704,12 @@ sub _make_pod {
     elsif ($method eq 'add_unique_constraint') {
         $self->_pod($class, '=head1 UNIQUE CONSTRAINTS')
             unless $self->{_uniqs_started}{$class};
-        
+
         my ($name, $cols) = @_;
 
         $self->_pod($class, "=head2 C<$name>");
         $self->_pod($class, '=over 4');
-        
+
         foreach my $col (@$cols) {
             $self->_pod($class, "=item \* L</$col>");
         }
@@ -2722,7 +2722,7 @@ sub _make_pod {
     elsif ($method eq 'set_primary_key') {
         $self->_pod($class, "=head1 PRIMARY KEY");
         $self->_pod($class, '=over 4');
-        
+
         foreach my $col (@_) {
             $self->_pod($class, "=item \* L</$col>");
         }
@@ -2777,7 +2777,7 @@ sub __table_comment {
     if (my $code = $self->can('_table_comment')) {
         return $self->_filter_comment($self->$code(@_));
     }
-    
+
     return '';
 }
 

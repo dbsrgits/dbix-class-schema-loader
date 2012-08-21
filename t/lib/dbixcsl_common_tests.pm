@@ -55,7 +55,7 @@ sub new {
 
     # DB2 and Firebird don't support 'field type NULL'
     $self->{null} = 'NULL' unless defined $self->{null};
-    
+
     $self->{verbose} = $ENV{TEST_VERBOSE} || 0;
 
     # Optional extra tables and tests
@@ -105,7 +105,7 @@ sub run_tests {
             push @connect_info, [ @{$info}{qw/dsn user password connect_info_opts/ } ];
         }
     }
-    
+
     if ($ENV{SCHEMA_LOADER_TESTS_EXTRA_ONLY}) {
         $self->run_only_extra_tests(\@connect_info);
         return;
@@ -169,7 +169,7 @@ sub run_only_extra_tests {
 
         my $file_count = grep $_ =~ SOURCE_DDL, @{ $self->{extra}{create} || [] };
         $file_count++; # schema
-        
+
         if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
             $file_count++ for @{ $self->{data_type_tests}{table_names} || [] };
         }
@@ -271,11 +271,11 @@ sub setup_schema {
          eval qq{
              package @{[SCHEMA_CLASS]};
              use base qw/DBIx::Class::Schema::Loader/;
-     
+
              __PACKAGE__->loader_options(\%loader_opts);
              __PACKAGE__->connection(\@\$connect_info);
          };
- 
+
         ok(!$@, "Loader initialization") or diag $@;
 
         find sub { return if -d; $file_count++ }, DUMP_DIR;
@@ -291,25 +291,25 @@ sub setup_schema {
 
             $expected_count += grep $_ =~ SOURCE_DDL,
                 @{ $self->{extra}{create} || [] };
-     
+
             $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
                 if $self->{skip_rels} || $self->{no_inline_rels};
-     
+
             $expected_count -= grep /CREATE TABLE/, @statements_implicit_rels
                 if $self->{skip_rels} || $self->{no_implicit_rels};
-     
+
             $expected_count -= grep /CREATE TABLE/, ($self->{vendor} =~ /sqlite/ ? @statements_advanced_sqlite : @statements_advanced), @statements_reltests
                 if $self->{skip_rels};
         }
- 
+
         is $file_count, $expected_count, 'correct number of files generated';
- 
+
         my $warn_count = 2;
- 
+
         $warn_count++ for grep /^Bad table or view/, @loader_warnings;
- 
+
         $warn_count++ for grep /renaming \S+ relation/, @loader_warnings;
- 
+
         $warn_count++ for grep /\b(?!loader_test9)\w+ has no primary key/i, @loader_warnings;
 
         $warn_count++ for grep /^Column '\w+' in table '\w+' collides with an inherited method\./, @loader_warnings;
@@ -721,7 +721,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         my $moniker36 = $monikers->{loader_test36};
         my $class36   = $classes->{loader_test36};
         my $rsobj36   = $conn->resultset($moniker36);
-        
+
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -789,11 +789,13 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         ok ((not try { exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{is_deferrable} }),
             'has_many does not have is_deferrable');
 
-        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete} }, 'CASCADE',
-            "on_delete => 'CASCADE' on belongs_to by default";
+        like try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete} },
+            qr/^(?:CASCADE|RESTRICT)\z/,
+            "on_delete is either CASCADE or RESTRICT on belongs_to by default";
 
-        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update} }, 'CASCADE',
-            "on_update => 'CASCADE' on belongs_to by default";
+        like try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update} },
+            qr/^(?:CASCADE|RESTRICT)\z/,
+            "on_update is either CASCADE or RESTRICT on belongs_to by default";
 
         is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable} }, 1,
             "is_deferrable => 1 on belongs_to by default";
@@ -899,11 +901,11 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
         my $rs_rel17 = try { $obj16->search_related('loader_test17_loader16_ones') };
         isa_ok(try { $rs_rel17->single }, $class17);
         is(try { $rs_rel17->single->id }, 3, "search_related with multiple FKs from same table");
-        
+
         # XXX test m:m 18 <- 20 -> 19
         ok($class20->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
         ok($class20->column_info('child')->{is_foreign_key}, 'Foreign key detected');
-        
+
         # XXX test double-fk m:m 21 <- 22 -> 21
         ok($class22->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
         ok($class22->column_info('child')->{is_foreign_key}, 'Foreign key detected');
@@ -965,7 +967,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         ok($class32->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
         ok($class32->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
-        
+
         my $obj32 = try { $rsobj32->find(1, { prefetch => [qw/rel1 rel2/] }) }
             || try { $rsobj32->search({ id => 1 }, { prefetch => [qw/rel1 rel2/] })->single }
             || $rsobj32->search({ id => 1 })->single;
@@ -1026,7 +1028,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         SKIP: {
             skip 'Previous eval block failed', 3 if $@;
-    
+
             my $results = $rsobj10->search({ subject => 'xyzzy' });
             is( $results->count(), 1, 'No duplicate row created' );
 
@@ -1048,7 +1050,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
             my $class13   = $classes->{loader_test13};
             my $rsobj13   = $conn->resultset($moniker13);
 
-            isa_ok( $rsobj12, "DBIx::Class::ResultSet" ); 
+            isa_ok( $rsobj12, "DBIx::Class::ResultSet" );
             isa_ok( $rsobj13, "DBIx::Class::ResultSet" );
 
             ok($class13->column_info('id')->{is_foreign_key}, 'Foreign key detected');
@@ -1104,7 +1106,7 @@ EOF
             my $class15   = $classes->{loader_test15};
             my $rsobj15   = $conn->resultset($moniker15);
 
-            isa_ok( $rsobj14, "DBIx::Class::ResultSet" ); 
+            isa_ok( $rsobj14, "DBIx::Class::ResultSet" );
             isa_ok( $rsobj15, "DBIx::Class::ResultSet" );
 
             ok($class15->column_info('loader_test14')->{is_foreign_key}, 'Foreign key detected');
@@ -1447,12 +1449,12 @@ sub create {
         $make_auto_inc->(qw/loader_test1s id/),
 
         q{ INSERT INTO loader_test1s (dat) VALUES('foo') },
-        q{ INSERT INTO loader_test1s (dat) VALUES('bar') }, 
-        q{ INSERT INTO loader_test1s (dat) VALUES('baz') }, 
+        q{ INSERT INTO loader_test1s (dat) VALUES('bar') },
+        q{ INSERT INTO loader_test1s (dat) VALUES('baz') },
 
         # also test method collision
         # crumb_crisp_coating is for col_accessor_map tests
-        qq{ 
+        qq{
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL,
@@ -1471,10 +1473,10 @@ sub create {
         },
         $make_auto_inc->(qw/loader_test2 id/),
 
-        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('aaa', 'zzz') }, 
-        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('bbb', 'yyy') }, 
-        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ccc', 'xxx') }, 
-        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ddd', 'www') }, 
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('aaa', 'zzz') },
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('bbb', 'yyy') },
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ccc', 'xxx') },
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ddd', 'www') },
 
         qq{
             CREATE TABLE LOADER_test23 (
@@ -1549,10 +1551,10 @@ sub create {
             ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(1,'aaa') }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(2,'bbb') }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(3,'ccc') }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(4,'ddd') }, 
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(1,'aaa') },
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(2,'bbb') },
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(3,'ccc') },
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(4,'ddd') },
 
         qq{
             CREATE TABLE loader_test4 (
@@ -1568,7 +1570,7 @@ sub create {
         },
 
         q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(123,1,'aaa',1,1) },
-        q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(124,2,'bbb',2,2) }, 
+        q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(124,2,'bbb',2,2) },
         q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(125,3,'ccc',3,3) },
         q{ INSERT INTO loader_test4 (id,fkid,dat,belongs_to,set_primary_key) VALUES(126,4,'ddd',4,4) },
 
@@ -1926,7 +1928,7 @@ sub create {
                 dat VARCHAR(8)
             ) $self->{innodb}
         },
- 
+
         q{ INSERT INTO loader_test14 (id,dat) VALUES (123,'aaa') },
 
         qq{
@@ -2003,7 +2005,7 @@ sub drop_tables {
         loader_test36
         loader_test50
     /;
-    
+
     my @tables_auto_inc = (
         [ qw/loader_test1s id/ ],
         [ qw/loader_test2 id/ ],
@@ -2039,7 +2041,7 @@ sub drop_tables {
         loader_test11
         loader_test10
     /;
-    
+
     my @tables_advanced_auto_inc = (
         [ qw/loader_test10 id10/ ],
         [ qw/loader_test11 id11/ ],
@@ -2095,11 +2097,11 @@ sub drop_tables {
 
             foreach my $table (keys %drop_constraints) {
                 # for MSSQL
-                $dbh->do("ALTER TABLE $table DROP $drop_constraints{$table}"); 
+                $dbh->do("ALTER TABLE $table DROP $drop_constraints{$table}");
                 # for Sybase and Access
-                $dbh->do("ALTER TABLE $table DROP CONSTRAINT $drop_constraints{$table}"); 
+                $dbh->do("ALTER TABLE $table DROP CONSTRAINT $drop_constraints{$table}");
                 # for MySQL
-                $dbh->do("ALTER TABLE $table DROP FOREIGN KEY $drop_constraints{$table}"); 
+                $dbh->do("ALTER TABLE $table DROP FOREIGN KEY $drop_constraints{$table}");
             }
 
             $self->drop_table($dbh, $_) for (@tables_reltests);
@@ -2152,17 +2154,17 @@ sub _custom_column_info {
     $table_name = lc ( $table_name );
     $column_name = lc ( $column_name );
 
-    if ( $table_name eq 'loader_test35' 
-        and $column_name eq 'an_int' 
+    if ( $table_name eq 'loader_test35'
+        and $column_name eq 'an_int'
     ){
         return { is_numeric => 1 }
     }
-    # Set inflate_datetime or  inflate_date to check 
+    # Set inflate_datetime or  inflate_date to check
     #   datetime_timezone and datetime_locale
     if ( $table_name eq 'loader_test36' ){
-        return { inflate_datetime => 1 } if 
+        return { inflate_datetime => 1 } if
             ( $column_name eq 'b_char_as_data' );
-        return { inflate_date => 1 } if 
+        return { inflate_date => 1 } if
             ( $column_name eq 'c_char_as_data' );
     }
 
@@ -2235,7 +2237,7 @@ sub setup_data_type_tests {
             $type_alias =~ s/\W//g;
 
             my $col_name = 'col_' . $type_alias;
-            
+
             if (@size) {
                 my $size_name = join '_', apply { s/\W//g } @size;
 

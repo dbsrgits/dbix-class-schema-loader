@@ -180,10 +180,24 @@ my $tester = dbixcsl_common_tests->new(
                   PRIMARY KEY (`ISO3_code`)
                 ) $innodb
             },
+            # 4 through 10 are used for the multi-schema tests
+            qq{
+                create table mysql_loader_test11 (
+                    id int auto_increment primary key
+                ) $innodb
+            },
+            qq{
+                create table mysql_loader_test12 (
+                    id int auto_increment primary key,
+                    eleven_id int,
+                    foreign key (eleven_id) references mysql_loader_test11(id)
+                        on delete restrict on update set null
+                ) $innodb
+            },
         ],
         pre_drop_ddl => [ 'DROP VIEW mysql_loader_test2', ],
-        drop => [ 'mysql_loader-test1', 'mysql_loader_test3' ],
-        count => 5 + 30 * 2,
+        drop => [ 'mysql_loader-test1', 'mysql_loader_test3', 'mysql_loader_test11', 'mysql_loader_test12' ],
+        count => 8 + 30 * 2,
         run => sub {
             my ($monikers, $classes);
             ($schema, $monikers, $classes) = @_;
@@ -212,6 +226,17 @@ my $tester = dbixcsl_common_tests->new(
             like $code, qr/^=head2 id\n\n(.+:.+\n)+\nThe\nColumn\n\n/m,
                 'column comment and attrs';
 
+            # test on delete/update fk clause introspection
+            ok ((my $rel_info = $schema->source('MysqlLoaderTest12')->relationship_info('eleven')),
+                'got rel info');
+
+            is $rel_info->{attrs}{on_delete}, 'RESTRICT',
+                'ON DELETE clause introspected correctly';
+
+            is $rel_info->{attrs}{on_update}, 'SET NULL',
+                'ON UPDATE clause introspected correctly';
+
+            # multischema tests follow
             SKIP: {
                 my $dbh = $schema->storage->dbh;
 

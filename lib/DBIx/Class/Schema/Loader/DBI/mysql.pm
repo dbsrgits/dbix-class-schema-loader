@@ -65,7 +65,7 @@ sub _system_schemas {
     return ($self->next::method(@_), 'mysql');
 }
 
-sub _tables_list { 
+sub _tables_list {
     my ($self, $opts) = @_;
 
     return $self->next::method($opts, undef, undef);
@@ -83,12 +83,12 @@ sub _table_fk_info {
     my $nqt = qr/[^"`]/;
 
     my (@reldata) = ($table_def =~
-        /CONSTRAINT ${qt}${nqt}+${qt} FOREIGN KEY \($qt(.*)$qt\) REFERENCES (?:$qt($nqt+)$qt\.)?$qt($nqt+)$qt \($qt(.+)$qt\)/ig
+        /CONSTRAINT ${qt}${nqt}+${qt} FOREIGN KEY \($qt(.*)$qt\) REFERENCES (?:$qt($nqt+)$qt\.)?$qt($nqt+)$qt \($qt(.+)$qt\)\s*(.*)/ig
     );
 
     my @rels;
     while (scalar @reldata > 0) {
-        my ($cols, $f_schema, $f_table, $f_cols) = splice @reldata, 0, 4;
+        my ($cols, $f_schema, $f_table, $f_cols, $rest) = splice @reldata, 0, 5;
 
         my @cols   = map { s/$qt//g; $self->_lc($_) }
             split(/$qt?\s*$qt?,$qt?\s*$qt?/, $cols);
@@ -129,10 +129,37 @@ sub _table_fk_info {
             );
         }
 
+        my %attrs;
+
+        if ($rest) {
+            my @on_clauses = $rest =~ /(ON DELETE|ON UPDATE) (RESTRICT|CASCADE|SET NULL|NO ACTION) ?/ig;
+
+            while (my ($clause, $value) = splice @on_clauses, 0, 2) {
+                $clause = lc $clause;
+                $clause =~ s/ /_/;
+
+                $value = uc $value;
+
+                $attrs{$clause} = $value;
+            }
+        }
+
+# The default behavior is RESTRICT. Specifying RESTRICT explicitly just removes
+# that ON clause from the SHOW CREATE TABLE output. For this reason, even
+# though the default for these clauses everywhere else in Schema::Loader is
+# CASCADE, we change the default here to RESTRICT in order to reproduce the
+# schema faithfully.
+        $attrs{on_delete}     ||= 'RESTRICT';
+        $attrs{on_update}     ||= 'RESTRICT';
+
+# MySQL does not have a DEFERRABLE attribute, but there is a way to defer FKs.
+        $attrs{is_deferrable}   = 1;
+
         push(@rels, {
             local_columns => \@cols,
             remote_columns => \@f_cols,
             remote_table => $remote_table,
+            attrs => \%attrs,
         });
     }
 
