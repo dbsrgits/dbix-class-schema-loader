@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07027  2012-08-26 22:39:45
         - PostgreSQL: introspect ON DELETE/UPDATE clauses for foreign keys and
           the DEFERRABLE clause.
         - PostgreSQL WARNING: the default for on_delete/on_update attributes for
