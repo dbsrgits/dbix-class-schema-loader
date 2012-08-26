@@ -31,6 +31,8 @@ my $tester = dbixcsl_common_tests->new(
         on_connect_do  => [ 'SET client_min_messages=WARNING' ],
     },
     quote_char  => '"',
+    default_is_deferrable => 0,
+    default_on_clause => 'NO ACTION',
     data_types  => {
         # http://www.postgresql.org/docs/7.4/interactive/datatype.html
         #
@@ -226,6 +228,21 @@ my $tester = dbixcsl_common_tests->new(
                     pg_loader_test7_id INTEGER REFERENCES "dbicsl.test".pg_loader_test7 (id)
                 )
             },
+            # 4 through 8 are used for the multi-schema tests
+            q{
+                create table pg_loader_test9 (
+                    id bigserial primary key
+                )
+            },
+            q{
+                create table pg_loader_test10 (
+                    id bigserial primary key,
+                    eleven_id int,
+                    foreign key (eleven_id) references pg_loader_test9(id)
+                        on delete restrict on update set null
+                )
+            },
+
         ],
         pre_drop_ddl => [
             'DROP SCHEMA dbicsl_test CASCADE',
@@ -233,8 +250,8 @@ my $tester = dbixcsl_common_tests->new(
             'DROP SCHEMA "dbicsl.test" CASCADE',
             'DROP TYPE pg_loader_test_enum',
         ],
-        drop  => [ qw/ pg_loader_test1 pg_loader_test2 / ],
-        count => 4 + 30 * 2,
+        drop  => [ qw/pg_loader_test1 pg_loader_test2 pg_loader_test9 pg_loader_test10/ ],
+        count => 8 + 30 * 2,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -260,6 +277,19 @@ my $tester = dbixcsl_common_tests->new(
 
             like $code, qr/^=head1 NAME\n\n^$class\n\n=head1 DESCRIPTION\n\n^very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long comment\n\n^=cut\n/m,
                 'long table comment is in DESCRIPTION';
+
+            # test on delete/update fk clause introspection
+            ok ((my $rel_info = $schema->source('PgLoaderTest10')->relationship_info('eleven')),
+                'got rel info');
+
+            is $rel_info->{attrs}{on_delete}, 'RESTRICT',
+                'ON DELETE clause introspected correctly';
+
+            is $rel_info->{attrs}{on_update}, 'SET NULL',
+                'ON UPDATE clause introspected correctly';
+
+            is $rel_info->{attrs}{is_deferrable}, 0,
+                'DEFERRABLE clause introspected correctly';
 
             foreach my $db_schema (['dbicsl-test', 'dbicsl.test'], '%') {
                 lives_and {

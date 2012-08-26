@@ -1,5 +1,11 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - PostgreSQL: introspect ON DELETE/UPDATE clauses for foreign keys and
+          the DEFERRABLE clause.
+        - PostgreSQL WARNING: the default for on_delete/on_update attributes for
+          belongs_to relationships is now 'NO ACTION' not 'CASCADE! The default
+          for is_deferrable is now 0 not 1.
+
 0.07026  2012-08-26 01:01:26
         - MySQL: introspect ON DELETE/UPDATE clauses for foreign keys.
         - MySQL WARNING: the default on_delete/on_update attributes for

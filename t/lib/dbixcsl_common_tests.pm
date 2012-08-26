@@ -292,13 +292,13 @@ sub setup_schema {
             $expected_count += grep $_ =~ SOURCE_DDL,
                 @{ $self->{extra}{create} || [] };
 
-            $expected_count -= grep /CREATE TABLE/, @statements_inline_rels
+            $expected_count -= grep /CREATE TABLE/i, @statements_inline_rels
                 if $self->{skip_rels} || $self->{no_inline_rels};
 
-            $expected_count -= grep /CREATE TABLE/, @statements_implicit_rels
+            $expected_count -= grep /CREATE TABLE/i, @statements_implicit_rels
                 if $self->{skip_rels} || $self->{no_implicit_rels};
 
-            $expected_count -= grep /CREATE TABLE/, ($self->{vendor} =~ /sqlite/ ? @statements_advanced_sqlite : @statements_advanced), @statements_reltests
+            $expected_count -= grep /CREATE TABLE/i, ($self->{vendor} =~ /sqlite/ ? @statements_advanced_sqlite : @statements_advanced), @statements_reltests
                 if $self->{skip_rels};
         }
 
@@ -789,16 +789,24 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         ok ((not try { exists $rsobj3->result_source->relationship_info('loader_test4zes')->{attrs}{is_deferrable} }),
             'has_many does not have is_deferrable');
 
-        like try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete} },
-            qr/^(?:CASCADE|RESTRICT)\z/,
-            "on_delete is either CASCADE or RESTRICT on belongs_to by default";
+        my $default_on_clause = $self->{default_on_clause} || 'CASCADE';
 
-        like try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update} },
-            qr/^(?:CASCADE|RESTRICT)\z/,
-            "on_update is either CASCADE or RESTRICT on belongs_to by default";
+        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete} },
+            $default_on_clause,
+            "on_delete is $default_on_clause on belongs_to by default";
 
-        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable} }, 1,
-            "is_deferrable => 1 on belongs_to by default";
+        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update} },
+            $default_on_clause,
+            "on_update is $default_on_clause on belongs_to by default";
+
+        my $default_is_deferrable = $self->{default_is_deferrable};
+
+        $default_is_deferrable = 1
+            if not defined $default_is_deferrable;
+
+        is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{is_deferrable} },
+            $default_is_deferrable,
+            "is_deferrable => $default_is_deferrable on belongs_to by default";
 
         ok ((not try { exists $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{cascade_delete} }),
             'belongs_to does not have cascade_delete');

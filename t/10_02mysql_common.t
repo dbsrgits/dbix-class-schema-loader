@@ -26,18 +26,19 @@ my $innodb = $test_innodb ? q{Engine=InnoDB} : '';
 my ($schema, $databases_created); # for cleanup in END for extra tests
 
 my $tester = dbixcsl_common_tests->new(
-    vendor           => 'Mysql',
-    auto_inc_pk      => 'INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT',
-    innodb           => $innodb,
-    dsn              => $dsn,
-    user             => $user,
-    password         => $password,
-    connect_info_opts=> { on_connect_call => 'set_strict_mode' },
-    loader_options   => { preserve_case => 1 },
-    skip_rels        => $test_innodb ? 0 : $skip_rels_msg,
-    quote_char       => '`',
-    no_inline_rels   => 1,
-    no_implicit_rels => 1,
+    vendor            => 'Mysql',
+    auto_inc_pk       => 'INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT',
+    innodb            => $innodb,
+    dsn               => $dsn,
+    user              => $user,
+    password          => $password,
+    connect_info_opts => { on_connect_call => 'set_strict_mode' },
+    loader_options    => { preserve_case => 1 },
+    skip_rels         => $test_innodb ? 0 : $skip_rels_msg,
+    quote_char        => '`',
+    no_inline_rels    => 1,
+    no_implicit_rels  => 1,
+    default_on_clause => 'RESTRICT',
     data_types  => {
         # http://dev.mysql.com/doc/refman/5.5/en/data-type-overview.html
         # Numeric Types

@@ -40,6 +40,58 @@ sub _system_schemas {
     return ($self->next::method(@_), 'pg_catalog');
 }
 
+sub _table_fk_info {
+    my ($self, $table) = @_;
+
+    my $sth = $self->dbh->prepare_cached(<<"EOF");
+SELECT rc.constraint_name, rc.unique_constraint_schema, uk_tc.table_name,
+       fk_kcu.column_name, uk_kcu.column_name, rc.delete_rule, rc.update_rule,
+       fk_tc.is_deferrable
+FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS fk_tc
+JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
+    ON rc.constraint_name = fk_tc.constraint_name
+        AND rc.constraint_schema = fk_tc.table_schema
+JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE fk_kcu
+    ON fk_kcu.constraint_name = fk_tc.constraint_name
+        AND fk_kcu.table_name = fk_tc.table_name
+        AND fk_kcu.table_schema = fk_tc.table_schema
+JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS uk_tc
+    ON uk_tc.constraint_name = rc.unique_constraint_name
+        AND uk_tc.table_schema = rc.unique_constraint_schema
+JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE uk_kcu
+    ON uk_kcu.constraint_name = rc.unique_constraint_name
+        AND uk_kcu.ordinal_position = fk_kcu.ordinal_position
+        AND uk_kcu.table_name = uk_tc.table_name
+        AND uk_kcu.table_schema = rc.unique_constraint_schema
+WHERE fk_tc.table_name = ?
+    AND fk_tc.table_schema = ?
+ORDER BY fk_kcu.ordinal_position
+EOF
+
+    $sth->execute($table->name, $table->schema);
+
+    my %rels;
+
+    while (my ($fk, $remote_schema, $remote_table, $col, $remote_col,
+               $delete_rule, $update_rule, $is_deferrable) = $sth->fetchrow_array) {
+        push @{ $rels{$fk}{local_columns}  }, $self->_lc($col);
+        push @{ $rels{$fk}{remote_columns} }, $self->_lc($remote_col);
+
+        $rels{$fk}{remote_table} = DBIx::Class::Schema::Loader::Table->new(
+            loader   => $self,
+            name     => $remote_table,
+            schema   => $remote_schema,
+        ) unless exists $rels{$fk}{remote_table};
+
+        $rels{$fk}{attrs}{on_delete} = uc $delete_rule;
+        $rels{$fk}{attrs}{on_update} = uc $update_rule;
+        $rels{$fk}{attrs}{is_deferrable} = uc $is_deferrable eq 'YES' ? 1 : 0;
+    }
+
+    return [ values %rels ];
+}
+
+
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
@@ -108,8 +160,8 @@ sub _table_comment {
     return $table_comment if $table_comment;
 
     ($table_comment) = $self->dbh->selectrow_array(<<'EOF', {}, $table->name, $table->schema);
-SELECT obj_description(oid) 
-FROM pg_class 
+SELECT obj_description(oid)
+FROM pg_class
 WHERE relname=? AND relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=?)
 EOF
 
@@ -127,7 +179,7 @@ sub _column_comment {
 
     my ($table_oid) = $self->dbh->selectrow_array(<<'EOF', {}, $table->name, $table->schema);
 SELECT oid
-FROM pg_class 
+FROM pg_class
 WHERE relname=? AND relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=?)
 EOF
 
@@ -248,7 +300,7 @@ EOF
                 $info->{extra}{custom_type_name} = $info->{data_type};
 
                 $info->{data_type} = 'enum';
-                
+
                 delete $info->{size};
             }
         }
