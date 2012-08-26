@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07026  2012-08-26 01:01:26
         - MySQL: introspect ON DELETE/UPDATE clauses for foreign keys.
         - MySQL WARNING: the default on_delete/on_update attributes for
           belongs_to relationships is now RESTRICT, *NOT* CASCADE! This is
