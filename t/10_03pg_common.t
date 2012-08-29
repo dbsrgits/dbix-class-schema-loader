@@ -239,7 +239,7 @@ my $tester = dbixcsl_common_tests->new(
                     id bigserial primary key,
                     eleven_id int,
                     foreign key (eleven_id) references pg_loader_test9(id)
-                        on delete restrict on update set null
+                        on delete restrict on update set null deferrable
                 )
             },
 
@@ -288,7 +288,7 @@ my $tester = dbixcsl_common_tests->new(
             is $rel_info->{attrs}{on_update}, 'SET NULL',
                 'ON UPDATE clause introspected correctly';
 
-            is $rel_info->{attrs}{is_deferrable}, 0,
+            is $rel_info->{attrs}{is_deferrable}, 1,
                 'DEFERRABLE clause introspected correctly';
 
             foreach my $db_schema (['dbicsl-test', 'dbicsl.test'], '%') {
