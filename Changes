@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07028  2012-08-30 05:32:42
         - MSSQL: introspect ON DELETE/UPDATE clauses for foreign keys
         - MSSQL WARNING: the default for on_delete/on_update is now 'NO ACTION'
           not 'CASCADE'.

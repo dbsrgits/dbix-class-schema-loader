@@ -10,7 +10,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07027';
+our $VERSION = '0.07028';
 
 __PACKAGE__->mk_group_accessors('simple', qw/
     _disable_pk_detection
