@@ -237,12 +237,11 @@ my $tester = dbixcsl_common_tests->new(
             q{
                 create table pg_loader_test10 (
                     id bigserial primary key,
-                    eleven_id int,
-                    foreign key (eleven_id) references pg_loader_test9(id)
+                    nine_id int,
+                    foreign key (nine_id) references pg_loader_test9(id)
                         on delete restrict on update set null deferrable
                 )
             },
-
         ],
         pre_drop_ddl => [
             'DROP SCHEMA dbicsl_test CASCADE',
@@ -279,7 +278,7 @@ my $tester = dbixcsl_common_tests->new(
                 'long table comment is in DESCRIPTION';
 
             # test on delete/update fk clause introspection
-            ok ((my $rel_info = $schema->source('PgLoaderTest10')->relationship_info('eleven')),
+            ok ((my $rel_info = $schema->source('PgLoaderTest10')->relationship_info('nine')),
                 'got rel info');
 
             is $rel_info->{attrs}{on_delete}, 'RESTRICT',

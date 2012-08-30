@@ -94,6 +94,7 @@ my $tester = dbixcsl_common_tests->new(
     preserve_case_mode_is_exclusive => 1,
     quote_char => [ qw/[ ]/ ],
     basic_date_datatype => ($common_version >= 10) ? 'DATE' : 'SMALLDATETIME',
+    default_on_clause => 'NO ACTION',
     data_types => {
         # http://msdn.microsoft.com/en-us/library/ms187752.aspx
 
@@ -200,6 +201,20 @@ my $tester = dbixcsl_common_tests->new(
                     [Five_Id] INT REFERENCES [MSSQL_Loader_Test5] ([Id])
                 )
             },
+            # 8 through 12 are used for the multi-schema tests and 13 through 16 are used for multi-db tests
+            q{
+                create table mssql_loader_test17 (
+                    id int identity primary key
+                )
+            },
+            q{
+                create table mssql_loader_test18 (
+                    id int identity primary key,
+                    seventeen_id int,
+                    foreign key (seventeen_id) references mssql_loader_test17(id)
+                        on delete set default on update set null
+                )
+            },
         ],
         pre_drop_ddl => [
             'CREATE TABLE mssql_loader_test3 (id INT IDENTITY NOT NULL PRIMARY KEY)',
@@ -210,8 +225,10 @@ my $tester = dbixcsl_common_tests->new(
             'mssql_loader_test3',
             'MSSQL_Loader_Test6',
             'MSSQL_Loader_Test5',
+            'mssql_loader_test17',
+            'mssql_loader_test18',
         ],
-        count  => 10 + 30 * 2 + 26 * 2, # extra + multi-schema + mutli-db
+        count  => 14 + 30 * 2 + 26 * 2, # extra + multi-schema + mutli-db
         run    => sub {
             my ($monikers, $classes, $self);
             ($schema, $monikers, $classes, $self) = @_;
@@ -285,6 +302,19 @@ my $tester = dbixcsl_common_tests->new(
                 $schema->resultset($monikers->{mssql_loader_test4})
             } qr/Can't find source/,
                 'no source registered for bad view';
+
+            # test on delete/update fk clause introspection
+            ok ((my $rel_info = $schema->source('MssqlLoaderTest18')->relationship_info('seventeen')),
+                'got rel info');
+
+            is $rel_info->{attrs}{on_delete}, 'SET DEFAULT',
+                'ON DELETE clause introspected correctly';
+
+            is $rel_info->{attrs}{on_update}, 'SET NULL',
+                'ON UPDATE clause introspected correctly';
+
+            is $rel_info->{attrs}{is_deferrable}, 1,
+                'is_deferrable defaults to 1';
 
             SKIP: {
                 my $dbh = $schema->storage->dbh;

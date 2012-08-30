@@ -273,7 +273,8 @@ sub _table_fk_info {
     my $db = $table->database;
 
     my $sth = $self->dbh->prepare(<<"EOF");
-SELECT rc.constraint_name, rc.unique_constraint_schema, uk_tc.table_name, fk_kcu.column_name, uk_kcu.column_name
+SELECT rc.constraint_name, rc.unique_constraint_schema, uk_tc.table_name,
+       fk_kcu.column_name, uk_kcu.column_name, rc.delete_rule, rc.update_rule
 FROM [$db].INFORMATION_SCHEMA.TABLE_CONSTRAINTS fk_tc
 JOIN [$db].INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
     ON rc.constraint_name = fk_tc.constraint_name
@@ -299,7 +300,8 @@ EOF
 
     my %rels;
 
-    while (my ($fk, $remote_schema, $remote_table, $col, $remote_col) = $sth->fetchrow_array) {
+    while (my ($fk, $remote_schema, $remote_table, $col, $remote_col,
+               $delete_rule, $update_rule) = $sth->fetchrow_array) {
         push @{ $rels{$fk}{local_columns}  }, $self->_lc($col);
         push @{ $rels{$fk}{remote_columns} }, $self->_lc($remote_col);
         
@@ -309,6 +311,12 @@ EOF
             database => $db,
             schema   => $remote_schema,
         ) unless exists $rels{$fk}{remote_table};
+
+        $rels{$fk}{attrs} ||= {
+            on_delete     => uc $delete_rule,
+            on_update     => uc $update_rule,
+            is_deferrable => 1 # constraints can be temporarily disabled, but DEFERRABLE is not supported
+        };
     }
 
     return [ values %rels ];
