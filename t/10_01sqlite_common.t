@@ -17,6 +17,8 @@ my $tester = dbixcsl_common_tests->new(
         on_connect_do => [ 'PRAGMA foreign_keys = ON', 'PRAGMA synchronous = OFF', ]
     },
     loader_options  => { preserve_case => 1 },
+    default_is_deferrable => 0,
+    default_on_clause => 'NO ACTION',
     data_types  => {
         # SQLite ignores data types aside from INTEGER pks.
         # We just test that they roundtrip sanely.
@@ -112,11 +114,25 @@ my $tester = dbixcsl_common_tests->new(
                   PRIMARY KEY (id1, id2)
                 )
             },
+            q{
+                create table extra_loader_test8 (
+                    id integer primary key
+                )
+            },
+            q{
+                create table extra_loader_test9 (
+                    id integer primary key,
+                    eight_id int,
+                    foreign key (eight_id) references extra_loader_test8(id)
+                        on delete restrict on update set null deferrable
+                )
+            },
         ],
         pre_drop_ddl => [ 'DROP VIEW extra_loader_test5' ],
-        drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3 
-                      extra_loader_test4 extra_loader_test6 extra_loader_test7/ ],
-        count => 11,
+        drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3
+                      extra_loader_test4 extra_loader_test6 extra_loader_test7
+                      extra_loader_test8 extra_loader_test9 / ],
+        count => 15,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -152,6 +168,19 @@ my $tester = dbixcsl_common_tests->new(
 
             isnt $schema->resultset($monikers->{extra_loader_test7})->result_source->column_info('id1')->{is_auto_increment}, 1,
                 q{composite integer PK with non-integer PK doesn't get marked autoinc};
+
+            # test on delete/update fk clause introspection
+            ok ((my $rel_info = $schema->source('ExtraLoaderTest9')->relationship_info('eight')),
+                'got rel info');
+
+            is $rel_info->{attrs}{on_delete}, 'RESTRICT',
+                'ON DELETE clause introspected correctly';
+
+            is $rel_info->{attrs}{on_update}, 'SET NULL',
+                'ON UPDATE clause introspected correctly';
+
+            is $rel_info->{attrs}{is_deferrable}, 1,
+                'DEFERRABLE clause introspected correctly';
         },
     },
 );
@@ -159,5 +188,5 @@ my $tester = dbixcsl_common_tests->new(
 $tester->run_tests();
 
 END {
-    unlink "$tdir/sqlite_test";
+    unlink "$tdir/sqlite_test" unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 }

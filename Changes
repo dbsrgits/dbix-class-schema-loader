@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - SQLite: introspect ON DELETE/UPDATE and DEFERRABLE clauses
+        - SQLite WARNING: the default for on_delete/on_update is now 'NO ACTION'
+          not 'CASCADE', and the default for is_deferrable is now 0 not 1.
+
 0.07028  2012-08-30 05:32:42
         - MSSQL: introspect ON DELETE/UPDATE clauses for foreign keys
         - MSSQL WARNING: the default for on_delete/on_update is now 'NO ACTION'
