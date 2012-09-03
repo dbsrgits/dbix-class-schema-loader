@@ -82,7 +82,7 @@ EOF
     }
 
     $sth->finish;
-    
+
     return \@uniqs;
 }
 
@@ -91,7 +91,8 @@ sub _table_fk_info {
 
     my $sth = $self->{_cache}->{db2_fk} ||= $self->dbh->prepare(<<'EOF');
 SELECT tc.constname, sr.reftabschema, sr.reftabname,
-       kcu.colname, rkcu.colname, kcu.colseq
+       kcu.colname, rkcu.colname, kcu.colseq,
+       sr.deleterule, sr.updaterule
 FROM syscat.tabconst tc
 JOIN syscat.keycoluse kcu
     ON tc.constname = kcu.constname
@@ -112,9 +113,16 @@ EOF
 
     my %rels;
 
+    my %rules = (
+        A => 'NO ACTION',
+        C => 'CASCADE',
+        N => 'SET NULL',
+        R => 'RESTRICT',
+    );
+
     COLS: while (my @row = $sth->fetchrow_array) {
         my ($fk, $remote_schema, $remote_table, $local_col, $remote_col,
-            $colseq) = @row;
+            $colseq, $delete_rule, $update_rule) = @row;
 
         if (not exists $rels{$fk}) {
             if ($self->db_schema && $self->db_schema->[0] ne '%'
@@ -132,6 +140,12 @@ EOF
 
         $rels{$fk}{local_columns}[$colseq-1]  = $self->_lc($local_col);
         $rels{$fk}{remote_columns}[$colseq-1] = $self->_lc($remote_col);
+
+        $rels{$fk}{attrs} ||= {
+            on_delete     => $rules{$delete_rule},
+            on_update     => $rules{$update_rule},
+            is_deferrable => 1, # DB2 has no deferrable constraints
+        };
     }
 
     return [ values %rels ];

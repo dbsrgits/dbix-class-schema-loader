@@ -1,6 +1,10 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-        - SQLite: introspect ON DELETE/UPDATE and DEFERRABLE clauses
+        - DB2: introspect ON DELETE/UPDATE FK clauses
+        - DB2 WARNING: the default for on_delete/on_update is now 'NO ACTION'
+          not 'CASCADE', the default for is_deferrable is still 1 because DB2
+          does not have deferrable constraints
+        - SQLite: introspect ON DELETE/UPDATE and DEFERRABLE FK clauses
         - SQLite WARNING: the default for on_delete/on_update is now 'NO ACTION'
           not 'CASCADE', and the default for is_deferrable is now 0 not 1.
 
