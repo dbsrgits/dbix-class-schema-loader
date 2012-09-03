@@ -1,9 +1,15 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Oracle: introspect ON DELETE and DEFERRABLE FK clauses
+        - Oracle WARNING: on_delete is now 'NO ACTION' by default, not
+          'CASCADE'. on_update is now 'NO ACTION' by default (Oracle does not
+          have update rules, this was done to preserve the behavior of the
+          schema when cross-deploying to SQLite.) is_deferrable is now
+          0 by default, not 1.
         - DB2: introspect ON DELETE/UPDATE FK clauses
         - DB2 WARNING: the default for on_delete/on_update is now 'NO ACTION'
           not 'CASCADE', the default for is_deferrable is still 1 because DB2
-          does not have deferrable constraints
+          does not have deferrable constraints.
         - SQLite: introspect ON DELETE/UPDATE and DEFERRABLE FK clauses
         - SQLite WARNING: the default for on_delete/on_update is now 'NO ACTION'
           not 'CASCADE', and the default for is_deferrable is now 0 not 1.

@@ -791,13 +791,17 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
 
         my $default_on_clause = $self->{default_on_clause} || 'CASCADE';
 
+        my $default_on_delete_clause = $self->{default_on_delete_clause} || $default_on_clause;
+
         is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_delete} },
-            $default_on_clause,
-            "on_delete is $default_on_clause on belongs_to by default";
+            $default_on_delete_clause,
+            "on_delete is $default_on_delete_clause on belongs_to by default";
+
+        my $default_on_update_clause = $self->{default_on_update_clause} || $default_on_clause;
 
         is try { $rsobj4->result_source->relationship_info('fkid_singular')->{attrs}{on_update} },
-            $default_on_clause,
-            "on_update is $default_on_clause on belongs_to by default";
+            $default_on_update_clause,
+            "on_update is $default_on_update_clause on belongs_to by default";
 
         my $default_is_deferrable = $self->{default_is_deferrable};
 

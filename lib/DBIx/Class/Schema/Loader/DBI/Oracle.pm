@@ -78,6 +78,32 @@ sub _filter_tables {
     return $self->next::method(@_);
 }
 
+sub _table_fk_info {
+    my $self = shift;
+    my ($table) = @_;
+
+    my $rels = $self->next::method(@_);
+
+    my $deferrable_sth = $self->dbh->prepare_cached(<<'EOF');
+select deferrable from all_constraints
+where owner = ? and table_name = ? and constraint_name = ?
+EOF
+
+    foreach my $rel (@$rels) {
+        # Oracle does not have update rules
+        $rel->{attrs}{on_update} = 'NO ACTION';;
+
+        # DBD::Oracle's foreign_key_info does not return DEFERRABILITY, so we get it ourselves
+        my ($deferrable) = $self->dbh->selectrow_array(
+            $deferrable_sth, undef, $table->schema, $table->name, $rel->{_constraint_name}
+        );
+
+        $rel->{attrs}{is_deferrable} = $deferrable && $deferrable =~ /^DEFERRABLE/i ? 1 : 0;
+    }
+
+    return $rels;
+}
+
 sub _table_uniq_info {
     my ($self, $table) = @_;
 

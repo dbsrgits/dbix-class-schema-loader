@@ -119,7 +119,7 @@ sub _dbh_tables {
 sub _supports_db_schema { 1 }
 
 # Returns an array of table objects
-sub _tables_list { 
+sub _tables_list {
     my ($self, $opts) = (shift, shift);
 
     my @tables;
@@ -267,7 +267,7 @@ sub _table_columns {
 }
 
 # Returns arrayref of pk col names
-sub _table_pk_info { 
+sub _table_pk_info {
     my ($self, $table) = @_;
 
     return [] if $self->_disable_pk_detection;
@@ -397,6 +397,14 @@ sub _table_fk_info {
 
     my %rels;
 
+    my @rules = (
+        'CASCADE',
+        'RESTRICT',
+        'SET NULL',
+        'NO ACTION',
+        'SET DEFAULT',
+    );
+
     my $i = 1; # for unnamed rels, which hopefully have only 1 column ...
     REL: while(my $raw_rel = $sth->fetchrow_arrayref) {
         my $uk_scm  = $raw_rel->[1];
@@ -406,6 +414,17 @@ sub _table_fk_info {
         my $fk_col  = $self->_lc($raw_rel->[7]);
         my $key_seq = $raw_rel->[8] - 1;
         my $relid   = ($raw_rel->[11] || ( "__dcsld__" . $i++ ));
+
+        my $update_rule = $raw_rel->[9];
+        my $delete_rule = $raw_rel->[10];
+
+        $update_rule = $rules[$update_rule] if defined $update_rule;
+        $delete_rule = $rules[$delete_rule] if defined $delete_rule;
+
+        my $is_deferrable = $raw_rel->[13];
+
+        ($is_deferrable = $is_deferrable == 7 ? 0 : 1)
+            if defined $is_deferrable;
 
         foreach my $var ($uk_scm, $uk_tbl, $uk_col, $fk_scm, $fk_col, $relid) {
             $var =~ s/[\Q$self->{quote_char}\E]//g if defined $var;
@@ -417,7 +436,7 @@ sub _table_fk_info {
             next REL;
         }
 
-        $rels{$relid}{tbl} = DBIx::Class::Schema::Loader::Table->new(
+        $rels{$relid}{tbl} ||= DBIx::Class::Schema::Loader::Table->new(
             loader => $self,
             name   => $uk_tbl,
             schema => $uk_scm,
@@ -425,7 +444,11 @@ sub _table_fk_info {
                 ignore_schema => 1
             )),
         );
-        
+
+        $rels{$relid}{attrs}{on_delete}     = $delete_rule if $delete_rule;
+        $rels{$relid}{attrs}{on_update}     = $update_rule if $update_rule;
+        $rels{$relid}{attrs}{is_deferrable} = $is_deferrable if defined $is_deferrable;
+
         # Add this data IN ORDER
         $rels{$relid}{rcols}[$key_seq] = $uk_col;
         $rels{$relid}{lcols}[$key_seq] = $fk_col;
@@ -438,6 +461,12 @@ sub _table_fk_info {
             remote_columns => [ grep defined, @{ $rels{$relid}{rcols} } ],
             local_columns  => [ grep defined, @{ $rels{$relid}{lcols} } ],
             remote_table   => $rels{$relid}->{tbl},
+            (exists $rels{$relid}{attrs} ?
+                (attrs => $rels{$relid}{attrs})
+                :
+                ()
+            ),
+            _constraint_name => $relid,
         });
     }
 
@@ -563,7 +592,7 @@ sub _dbh_type_info_type_name {
     # We wrap it in a try block for MSSQL+DBD::Sybase, which can have issues.
     # TODO investigate further
     my $type_info = try { $self->dbh->type_info($type_num) };
-    
+
     return $type_info ? $type_info->{TYPE_NAME} : undef;
 }
 

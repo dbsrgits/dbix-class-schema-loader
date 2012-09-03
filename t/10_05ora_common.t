@@ -25,7 +25,7 @@ my $auto_inc_cb = sub {
     my ($table, $col) = @_;
     return (
         qq{ CREATE SEQUENCE ${table}_${col}_seq START WITH 1 INCREMENT BY 1},
-        qq{ 
+        qq{
             CREATE OR REPLACE TRIGGER ${table}_${col}_trigger
             BEFORE INSERT ON ${table}
             FOR EACH ROW
@@ -45,9 +45,12 @@ my $tester = dbixcsl_common_tests->new(
     vendor      => 'Oracle',
     auto_inc_pk => 'INTEGER NOT NULL PRIMARY KEY',
     auto_inc_cb => $auto_inc_cb,
-    auto_inc_drop_cb => $auto_inc_drop_cb, 
+    auto_inc_drop_cb => $auto_inc_drop_cb,
     preserve_case_mode_is_exclusive => 1,
     quote_char                      => '"',
+    default_is_deferrable => 0,
+    default_on_delete_clause => 'NO ACTION',
+    default_on_update_clause => 'NO ACTION',
     dsn         => $dsn,
     user        => $user,
     password    => $password,
@@ -155,7 +158,7 @@ my $tester = dbixcsl_common_tests->new(
     },
     extra => {
         create => [
-            q{ 
+            q{
                 CREATE TABLE oracle_loader_test1 (
                     id NUMBER(11),
                     value VARCHAR2(100)
@@ -163,9 +166,23 @@ my $tester = dbixcsl_common_tests->new(
             },
             q{ COMMENT ON TABLE oracle_loader_test1 IS 'oracle_loader_test1 table comment' },
             q{ COMMENT ON COLUMN oracle_loader_test1.value IS 'oracle_loader_test1.value column comment' },
+            # 4 through 8 are used for the multi-schema tests
+            q{
+                create table oracle_loader_test9 (
+                    id int primary key
+                )
+            },
+            q{
+                create table oracle_loader_test10 (
+                    id int primary key,
+                    nine_id int,
+                    foreign key (nine_id) references oracle_loader_test9(id)
+                        on delete set null deferrable
+                )
+            },
         ],
-        drop  => [qw/oracle_loader_test1/],
-        count => 3 + 30 * 2,
+        drop  => [qw/oracle_loader_test1 oracle_loader_test9 oracle_loader_test10/],
+        count => 7 + 30 * 2,
         run   => sub {
             my ($monikers, $classes);
             ($schema, $monikers, $classes) = @_;
@@ -191,6 +208,19 @@ my $tester = dbixcsl_common_tests->new(
 
             like $code, qr/^=head2 value\n\n(.+:.+\n)+\noracle_loader_test1\.value column comment\n\n/m,
                 'column comment and attrs';
+
+            # test on delete/update fk clause introspection
+            ok ((my $rel_info = $schema->source('OracleLoaderTest10')->relationship_info('nine')),
+                'got rel info');
+
+            is $rel_info->{attrs}{on_delete}, 'SET NULL',
+                'ON DELETE clause introspected correctly';
+
+            is $rel_info->{attrs}{on_update}, 'NO ACTION',
+                'ON UPDATE clause set to NO ACTION by default';
+
+            is $rel_info->{attrs}{is_deferrable}, 1,
+                'DEFERRABLE clause introspected correctly';
 
             SKIP: {
                 skip 'Set the DBICTEST_ORA_EXTRAUSER_DSN, _USER and _PASS environment variables to run the cross-schema relationship tests', 6 * 2
