@@ -8,7 +8,7 @@ use base qw/
 /;
 use mro 'c3';
 
-our $VERSION = '0.07028';
+our $VERSION = '0.07029';
 
 =head1 NAME
 

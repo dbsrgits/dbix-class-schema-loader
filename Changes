@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07029  2012-09-05 16:41:56
         - Oracle: introspect ON DELETE and DEFERRABLE FK clauses
         - Oracle WARNING: on_delete is now 'NO ACTION' by default, not
           'CASCADE'. on_update is now 'NO ACTION' by default (Oracle does not
