@@ -10,7 +10,7 @@ use Try::Tiny;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table::Informix ();
 
-our $VERSION = '0.07030';
+our $VERSION = '0.07031';
 
 =head1 NAME
 
