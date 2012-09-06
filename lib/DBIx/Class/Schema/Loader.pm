@@ -29,6 +29,8 @@ __PACKAGE__->mk_group_accessors('inherited', qw/
 /);
 __PACKAGE__->_loader_args({});
 
+=encoding utf8
+
 =head1 NAME
 
 DBIx::Class::Schema::Loader - Create a DBIx::Class::Schema based on a database
@@ -79,7 +81,7 @@ DBIx::Class::Schema::Loader - Create a DBIx::Class::Schema based on a database
   # -or-
   my $schema1 = "My::Schema"; $schema1->connection(as above);
 
-=head1 DESCRIPTION 
+=head1 DESCRIPTION
 
 DBIx::Class::Schema::Loader automates the definition of a
 L<DBIx::Class::Schema> by scanning database table definitions and setting up

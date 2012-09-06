@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - fix 02pod.t failure due to lack of =encoding utf8 statement (patch by
+          Marcel Gruenauer) (RT#79481)
+
 0.07030  2012-09-06 03:27:09
         - allow user to set qualify_objects=0 in multischema configurations
           (andrewalker)
