@@ -29,7 +29,7 @@ __PACKAGE__->mk_group_accessors('inherited', qw/
 /);
 __PACKAGE__->_loader_args({});
 
-=encoding utf8
+=encoding UTF-8
 
 =head1 NAME
 
