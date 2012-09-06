@@ -747,7 +747,8 @@ L</naming> = C<v7> or greater is required with this option.
 Set to true to prepend the L</db_schema> to table names for C<<
 __PACKAGE__->table >> calls, and to some other things like Oracle sequences.
 
-This attribute is automatically set to true for multi db_schema configurations.
+This attribute is automatically set to true for multi db_schema configurations,
+unless explicitly set to false by the user.
 
 =head2 use_moose
 
@@ -1052,7 +1053,7 @@ sub new {
 
     if (defined $self->db_schema) {
         if (ref $self->db_schema eq 'ARRAY') {
-            if (@{ $self->db_schema } > 1) {
+            if (@{ $self->db_schema } > 1 && not defined $self->{qualify_objects}) {
                 $self->{qualify_objects} = 1;
             }
             elsif (@{ $self->db_schema } == 0) {
@@ -1060,7 +1061,7 @@ sub new {
             }
         }
         elsif (not ref $self->db_schema) {
-            if ($self->db_schema eq '%') {
+            if ($self->db_schema eq '%' && not defined $self->{qualify_objects}) {
                 $self->{qualify_objects} = 1;
             }
 

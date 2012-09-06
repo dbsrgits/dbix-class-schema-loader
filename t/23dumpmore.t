@@ -305,6 +305,29 @@ $t->dump_test(
   },
 );
 
+# test qualify_objects
+$t->dump_test(
+  classname => 'DBICTest::DumpMore::1',
+  options => {
+    db_schema => [ 'foo_schema', 'bar_schema' ],
+    qualify_objects => 0,
+    use_namespaces => 1,
+  },
+  warnings => [
+    qr/^db_schema is not supported on SQLite/,
+  ],
+  regexes => {
+    'Result/Foo' => [
+      # the table name should not include the db schema
+      qr/^\Q__PACKAGE__->table("foo");\E/m,
+    ],
+    'Result/Bar' => [
+      # the table name should not include the db schema
+      qr/^\Q__PACKAGE__->table("bar");\E/m,
+    ],
+  },
+);
+
 # test moniker_parts
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
