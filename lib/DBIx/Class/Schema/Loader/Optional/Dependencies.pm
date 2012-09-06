@@ -51,6 +51,17 @@ my $reqs = {
             desc  => 'Modules required for using testing using a config file with dbicdump',
         },
     },
+
+    test_pod => {
+        req => {
+            'Test::Pod'   => '1.14',
+            'Pod::Simple' => '3.22',
+        },
+        pod => {
+            title => 'POD testing',
+            desc  => 'Modules required for testing POD in this distribution',
+        },
+    },
 };
 
 sub req_list_for {
