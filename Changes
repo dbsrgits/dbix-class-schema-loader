@@ -1,6 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07030  2012-09-06 03:27:09
         - allow user to set qualify_objects=0 in multischema configurations
+          (andrewalker)
 
 0.07029  2012-09-05 16:41:56
         - Oracle: introspect ON DELETE and DEFERRABLE FK clauses
