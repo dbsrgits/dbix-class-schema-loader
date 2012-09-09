@@ -389,15 +389,17 @@ override the introspected attributes of the foreign key if any.
 For example:
 
   relationship_attrs => {
-    has_many => { cascade_delete => 1, cascade_copy => 1 },
+    has_many   => { cascade_delete => 1, cascade_copy => 1 },
+    might_have => { cascade_delete => 1, cascade_copy => 1 },
   },
 
 use this to turn L<DBIx::Class> cascades to on on your
-L<has_many|DBIx::Class::Relationship/has_many> relationships, they default to
-off.
+L<has_many|DBIx::Class::Relationship/has_many> and
+L<might_have|DBIx::Class::Relationship/might_have> relationships, they default
+to off.
 
 Can also be a coderef, for more precise control, in which case the coderef gets
-this hash of parameters:
+this hash of parameters (as a list:)
 
     rel_name        # the name of the relationship
     local_source    # the DBIx::Class::ResultSource object for the source the rel is *from*
@@ -429,6 +431,50 @@ For example:
             reutrn $p{attrs};
         }
     },
+
+These are the default attributes:
+
+    has_many => {
+        cascade_delete => 0,
+        cascade_copy   => 0,
+    },
+    might_have => {
+        cascade_delete => 0,
+        cascade_copy   => 0,
+    },
+    belongs_to => {
+        on_delete => 'CASCADE',
+        on_update => 'CASCADE',
+        is_deferrable => 1,
+    },
+
+For L<belongs_to|DBIx::Class::Relationship/belongs_to> relationships, these
+defaults are overridden by the attributes introspected from the foreign key in
+the database, if this information is available (and the driver is capable of
+retrieving it.)
+
+This information overrides the defaults mentioned above, and is then itself
+overridden by the user's L</relationship_attrs> for C<belongs_to> if any are
+specified.
+
+In general, for most databases, for a plain foreign key with no rules, the
+values for a L<belongs_to|DBIx::Class::Relationship/belongs_to> relationship
+will be:
+
+    on_delete     => 'NO ACTION',
+    on_update     => 'NO ACTION',
+    is_deferrable => 0,
+
+In the cases where an attribute is not supported by the DB, a value matching
+the actual behavior is used, for example Oracle does not support C<ON UPDATE>
+rules, so C<on_update> is set to C<NO ACTION>. This is done so that the
+behavior of the schema is preserved when cross deploying to a different RDBMS
+such as SQLite for testing.
+
+In the cases where the DB does not support C<DEFERRABLE> foreign keys, the
+value is set to C<1> if L<DBIx::Class> has a working C<<
+$storage->with_deferred_fk_checks >>. This is done so that the same
+L<DBIx::Class> code can be used, and cross deployed from and to such databases.
 
 =head2 debug
 
