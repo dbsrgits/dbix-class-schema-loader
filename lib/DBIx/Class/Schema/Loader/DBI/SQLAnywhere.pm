@@ -8,7 +8,7 @@ use List::MoreUtils 'any';
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07032';
+our $VERSION = '0.07033';
 
 =head1 NAME
 
