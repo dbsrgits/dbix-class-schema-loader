@@ -1,5 +1,10 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - more thoroughly document the new behavior for relationship attributes
+          under "relationship_attrs" in ::Base POD
+        - add a loud WARNING to Makefile.PL about the new behavior for
+          relationship attributes
+
 0.07032  2012-09-09 13:17:20
         - SQLite: detect is_deferrable for inline FKs
         - support coderefs for relationship_attrs

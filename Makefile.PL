@@ -60,6 +60,27 @@ requires 'String::ToIdentifier::EN'    => '0.05';
 requires 'String::CamelCase'           => '0.02';
 requires 'Hash::Merge'                 => 0;
 
+print <<"EOF";
+******************* DBIx::Class::Schema::Loader WARNING ***********************
+The default attributes for belongs_to relationships for foreign keys with no
+rules has been changed for most databases, and is soon changing for the rest,
+as ON DELETE/UPDATE and DEFERRABLE clauses for foreign keys are now being
+introspected.
+
+THIS MAY AFFECT YOUR DDL DIFFS WHEN DEPLOYING
+
+YOUR GENERATED CODE WILL ALMOST CERTAINLY CHANGE
+
+Read more about the changes in "relationship_attrs" in:
+
+perldoc DBIx::Class::Schema::Loader::Base
+
+https://metacpan.org/module/DBIx::Class::Schema::Loader::Base#relationship_attrs
+
+See also the "Changes" file for the last few revisions.
+*******************************************************************************
+EOF
+
 if ($Module::Install::AUTHOR && ! $args->{skip_author_deps}) {
     eval { require Module::Install::ReadmeFromPod }
       or die "\nYou need Module::Install::ReadmeFromPod installed to run this Makefile.PL in author mode:\n\n$@\n";
