@@ -8,7 +8,7 @@ use DBIx::Class::Schema::Loader::Utils 'array_eq';
 use namespace::clean;
 use Lingua::EN::Inflect::Number ();
 
-our $VERSION = '0.07031';
+our $VERSION = '0.07032';
 
 sub _to_PL {
     my ($self, $name) = @_;
