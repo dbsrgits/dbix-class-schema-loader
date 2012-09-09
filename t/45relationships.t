@@ -1,6 +1,7 @@
 use strict;
-use Test::More tests => 12;
+use Test::More;
 use Test::Exception;
+use Try::Tiny;
 use lib qw(t/lib);
 use make_dbictest_db;
 
@@ -98,8 +99,11 @@ is( ref($code_relationship->source('Bar')->relationship_info('fooref_caught')),
 # test relationship_attrs
 throws_ok {
     schema_with( relationship_attrs => 'laughably invalid!!!' );
-} qr/relationship_attrs/, 'throws error for invalid relationship_attrs';
+} qr/relationship_attrs/, 'throws error for invalid (scalar) relationship_attrs';
 
+throws_ok {
+    schema_with( relationship_attrs => [qw/laughably invalid/] );
+} qr/relationship_attrs/, 'throws error for invalid (arrayref) relationship_attrs';
 
 {
     my $nodelete = schema_with( relationship_attrs =>
@@ -123,6 +127,80 @@ throws_ok {
 	'belongs_to in relationship_attrs overrides all def',
       );
 }
+
+# test relationship_attrs coderef
+{
+    my $relationship_attrs_coderef_invoked = 0;
+    my $schema;
+
+    lives_ok {
+        $schema = schema_with(relationship_attrs => sub {
+            my %p = @_;
+
+            $relationship_attrs_coderef_invoked++;
+
+            if ($p{rel_name} eq 'bars') {
+                is $p{local_table},  'foo', 'correct local_table';
+                is_deeply $p{local_cols}, [ 'fooid' ], 'correct local_cols';
+                is $p{remote_table}, 'bar', 'correct remote_table';
+                is_deeply $p{remote_cols}, [ 'fooref' ], 'correct remote_cols';
+                is_deeply $p{attrs}, {
+                    cascade_delete => 0,
+                    cascade_copy   => 0,
+                }, "got default rel attrs for $p{rel_name} in $p{local_table}";
+
+                like $p{local_source}->result_class,
+                    qr/^DBICTest::Schema::\d+::Result::Foo\z/,
+                    'correct local source';
+
+                like $p{remote_source}->result_class,
+                    qr/^DBICTest::Schema::\d+::Result::Bar\z/,
+                    'correct remote source';
+ 
+                $p{attrs}{snoopy} = 1;
+
+                return $p{attrs};
+            }
+            elsif ($p{rel_name} eq 'fooref') {
+                is $p{local_table},  'bar', 'correct local_table';
+                is_deeply $p{local_cols}, [ 'fooref' ], 'correct local_cols';
+                is $p{remote_table}, 'foo', 'correct remote_table';
+                is_deeply $p{remote_cols}, [ 'fooid' ], 'correct remote_cols';
+                is_deeply $p{attrs}, {
+                    on_delete     => 'NO ACTION',
+                    on_update     => 'NO ACTION',
+                    is_deferrable => 0,
+                }, "got correct rel attrs for $p{rel_name} in $p{local_table}";
+
+                like $p{local_source}->result_class,
+                    qr/^DBICTest::Schema::\d+::Result::Bar\z/,
+                    'correct local source';
+
+                like $p{remote_source}->result_class,
+                    qr/^DBICTest::Schema::\d+::Result::Foo\z/,
+                    'correct remote source';
+ 
+                $p{attrs}{scooby} = 1;
+
+                return $p{attrs};
+            }
+            else {
+                fail "unknown rel $p{rel_name} in $p{local_table}";
+            }
+        });
+    } 'dumping schema with coderef relationship_attrs survived';
+
+    is $relationship_attrs_coderef_invoked, 2,
+        'relationship_attrs coderef was invoked correct number of times';
+
+    is ((try { $schema->source('Foo')->relationship_info('bars')->{attrs}{snoopy} }) || undef, 1,
+        "correct relationship attributes for 'bars' in 'Foo'");
+
+    is ((try { $schema->source('Bar')->relationship_info('fooref')->{attrs}{scooby} }) || undef, 1,
+        "correct relationship attributes for 'fooref' in 'Bar'");
+}
+
+done_testing;
 
 #### generates a new schema with the given opts every time it's called
 sub schema_with {

@@ -380,18 +380,55 @@ same database and schema as the table/column whose comment is being retrieved.
 
 =head2 relationship_attrs
 
-Hashref of attributes to pass to each generated relationship, listed
-by type.  Also supports relationship type 'all', containing options to
-pass to all generated relationships.  Attributes set for more specific
-relationship types override those set in 'all'.
+Hashref of attributes to pass to each generated relationship, listed by type.
+Also supports relationship type 'all', containing options to pass to all
+generated relationships.  Attributes set for more specific relationship types
+override those set in 'all', and any attributes specified by this option
+override the introspected attributes of the foreign key if any.
 
 For example:
 
   relationship_attrs => {
-    belongs_to => { is_deferrable => 0 },
+    has_many => { cascade_delete => 1, cascade_copy => 1 },
   },
 
-use this to turn off DEFERRABLE on your foreign key constraints.
+use this to turn L<DBIx::Class> cascades to on on your
+L<has_many|DBIx::Class::Relationship/has_many> relationships, they default to
+off.
+
+Can also be a coderef, for more precise control, in which case the coderef gets
+this hash of parameters:
+
+    rel_name        # the name of the relationship
+    local_source    # the DBIx::Class::ResultSource object for the source the rel is *from*
+    remote_source   # the DBIx::Class::ResultSource object for the source the rel is *to*
+    local_table     # a DBIx::Class::Schema::Loader::Table object for the table of the source the rel is from
+    local_cols      # an arrayref of column names of columns used in the rel in the source it is from
+    remote_table    # a DBIx::Class::Schema::Loader::Table object for the table of the source the rel is to
+    remote_cols     # an arrayref of column names of columns used in the rel in the source it is to
+    attrs           # the attributes that would be set
+
+it should return the new hashref of attributes, or nothing for no changes.
+
+For example:
+
+    relationship_attrs => sub {
+        my %p = @_;
+
+        say "the relationship name is: $p{rel_name}";
+        say "the local class is: ",  $p{local_source}->result_class;
+        say "the remote class is: ", $p{remote_source}->result_class;
+        say "the local table is: ", $p{local_table}->sql_name;
+        say "the rel columns in the local table are: ", (join ", ", @{$p{local_cols}});
+        say "the remote table is: ", $p{remote_table}->sql_name;
+        say "the rel columns in the remote table are: ", (join ", ", @{$p{remote_cols}});
+
+        if ($p{local_table} eq 'dogs' && @{$p{local_cols}} == 1 && $p{local_cols}[0] eq 'name') {
+            $p{attrs}{could_be_snoopy} = 1;
+
+            reutrn $p{attrs};
+        }
+    },
 
 =head2 debug
 

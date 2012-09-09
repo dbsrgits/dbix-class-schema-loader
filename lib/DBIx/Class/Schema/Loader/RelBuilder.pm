@@ -149,8 +149,8 @@ sub new {
 
     # validate the relationship_attrs arg
     if( defined $self->relationship_attrs ) {
-        ref $self->relationship_attrs eq 'HASH'
-            or croak "relationship_attrs must be a hashref";
+        (ref $self->relationship_attrs eq 'HASH' || ref $self->relationship_attrs eq 'CODE')
+            or croak "relationship_attrs must be a hashref or coderef";
     }
 
     return $self;
@@ -257,15 +257,29 @@ sub _default_relationship_attrs { +{
 # The attributes from the database override the default attributes, which in
 # turn are overridden by user supplied attributes.
 sub _relationship_attrs {
-    my ( $self, $reltype, $db_attrs ) = @_;
+    my ( $self, $reltype, $db_attrs, $params ) = @_;
     my $r = $self->relationship_attrs;
 
     my %composite = (
         %{ $self->_default_relationship_attrs->{$reltype} || {} },
         %{ $db_attrs || {} },
-        %{ $r->{all} || {} },
-        %{ $r->{$reltype} || {} },
+        (
+            ref $r eq 'HASH' ? (
+                %{ $r->{all} || {} },
+                %{ $r->{$reltype} || {} },
+            )
+            :
+            ()
+        ),
     );
+
+    if (ref $r eq 'CODE') {
+        $params->{attrs} = \%composite;
+
+        my %ret = %{ $r->(%$params) || {} };
+
+        %composite = %ret if %ret;
+    }
 
     return %composite ? \%composite : undef;
 }
@@ -279,10 +293,10 @@ sub _strip_id_postfix {
 }
 
 sub _remote_attrs {
-    my ($self, $local_moniker, $local_cols, $fk_attrs) = @_;
+    my ($self, $local_moniker, $local_cols, $fk_attrs, $params) = @_;
 
     # get our set of attrs from _relationship_attrs, which uses the FK attrs if available
-    my $attrs = $self->_relationship_attrs('belongs_to', $fk_attrs) || {};
+    my $attrs = $self->_relationship_attrs('belongs_to', $fk_attrs, $params) || {};
 
     # If any referring column is nullable, make 'belongs_to' an
     # outer join, unless explicitly set by relationship_attrs
@@ -409,12 +423,22 @@ sub generate_code {
             $remote_relname   = $self->_resolve_relname_collision($local_moniker,  $local_cols,  $remote_relname);
             $local_relname    = $self->_resolve_relname_collision($remote_moniker, $remote_cols, $local_relname);
 
+            my $rel_attrs_params = {
+                rel_name      => $remote_relname,
+                local_source  => $self->schema->source($local_moniker),
+                remote_source => $self->schema->source($remote_moniker),
+                local_table   => $rel->{local_table},
+                local_cols    => $local_cols,
+                remote_table  => $rel->{remote_table},
+                remote_cols   => $remote_cols,
+            };
+
             push(@{$all_code->{$local_class}},
                 { method => $local_method,
                   args => [ $remote_relname,
                             $remote_class,
                             \%cond,
-                            $self->_remote_attrs($local_moniker, $local_cols, $rel->{attrs}),
+                            $self->_remote_attrs($local_moniker, $local_cols, $rel->{attrs}, $rel_attrs_params),
                   ],
                   extra => {
                       local_class    => $local_class,
@@ -430,12 +454,22 @@ sub generate_code {
                 delete $rev_cond{$_};
             }
 
+            $rel_attrs_params = {
+                rel_name      => $local_relname,
+                local_source  => $self->schema->source($remote_moniker),
+                remote_source => $self->schema->source($local_moniker),
+                local_table   => $rel->{remote_table},
+                local_cols    => $remote_cols,
+                remote_table  => $rel->{local_table},
+                remote_cols   => $local_cols,
+            };
+
             push(@{$all_code->{$remote_class}},
                 { method => $remote_method,
                   args => [ $local_relname,
                             $local_class,
                             \%rev_cond,
-                            $self->_relationship_attrs($remote_method),
+                            $self->_relationship_attrs($remote_method, {}, $rel_attrs_params),
                   ],
                   extra => {
                       local_class    => $remote_class,

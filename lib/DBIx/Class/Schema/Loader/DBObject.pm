@@ -34,7 +34,8 @@ __PACKAGE__->mk_group_accessors(simple => qw/
 /);
 
 use overload
-    '""' => sub { $_[0]->name };
+    '""' => sub { $_[0]->name },
+    fallback => 1;
 
 =head2 new
 
