@@ -127,12 +127,19 @@ my $tester = dbixcsl_common_tests->new(
                         on delete restrict on update set null deferrable
                 )
             },
+            # test inline constraint
+            q{
+                create table extra_loader_test10 (
+                    id integer primary key,
+                    eight_id int references extra_loader_test8(id) on delete restrict on update set null deferrable
+                )
+            },
         ],
         pre_drop_ddl => [ 'DROP VIEW extra_loader_test5' ],
         drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3
                       extra_loader_test4 extra_loader_test6 extra_loader_test7
-                      extra_loader_test8 extra_loader_test9 / ],
-        count => 15,
+                      extra_loader_test8 extra_loader_test9 extra_loader_test10 / ],
+        count => 19,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -181,6 +188,18 @@ my $tester = dbixcsl_common_tests->new(
 
             is $rel_info->{attrs}{is_deferrable}, 1,
                 'DEFERRABLE clause introspected correctly';
+
+            ok (($rel_info = $schema->source('ExtraLoaderTest10')->relationship_info('eight')),
+                'got rel info');
+
+            is $rel_info->{attrs}{on_delete}, 'RESTRICT',
+                'ON DELETE clause introspected correctly for inline FK';
+
+            is $rel_info->{attrs}{on_update}, 'SET NULL',
+                'ON UPDATE clause introspected correctly for inline FK';
+
+            is $rel_info->{attrs}{is_deferrable}, 1,
+                'DEFERRABLE clause introspected correctly for inline FK';
         },
     },
 );

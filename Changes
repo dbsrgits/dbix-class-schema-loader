@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - SQLite: detect is_deferrable for inline FKs
         - support coderefs for relationship_attrs
 
 0.07031  2012-09-06 15:07:08

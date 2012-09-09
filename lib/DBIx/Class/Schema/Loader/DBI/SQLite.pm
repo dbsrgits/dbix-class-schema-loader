@@ -147,8 +147,8 @@ where name = ? and tbl_name = ?
 EOF
 
     foreach my $fk (@rels) {
-        my $local_cols  = '"?' . (join '"? \s* , \s* "?', @{ $fk->{local_columns} })        . '"?';
-        my $remote_cols = '"?' . (join '"? \s* , \s* "?', @{ $fk->{remote_columns} || [] }) . '"?';
+        my $local_cols  = '"?' . (join '"? \s* , \s* "?', map quotemeta, @{ $fk->{local_columns} })        . '"?';
+        my $remote_cols = '"?' . (join '"? \s* , \s* "?', map quotemeta, @{ $fk->{remote_columns} || [] }) . '"?';
         my ($deferrable_clause) = $ddl =~ /
                 foreign \s+ key \s* \( \s* $local_cols \s* \) \s* references \s* (?:\S+|".+?(?<!")") \s*
                 (?:\( \s* $remote_cols \s* \) \s*)?
@@ -164,7 +164,33 @@ EOF
             $fk->{attrs}{is_deferrable} = $deferrable_clause =~ /not/i ? 0 : 1;
         }
         else {
-            $fk->{attrs}{is_deferrable} = 0;
+            # check for inline constraint if 1 local column
+            if (@{ $fk->{local_columns} } == 1) {
+                my ($local_col)  = @{ $fk->{local_columns} };
+                my ($remote_col) = @{ $fk->{remote_columns} || [] };
+                $remote_col ||= '';
+
+                my ($deferrable_clause) = $ddl =~ /
+                    "?\Q$local_col\E"? \s* (?:\w+\s*)* (?: \( \s* \d\+ (?:\s*,\s*\d+)* \s* \) )? \s*
+                    references \s* (?:\S+|".+?(?<!")") (?:\s* \( \s* "?\Q$remote_col\E"? \s* \))? \s*
+                    (?:(?:
+                      on \s+ (?:delete|update) \s+ (?:set \s+ null|set \s+ default|cascade|restrict|no \s+ action)
+                    |
+                      match \s* (?:\S+|".+?(?<!")")
+                    ) \s*)*
+                    ((?:not)? \s* deferrable)?
+                /sxi;
+
+                if ($deferrable_clause) {
+                    $fk->{attrs}{is_deferrable} = $deferrable_clause =~ /not/i ? 0 : 1;
+                }
+                else {
+                    $fk->{attrs}{is_deferrable} = 0;
+                }
+            }
+            else {
+                $fk->{attrs}{is_deferrable} = 0;
+            }
         }
     }
 
