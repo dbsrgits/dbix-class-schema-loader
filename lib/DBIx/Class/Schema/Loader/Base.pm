@@ -402,6 +402,7 @@ Can also be a coderef, for more precise control, in which case the coderef gets
 this hash of parameters (as a list:)
 
     rel_name        # the name of the relationship
+    rel_type        # the type of the relationship: 'belongs_to', 'has_many' or 'might_have'
     local_source    # the DBIx::Class::ResultSource object for the source the rel is *from*
     remote_source   # the DBIx::Class::ResultSource object for the source the rel is *to*
     local_table     # a DBIx::Class::Schema::Loader::Table object for the table of the source the rel is from
@@ -418,6 +419,7 @@ For example:
         my %p = @_;
 
         say "the relationship name is: $p{rel_name}";
+        say "the relationship is a: $p{rel_type}";
         say "the local class is: ",  $p{local_source}->result_class;
         say "the remote class is: ", $p{remote_source}->result_class;
         say "the local table is: ", $p{local_table}->sql_name;

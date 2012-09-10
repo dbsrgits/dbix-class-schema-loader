@@ -140,6 +140,7 @@ throws_ok {
             $relationship_attrs_coderef_invoked++;
 
             if ($p{rel_name} eq 'bars') {
+                is $p{rel_type}, 'has_many', 'correct rel_type';
                 is $p{local_table},  'foo', 'correct local_table';
                 is_deeply $p{local_cols}, [ 'fooid' ], 'correct local_cols';
                 is $p{remote_table}, 'bar', 'correct remote_table';
@@ -162,6 +163,7 @@ throws_ok {
                 return $p{attrs};
             }
             elsif ($p{rel_name} eq 'fooref') {
+                is $p{rel_type}, 'belongs_to', 'correct rel_type';
                 is $p{local_table},  'bar', 'correct local_table';
                 is_deeply $p{local_cols}, [ 'fooref' ], 'correct local_cols';
                 is $p{remote_table}, 'foo', 'correct remote_table';

@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - add rel_type param for relationship_attrs coderef
+
 0.07033  2012-09-09 16:11:47
         - more thoroughly document the new behavior for relationship attributes
           under "relationship_attrs" in ::Base POD

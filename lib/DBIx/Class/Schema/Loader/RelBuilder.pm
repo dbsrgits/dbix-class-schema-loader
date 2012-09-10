@@ -425,6 +425,7 @@ sub generate_code {
 
             my $rel_attrs_params = {
                 rel_name      => $remote_relname,
+                rel_type      => $local_method,
                 local_source  => $self->schema->source($local_moniker),
                 remote_source => $self->schema->source($remote_moniker),
                 local_table   => $rel->{local_table},
@@ -456,6 +457,7 @@ sub generate_code {
 
             $rel_attrs_params = {
                 rel_name      => $local_relname,
+                rel_type      => $remote_method,
                 local_source  => $self->schema->source($remote_moniker),
                 remote_source => $self->schema->source($local_moniker),
                 local_table   => $rel->{remote_table},
