@@ -40,35 +40,40 @@ sub _system_schemas {
     return ($self->next::method(@_), 'pg_catalog');
 }
 
+my %pg_rules = (
+    a => 'NO ACTION',
+    r => 'RESTRICT',
+    c => 'CASCADE,',
+    n => 'SET NULL',
+    d => 'SET DEFAULT',
+);
+
 sub _table_fk_info {
     my ($self, $table) = @_;
 
     my $sth = $self->dbh->prepare_cached(<<"EOF");
-SELECT rc.constraint_name, rc.unique_constraint_schema, uk_tc.table_name,
-       fk_kcu.column_name, uk_kcu.column_name, rc.delete_rule, rc.update_rule,
-       fk_tc.is_deferrable
-FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS fk_tc
-JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
-    ON rc.constraint_name = fk_tc.constraint_name
-        AND rc.constraint_schema = fk_tc.table_schema
-JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE fk_kcu
-    ON fk_kcu.constraint_name = fk_tc.constraint_name
-        AND fk_kcu.table_name = fk_tc.table_name
-        AND fk_kcu.table_schema = fk_tc.table_schema
-JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS uk_tc
-    ON uk_tc.constraint_name = rc.unique_constraint_name
-        AND uk_tc.table_schema = rc.unique_constraint_schema
-JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE uk_kcu
-    ON uk_kcu.constraint_name = rc.unique_constraint_name
-        AND uk_kcu.ordinal_position = fk_kcu.ordinal_position
-        AND uk_kcu.table_name = uk_tc.table_name
-        AND uk_kcu.table_schema = rc.unique_constraint_schema
-WHERE fk_tc.table_name = ?
-    AND fk_tc.table_schema = ?
-ORDER BY fk_kcu.ordinal_position
+select q.constr_name, q.to_schema, q.to_table, from_cols.attname from_col, to_cols.attname to_col,
+       q.on_delete, q.on_update, q.is_deferrable
+from (select constr.conname constr_name, to_ns.nspname to_schema, to_class.relname to_table,
+             unnest(constr.conkey) from_colnum, unnest(constr.confkey) to_colnum,
+             constr.confdeltype on_delete, constr.confupdtype on_update,
+             constr.condeferrable is_deferrable,
+             constr.conrelid conrelid, constr.confrelid confrelid
+      from pg_constraint constr
+      join pg_namespace from_ns on constr.connamespace = from_ns.oid
+      join pg_class from_class on constr.conrelid = from_class.oid and from_class.relnamespace = from_ns.oid
+      join pg_class to_class on constr.confrelid = to_class.oid
+      join pg_namespace to_ns on to_class.relnamespace = to_ns.oid
+      where from_ns.nspname = ?
+        and from_class.relname = ?
+        and from_class.relkind = 'r'
+        and constr.contype = 'f'
+) q
+join pg_attribute from_cols on from_cols.attrelid = q.conrelid and from_cols.attnum = q.from_colnum
+join pg_attribute to_cols on to_cols.attrelid = q.confrelid and to_cols.attnum = q.to_colnum;
 EOF
 
-    $sth->execute($table->name, $table->schema);
+    $sth->execute($table->schema, $table->name);
 
     my %rels;
 
@@ -84,9 +89,9 @@ EOF
         ) unless exists $rels{$fk}{remote_table};
 
         $rels{$fk}{attrs} ||= {
-            on_delete     => uc $delete_rule,
-            on_update     => uc $update_rule,
-            is_deferrable => uc $is_deferrable eq 'YES' ? 1 : 0,
+            on_delete     => $pg_rules{$delete_rule},
+            on_update     => $pg_rules{$update_rule},
+            is_deferrable => $is_deferrable,
         };
     }
 
