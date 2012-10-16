@@ -165,13 +165,26 @@ sub _table_pk_info {
     return \@keydata;
 }
 
+my %sqlany_rules = (
+    C => 'CASCADE',
+    D => 'SET DEFAULT',
+    N => 'SET NULL',
+    R => 'RESTRICT',
+);
+
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my ($local_cols, $remote_cols, $remote_table, @rels);
+    my ($local_cols, $remote_cols, $remote_table, $attrs, @rels);
     my $sth = $self->dbh->prepare(<<'EOF');
-SELECT fki.index_name fk_name, fktc.column_name local_column, pku.user_name remote_schema, pkt.table_name remote_table, pktc.column_name remote_column
+SELECT fki.index_name fk_name, fktc.column_name local_column, pku.user_name remote_schema, pkt.table_name remote_table, pktc.column_name remote_column, on_delete.referential_action, on_update.referential_action
 FROM sysfkey fk
+JOIN (
+    select foreign_table_id, foreign_index_id,
+           row_number() over (partition by foreign_table_id order by foreign_index_id) foreign_key_num
+    from sysfkey
+) fkid
+    ON fkid.foreign_table_id = fk.foreign_table_id and fkid.foreign_index_id = fk.foreign_index_id
 JOIN systab    pkt
     ON fk.primary_table_id = pkt.table_id
 JOIN sysuser   pku
@@ -190,18 +203,39 @@ JOIN systabcol pktc
     ON pkt.table_id        = pktc.table_id AND fkic.primary_column_id = pktc.column_id
 JOIN systabcol fktc
     ON fkt.table_id        = fktc.table_id AND fkic.column_id         = fktc.column_id
+LEFT JOIN systrigger on_delete
+    ON on_delete.foreign_table_id = fkt.table_id AND on_delete.foreign_key_id = fkid.foreign_key_num
+    AND on_delete.event = 'D'
+LEFT JOIN systrigger on_update
+    ON on_update.foreign_table_id = fkt.table_id AND on_update.foreign_key_id = fkid.foreign_key_num
+    AND on_update.event = 'C'
 WHERE fku.user_name = ? AND fkt.table_name = ?
+ORDER BY fk.primary_table_id, pktc.column_id
 EOF
     $sth->execute($table->schema, $table->name);
 
-    while (my ($fk, $local_col, $remote_schema, $remote_tab, $remote_col) = $sth->fetchrow_array) {
+    while (my ($fk, $local_col, $remote_schema, $remote_tab, $remote_col, $on_delete, $on_update)
+            = $sth->fetchrow_array) {
+
         push @{$local_cols->{$fk}},  $self->_lc($local_col);
+
         push @{$remote_cols->{$fk}}, $self->_lc($remote_col);
+
         $remote_table->{$fk} = DBIx::Class::Schema::Loader::Table->new(
             loader  => $self,
             name    => $remote_tab,
             schema  => $remote_schema,
         );
+
+        $attrs->{$fk} ||= {
+            on_delete => $sqlany_rules{$on_delete||''} || 'RESTRICT',
+            on_update => $sqlany_rules{$on_update||''} || 'RESTRICT',
+# We may be able to use the value of the 'CHECK ON COMMIT' option, as it seems
+# to be some sort of workaround for lack of deferred constraints. Unclear on
+# how good of a substitute it is, and it requires the 'RESTRICT' rule. Also it
+# only works for INSERT and UPDATE, not DELETE. Will get back to this.
+            is_deferrable => 1,
+        };
     }
 
     foreach my $fk (keys %$remote_table) {
@@ -209,6 +243,7 @@ EOF
             local_columns => $local_cols->{$fk},
             remote_columns => $remote_cols->{$fk},
             remote_table => $remote_table->{$fk},
+            attrs => $attrs->{$fk},
         };
     }
     return \@rels;

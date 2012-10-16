@@ -44,6 +44,8 @@ my $tester = dbixcsl_common_tests->new(
         } : ()),
     ],
     loader_options => { preserve_case => 1 },
+    default_is_deferrable => 1,
+    default_on_clause => 'RESTRICT',
     data_types  => {
         # http://infocenter.sybase.com/help/topic/com.sybase.help.sqlanywhere.11.0.1/dbreference_en11/rf-datatypes.html
         #
@@ -144,11 +146,41 @@ my $tester = dbixcsl_common_tests->new(
         'ntext'        => { data_type => 'ntext' },
     },
     extra => {
-        count => 30 * 2,
+        create => [
+            # 4 through 8 are used for the multi-schema tests
+            q{
+                create table sqlanywhere_loader_test9 (
+                    id int identity not null primary key
+                )
+            },
+            q{
+                create table sqlanywhere_loader_test10 (
+                    id int identity not null primary key,
+                    nine_id int,
+                    foreign key (nine_id) references sqlanywhere_loader_test9(id)
+                        on delete cascade on update set null
+                )
+            },
+        ],
+        drop  => [ qw/sqlanywhere_loader_test9 sqlanywhere_loader_test10/ ],
+        count => 4 + 30 * 2,
         run => sub {
             SKIP: {
                 $schema  = $_[0];
                 my $self = $_[3];
+
+                # test on delete/update fk clause introspection
+                ok ((my $rel_info = $schema->source('SqlanywhereLoaderTest10')->relationship_info('nine')),
+                    'got rel info');
+
+                is $rel_info->{attrs}{on_delete}, 'CASCADE',
+                    'ON DELETE clause introspected correctly';
+
+                is $rel_info->{attrs}{on_update}, 'SET NULL',
+                    'ON UPDATE clause introspected correctly';
+
+                is $rel_info->{attrs}{is_deferrable}, 1,
+                    'is_deferrable defaults to 1';
 
                 my $connect_info = [@$self{qw/dsn user password/}];
 

@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - SQL Anywhere: introspect ON DELETE/UPDATE rules, default is now
+          RESTRICT. is_deferrable still defaults to 1
         - rewrite pg fk introspection to use catalog views instead of
           information_schema as information_schema does not work for readonly
           users
