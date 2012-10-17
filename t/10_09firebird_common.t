@@ -127,10 +127,73 @@ my $tester = dbixcsl_common_tests->new(
                       => { data_type => 'blob sub_type text character set unicode_fss' },
     },
     extra => {
-        count  => 9,
+        create => [
+            q{
+                create table firebird_loader_test9 (
+                    id integer not null primary key
+                )
+            },
+            q{
+                create table firebird_loader_test10 (
+                    id integer not null primary key,
+                    nine_id integer,
+                    foreign key (nine_id) references firebird_loader_test9(id)
+                        on delete no action on update no action
+                )
+            },
+            q{
+                create table firebird_loader_test11 (
+                    id integer not null primary key,
+                    nine_id integer,
+                    foreign key (nine_id) references firebird_loader_test9(id)
+                        on delete cascade on update cascade
+                )
+            },
+            q{
+                create table firebird_loader_test12 (
+                    id integer not null primary key,
+                    nine_id integer,
+                    foreign key (nine_id) references firebird_loader_test9(id)
+                        on delete set default on update set default
+                )
+            },
+            q{
+                create table firebird_loader_test13 (
+                    id integer not null primary key,
+                    nine_id integer,
+                    foreign key (nine_id) references firebird_loader_test9(id)
+                        on delete set null on update set null
+                )
+            },
+        ],
+        drop  => [ qw/firebird_loader_test9 firebird_loader_test10 firebird_loader_test11
+                      firebird_loader_test12 firebird_loader_test13/ ],
+        count  => 4 * 4 + 9,
         run    => sub {
             $schema = shift;
             my ($monikers, $classes, $self) = @_;
+
+            my %fk_tests = (
+                10 => 'NO ACTION',
+                11 => 'CASCADE',
+                12 => 'SET DEFAULT',
+                13 => 'SET NULL',
+            );
+
+            # test on delete/update fk clause introspection
+            foreach my $tbl_num (qw/10 11 12 13/) {
+                ok ((my $rel_info = $schema->source("FirebirdLoaderTest${tbl_num}")->relationship_info('nine')),
+                    'got rel info');
+
+                is $rel_info->{attrs}{on_delete}, $fk_tests{$tbl_num},
+                    'ON DELETE clause introspected correctly';
+
+                is $rel_info->{attrs}{on_update}, $fk_tests{$tbl_num},
+                    'ON UPDATE clause introspected correctly';
+
+                is $rel_info->{attrs}{is_deferrable}, 1,
+                    'is_deferrable defaults to 1';
+            }
 
             cleanup_extra();
 

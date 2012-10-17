@@ -25,7 +25,7 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 =head1 COLUMN NAME CASE ISSUES
 
 By default column names from unquoted DDL will be generated in lowercase, for
-consistency with other backends. 
+consistency with other backends.
 
 Set the L<preserve_case|DBIx::Class::Schema::Loader::Base/preserve_case> option
 to true if you would like to have column names in the internal case, which is
@@ -93,7 +93,7 @@ EOF
 sub _table_fk_info {
     my ($self, $table) = @_;
 
-    my ($local_cols, $remote_cols, $remote_table, @rels);
+    my ($local_cols, $remote_cols, $remote_table, $attrs, @rels);
     my $sth = $self->dbh->prepare(<<'EOF');
 SELECT rc.rdb$constraint_name fk, iseg.rdb$field_name local_col, ri.rdb$relation_name remote_tab, riseg.rdb$field_name remote_col
 FROM rdb$relation_constraints rc
@@ -110,7 +110,9 @@ EOF
         s/^\s+//, s/\s+\z// for $fk, $local_col, $remote_tab, $remote_col;
 
         push @{$local_cols->{$fk}},  $self->_lc($local_col);
+
         push @{$remote_cols->{$fk}}, $self->_lc($remote_col);
+
         $remote_table->{$fk} = DBIx::Class::Schema::Loader::Table->new(
             loader => $self,
             name   => $remote_tab,
@@ -119,6 +121,36 @@ EOF
                 ignore_schema => 1,
             ) : ()),
         );
+    }
+
+    local $self->dbh->{LongReadLen} = 100_000;
+    local $self->dbh->{LongTruncOk} = 1;
+
+    my %RULE_FOR = (
+        4 => 'on_update',
+        6 => 'on_delete',
+    );
+
+    $sth = $self->dbh->prepare_cached(<<'EOF');
+select rdb$trigger_blr, rdb$trigger_type
+from rdb$triggers
+where rdb$trigger_type in (4,6)
+    and rdb$system_flag > 0
+    and rdb$relation_name = ?
+EOF
+
+    foreach my $fk (keys %$remote_table) {
+        my $uk_table = $remote_table->{$fk};
+
+        $sth->execute($uk_table);
+
+        while (my ($blr, $type) = $sth->fetchrow_array) {
+            $type = $RULE_FOR{$type};
+
+            print STDERR "GOT $type:\n";
+            use Data::Dumper;
+            print STDERR Dumper($blr), "\n";
+        }
     }
 
     foreach my $fk (keys %$remote_table) {
