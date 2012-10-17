@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - MSSQL: on > 2000 use schema_name() instead of user_name() to detect
+          current schema and query sys.schemas instead of sysusers.
         - SQL Anywhere: introspect ON DELETE/UPDATE rules, default is now
           RESTRICT. is_deferrable still defaults to 1
         - rewrite pg fk introspection to use catalog views instead of

@@ -51,6 +51,11 @@ been renamed to a more generic option.
 
 =cut
 
+# SQL Server 2000: Ancient as time itself, but still out in the wild
+sub _is_2k {
+    return shift->schema->storage->_server_info->{normalized_dbms_version} < 9;
+}
+
 sub _system_databases {
     return (qw/
         master model tempdb msdb
@@ -63,16 +68,29 @@ sub _system_tables {
     /);
 }
 
-sub _owners {
+sub _schemas {
     my ($self, $db) = @_;
 
-    my $owners = $self->dbh->selectcol_arrayref(<<"EOF");
+    my $owners = $self->dbh->selectcol_arrayref($self->_is_2k ? <<"EOF2K" : <<"EOF");
 SELECT name
 FROM [$db].dbo.sysusers
 WHERE uid <> gid
+EOF2K
+SELECT name
+FROM [$db].sys.schemas
 EOF
 
     return grep !/^(?:#|guest|INFORMATION_SCHEMA|sys)/, @$owners;
+}
+
+sub _current_schema {
+    my $self = shift;
+
+    if ($self->_is_2k) {
+        return ($self->dbh->selectrow_array('SELECT user_name()'))[0];
+    }
+
+    return ($self->dbh->selectrow_array('SELECT schema_name()'))[0];
 }
 
 sub _current_db {
@@ -142,7 +160,7 @@ EOF
             }
             else {
                 if ($db ne $current_db) {
-                    $self->dbh->do("USE [$db]");
+                    $self->_switch_db($db);
 
                     $self->qualify_objects(1);
                 }
@@ -154,7 +172,7 @@ EOF
     }
     elsif (ref $self->db_schema eq 'ARRAY' || (not defined $self->db_schema)) {
         my $owners = $self->db_schema;
-        $owners ||= [ $self->dbh->selectrow_array('SELECT user_name()') ];
+        $owners ||= [ $self->_current_schema ];
 
         $self->qualify_objects(1) if @$owners > 1;
 
@@ -163,7 +181,7 @@ EOF
 
     foreach my $db (keys %{ $self->db_schema }) {
         if ($self->db_schema->{$db} eq '%') {
-            $self->db_schema->{$db} = [ $self->_owners($db) ];
+            $self->db_schema->{$db} = [ $self->_schemas($db) ];
 
             $self->qualify_objects(1);
         }
@@ -359,11 +377,8 @@ sub _columns_info_for {
 
     my $result = $self->next::method(@_);
 
-    # SQL Server: Ancient as time itself, but still out in the wild
-    my $is_2k = $self->schema->storage->_server_info->{normalized_dbms_version} < 9;
-    
     # get type info (and identity)
-    my $rows = $self->dbh->selectall_arrayref($is_2k ? <<"EOF2K" : <<"EOF");
+    my $rows = $self->dbh->selectall_arrayref($self->_is_2k ? <<"EOF2K" : <<"EOF");
 SELECT c.column_name, c.character_maximum_length, c.data_type, c.datetime_precision, c.column_default, (sc.status & 0x80) is_identity
 FROM [$db].INFORMATION_SCHEMA.COLUMNS c
 JOIN [$db].dbo.sysusers ss ON
