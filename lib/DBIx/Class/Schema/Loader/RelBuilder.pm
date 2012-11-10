@@ -544,11 +544,13 @@ sub _generate_m2ms {
 
         my @class2_to_cols = apply { s/^foreign\.//i } keys %{ $rels->[0]{args}[2] };
 
+        my $link_moniker = $rels->[0]{extra}{local_moniker};
+
         my @link_table_cols =
-            @{[ $self->schema->source($rels->[0]{extra}{local_moniker})->columns ]};
+            @{[ $self->schema->source($link_moniker)->columns ]};
 
         my @link_table_primary_cols =
-            @{[ $self->schema->source($rels->[0]{extra}{local_moniker})->primary_columns ]};
+            @{[ $self->schema->source($link_moniker)->primary_columns ]};
 
         next unless @class1_link_cols + @class2_link_cols == @link_table_cols
             && @link_table_cols == @link_table_primary_cols;
@@ -562,6 +564,11 @@ sub _generate_m2ms {
             $class2,
             $class1_remote_moniker,
             \@class1_to_cols,
+            {
+                link_class => $class,
+                link_moniker => $link_moniker,
+                link_rel_name => $class1_to_link_table_rel_name,
+            },
         );
 
         $class1_to_class2_relname = $self->_resolve_relname_collision(
@@ -579,6 +586,11 @@ sub _generate_m2ms {
             $class2,
             $class2_remote_moniker,
             \@class2_to_cols,
+            {
+                link_class => $class,
+                link_moniker => $link_moniker,
+                link_rel_name => $class2_to_link_table_rel_name,
+            },
         );
 
         $class2_to_class1_relname = $self->_resolve_relname_collision(
@@ -909,9 +921,10 @@ sub _relnames_and_method {
 
 sub _rel_name_map {
     my ($self, $relname, $method, $local_class, $local_moniker, $local_cols,
-        $remote_class, $remote_moniker, $remote_cols) = @_;
+        $remote_class, $remote_moniker, $remote_cols, $extra) = @_;
 
     my $info = {
+        %{$extra || {}},
         name           => $relname,
         type           => $method,
         local_class    => $local_class,

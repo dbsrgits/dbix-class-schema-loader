@@ -618,6 +618,10 @@ If it is a coderef, the argument passed will be a hashref of this form:
         remote_class   => name of the DBIC class we are related to,
         remote_moniker => moniker of the DBIC class we are related to,
         remote_columns => columns in the other table in the relationship,
+        # for type => "many_to_many" only:
+        link_class     => name of the DBIC class for the link table
+        link_moniker   => moniker of the DBIC class for the link table
+        link_rel_name  => name of the relationship to the link table
     }
 
 DBICSL will try to use the value returned as the relationship name.
