@@ -24,41 +24,41 @@ perl_version '5.008001';
 name           'DBIx-Class-Schema-Loader';
 all_from       'lib/DBIx/Class/Schema/Loader.pm';
 
-test_requires 'Test::Exception';
-test_requires 'Test::More'    => '0.94';
-test_requires 'Test::Warn'    => '0.21';
-test_requires 'DBI'           => '1.56';
-test_requires 'DBD::SQLite'   => '1.29';
-test_requires 'File::Copy';
-test_requires 'File::Temp'    => '0.16';
-test_requires 'File::Path'    => '2.07';
-test_requires 'IPC::Open3'    => 0;
+# temporary, needs to be thrown out
 test_requires 'DBIx::Class::IntrospectableM2M' => 0;
 
-requires 'File::Spec'                  => 0;
-requires 'Scalar::Util'                => 0;
-requires 'Task::Weaken'                => 0;
+# core, but specific versions not available on older perls
+test_requires 'File::Temp'      => '0.16';
+test_requires 'File::Path'      => '2.07';
+
+test_requires 'DBD::SQLite'     => '1.29';
+test_requires 'Test::Exception' => '0.31';
+test_requires 'Test::More'      => '0.94';
+test_requires 'Test::Warn'      => '0.21';
+
+requires 'Carp::Clan'                  => 0;
+requires 'Class::Accessor::Grouped'    => '0.10008';
+requires 'Class::C3::Componentised'    => '1.0008';
+requires 'Class::Inspector'            => '1.27';
+requires 'Class::Unload'               => '0.07';
 requires 'Data::Dump'                  => '1.06';
+requires 'DBIx::Class'                 => '0.08127';
+requires 'Hash::Merge'                 => '0.12';
 requires 'Lingua::EN::Inflect::Number' => '1.1';
 requires 'Lingua::EN::Tagger'          => '0.23';
 requires 'Lingua::EN::Inflect::Phrase' => '0.15';
-requires 'Digest::MD5'                 => '2.36';
-requires 'Class::Accessor::Grouped'    => '0.10002';
+requires 'List::MoreUtils'             => '0.32';
 requires 'MRO::Compat'                 => '0.09';
-requires 'Sub::Name'                   => 0;
-requires 'Class::C3::Componentised'    => '1.0008';
-requires 'Carp::Clan'                  => 0;
-requires 'Class::Inspector'            => '1.27';
-requires 'DBIx::Class'                 => '0.08127';
-requires 'Class::Unload'               => 0;
-requires 'List::MoreUtils'             => 0;
-requires 'namespace::clean'            => '0.20';
-requires 'Scope::Guard'                => 0;
-requires 'Exporter'                    => '5.63';
-requires 'Try::Tiny'                   => 0;
+requires 'namespace::clean'            => '0.23';
+requires 'Scope::Guard'                => '0.20';
 requires 'String::ToIdentifier::EN'    => '0.05';
 requires 'String::CamelCase'           => '0.02';
-requires 'Hash::Merge'                 => 0;
+requires 'Sub::Name'                   => 0;
+requires 'Try::Tiny'                   => 0;
+
+# core, but specific versions not available on older perls
+requires 'Digest::MD5'                 => '2.36';
+requires 'Exporter'                    => '5.63';
 
 print <<"EOF";
 ******************* DBIx::Class::Schema::Loader WARNING ***********************
