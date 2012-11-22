@@ -49,8 +49,6 @@
     - add -I support to dbicdump
 
 - Relationships
-   - Re-scan relations/tables after initial relation setup to find
-     ->many_to_many() relations to be set up
    - While scanning for many-to-many, scan for implied rels as well (if
      foo->belongs_to('bar') and baz->belongs_to('bar'), does that impliy
      foo->might_have('baz') and the reverse?)
