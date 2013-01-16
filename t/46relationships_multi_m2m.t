@@ -35,7 +35,7 @@ my $schema_counter = 0;
                     "link_class";
                 like $args->{link_moniker}, qr/\AFooBar(?:One|Two)\z/,
                     "link_moniker";
-                like $args->{link_rel_name}, qr/\Afoo_bar_(?:ones|twoes)\z/,
+                like $args->{link_rel_name}, qr/\Afoo_bar_(?:ones|twos)\z/,
                     "link_rel_name";
 
                 return $args->{name}."_".(split /_/, $args->{link_rel_name})[-1];
@@ -45,7 +45,7 @@ my $schema_counter = 0;
     foreach ([qw(Foo bars)], [qw(Bar foos)]) {
         my ($source, $rel) = @{$_};
         my $row = $submap->resultset($source)->find(1);
-        foreach ([ones => 1], [twoes => 2]) {
+        foreach ([ones => 1], [twos => 2]) {
             my ($link, $count) = @{$_};
             my $m2m = "${rel}_${link}";
             can_ok $row, $m2m;
