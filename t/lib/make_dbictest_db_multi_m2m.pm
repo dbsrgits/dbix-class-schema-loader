@@ -32,11 +32,17 @@ $dbh->do($_) for (
         bar_id INTEGER NOT NULL REFERENCES bar(bar_id),
         PRIMARY KEY (foo_id, bar_id)
       )|,
-    q|INSERT INTO FOO (foo_id) VALUES (1), (2)|,
-    q|INSERT INTO BAR (bar_id) VALUES (1), (2)|,
-    q|INSERT INTO foo_bar_one (foo_id, bar_id) VALUES (1,1),(2,2)|,
-    q|INSERT INTO foo_bar_two (foo_id, bar_id) VALUES (1,1),(1,2),(2,1),(2,2)|,
-);
+    q|INSERT INTO foo (foo_id) VALUES (1)|,
+    q|INSERT INTO foo (foo_id) VALUES (2)|,
+    q|INSERT INTO bar (bar_id) VALUES (1)|,
+    q|INSERT INTO bar (bar_id) VALUES (2)|,
+    q|INSERT INTO foo_bar_one (foo_id, bar_id) VALUES (1,1)|,
+    q|INSERT INTO foo_bar_one (foo_id, bar_id) VALUES (2,2)|,
+    q|INSERT INTO foo_bar_two (foo_id, bar_id) VALUES (1,1)|,
+    q|INSERT INTO foo_bar_two (foo_id, bar_id) VALUES (1,2)|,
+    q|INSERT INTO foo_bar_two (foo_id, bar_id) VALUES (2,1)|,
+    q|INSERT INTO foo_bar_two (foo_id, bar_id) VALUES (2,2)|,
+  );
 
 END { unlink($fn) unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}; }
 

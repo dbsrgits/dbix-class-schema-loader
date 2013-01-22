@@ -1,7 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
-0.07034_01  2013-01-16
+0.07034_01  2013-01-21
+        - Fix fixture generation helper to work with older DBD::SQLite versions
 
+0.07034_01  2013-01-16
         - MSSQL: on > 2000 use schema_name() instead of user_name() to detect
           current schema and query sys.schemas instead of sysusers.
         - SQL Anywhere: introspect ON DELETE/UPDATE rules, default is now
