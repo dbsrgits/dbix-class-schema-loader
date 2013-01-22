@@ -5,7 +5,7 @@ use warnings;
 use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_05';
 use mro 'c3';
 
-our $VERSION = '0.07034_01';
+our $VERSION = '0.07034_02';
 
 sub _relnames_and_method {
     my ( $self, $local_moniker, $rel, $cond, $uniqs, $counters ) = @_;
