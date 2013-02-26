@@ -1,5 +1,9 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07035  2013-02-26
+        - Release 0.07034_01 with a stable version number. 0.07034 is
+          skipped due to the improper dev release versioning.
+
 0.07034_01  2013-01-21
         - Fix fixture generation helper to work with older DBD::SQLite versions
 
