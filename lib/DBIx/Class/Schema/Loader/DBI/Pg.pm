@@ -43,7 +43,7 @@ sub _system_schemas {
 my %pg_rules = (
     a => 'NO ACTION',
     r => 'RESTRICT',
-    c => 'CASCADE,',
+    c => 'CASCADE',
     n => 'SET NULL',
     d => 'SET DEFAULT',
 );
