@@ -1,8 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Fix stray comma in Pg on_delete/on_update => CASCADE (RT#84706)
-	- Fix MySQL enums with empty strings and leading/trailing quotes (RT#86091)
-	- Fix "table" parameter in col_accessor_map callback (RT#84050)
+        - Fix MySQL enums with empty strings and leading/trailing quotes (RT#86091)
+        - Fix "table" parameter in col_accessor_map callback (RT#84050)
 
 0.07035  2013-02-26
         - Release 0.07034_01 with a stable version number. 0.07034 is
@@ -390,7 +390,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - exclude 'size' column_info for postgres when unnecessary, and
           use the correct precision for varying types (except NUMERIC)
         - 'naming' attribute and backward compatibility with 0.04006
-	- added relationship_attrs option for setting attributes in
+        - added relationship_attrs option for setting attributes in
           generated relationships
         - added overwrite_modifications option that ignores md5sums on
           generated code
