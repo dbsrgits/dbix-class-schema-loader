@@ -2415,7 +2415,8 @@ sub _setup_src_meta {
         my $context = {
             table_class     => $table_class,
             table_moniker   => $table_moniker,
-            table_name      => $table,
+            table_name      => $table, # bugwards compatibility, RT#84050
+            table           => $table,
             full_table_name => $table->dbic_name,
             schema_class    => $schema_class,
             column_info     => $info,

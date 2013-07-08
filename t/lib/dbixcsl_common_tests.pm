@@ -113,7 +113,7 @@ sub run_tests {
 
     my $extra_count = $self->{extra}{count} || 0;
 
-    my $col_accessor_map_tests = 5;
+    my $col_accessor_map_tests = 6;
     my $num_rescans = 6;
     $num_rescans++ if $self->{vendor} eq 'mssql';
     $num_rescans++ if $self->{vendor} eq 'Firebird';
@@ -2291,7 +2291,7 @@ sub test_col_accessor_map {
 
         is( $default_name, 'crumb_crisp_coating', 'col_accessor_map was passed the default name' );
         ok( $context->{$_}, "col_accessor_map func was passed the $_" )
-            for qw( table_name table_class table_moniker schema_class );
+            for qw( table table_name table_class table_moniker schema_class );
 
         return 'trivet';
     } else {
