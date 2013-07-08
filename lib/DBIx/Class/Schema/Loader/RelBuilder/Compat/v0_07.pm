@@ -17,7 +17,7 @@ L<DBIx::Class::Schema::Loader::RelBuilder>.
 
 =cut
 
-our $VERSION = '0.07035';
+our $VERSION = '0.07036';
 
 sub _strip_id_postfix {
     my ($self, $name) = @_;

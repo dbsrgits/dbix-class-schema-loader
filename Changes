@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07036  2013-07-08
         - Fix stray comma in Pg on_delete/on_update => CASCADE (RT#84706)
         - Fix MySQL enums with empty strings and leading/trailing quotes (RT#86091)
         - Fix "table" parameter in col_accessor_map callback (RT#84050)
