@@ -11,6 +11,7 @@
 /META.*
 /MYMETA.*
 /README
+/DBIx-Class-Schema-Loader-*
 lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod
 t/var
 *\.DS_Store
