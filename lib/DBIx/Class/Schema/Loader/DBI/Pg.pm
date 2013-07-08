@@ -95,7 +95,7 @@ EOF
         };
     }
 
-    return [ values %rels ];
+    return [ map { $rels{$_} } sort keys %rels ];
 }
 
 
@@ -293,12 +293,14 @@ EOF
             if ($typetype && $typetype eq 'e') {
                 # The following will extract a list of allowed values for the
                 # enum.
+                my $order_column = $self->dbh->{pg_server_version} >= 90100 ? 'enumsortorder' : 'oid';
                 my $typevalues = $self->dbh
                     ->selectall_arrayref(<<EOF, {}, $info->{data_type});
 SELECT e.enumlabel
 FROM pg_catalog.pg_enum e
 JOIN pg_catalog.pg_type t ON t.oid = e.enumtypid
 WHERE t.typname = ?
+ORDER BY e.$order_column
 EOF
 
                 $info->{extra}{list} = [ map { $_->[0] } @$typevalues ];
