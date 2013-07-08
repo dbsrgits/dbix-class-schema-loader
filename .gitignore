@@ -14,3 +14,6 @@
 lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod
 t/var
 *\.DS_Store
+*~
+.#*
+*#
