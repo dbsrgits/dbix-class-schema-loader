@@ -136,14 +136,17 @@ my $tester = dbixcsl_common_tests->new(
         'longblob'    => { data_type => 'longblob' },
         'longtext'    => { data_type => 'longtext' },
 
-        "enum('foo','bar','baz')"
-                      => { data_type => 'enum', extra => { list => [qw/foo bar baz/] } },
-        "enum('foo \\'bar\\' baz', 'foo ''bar'' quux')"
-                      => { data_type => 'enum', extra => { list => [q{foo 'bar' baz}, q{foo 'bar' quux}] } },
-        "set('foo \\'bar\\' baz', 'foo ''bar'' quux')"
-                      => { data_type => 'set', extra => { list => [q{foo 'bar' baz}, q{foo 'bar' quux}] } },
-        "set('foo','bar','baz')"
-                      => { data_type => 'set',  extra => { list => [qw/foo bar baz/] } },
+        ( map {
+            "$_('','foo','bar','baz')"
+                      => { data_type => $_, extra => { list => ['', qw/foo bar baz/] } },
+            "$_('foo \\'bar\\' baz', 'foo ''bar'' quux')"
+                      => { data_type => $_, extra => { list => [q{foo 'bar' baz}, q{foo 'bar' quux}] } },
+            "$_('''', '''foo', 'bar''')"
+                      => { data_type => $_, extra => { list => [qw(' 'foo bar')] } },
+            "$_('\\'', '\\'foo', 'bar\\'')",
+                      => { data_type => $_, extra => { list => [qw(' 'foo bar')] } },
+            } qw(set enum)
+        ),
 
         # RT#68717
         "enum('11,10 (<500)/0 DUN','4,90 (<120)/0 EUR') NOT NULL default '11,10 (<500)/0 DUN'"

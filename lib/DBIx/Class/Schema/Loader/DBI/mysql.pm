@@ -269,7 +269,7 @@ EOF
 
             delete $info->{extra}{list};
 
-            while ($column_type =~ /'((?:[^']* (?:''|\\')* [^']*)* [^\\'])',?/xg) {
+            while ($column_type =~ /'((?:[^']* (?:''|\\')* [^']*)* [^\\']?)',?/xg) {
                 my $el = $1;
                 $el =~ s/''/'/g;
                 push @{ $info->{extra}{list} }, $el;
