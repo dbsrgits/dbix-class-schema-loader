@@ -1605,8 +1605,8 @@ sub _load_tables {
 
                 my $moniker_parts = [ @{ $self->moniker_parts } ];
 
-                my $have_schema   = 1 if any { $_ eq 'schema'   } @{ $self->moniker_parts };
-                my $have_database = 1 if any { $_ eq 'database' } @{ $self->moniker_parts };
+                my $have_schema   = any { $_ eq 'schema'   } @{ $self->moniker_parts };
+                my $have_database = any { $_ eq 'database' } @{ $self->moniker_parts };
 
                 unshift @$moniker_parts, 'schema'   if $use_schema   && !$have_schema;
                 unshift @$moniker_parts, 'database' if $use_database && !$have_database;
