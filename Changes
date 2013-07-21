@@ -4,6 +4,8 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Don't ship MYMETA.* files (RT#87713)
         - Fix many_to_many bridges involving might_have relationships
         - Allow specifying custom attributes for many_to_many bridges
+        - Allow specifying the separator when joining database, schema
+          and table names to form a moniker
 
 0.07036  2013-07-08
         - Fix stray comma in Pg on_delete/on_update => CASCADE (RT#84706)

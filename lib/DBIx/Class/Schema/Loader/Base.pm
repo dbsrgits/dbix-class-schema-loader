@@ -109,6 +109,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 db_schema
                                 qualify_objects
                                 moniker_parts
+                                moniker_part_separator
 /);
 
 my $CURRENT_V = 'v7';
@@ -520,6 +521,7 @@ the table.
 The L</moniker_parts> option is an arrayref of methods on the table class
 corresponding to parts of the fully qualified table name, defaulting to
 C<['name']>, in the order those parts are used to create the moniker name.
+The parts are joined together using L</moniker_part_separator>.
 
 The C<'name'> entry B<must> be present.
 
@@ -536,6 +538,12 @@ C<schema>, C<name>
 C<database>, C<schema>, C<name>
 
 =back
+
+=head2 moniker_part_separator
+
+String used to join L</moniker_parts> when creating the moniker.
+Defaults to the empty string. Use C<::> to get a separate namespace per
+database and/or schema.
 
 =head2 constraint
 
@@ -1171,6 +1179,10 @@ sub new {
         if ((firstidx { $_ eq 'name' } @{ $self->moniker_parts }) == -1) {
             croak "moniker_parts option *must* contain 'name'";
         }
+    }
+
+    if (not defined $self->moniker_part_separator) {
+        $self->moniker_part_separator('');
     }
 
     return $self;
@@ -2596,10 +2608,10 @@ sub _default_table2moniker {
             @part_parts = split /\s+/, $inflected;
         }
 
-        push @all_parts, map ucfirst, @part_parts;
+        push @all_parts, join '', map ucfirst, @part_parts;
     }
 
-    return join '', @all_parts;
+    return join $self->moniker_part_separator, @all_parts;
 }
 
 sub _table2moniker {

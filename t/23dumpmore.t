@@ -343,8 +343,31 @@ $t->dump_test(
   regexes => {
     'Result/MySchemaFoo' => [
       qr/^\Q__PACKAGE__->table("my_schema.foo");\E/m,
-      # the has_many relname should not have the schema in it!
-      qr/^__PACKAGE__->has_many\(\n  "bars"/m,
+      # the has_many relname should not have the schema in it, but the class should
+      qr/^__PACKAGE__->has_many\(\n  "bars",\n  "DBICTest::DumpMore::1::Result::MySchemaBar"/m,
+    ],
+  },
+);
+
+# test moniker_part_separator
+$t->dump_test(
+  classname => 'DBICTest::DumpMore::1',
+  options => {
+    db_schema => 'my_schema',
+    moniker_parts => ['_schema', 'name'],
+    moniker_part_separator => '::',
+    qualify_objects => 1,
+    use_namespaces => 1,
+  },
+  warnings => [
+    qr/^db_schema is not supported on SQLite/,
+  ],
+  regexes => {
+    'Result/MySchema/Foo' => [
+      qr/^package DBICTest::DumpMore::1::Result::MySchema::Foo;$/m,
+      qr/^\Q__PACKAGE__->table("my_schema.foo");\E/m,
+      # the has_many relname should not have the schema in it, but the class should
+      qr/^__PACKAGE__->has_many\(\n  "bars",\n  "DBICTest::DumpMore::1::Result::MySchema::Bar"/m,
     ],
   },
 );
