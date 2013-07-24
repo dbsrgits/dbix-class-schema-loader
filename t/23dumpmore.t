@@ -372,6 +372,32 @@ $t->dump_test(
   },
 );
 
+# test moniker_part_separator + moniker_map
+$t->dump_test(
+  classname => 'DBICTest::DumpMore::1',
+  options => {
+    db_schema => 'my_schema',
+    moniker_parts => ['_schema', 'name'],
+    moniker_part_separator => '::',
+    qualify_objects => 1,
+    use_namespaces => 1,
+    moniker_map => {
+        my_schema => { foo => "MySchema::Floop" },
+    }
+  },
+  warnings => [
+    qr/^db_schema is not supported on SQLite/,
+  ],
+  regexes => {
+    'Result/MySchema/Floop' => [
+      qr/^package DBICTest::DumpMore::1::Result::MySchema::Floop;$/m,
+      qr/^\Q__PACKAGE__->table("my_schema.foo");\E/m,
+      # the has_many relname should not have the schema in it!
+      qr/^__PACKAGE__->has_many\(\n  "bars"/m,
+    ],
+  },
+);
+
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
   options => {

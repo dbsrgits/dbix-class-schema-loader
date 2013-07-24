@@ -555,11 +555,39 @@ Exclude tables matching regex.  Best specified as a qr// regex.
 
 =head2 moniker_map
 
-Overrides the default table name to moniker translation.  Can be either a
-hashref of table keys and moniker values, or a coderef for a translator
-function taking a L<table object|DBIx::Class::Schema::Loader::Table> argument
-(which stringifies to the unqualified table name) and returning a scalar
-moniker.  If the hash entry does not exist, or the function returns a false
+Overrides the default table name to moniker translation. Either
+
+=over
+
+=item *
+
+a nested hashref, which will be traversed according to L</moniker_parts>
+
+For example:
+
+    moniker_parts => [qw(schema name)],
+    moniker_map => {
+        foo => {
+            bar  => "FooishBar",
+        },
+    },
+
+In which case the table C<bar> in the C<foo> schema would get the moniker
+C<FooishBar>.
+
+=item *
+
+a hashref of unqualified table name keys and moniker values
+
+=item *
+
+a coderef for a translator function taking a L<table
+object|DBIx::Class::Schema::Loader::Table> argument (which stringifies to the
+unqualified table name) and returning a scalar moniker
+
+=back
+
+If the hash entry does not exist, or the function returns a false
 value, the code falls back to default behavior for that table name.
 
 The default behavior is to split on case transition and non-alphanumeric
@@ -2355,7 +2383,23 @@ sub _run_user_map {
     my $default_ident = $default_code->( $ident, @extra );
     my $new_ident;
     if( $map && ref $map eq 'HASH' ) {
-        $new_ident = $map->{ $ident };
+        if (my @parts = try{ @{ $ident } }) {
+            my $part_map = $map;
+            while (@parts) {
+                my $part = shift @parts;
+                last unless exists $part_map->{ $part };
+                if ( !ref $part_map->{ $part } && !@parts ) {
+                    $new_ident = $part_map->{ $part };
+                    last;
+                }
+                elsif ( ref $part_map->{ $part } eq 'HASH' ) {
+                    $part_map = $part_map->{ $part };
+                }
+            }
+        }
+        if( !$new_ident && !ref $map->{ $ident } ) {
+            $new_ident = $map->{ $ident };
+        }
     }
     elsif( $map && ref $map eq 'CODE' ) {
         $new_ident = $map->( $ident, $default_ident, @extra );

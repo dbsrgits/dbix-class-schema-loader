@@ -35,6 +35,7 @@ __PACKAGE__->mk_group_accessors(simple => qw/
 
 use overload
     '""' => sub { $_[0]->name },
+    '@{}' => sub { $_[0]->name_parts },
     fallback => 1;
 
 =head2 new
@@ -152,6 +153,20 @@ sub dbic_name {
 
     return $self->name;
 }
+
+=head2 name_parts
+
+Returns an arrayref of the values returned by the methods specified in
+the L<moniker_parts|DBIx::Class::Scheam::Loader::Base/moniker_parts> of
+the L</loader> object. The object arrayrefifies to this value.
+
+=cut
+
+sub name_parts {
+    my ($self) = shift;
+    return [ map { $self->$_ } @{$self->loader->moniker_parts} ];
+}
+
 
 =head1 SEE ALSO
 
