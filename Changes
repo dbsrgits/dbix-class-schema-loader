@@ -7,6 +7,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Allow specifying the separator when joining database, schema
           and table names to form a moniker
         - Allow using all the moniker parts in hashref moniker_map
+        - Allow matching all the moniker parts in constraint/exclude
 
 0.07036  2013-07-08
         - Fix stray comma in Pg on_delete/on_update => CASCADE (RT#84706)

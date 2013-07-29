@@ -212,7 +212,7 @@ my (@statements, @statements_reltests, @statements_advanced,
 
 sub CONSTRAINT {
     my $self = shift;
-return qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i;
+return qr/^(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i;
 }
 
 sub setup_schema {

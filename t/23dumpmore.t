@@ -372,7 +372,7 @@ $t->dump_test(
   },
 );
 
-# test moniker_part_separator + moniker_map
+# test moniker_part_separator + moniker_map + recursive constraints
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
   options => {
@@ -383,7 +383,9 @@ $t->dump_test(
     use_namespaces => 1,
     moniker_map => {
         my_schema => { foo => "MySchema::Floop" },
-    }
+    },
+    constraint => [ [ qr/my_schema/ => qr/foo|bar/ ] ],
+    exclude => [ [ qr/my_schema/ => qr/bar/ ] ],
   },
   warnings => [
     qr/^db_schema is not supported on SQLite/,
@@ -392,7 +394,11 @@ $t->dump_test(
     'Result/MySchema/Floop' => [
       qr/^package DBICTest::DumpMore::1::Result::MySchema::Floop;$/m,
       qr/^\Q__PACKAGE__->table("my_schema.foo");\E/m,
-      # the has_many relname should not have the schema in it!
+    ],
+  },
+  neg_regexes => {
+    'Result/MySchema/Floop' => [
+      # the bar table should not be loaded, so no relationship should exist
       qr/^__PACKAGE__->has_many\(\n  "bars"/m,
     ],
   },
