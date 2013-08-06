@@ -61,7 +61,7 @@ sub new {
         }
     }
 
-    # Set up the default quoting character and name seperators
+    # Set up the default quoting character and name separators
     $self->quote_char($self->_build_quote_char);
     $self->name_sep($self->_build_name_sep);
 

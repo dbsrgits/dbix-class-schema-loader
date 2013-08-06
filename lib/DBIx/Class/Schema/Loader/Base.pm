@@ -922,7 +922,7 @@ L<DBIx::Class::Schema::Loader>.
 
 =cut
 
-# ensure that a peice of object data is a valid arrayref, creating
+# ensure that a piece of object data is a valid arrayref, creating
 # an empty one or encapsulating whatever's there.
 sub _ensure_arrayref {
     my $self = shift;
@@ -1341,7 +1341,7 @@ sub _validate_classes {
 
     foreach my $c (@classes) {
         # components default to being under the DBIx::Class namespace unless they
-        # are preceeded with a '+'
+        # are preceded with a '+'
         if ( $key =~ m/component/ && $c !~ s/^\+// ) {
             $c = 'DBIx::Class::' . $c;
         }
@@ -1365,7 +1365,7 @@ sub _find_file_in_inc {
     foreach my $prefix (@INC) {
         my $fullpath = File::Spec->catfile($prefix, $file);
         return $fullpath if -f $fullpath
-            # abs_path throws on Windows for nonexistant files
+            # abs_path throws on Windows for nonexistent files
             and (try { Cwd::abs_path($fullpath) }) ne
                ((try { Cwd::abs_path(File::Spec->catfile($self->dump_directory, $file)) }) || '');
     }
