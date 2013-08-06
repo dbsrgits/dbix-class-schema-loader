@@ -927,12 +927,12 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         ok($m2m = (try { $class18->_m2m_metadata->{children} }), 'many_to_many created');
 
-        is $m2m->{relation}, 'loader_test20s', 'm2m near rel';
+        is $m2m->{relation}, 'loader_test20s', 'm2m near has_many rel';
         is $m2m->{foreign_relation}, 'child', 'm2m far rel';
 
         ok($m2m = (try { $class19->_m2m_metadata->{parents} }), 'many_to_many created');
 
-        is $m2m->{relation}, 'loader_test20s', 'm2m near rel';
+        is $m2m->{relation}, 'loader_test20', 'm2m near might_have rel';
         is $m2m->{foreign_relation}, 'parent', 'm2m far rel';
 
         # test double multi-col fk 26 -> 25
@@ -1723,7 +1723,7 @@ sub create {
         qq{
             CREATE TABLE loader_test20 (
                 parent INTEGER NOT NULL,
-                child INTEGER NOT NULL,
+                child INTEGER NOT NULL UNIQUE,
                 PRIMARY KEY (parent, child),
                 FOREIGN KEY (parent) REFERENCES loader_test18 (id),
                 FOREIGN KEY (child) REFERENCES loader_test19 (id)
