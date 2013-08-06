@@ -248,7 +248,7 @@ my $tester = dbixcsl_common_tests->new(
                     $dbh->do('CREATE DATABASE `dbicsl-test`');
                 }
                 catch {
-                    diag "CREATE DATABASE returned error: '$_'";
+                    note "CREATE DATABASE returned error: '$_'";
                     skip "no CREATE DATABASE privileges", 30 * 2;
                 };
 
