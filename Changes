@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Fix typos in POD and comments (RT#87644)
+        - Don't ship MYMETA.* files (RT#87713)
 
 0.07036  2013-07-08
         - Fix stray comma in Pg on_delete/on_update => CASCADE (RT#84706)
