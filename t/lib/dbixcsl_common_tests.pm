@@ -119,7 +119,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (221 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (223 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -254,6 +254,7 @@ sub setup_schema {
         ) : (),
         col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
         rel_collision_map       => { '^(set_primary_key)\z' => 'caught_rel_collision_%s' },
+        relationship_attrs      => { many_to_many => { order_by => 'me.id' } },
         col_accessor_map        => \&test_col_accessor_map,
         result_components_map   => { LoaderTest2X => 'TestComponentForMap', LoaderTest1 => '+TestComponentForMapFQN' },
         uniq_to_primary         => 1,
@@ -929,11 +930,13 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         is $m2m->{relation}, 'loader_test20s', 'm2m near has_many rel';
         is $m2m->{foreign_relation}, 'child', 'm2m far rel';
+        is $m2m->{attrs}->{order_by}, 'me.id', 'm2m bridge attrs';
 
         ok($m2m = (try { $class19->_m2m_metadata->{parents} }), 'many_to_many created');
 
         is $m2m->{relation}, 'loader_test20', 'm2m near might_have rel';
         is $m2m->{foreign_relation}, 'parent', 'm2m far rel';
+        is $m2m->{attrs}->{order_by}, 'me.id', 'm2m bridge attrs';
 
         # test double multi-col fk 26 -> 25
         my $obj26 = try { $rsobj26->find(33) } || $rsobj26->search({ id => 33 })->single;

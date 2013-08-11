@@ -605,6 +605,16 @@ sub _generate_m2ms {
                 $class1_to_class2_relname,
                 $class1_to_link_table_rel_name,
                 $class1_link_rel,
+                $self->_relationship_attrs('many_to_many', {}, {
+                    rel_type => 'many_to_many',
+                    rel_name => $class1_to_class2_relname,
+                    local_source => $self->schema->source($class1_local_moniker),
+                    remote_source => $self->schema->source($class1_remote_moniker),
+                    local_table => $self->loader->class_to_table->{$class1},
+                    local_cols => \@class1_from_cols,
+                    remote_table => $self->loader->class_to_table->{$class2},
+                    remote_cols => \@class2_from_cols,
+                }) || (),
             ],
             extra  => {
                 local_class    => $class1,
@@ -620,6 +630,16 @@ sub _generate_m2ms {
                 $class2_to_class1_relname,
                 $class2_to_link_table_rel_name,
                 $class2_link_rel,
+                $self->_relationship_attrs('many_to_many', {}, {
+                    rel_type => 'many_to_many',
+                    rel_name => $class2_to_class1_relname,
+                    local_source => $self->schema->source($class2_local_moniker),
+                    remote_source => $self->schema->source($class2_remote_moniker),
+                    local_table => $self->loader->class_to_table->{$class2},
+                    local_cols => \@class2_from_cols,
+                    remote_table => $self->loader->class_to_table->{$class1},
+                    remote_cols => \@class1_from_cols,
+                }) || (),
             ],
             extra  => {
                 local_class    => $class2,
