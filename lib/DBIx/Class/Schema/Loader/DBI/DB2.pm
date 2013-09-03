@@ -152,11 +152,14 @@ EOF
 }
 
 
-# DBD::DB2 doesn't follow the DBI API for ->tables
+# DBD::DB2 doesn't follow the DBI API for ->tables (pre 1.85), but since its
+# backwards compatible we don't change it.
+# DBD::DB2 1.85 and beyond default TABLE_NAME to '', previously defaulted to
+# '%'. so we supply it.
 sub _dbh_tables {
     my ($self, $schema) = @_;
 
-    return $self->dbh->tables($schema ? { TABLE_SCHEM => $schema } : undef);
+    return $self->dbh->tables($schema ? { TABLE_SCHEM => $schema, TABLE_NAME => '%' } : undef);
 }
 
 sub _columns_info_for {
