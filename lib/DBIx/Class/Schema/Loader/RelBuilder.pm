@@ -514,14 +514,18 @@ sub _generate_m2ms {
         my $class2 = $rels->[1]{args}[1];
 
         my $class1_to_link_table_rel = first {
-            $_->{method} =~ /\A(?:has_many|might_have)\z/ && $_->{args}[1] eq $class
+            $_->{method} eq 'has_many' && $_->{args}[1] eq $class
         } @{ $all_code->{$class1} };
+
+        next unless $class1_to_link_table_rel;
 
         my $class1_to_link_table_rel_name = $class1_to_link_table_rel->{args}[0];
 
         my $class2_to_link_table_rel = first {
-            $_->{method} =~ /\A(?:has_many|might_have)\z/ && $_->{args}[1] eq $class
+            $_->{method} eq 'has_many' && $_->{args}[1] eq $class
         } @{ $all_code->{$class2} };
+
+        next unless $class2_to_link_table_rel;
 
         my $class2_to_link_table_rel_name = $class2_to_link_table_rel->{args}[0];
 
