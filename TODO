@@ -17,7 +17,6 @@
     - generate a schema accessor which stores which SQLT type it was loaded from
     - add a settable 'on-behalf-of' version tag (for catalyst model)
     - inject a table2moniker function into the schema
-    - support coderef for relationship_attrs
     - common tests for table/column comments
     - optimize queries
     - remove extra select for _filter_tables
@@ -46,7 +45,6 @@
     - generate POD for schema class with class list
     - remove implicit rels from common tests so all tests work on MySQL
     - server link support for Oracle and MSSQL
-    - add -I support to dbicdump
 
 - Relationships
    - While scanning for many-to-many, scan for implied rels as well (if
