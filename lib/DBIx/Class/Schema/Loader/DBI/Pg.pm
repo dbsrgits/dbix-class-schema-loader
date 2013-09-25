@@ -54,14 +54,14 @@ sub _table_fk_info {
     my $sth = $self->dbh->prepare_cached(<<"EOF");
       select constr.conname, to_ns.nspname, to_class.relname, from_col.attname, to_col.attname,
              constr.confdeltype, constr.confupdtype, constr.condeferrable
-      from pg_constraint constr
-      join pg_namespace from_ns on constr.connamespace = from_ns.oid
-      join pg_class from_class on constr.conrelid = from_class.oid and from_class.relnamespace = from_ns.oid
-      join pg_class to_class on constr.confrelid = to_class.oid
-      join pg_namespace to_ns on to_class.relnamespace = to_ns.oid
+      from pg_catalog.pg_constraint constr
+      join pg_catalog.pg_namespace from_ns on constr.connamespace = from_ns.oid
+      join pg_catalog.pg_class from_class on constr.conrelid = from_class.oid and from_class.relnamespace = from_ns.oid
+      join pg_catalog.pg_class to_class on constr.confrelid = to_class.oid
+      join pg_catalog.pg_namespace to_ns on to_class.relnamespace = to_ns.oid
       -- can't do unnest() until 8.4, so join against a series table instead
-      join generate_series(1, current_setting('max_index_keys')::integer) colnum(i)
-           on colnum.i <= array_upper(constr.conkey,1)
+      join pg_catalog.generate_series(1, pg_catalog.current_setting('max_index_keys')::integer) colnum(i)
+           on colnum.i <= pg_catalog.array_upper(constr.conkey,1)
       join pg_catalog.pg_attribute to_col
            on to_col.attrelid = constr.confrelid
            and to_col.attnum = constr.confkey[colnum.i]
@@ -169,9 +169,9 @@ sub _table_comment {
     return $table_comment if $table_comment;
 
     ($table_comment) = $self->dbh->selectrow_array(<<'EOF', {}, $table->name, $table->schema);
-SELECT obj_description(oid)
-FROM pg_class
-WHERE relname=? AND relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=?)
+SELECT pg_catalog.obj_description(oid)
+FROM pg_catalog.pg_class
+WHERE relname=? AND relnamespace=(SELECT oid FROM pg_catalog.pg_namespace WHERE nspname=?)
 EOF
 
     return $table_comment
@@ -188,11 +188,11 @@ sub _column_comment {
 
     my ($table_oid) = $self->dbh->selectrow_array(<<'EOF', {}, $table->name, $table->schema);
 SELECT oid
-FROM pg_class
-WHERE relname=? AND relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=?)
+FROM pg_catalog.pg_class
+WHERE relname=? AND relnamespace=(SELECT oid FROM pg_catalog.pg_namespace WHERE nspname=?)
 EOF
 
-    return $self->dbh->selectrow_array('SELECT col_description(?,?)', {}, $table_oid, $column_number);
+    return $self->dbh->selectrow_array('SELECT pg_catalog.col_description(?,?)', {}, $table_oid, $column_number);
 }
 
 # Make sure data_type's that don't need it don't have a 'size' column_info, and
