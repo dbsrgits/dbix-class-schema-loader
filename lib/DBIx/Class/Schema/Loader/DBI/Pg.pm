@@ -52,25 +52,27 @@ sub _table_fk_info {
     my ($self, $table) = @_;
 
     my $sth = $self->dbh->prepare_cached(<<"EOF");
-select q.constr_name, q.to_schema, q.to_table, from_cols.attname from_col, to_cols.attname to_col,
-       q.on_delete, q.on_update, q.is_deferrable
-from (select constr.conname constr_name, to_ns.nspname to_schema, to_class.relname to_table,
-             unnest(constr.conkey) from_colnum, unnest(constr.confkey) to_colnum,
-             constr.confdeltype on_delete, constr.confupdtype on_update,
-             constr.condeferrable is_deferrable,
-             constr.conrelid conrelid, constr.confrelid confrelid
+      select constr.conname, to_ns.nspname, to_class.relname, from_col.attname, to_col.attname,
+             constr.confdeltype, constr.confupdtype, constr.condeferrable
       from pg_constraint constr
       join pg_namespace from_ns on constr.connamespace = from_ns.oid
       join pg_class from_class on constr.conrelid = from_class.oid and from_class.relnamespace = from_ns.oid
       join pg_class to_class on constr.confrelid = to_class.oid
       join pg_namespace to_ns on to_class.relnamespace = to_ns.oid
+      -- can't do unnest() until 8.4, so join against a series table instead
+      join generate_series(1, current_setting('max_index_keys')::integer) colnum(i)
+           on colnum.i <= array_upper(constr.conkey,1)
+      join pg_catalog.pg_attribute to_col
+           on to_col.attrelid = constr.confrelid
+           and to_col.attnum = constr.confkey[colnum.i]
+      join pg_catalog.pg_attribute from_col
+           on from_col.attrelid = constr.conrelid
+           and from_col.attnum = constr.conkey[colnum.i]
       where from_ns.nspname = ?
         and from_class.relname = ?
         and from_class.relkind = 'r'
         and constr.contype = 'f'
-) q
-join pg_attribute from_cols on from_cols.attrelid = q.conrelid and from_cols.attnum = q.from_colnum
-join pg_attribute to_cols on to_cols.attrelid = q.confrelid and to_cols.attnum = q.to_colnum;
+      order by constr.conname, colnum.i
 EOF
 
     $sth->execute($table->schema, $table->name);
