@@ -372,10 +372,9 @@ WHERE table_name = @{[ $dbh->quote($table->name) ]}
 EOF
 
     # Failback: try the REMARKS column on table_info
-    if (!$comment && $dbh->can('table_info')) {
-        my $sth = $self->_dbh_table_info( $dbh, undef, $table->schema, $table->name );
-        my $info = $sth->fetchrow_hashref();
-        $comment = $info->{REMARKS};
+    if (!$comment) {
+        my $info = $self->_dbh_table_info( $dbh, $table );
+        $comment = $info->{REMARKS} if $info;
     }
 
     return $comment;
@@ -632,9 +631,23 @@ sub _extra_column_info {}
 
 # override to mask warnings if needed
 sub _dbh_table_info {
-    my ($self, $dbh) = (shift, shift);
+    my ($self, $dbh, $table) = (shift, shift, shift);
 
-    return $dbh->table_info(@_);
+    return undef if !$dbh->can('table_info');
+    my $sth = $dbh->table_info(undef, $table->schema, $table->name);
+    while (my $info = $sth->fetchrow_hashref) {
+        next if !$self->_table_info_matches($table, $info);
+        return $info;
+    }
+    return undef;
+}
+
+sub _table_info_matches {
+    my ($self, $table, $info) = @_;
+
+    no warnings 'uninitialized';
+    return $info->{TABLE_SCHEM} eq $table->schema
+        && $info->{TABLE_NAME}  eq $table->name;
 }
 
 # override to mask warnings if needed (see mysql)

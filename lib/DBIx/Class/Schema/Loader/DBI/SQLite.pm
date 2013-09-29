@@ -251,6 +251,15 @@ sub _tables_list {
     return $self->_filter_tables(\@tables, $opts);
 }
 
+sub _table_info_matches {
+    my ($self, $table, $info) = @_;
+
+    my $table_schema = $table->schema;
+    $table_schema = 'main' if !defined $table_schema;
+    return $info->{TABLE_SCHEM} eq $table_schema
+        && $info->{TABLE_NAME}  eq $table->name;
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,
