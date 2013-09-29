@@ -139,7 +139,7 @@ my $tester = dbixcsl_common_tests->new(
         drop  => [ qw/extra_loader_test1 extra_loader_test2 extra_loader_test3
                       extra_loader_test4 extra_loader_test6 extra_loader_test7
                       extra_loader_test8 extra_loader_test9 extra_loader_test10 / ],
-        count => 19,
+        count => 20,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -169,6 +169,10 @@ my $tester = dbixcsl_common_tests->new(
             # test that columns for views are picked up
             is $schema->resultset($monikers->{extra_loader_test5})->result_source->column_info('person_id')->{data_type}, 'integer',
                 'columns for views are introspected';
+
+            # test that views are marked as such
+            isa_ok $schema->resultset($monikers->{extra_loader_test5})->result_source, 'DBIx::Class::ResultSource::View',
+                'views have table_class set correctly';
 
             isnt $schema->resultset($monikers->{extra_loader_test6})->result_source->column_info('id1')->{is_auto_increment}, 1,
                 q{two integer PKs don't get marked autoinc};

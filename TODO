@@ -63,19 +63,19 @@
     - domains
   - DB2
     - table/column comments
-    - introspect view SQL
+    - introspect view SQL and set table_class
     - domains
   - Oracle
-    - introspect view SQL
+    - introspect view SQL and set table_class
     - domains
   - Sybase ASE
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
-    - introspect view SQL
+    - introspect view SQL and set table_class
     - domains
   - MSSQL
     - table/column comments
-    - introspect view SQL
+    - introspect view SQL and set table_class
     - computed column support
     - domains
     - Optimization
@@ -83,17 +83,17 @@
       - use placeholders when available
   - SQLAnywhere
     - table/column comments
-    - introspect view SQL
+    - introspect view SQL and set table_class
     - domains
   - Firebird
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
-    - introspect view SQL
+    - introspect view SQL and set table_class
     - domains
   - Informix
     - support opaque types
     - datetime/interval precision detection
     - table/column comments
     - introspect on_update/on_delete/is_deferrable
-    - introspect view SQL
+    - introspect view SQL and set table_class
     - domains

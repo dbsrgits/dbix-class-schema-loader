@@ -680,6 +680,14 @@ sub dbh {
     return $self->schema->storage->dbh;
 }
 
+sub _table_is_view {
+    my ($self, $table) = @_;
+
+    my $info = $self->_dbh_table_info($self->dbh, $table)
+        or return 0;
+    return $info->{TABLE_TYPE} eq 'VIEW';
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>

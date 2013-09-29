@@ -2468,6 +2468,11 @@ sub _make_column_accessor_name {
     return $accessor;
 }
 
+sub _table_is_view {
+    #my ($self, $table) = @_;
+    return 0;
+}
+
 # Set up metadata (cols, pks, etc)
 sub _setup_src_meta {
     my ($self, $table) = @_;
@@ -2477,6 +2482,9 @@ sub _setup_src_meta {
 
     my $table_class   = $self->classes->{$table->sql_name};
     my $table_moniker = $self->monikers->{$table->sql_name};
+
+    $self->_dbic_stmt($table_class, 'table_class', 'DBIx::Class::ResultSource::View')
+        if $self->_table_is_view($table);
 
     $self->_dbic_stmt($table_class, 'table', $table->dbic_name);
 

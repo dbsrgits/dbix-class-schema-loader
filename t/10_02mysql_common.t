@@ -201,7 +201,7 @@ my $tester = dbixcsl_common_tests->new(
         ],
         pre_drop_ddl => [ 'DROP VIEW mysql_loader_test2', ],
         drop => [ 'mysql_loader-test1', 'mysql_loader_test3', 'mysql_loader_test11', 'mysql_loader_test12' ],
-        count => 8 + 30 * 2,
+        count => 9 + 30 * 2,
         run => sub {
             my ($monikers, $classes);
             ($schema, $monikers, $classes) = @_;
@@ -213,6 +213,10 @@ my $tester = dbixcsl_common_tests->new(
 
             is $rsrc->column_info('value')->{data_type}, 'varchar',
                 'view introspected successfully';
+
+            # test that views are marked as such
+            isa_ok $schema->resultset($monikers->{mysql_loader_test2})->result_source, 'DBIx::Class::ResultSource::View',
+                'views have table_class set correctly';
 
             $rsrc = $schema->source('MysqlLoaderTest3');
 

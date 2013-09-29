@@ -242,15 +242,20 @@ my $tester = dbixcsl_common_tests->new(
                         on delete restrict on update set null deferrable
                 )
             },
+            q{
+                create view pg_loader_test11 as
+                    select * from pg_loader_test1
+            },
         ],
         pre_drop_ddl => [
             'DROP SCHEMA dbicsl_test CASCADE',
             'DROP SCHEMA "dbicsl-test" CASCADE',
             'DROP SCHEMA "dbicsl.test" CASCADE',
             'DROP TYPE pg_loader_test_enum',
+            'DROP VIEW pg_loader_test11',
         ],
         drop  => [ qw/pg_loader_test1 pg_loader_test2 pg_loader_test9 pg_loader_test10/ ],
-        count => 8 + 30 * 2,
+        count => 9 + 30 * 2,
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -440,6 +445,10 @@ my $tester = dbixcsl_common_tests->new(
                         ->has_relationship('pg_loader_test8s');
                 } 'cross-schema relationship in multi-db_schema';
             }
+
+            # test that views are marked as such
+            isa_ok $schema->resultset($monikers->{pg_loader_test11})->result_source, 'DBIx::Class::ResultSource::View',
+                'views have table_class set correctly';
         },
     },
 );
