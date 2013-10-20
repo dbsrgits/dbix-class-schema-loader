@@ -6,7 +6,6 @@
     - encode loader options in Schema.pm
     - introspect on_update/on_delete/is_deferrable
   - Low Priority
-    - support multiple/all schemas, instead of just one
     - support pk/uk/fk info on views, possibly (materialized views?)
     - remove deprecated ResultSetManager stuff, rewrite using current features
     - Refactor RelBuilder so that it doesn't require a live mostly-built

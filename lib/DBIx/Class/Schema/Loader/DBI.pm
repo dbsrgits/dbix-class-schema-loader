@@ -10,7 +10,7 @@ use Carp::Clan qw/^DBIx::Class/;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07036';
+our $VERSION = '0.07036_02';
 
 __PACKAGE__->mk_group_accessors('simple', qw/
     _disable_pk_detection
@@ -194,6 +194,40 @@ sub _tables_list {
     return $self->_filter_tables(\@tables, $opts);
 }
 
+sub _recurse_constraint {
+    my ($constraint, @parts) = @_;
+
+    my $name = shift @parts;
+
+    # If there are any parts left, the constraint must be an arrayref
+    croak "depth of constraint/exclude array does not match length of moniker_parts"
+        unless !!@parts == !!(ref $constraint eq 'ARRAY');
+
+    # if ths is the last part, use the constraint directly
+    return $name =~ $constraint unless @parts;
+
+    # recurse into the first matching subconstraint
+    foreach (@{$constraint}) {
+        my ($re, $sub) = @{$_};
+        return _recurse_constraint($sub, @parts)
+            if $name =~ $re;
+    }
+    return 0;
+}
+
+sub _check_constraint {
+    my ($include, $constraint, @tables) = @_;
+
+    return @tables unless defined $constraint;
+
+    return grep { !$include xor _recurse_constraint($constraint, @{$_}) } @tables
+        if ref $constraint eq 'ARRAY';
+
+    return grep { !$include xor /$constraint/ } @tables;
+}
+
+
+
 # apply constraint/exclude and ignore bad tables and views
 sub _filter_tables {
     my ($self, $tables, $opts) = @_;
@@ -202,11 +236,8 @@ sub _filter_tables {
     my @filtered_tables;
 
     $opts ||= {};
-    my $constraint   = $opts->{constraint};
-    my $exclude      = $opts->{exclude};
-
-    @tables = grep { /$constraint/ } @tables if defined $constraint;
-    @tables = grep { ! /$exclude/  } @tables if defined $exclude;
+    @tables = _check_constraint(1, $opts->{constraint}, @tables);
+    @tables = _check_constraint(0, $opts->{exclude}, @tables);
 
     TABLE: for my $table (@tables) {
         try {

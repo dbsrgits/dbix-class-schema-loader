@@ -18,7 +18,7 @@ use String::ToIdentifier::EN::Unicode ();
 use Class::Unload ();
 use Class::Inspector ();
 
-our $VERSION = '0.07036';
+our $VERSION = '0.07036_02';
 
 # Glossary:
 #
@@ -517,11 +517,15 @@ sub _generate_m2ms {
             $_->{method} eq 'has_many' && $_->{args}[1] eq $class
         } @{ $all_code->{$class1} };
 
+        next unless $class1_to_link_table_rel;
+
         my $class1_to_link_table_rel_name = $class1_to_link_table_rel->{args}[0];
 
         my $class2_to_link_table_rel = first {
             $_->{method} eq 'has_many' && $_->{args}[1] eq $class
         } @{ $all_code->{$class2} };
+
+        next unless $class2_to_link_table_rel;
 
         my $class2_to_link_table_rel_name = $class2_to_link_table_rel->{args}[0];
 
@@ -605,6 +609,16 @@ sub _generate_m2ms {
                 $class1_to_class2_relname,
                 $class1_to_link_table_rel_name,
                 $class1_link_rel,
+                $self->_relationship_attrs('many_to_many', {}, {
+                    rel_type => 'many_to_many',
+                    rel_name => $class1_to_class2_relname,
+                    local_source => $self->schema->source($class1_local_moniker),
+                    remote_source => $self->schema->source($class1_remote_moniker),
+                    local_table => $self->loader->class_to_table->{$class1},
+                    local_cols => \@class1_from_cols,
+                    remote_table => $self->loader->class_to_table->{$class2},
+                    remote_cols => \@class2_from_cols,
+                }) || (),
             ],
             extra  => {
                 local_class    => $class1,
@@ -620,6 +634,16 @@ sub _generate_m2ms {
                 $class2_to_class1_relname,
                 $class2_to_link_table_rel_name,
                 $class2_link_rel,
+                $self->_relationship_attrs('many_to_many', {}, {
+                    rel_type => 'many_to_many',
+                    rel_name => $class2_to_class1_relname,
+                    local_source => $self->schema->source($class2_local_moniker),
+                    remote_source => $self->schema->source($class2_remote_moniker),
+                    local_table => $self->loader->class_to_table->{$class2},
+                    local_cols => \@class2_from_cols,
+                    remote_table => $self->loader->class_to_table->{$class1},
+                    remote_cols => \@class1_from_cols,
+                }) || (),
             ],
             extra  => {
                 local_class    => $class2,

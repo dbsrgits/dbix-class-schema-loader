@@ -119,7 +119,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (221 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (228 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -212,7 +212,7 @@ my (@statements, @statements_reltests, @statements_advanced,
 
 sub CONSTRAINT {
     my $self = shift;
-return qr/^(?:\S+\.)?(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i;
+return qr/^(?:(?:$self->{vendor}|extra)[_-]?)?loader[_-]?test[0-9]+(?!.*_)/i;
 }
 
 sub setup_schema {
@@ -254,6 +254,7 @@ sub setup_schema {
         ) : (),
         col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
         rel_collision_map       => { '^(set_primary_key)\z' => 'caught_rel_collision_%s' },
+        relationship_attrs      => { many_to_many => { order_by => 'me.id' } },
         col_accessor_map        => \&test_col_accessor_map,
         result_components_map   => { LoaderTest2X => 'TestComponentForMap', LoaderTest1 => '+TestComponentForMapFQN' },
         uniq_to_primary         => 1,
@@ -283,7 +284,7 @@ sub setup_schema {
         my $standard_sources = not defined $expected_count;
 
         if ($standard_sources) {
-            $expected_count = 37;
+            $expected_count = 38;
 
             if (not ($self->{vendor} eq 'mssql' && $connect_info->[0] =~ /Sybase/)) {
                 $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
@@ -722,6 +723,10 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         my $class36   = $classes->{loader_test36};
         my $rsobj36   = $conn->resultset($moniker36);
 
+        my $moniker37 = $monikers->{loader_test37};
+        my $class37   = $classes->{loader_test37};
+        my $rsobj37   = $conn->resultset($moniker37);
+
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -746,6 +751,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         isa_ok( $rsobj33, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj34, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj36, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj37, "DBIx::Class::ResultSet" );
 
         # basic rel test
         my $obj4 = try { $rsobj4->find(123) } || $rsobj4->search({ id => 123 })->single;
@@ -929,11 +935,19 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         is $m2m->{relation}, 'loader_test20s', 'm2m near rel';
         is $m2m->{foreign_relation}, 'child', 'm2m far rel';
+        is $m2m->{attrs}->{order_by}, 'me.id', 'm2m bridge attrs';
 
         ok($m2m = (try { $class19->_m2m_metadata->{parents} }), 'many_to_many created');
 
         is $m2m->{relation}, 'loader_test20s', 'm2m near rel';
         is $m2m->{foreign_relation}, 'parent', 'm2m far rel';
+        is $m2m->{attrs}->{order_by}, 'me.id', 'm2m bridge attrs';
+
+        ok( $class37->relationship_info('parent'), 'parents rel created' );
+        ok( $class37->relationship_info('child'), 'child rel created' );
+
+        is_deeply($class32->_m2m_metadata, {}, 'many_to_many not created for might_have');
+        is_deeply($class34->_m2m_metadata, {}, 'many_to_many not created for might_have');
 
         # test double multi-col fk 26 -> 25
         my $obj26 = try { $rsobj26->find(33) } || $rsobj26->search({ id => 33 })->single;
@@ -1851,6 +1865,17 @@ sub create {
           ) $self->{innodb}
         },
         q{ INSERT INTO loader_test34 (id,rel1,rel2) VALUES (1,2,2) },
+
+        qq{
+          CREATE TABLE loader_test37 (
+            parent INTEGER NOT NULL,
+            child INTEGER NOT NULL UNIQUE,
+            PRIMARY KEY (parent, child),
+            FOREIGN KEY (parent) REFERENCES loader_test32 (id),
+            FOREIGN KEY (child) REFERENCES loader_test34 (id)
+          ) $self->{innodb}
+        },
+        q{ INSERT INTO loader_test37 (parent, child) VALUES (1,1) },
     );
 
     @statements_advanced = (
@@ -2043,6 +2068,7 @@ sub drop_tables {
         loader_test28
         loader_test29
         loader_test27
+        loader_test37
         loader_test32
         loader_test31
         loader_test34

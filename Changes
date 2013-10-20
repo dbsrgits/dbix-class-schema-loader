@@ -1,8 +1,19 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Restore support for PostgreSQL 8.3 (RT#87291)
+
+0.07036_02 2013-09-25
+        - Skip many_to_many bridges involving might_have relationships
+
+0.07036_01 2013-08-11
         - Fix typos in POD and comments (RT#87644)
         - Don't ship MYMETA.* files (RT#87713)
-        - Restore support for PostgreSQL 8.3 (RT#87291)
+        - Fix many_to_many bridges involving might_have relationships
+        - Allow specifying custom attributes for many_to_many bridges
+        - Allow specifying the separator when joining database, schema
+          and table names to form a moniker
+        - Allow using all the moniker parts in hashref moniker_map
+        - Allow matching all the moniker parts in constraint/exclude
 
 0.07036  2013-07-08
         - Fix stray comma in Pg on_delete/on_update => CASCADE (RT#84706)
