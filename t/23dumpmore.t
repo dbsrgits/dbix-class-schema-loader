@@ -364,7 +364,7 @@ $t->dump_test(
   ],
   regexes => {
     'Result/MySchema/Foo' => [
-      qr/^package DBICTest::DumpMore::1::Result::MySchema::Foo;$/m,
+      qr/^package DBICTest::DumpMore::1::Result::MySchema::Foo;/m,
       qr/^\Q__PACKAGE__->table("my_schema.foo");\E/m,
       # the has_many relname should not have the schema in it, but the class should
       qr/^__PACKAGE__->has_many\(\n  "bars",\n  "DBICTest::DumpMore::1::Result::MySchema::Bar"/m,
@@ -392,7 +392,7 @@ $t->dump_test(
   ],
   regexes => {
     'Result/MySchema/Floop' => [
-      qr/^package DBICTest::DumpMore::1::Result::MySchema::Floop;$/m,
+      qr/^package DBICTest::DumpMore::1::Result::MySchema::Floop;/m,
       qr/^\Q__PACKAGE__->table("my_schema.foo");\E/m,
     ],
   },

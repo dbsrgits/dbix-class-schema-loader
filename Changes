@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Restore support for PostgreSQL 8.3 (RT#87291)
+        - Fix t/23dumpmore on perl 5.8.8 and earlier
 
 0.07036_02 2013-09-25
         - Skip many_to_many bridges involving might_have relationships
