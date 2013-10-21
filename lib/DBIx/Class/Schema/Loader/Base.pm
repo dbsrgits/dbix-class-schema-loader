@@ -20,7 +20,7 @@ use File::Temp ();
 use Class::Unload;
 use Class::Inspector ();
 use Scalar::Util 'looks_like_number';
-use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path slurp_file/;
+use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path slurp_file sigwarn_silencer/;
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
@@ -1421,6 +1421,8 @@ sub _find_file_in_inc {
 
     foreach my $prefix (@INC) {
         my $fullpath = File::Spec->catfile($prefix, $file);
+        # abs_path pure-perl fallback warns for non-existent files
+        local $SIG{__WARN__} = sigwarn_silencer(qr/^stat\(.*\Q$file\E\)/);
         return $fullpath if -f $fullpath
             # abs_path throws on Windows for nonexistent files
             and (try { Cwd::abs_path($fullpath) }) ne

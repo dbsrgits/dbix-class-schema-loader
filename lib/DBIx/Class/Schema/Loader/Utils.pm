@@ -11,7 +11,7 @@ use namespace::clean;
 use Exporter 'import';
 use Data::Dumper ();
 
-our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file write_file array_eq/;
+our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file write_file array_eq sigwarn_silencer/;
 
 use constant BY_CASE_TRANSITION_V7 =>
     qr/(?<=[[:lower:]\d])[\W_]*(?=[[:upper:]])|[\W_]+/;
@@ -50,15 +50,21 @@ sub dumper_squashed($) {
     return $dd->Values([ $val ])->Dump;
 }
 
+# copied from DBIx::Class::_Util, import from there once it's released
+sub sigwarn_silencer {
+  my $pattern = shift;
+
+  croak "Expecting a regexp" if ref $pattern ne 'Regexp';
+
+  my $orig_sig_warn = $SIG{__WARN__} || sub { CORE::warn(@_) };
+
+  return sub { &$orig_sig_warn unless $_[0] =~ $pattern };
+}
+
 sub eval_package_without_redefine_warnings {
     my ($pkg, $code) = @_;
 
-    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-
-    local $SIG{__WARN__} = sub {
-        $warn_handler->(@_)
-            unless $_[0] =~ /^Subroutine \S+ redefined/;
-    };
+    local $SIG{__WARN__} = sigwarn_silencer(qr/^Subroutine \S+ redefined/);
 
     # This hairiness is to handle people using "use warnings FATAL => 'all';"
     # in their custom or external content.
