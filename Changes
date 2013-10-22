@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07036_03 2013-10-22
         - Restore support for PostgreSQL 8.3 (RT#87291)
         - Fix t/23dumpmore on perl 5.8.8 and earlier
         - Silence warnings from pure-perl Cwd::abs_path()
