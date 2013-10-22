@@ -9,6 +9,7 @@ use List::Util 'first';
 use List::MoreUtils 'any';
 use Try::Tiny;
 use Scalar::Util 'blessed';
+use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
@@ -321,8 +322,9 @@ sub _extra_column_info {
 sub _dbh_column_info {
     my $self = shift;
 
-    local $SIG{__WARN__} = sub { warn @_
-        unless $_[0] =~ /^column_info: unrecognized column type/ };
+    local $SIG{__WARN__} = sigwarn_silencer(
+        qr/^column_info: unrecognized column type/
+    );
 
     $self->next::method(@_);
 }

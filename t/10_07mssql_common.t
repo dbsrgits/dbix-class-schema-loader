@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
-use DBIx::Class::Schema::Loader::Utils 'warnings_exist_silent';
+use DBIx::Class::Schema::Loader::Utils qw/warnings_exist_silent sigwarn_silencer/;
 use Try::Tiny;
 use File::Path 'rmtree';
 use DBIx::Class::Schema::Loader 'make_schema_at';
@@ -527,10 +527,9 @@ EOF
 
             SKIP: {
                 # for ADO
-                my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-                local $SIG{__WARN__} = sub {
-                    $warn_handler->(@_) unless $_[0] =~ /Changed database context/;
-                };
+                local $SIG{__WARN__} = sigwarn_silencer(
+                    qr/Changed database context/
+                );
 
                 my $dbh = $schema->storage->dbh;
 
@@ -758,10 +757,9 @@ sub cleanup_databases {
     return if $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 
     # for ADO
-    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-    local $SIG{__WARN__} = sub {
-        $warn_handler->(@_) unless $_[0] =~ /Changed database context/;
-    };
+    local $SIG{__WARN__} = sigwarn_silencer(
+        qr/Changed database context/
+    );
 
     my $dbh = $schema->storage->dbh;
 

@@ -2,6 +2,7 @@ use strict;
 use Test::More;
 use Test::Warn;
 use DBIx::Class::Schema::Loader::Optional::Dependencies;
+use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use lib qw(t/lib);
 use make_dbictest_db;
 
@@ -173,9 +174,9 @@ while(@invocations) {
     my $cref = shift @invocations;
 
     my $schema = do {
-      local $SIG{__WARN__} = sub {
-        warn $_[0] unless $_[0] =~ /Deleting existing file .+ due to 'really_erase_my_files' setting/
-      };
+      local $SIG{__WARN__} = sigwarn_silencer(
+        qr/Deleting existing file .+ due to 'really_erase_my_files' setting/
+      );
       $cref->();
     };
 

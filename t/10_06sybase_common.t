@@ -5,6 +5,7 @@ use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
 use DBIx::Class::Schema::Loader 'make_schema_at';
+use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use namespace::clean;
 use DBI ();
 
@@ -131,11 +132,9 @@ my $tester = dbixcsl_common_tests->new(
                 };
 
                 try {
-                    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-                    local $SIG{__WARN__} = sub {
-                        $warn_handler->(@_)
-                            unless $_[0] =~ /^Password correctly set\.$|^Account unlocked\.$|^New login created\.$|^New user added\.$/;
-                    };
+                    local $SIG{__WARN__} = sigwarn_silencer(
+                        qr/^Password correctly set\.$|^Account unlocked\.$|^New login created\.$|^New user added\.$/
+                    );
 
                     $dbh->do("sp_addlogin dbicsl_user1, dbicsl, [dbicsl_test1]");
                     $dbh->do("sp_addlogin dbicsl_user2, dbicsl, [dbicsl_test2]");
@@ -158,11 +157,9 @@ my $tester = dbixcsl_common_tests->new(
 
                 my ($dbh1, $dbh2);
                 {
-                    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-                    local $SIG{__WARN__} = sub {
-                        $warn_handler->(@_) unless $_[0] =~ /can't change context/;
-                    };
-
+                    local $SIG{__WARN__} = sigwarn_silencer(
+                        qr/can't change context/
+                    );
                     $dbh1 = DBI->connect($dsn, 'dbicsl_user1', 'dbicsl', {
                         RaiseError => 1,
                         PrintError => 0,
@@ -446,11 +443,9 @@ END {
 
             foreach my $login (qw/dbicsl_user1 dbicsl_user2/) {
                 try {
-                    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-                    local $SIG{__WARN__} = sub {
-                        $warn_handler->(@_)
-                            unless $_[0] =~ /^Account locked\.$|^Login dropped\.$/;
-                    };
+                    local $SIG{__WARN__} = sigwarn_silencer(
+                        qr/^Account locked\.$|^Login dropped\.$/
+                    );
 
                     $dbh->do("sp_droplogin $login");
                 }

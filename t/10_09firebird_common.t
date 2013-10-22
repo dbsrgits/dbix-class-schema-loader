@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Scope::Guard ();
+use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
@@ -207,8 +208,9 @@ if (not ($dbd_firebird_dsn || $dbd_interbase_dsn || $odbc_dsn)) {
 else {
     # get rid of stupid warning from InterBase/GetInfo.pm
     if ($dbd_interbase_dsn) {
-        local $SIG{__WARN__} = sub { warn @_
-            unless $_[0] =~ m{^Use of uninitialized value in sprintf at \S+DBD/InterBase/GetInfo\.pm line \d+\.$|^Missing argument in sprintf at \S+DBD/InterBase/GetInfo.pm line \d+\.$} };
+        local $SIG{__WARN__} = sigwarn_silencer(
+            qr{^Use of uninitialized value in sprintf at \S+DBD/InterBase/GetInfo\.pm line \d+\.$|^Missing argument in sprintf at \S+DBD/InterBase/GetInfo.pm line \d+\.$}
+        );
         require DBD::InterBase;
         require DBD::InterBase::GetInfo;
     }

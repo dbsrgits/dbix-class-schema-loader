@@ -5,6 +5,7 @@ use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI::Component::QuotedDefault';
 use mro 'c3';
 use Try::Tiny;
+use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use namespace::clean;
 
 our $VERSION = '0.07036_02';
@@ -69,11 +70,9 @@ sub _filter_tables {
     my $self = shift;
 
     # silence a warning from older DBD::Oracles in tests
-    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-    local $SIG{__WARN__} = sub {
-        $warn_handler->(@_)
-        unless $_[0] =~ /^Field \d+ has an Oracle type \(\d+\) which is not explicitly supported/;
-    };
+    local $SIG{__WARN__} = sigwarn_silencer(
+        qr/^Field \d+ has an Oracle type \(\d+\) which is not explicitly supported/
+    );
 
     return $self->next::method(@_);
 }

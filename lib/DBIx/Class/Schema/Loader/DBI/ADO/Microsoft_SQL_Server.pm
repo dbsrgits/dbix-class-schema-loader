@@ -7,6 +7,9 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI::MSSQL
 /;
 use mro 'c3';
+use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
+
+use namespace::clean;
 
 our $VERSION = '0.07036_02';
 
@@ -26,10 +29,7 @@ See L<DBIx::Class::Schema::Loader::Base> for usage information.
 # Silence ADO "Changed database context" warnings
 sub _switch_db {
     my $self = shift;
-    my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-    local $SIG{__WARN__} = sub {
-        $warn_handler->(@_) unless $_[0] =~ /Changed database context/;
-    };
+    local $SIG{__WARN__} = sigwarn_silencer(qr/Changed database context/);
     return $self->next::method(@_);
 }
 

@@ -12,7 +12,7 @@ use DBI;
 use Digest::MD5;
 use File::Find 'find';
 use Class::Unload ();
-use DBIx::Class::Schema::Loader::Utils qw/dumper_squashed slurp_file/;
+use DBIx::Class::Schema::Loader::Utils qw/dumper_squashed slurp_file sigwarn_silencer/;
 use List::MoreUtils 'apply';
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
@@ -1094,7 +1094,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         # relname is preserved when another fk is added
         {
-            local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ /invalidates \d+ active statement/ };
+            local $SIG{__WARN__} = sigwarn_silencer(qr/invalidates \d+ active statement/);
             $conn->storage->disconnect; # for mssql and access
         }
 
@@ -1264,12 +1264,10 @@ TODO: {
 
         my $guard = $conn->txn_scope_guard;
 
-        my $warn_handler = $SIG{__WARN__} || sub { warn @_ };
-        local $SIG{__WARN__} = sub {
-            $warn_handler->(@_)
-                unless $_[0] =~ RESCAN_WARNINGS
-                    || $_[0] =~ /commit ineffective with AutoCommit enabled/; # FIXME
-        };
+        my $rescan_warnings = RESCAN_WARNINGS;
+        local $SIG{__WARN__} = sigwarn_silencer(
+            qr/$rescan_warnings|commit ineffective with AutoCommit enabled/ # FIXME
+        );
 
         my $schema_from = DBIx::Class::Schema::Loader::make_schema_at(
             "TestSchemaFromAnother", \%opts, [ sub { $conn->storage->dbh } ]
@@ -2307,7 +2305,7 @@ sub setup_data_type_tests {
 sub rescan_without_warnings {
     my ($self, $conn) = @_;
 
-    local $SIG{__WARN__} = sub { warn @_ unless $_[0] =~ RESCAN_WARNINGS };
+    local $SIG{__WARN__} = sigwarn_silencer(RESCAN_WARNINGS);
     return $conn->rescan;
 }
 
