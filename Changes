@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07036_04 2013-10-24
         - Set table_class to DBIx::Class::ResultSource::View for views, in
           supported backends (SQLite, MySQL, and Pg) (arc@cpan.org)
 
