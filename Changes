@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Allow overriding individual moniker parts
+
 0.07036_04 2013-10-24
         - Set table_class to DBIx::Class::ResultSource::View for views, in
           supported backends (SQLite, MySQL, and Pg) (arc@cpan.org)

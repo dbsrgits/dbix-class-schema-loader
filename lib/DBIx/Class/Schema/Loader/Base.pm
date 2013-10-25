@@ -110,6 +110,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 qualify_objects
                                 moniker_parts
                                 moniker_part_separator
+                                moniker_part_map
 /);
 
 my $CURRENT_V = 'v7';
@@ -618,6 +619,25 @@ together. Examples:
     luser-opts       | LuserOpt
     stations_visited | StationVisited
     routeChange      | RouteChange
+
+=head2 moniker_part_map
+
+Map for overriding the monikerization of individual L</moniker_parts>.
+The keys are the moniker part to override, the value is either a
+hashref of coderef for mapping the corresponding part of the
+moniker. If a coderef is used, it gets called with the moniker part
+and the hash key the code ref was found under.
+
+For example:
+
+    moniker_part_map => {
+        schema => sub { ... },
+    },
+
+Given the table C<foo.bar>, the code ref would be called with the
+arguments C<foo> and C<schema>.
+
+L</moniker_map> takes precedence over this.
 
 =head2 col_accessor_map
 
@@ -1228,6 +1248,9 @@ sub new {
 
     if (not defined $self->moniker_part_separator) {
         $self->moniker_part_separator('');
+    }
+    if (not defined $self->moniker_part_map) {
+        $self->moniker_part_map({}),
     }
 
     return $self;
@@ -2643,7 +2666,8 @@ sub _default_table2moniker {
 
     my $v = $self->_get_naming_v('monikers');
 
-    my @name_parts = map $table->$_, @{ $self->moniker_parts };
+    my @moniker_parts = @{ $self->moniker_parts };
+    my @name_parts = map $table->$_, @moniker_parts;
 
     my $name_idx = firstidx { $_ eq 'name' } @{ $self->moniker_parts };
 
@@ -2651,6 +2675,16 @@ sub _default_table2moniker {
 
     foreach my $i (0 .. $#name_parts) {
         my $part = $name_parts[$i];
+
+        my $moniker_part = $self->_run_user_map(
+            $self->moniker_part_map->{$moniker_parts[$i]},
+            sub { '' },
+            $part, $moniker_parts[$i],
+        );
+        if (length $moniker_part) {
+            push @all_parts, $moniker_part;
+            next;
+        }
 
         if ($i != $name_idx || $v >= 8) {
             $part = $self->_to_identifier('monikers', $part, '_', 1);

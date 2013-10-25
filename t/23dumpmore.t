@@ -404,6 +404,48 @@ $t->dump_test(
   },
 );
 
+# test moniker_map + moniker_part_map
+$t->dump_test(
+  classname => 'DBICTest::DumpMore::1',
+  options => {
+    db_schema => 'my_schema',
+    moniker_parts => ['_schema', 'name'],
+    moniker_part_separator => '::',
+    moniker_part_map => {
+        _schema => {
+            my_schema => 'OtherSchema',
+        },
+    },
+    moniker_map => {
+        my_schema => {
+            foo => 'MySchema::Floop',
+        },
+    },
+    qualify_objects => 1,
+    use_namespaces => 1,
+  },
+  warnings => [
+    qr/^db_schema is not supported on SQLite/,
+  ],
+  regexes => {
+    'Result/MySchema/Floop' => [
+      qr/^package DBICTest::DumpMore::1::Result::MySchema::Floop;/m,
+      qr/^\Q__PACKAGE__->table("my_schema.foo");\E/m,
+      # the has_many relname should not have the schema in it, but the class should
+      qr/^__PACKAGE__->has_many\(\n  "bars",\n  "DBICTest::DumpMore::1::Result::OtherSchema::Bar"/m,
+    ],
+    'Result/OtherSchema/Bar' => [
+      qr/^package DBICTest::DumpMore::1::Result::OtherSchema::Bar;/m,
+      qr/^\Q__PACKAGE__->table("my_schema.bar");\E/m,
+      # the has_many relname should not have the schema in it, but the class should
+      qr/^__PACKAGE__->belongs_to\(\n  "fooref",\n  "DBICTest::DumpMore::1::Result::MySchema::Floop"/m,
+    ],
+
+  },
+);
+
+
+
 $t->dump_test(
   classname => 'DBICTest::DumpMore::1',
   options => {
