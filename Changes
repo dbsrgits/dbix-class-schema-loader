@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07037  2013-10-30
         - Allow overriding individual moniker parts
 
 0.07036_04 2013-10-24
