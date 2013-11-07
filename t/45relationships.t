@@ -42,7 +42,7 @@ is( ref($hash_relationship->source('Bar')->relationship_info('got_fooref')),
 # test coderef as rel_name_map
 my $code_relationship = schema_with(
     rel_name_map => sub {
-        my ($args) = @_;
+        my ($args, $orig) = @_;
 
         if ($args->{local_moniker} eq 'Foo') {
             is_deeply(
@@ -61,7 +61,6 @@ my $code_relationship = schema_with(
 		},
 		'correct args for Foo passed'
               );
-	    return 'bars_caught';
         }
 	elsif ($args->{local_moniker} eq 'Bar') {
             is_deeply(
@@ -80,9 +79,15 @@ my $code_relationship = schema_with(
 		},
 		'correct args for Foo passed'
               );
-	
-            return 'fooref_caught';
 	}
+        else {
+            fail( 'correct args passed to rel_name_map' );
+            diag "args were: ", explain $args;
+        }
+	return $orig->({
+	    Bar => { fooref => 'fooref_caught' },
+	    Foo => { bars => 'bars_caught' },
+	});
     }
   );
 is( ref($code_relationship->source('Foo')->relationship_info('bars_caught')),
@@ -94,6 +99,9 @@ is( ref($code_relationship->source('Bar')->relationship_info('fooref_caught')),
     'rel_name_map overrode remote_info correctly'
   );
 
+throws_ok {
+    schema_with( rel_name_map => sub { $_[-1]->(sub{}) } ),
+} qr/reentered rel_name_map must be a hashref/, 'throws error for invalid (code) rel_name_map callback map';
 
 
 # test relationship_attrs

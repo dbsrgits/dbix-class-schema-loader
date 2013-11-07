@@ -959,9 +959,13 @@ sub _rel_name_map {
         remote_columns => $remote_cols,
     };
 
-    my $new_name = $relname;
+    $self->_run_user_map($self->rel_name_map, $info);
+}
 
-    my $map = $self->rel_name_map;
+sub _run_user_map {
+    my ($self, $map, $info) = @_;
+
+    my $new_name = $info->{name};
     my $mapped = 0;
 
     if ('HASH' eq ref($map)) {
@@ -979,7 +983,14 @@ sub _rel_name_map {
         }
     }
     elsif ('CODE' eq ref($map)) {
-        my $name = $map->($info);
+        my $cb = sub {
+            my ($cb_map) = @_;
+            croak "reentered rel_name_map must be a hashref"
+                unless 'HASH' eq ref($cb_map);
+            my ($cb_name, $cb_mapped) = $self->_run_user_map($cb_map, $info);
+            return $cb_mapped && $cb_name;
+        };
+        my $name = $map->($info, $cb);
         if ($name) {
             $new_name = $name;
             $mapped   = 1;

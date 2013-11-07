@@ -603,6 +603,11 @@ a coderef for a translator function taking a L<table
 object|DBIx::Class::Schema::Loader::Table> argument (which stringifies to the
 unqualified table name) and returning a scalar moniker
 
+The function is also passed a coderef that can be called with either
+of the hashref forms to get the moniker mapped accordingly.  This is
+useful if you need to handle some monikers specially, but want to use
+the hashref form for the rest.
+
 =back
 
 If the hash entry does not exist, or the function returns a false
@@ -635,7 +640,8 @@ For example:
     },
 
 Given the table C<foo.bar>, the code ref would be called with the
-arguments C<foo> and C<schema>.
+arguments C<foo> and C<schema>, plus a coderef similar to the one
+described in L</moniker_map>.
 
 L</moniker_map> takes precedence over this.
 
@@ -654,6 +660,7 @@ passed, the code is called with arguments of
       schema_class    => name of the schema class we are building,
       column_info     => hashref of column info (data_type, is_nullable, etc),
    }
+   coderef ref that can be called with a hashref map
 
 the L<table object|DBIx::Class::Schema::Loader::Table> stringifies to the
 unqualified table name.
@@ -680,7 +687,7 @@ instance, you could have
 and relationships that would have been named C<bar> will now be named C<baz>
 except that in the table whose moniker is C<Foo> it will be named C<blat>.
 
-If it is a coderef, the argument passed will be a hashref of this form:
+If it is a coderef, it will be passed a hashref of this form:
 
     {
         name           => default relationship name,
@@ -696,6 +703,8 @@ If it is a coderef, the argument passed will be a hashref of this form:
         link_moniker   => moniker of the DBIC class for the link table
         link_rel_name  => name of the relationship to the link table
     }
+
+In addition it is passed a coderef that can be called with a hashref map.
 
 DBICSL will try to use the value returned as the relationship name.
 
@@ -2444,7 +2453,13 @@ sub _run_user_map {
         }
     }
     elsif( $map && ref $map eq 'CODE' ) {
-        $new_ident = $map->( $ident, $default_ident, @extra );
+        my $cb = sub {
+            my ($cb_map) = @_;
+            croak "reentered map must be a hashref"
+                unless 'HASH' eq ref($cb_map);
+            return $self->_run_user_map($cb_map, $default_code, $ident, @extra);
+        };
+        $new_ident = $map->( $ident, $default_ident, @extra, $cb );
     }
 
     $new_ident ||= $default_ident;

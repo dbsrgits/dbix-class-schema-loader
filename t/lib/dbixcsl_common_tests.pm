@@ -88,8 +88,8 @@ sub skip_tests {
 
 sub _monikerize {
     my $name = shift;
-    return 'LoaderTest2X' if $name =~ /^loader_test2$/i;
-    return undef;
+    my $orig = pop;
+    return $orig->({ loader_test2 => 'LoaderTest2X' });
 }
 
 sub run_tests {
