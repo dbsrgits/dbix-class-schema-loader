@@ -233,7 +233,7 @@ sub _columns_info_for {
         my ($precision, $scale, $column_type, $default) = eval { $self->dbh->selectrow_array(<<'EOF', {}, $table->name, lc($col)) };
 SELECT numeric_precision, numeric_scale, column_type, column_default
 FROM information_schema.columns
-WHERE table_name = ? AND lower(column_name) = ?
+WHERE table_schema = schema() AND table_name = ? AND lower(column_name) = ?
 EOF
         my $has_information_schema = not $@;
 
