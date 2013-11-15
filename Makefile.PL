@@ -103,7 +103,7 @@ install_script 'script/dbicdump';
 
 resources 'IRC'         => 'irc://irc.perl.org/#dbix-class';
 resources 'license'     => 'http://dev.perl.org/licenses/';
-resources 'repository'  => 'git://git.shadowcat.co.uk/dbsrgits/DBIx-Class-Schema-Loader.git';
+resources 'repository'  => 'https://github.com/dbsrgits/dbix-class-schema-loader';
 resources 'MailingList' => 'http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/dbix-class';
 
 auto_install;
