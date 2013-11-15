@@ -5,6 +5,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Fix skip count for Oracle multi-schema tests
         - Actually test data types that require separate tables
         - Fix national character type sizes on DBD::Oracle >= 1.52
+        - Fix detection of qualified sequence names for Oracle (RT#90341)
 
 0.07037  2013-10-30
         - Allow overriding individual moniker parts

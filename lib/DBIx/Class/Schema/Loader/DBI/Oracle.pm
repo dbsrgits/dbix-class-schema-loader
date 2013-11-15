@@ -185,7 +185,7 @@ EOF
     $sth->execute($table->name, $table->schema);
 
     while (my ($trigger_body) = $sth->fetchrow_array) {
-        if (my ($seq_schema, $seq_name) = $trigger_body =~ /(?:\."?(\w+)"?)?"?(\w+)"?\.nextval/i) {
+        if (my ($seq_schema, $seq_name) = $trigger_body =~ /(?:"?(\w+)"?\.)?"?(\w+)"?\.nextval/i) {
             if (my ($col_name) = $trigger_body =~ /:new\.(\w+)/i) {
                 $col_name = $self->_lc($col_name);
 
