@@ -223,7 +223,7 @@ my $tester = dbixcsl_common_tests->new(
                 'DEFERRABLE clause introspected correctly';
 
             SKIP: {
-                skip 'Set the DBICTEST_ORA_EXTRAUSER_DSN, _USER and _PASS environment variables to run the cross-schema relationship tests', 6 * 2
+                skip 'Set the DBICTEST_ORA_EXTRAUSER_DSN, _USER and _PASS environment variables to run the cross-schema relationship tests', 31 * 2
                     unless $ENV{DBICTEST_ORA_EXTRAUSER_DSN};
 
                 $extra_schema = $schema->clone;
