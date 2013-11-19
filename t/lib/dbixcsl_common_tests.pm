@@ -2233,8 +2233,10 @@ sub setup_data_type_tests {
         @first_table_types = grep !/$split_off_re/, @types;
     }
 
-    @types = +{ map +($_, $types->{$_}), @first_table_types },
-        map +{ $_, $types->{$_} }, @split_off_types;
+    @types = (
+        +{ map +($_, $types->{$_}), @first_table_types },
+        map +{ $_, $types->{$_} }, @split_off_types,
+    );
 
     my $test_count = 0;
     my $table_num  = 10000;
