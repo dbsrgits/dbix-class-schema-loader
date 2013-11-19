@@ -199,6 +199,9 @@ EOF
         }
     }
 
+    # Old DBD::Oracle report the size in (UTF-16) bytes, not characters
+    my $nchar_size_factor = $DBD::Oracle::VERSION >= 1.52 ? 1 : 2;
+
     while (my ($col, $info) = each %$result) {
         no warnings 'uninitialized';
 
@@ -229,7 +232,7 @@ EOF
                 $info->{size} = $info->{size}[0] / 8;
             }
             else {
-                $info->{size} = $info->{size} / 2;
+                $info->{size} = $info->{size} / $nchar_size_factor;
             }
         }
         elsif ($info->{data_type} =~ /^(?:var)?char2?\z/i) {
