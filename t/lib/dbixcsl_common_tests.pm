@@ -89,7 +89,10 @@ sub skip_tests {
 sub _monikerize {
     my $name = shift;
     my $orig = pop;
-    return $orig->({ loader_test2 => 'LoaderTest2X' });
+    return $orig->({
+        loader_test2 => 'LoaderTest2X',
+        LOADER_TEST2 => 'LoaderTest2X',
+    });
 }
 
 sub run_tests {
