@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07038  2013-11-20
         - Allow coderef maps to call back into the hashref mapping code
         - Fix MySQL column info detection with multiple schemas (RT#82358)
         - Fix skip count for Oracle multi-schema tests

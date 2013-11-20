@@ -18,7 +18,7 @@ use String::ToIdentifier::EN::Unicode ();
 use Class::Unload ();
 use Class::Inspector ();
 
-our $VERSION = '0.07037';
+our $VERSION = '0.07038';
 
 # Glossary:
 #
