@@ -583,5 +583,18 @@ $t->dump_test(
     },
 );
 
+# test dry-run mode
+$t->dump_test(
+    classname => 'DBICTest::DumpMore::DryRun',
+    options => {
+        dry_run => 1,
+    },
+);
+
+my $schema_file = $t->class_file('DBICTest::DumpMore::DryRun');
+ok( !-e $schema_file, "dry-run doesn't create file for schema class" );
+(my $schema_dir = $schema_file) =~ s/\.pm\z//;
+ok( !-e $schema_dir, "dry-run doesn't create subdirectory for schema namespace" );
+
 done_testing;
 # vim:et sts=4 sw=4 tw=0:

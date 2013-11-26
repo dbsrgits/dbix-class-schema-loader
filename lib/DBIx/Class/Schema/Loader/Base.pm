@@ -61,6 +61,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 use_moose
                                 only_autoclean
                                 overwrite_modifications
+                                dry_run
                                 generated_classes
 
                                 relationship_attrs
@@ -305,6 +306,11 @@ next major version upgrade:
 If true, will not print the usual C<Dumping manual schema ... Schema dump
 completed.> messages. Does not affect warnings (except for warnings related to
 L</really_erase_my_files>.)
+
+=head2 dry_run
+
+If true, don't actually write out the generated files.  This can only be
+used with static schema generation.
 
 =head2 generate_pod
 
@@ -1136,6 +1142,10 @@ sub new {
             if $self->{dump_overwrite};
 
     $self->{dynamic} = ! $self->{dump_directory};
+
+    croak "dry_run can only be used with static schema generation"
+        if $self->dynamic and $self->dry_run;
+
     $self->{temp_directory} ||= File::Temp::tempdir( 'dbicXXXX',
                                                      TMPDIR  => 1,
                                                      CLEANUP => 1,
@@ -1750,6 +1760,7 @@ sub _load_tables {
         local $self->{quiet} = 1;
         local $self->{dump_directory} = $self->{temp_directory};
         local $self->{generated_classes} = [];
+        local $self->{dry_run} = 0;
         $self->_reload_classes(\@tables);
         $self->_load_relationships(\@tables);
 
@@ -1762,7 +1773,7 @@ sub _load_tables {
 
     # Reload without unloading first to preserve any symbols from external
     # packages.
-    $self->_reload_classes(\@tables, { unload => 0 });
+    $self->_reload_classes(\@tables, { unload => 0 }) unless $self->dry_run;
 
     # Drop temporary cache
     delete $self->{_cache};
@@ -1879,6 +1890,8 @@ sub get_dump_filename {
 
 sub _ensure_dump_subdirs {
     my ($self, $class) = (@_);
+
+    return if $self->dry_run;
 
     my @name_parts = split(/::/, $class);
     pop @name_parts; # we don't care about the very last element,
@@ -2027,7 +2040,7 @@ sub _write_classfile {
     my $filename = $self->_get_dump_filename($class);
     $self->_ensure_dump_subdirs($class);
 
-    if (-f $filename && $self->really_erase_my_files) {
+    if (-f $filename && $self->really_erase_my_files && !$self->dry_run) {
         warn "Deleting existing file '$filename' due to "
             . "'really_erase_my_files' setting\n" unless $self->quiet;
         unlink($filename);
@@ -2051,7 +2064,7 @@ sub _write_classfile {
         if (-f $old_filename) {
             $custom_content = ($self->_parse_generated_file ($old_filename))[4];
 
-            unlink $old_filename;
+            unlink $old_filename unless $self->dry_run;
         }
     }
 
@@ -2135,6 +2148,8 @@ sub _write_classfile {
     }
 
     push @{$self->generated_classes}, $class;
+
+    return if $self->dry_run;
 
     $text .= $self->_sig_comment(
       $self->version_to_dump,
