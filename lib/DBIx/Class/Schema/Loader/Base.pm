@@ -61,6 +61,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 use_moose
                                 only_autoclean
                                 overwrite_modifications
+                                generated_classes
 
                                 relationship_attrs
 
@@ -1123,6 +1124,7 @@ sub new {
     $self->{class_to_table} = {};
     $self->{classes}  = {};
     $self->{_upgrading_classes} = {};
+    $self->{generated_classes} = [];
 
     $self->{schema_class} ||= ( ref $self->{schema} || $self->{schema} );
     $self->{schema} ||= $self->{schema_class};
@@ -1747,6 +1749,7 @@ sub _load_tables {
         # The relationship loader needs a working schema
         local $self->{quiet} = 1;
         local $self->{dump_directory} = $self->{temp_directory};
+        local $self->{generated_classes} = [];
         $self->_reload_classes(\@tables);
         $self->_load_relationships(\@tables);
 
@@ -2130,6 +2133,8 @@ sub _write_classfile {
         return unless $self->_upgrading_from && $is_schema;
       }
     }
+
+    push @{$self->generated_classes}, $class;
 
     $text .= $self->_sig_comment(
       $self->version_to_dump,
@@ -3103,6 +3108,11 @@ definitions, or what-have-you).
 Returns a hashref of table to class mappings.  In some cases it will
 contain multiple entries per table for the original and normalized table
 names, as above in L</monikers>.
+
+=head2 generated_classes
+
+Returns an arrayref of classes that were actually generated (i.e. not
+skipped because there were no changes).
 
 =head1 NON-ENGLISH DATABASES
 
