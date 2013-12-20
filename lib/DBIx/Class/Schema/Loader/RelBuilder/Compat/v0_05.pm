@@ -30,25 +30,25 @@ sub _relnames_and_method {
     my $remote_moniker = $rel->{remote_source};
     my $remote_obj     = $self->{schema}->source( $remote_moniker );
     my $remote_class   = $self->{schema}->class(  $remote_moniker );
-    my $remote_relname = $self->_remote_relname( $rel->{remote_table}, $cond);
+    my $local_relname  = $self->_local_relname( $rel->{remote_table}, $cond);
 
     my $local_cols  = $rel->{local_columns};
     my $local_table = $rel->{local_table};
 
     # If more than one rel between this pair of tables, use the local
     # col names to distinguish
-    my ($local_relname, $local_relname_uninflected);
+    my ($remote_relname, $remote_relname_uninflected);
     if ( $counters->{$remote_moniker} > 1) {
         my $colnames = lc(q{_} . join(q{_}, map lc($_), @$local_cols));
-        $remote_relname .= $colnames if keys %$cond > 1;
+        $local_relname .= $colnames if keys %$cond > 1;
 
-        $local_relname = lc($local_table) . $colnames;
+        $remote_relname = lc($local_table) . $colnames;
 
-        $local_relname_uninflected = $local_relname;
-        ($local_relname) = $self->_inflect_plural( $local_relname );
+        $remote_relname_uninflected = $remote_relname;
+        ($remote_relname) = $self->_inflect_plural( $remote_relname );
     } else {
-        $local_relname_uninflected = lc $local_table;
-        ($local_relname) = $self->_inflect_plural(lc $local_table);
+        $remote_relname_uninflected = lc $local_table;
+        ($remote_relname) = $self->_inflect_plural(lc $local_table);
     }
 
     my $remote_method = 'has_many';
@@ -58,10 +58,10 @@ sub _relnames_and_method {
     if (array_eq([ $local_source->primary_columns ], $local_cols) ||
             grep { array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method = 'might_have';
-        ($local_relname) = $self->_inflect_singular($local_relname_uninflected);
+        ($remote_relname) = $self->_inflect_singular($remote_relname_uninflected);
     }
 
-    return ( $local_relname, $remote_relname, $remote_method );
+    return ( $remote_relname, $local_relname, $remote_method );
 }
 
 =head1 NAME

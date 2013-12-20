@@ -22,8 +22,8 @@ our $VERSION = '0.07038';
 
 # Glossary:
 #
-# remote_relname -- name of relationship from the local table referring to the remote table
-# local_relname  -- name of relationship from the remote table referring to the local table
+# local_relname  -- name of relationship from the local table referring to the remote table
+# remote_relname -- name of relationship from the remote table referring to the local table
 # remote_method  -- relationship type from remote table to local table, usually has_many
 
 =head1 NAME
@@ -326,22 +326,22 @@ sub _normalize_name {
     return join '_', map lc, @words;
 }
 
-sub _remote_relname {
+sub _local_relname {
     my ($self, $remote_table, $cond) = @_;
 
-    my $remote_relname;
+    my $local_relname;
     # for single-column case, set the remote relname to the column
     # name, to make filter accessors work, but strip trailing _id
     if(scalar keys %{$cond} == 1) {
         my ($col) = values %{$cond};
         $col = $self->_strip_id_postfix($self->_normalize_name($col));
-        ($remote_relname) = $self->_inflect_singular($col);
+        ($local_relname) = $self->_inflect_singular($col);
     }
     else {
-        ($remote_relname) = $self->_inflect_singular($self->_normalize_name($remote_table));
+        ($local_relname) = $self->_inflect_singular($self->_normalize_name($remote_table));
     }
 
-    return $remote_relname;
+    return $local_relname;
 }
 
 sub _resolve_relname_collision {
@@ -411,30 +411,30 @@ sub generate_code {
             my %cond;
             @cond{@$remote_cols} = @$local_cols;
 
-            my ( $local_relname, $remote_relname, $remote_method ) =
+            my ( $remote_relname, $local_relname, $remote_method ) =
                 $self->_relnames_and_method( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
             my $local_method  = 'belongs_to';
 
-            ($remote_relname) = $self->_rel_name_map(
-                $remote_relname, $local_method,
+            ($local_relname) = $self->_rel_name_map(
+                $local_relname, $local_method,
                 $local_class, $local_moniker, $local_cols,
                 $remote_class, $remote_moniker, $remote_cols,
             );
-            ($local_relname)  = $self->_rel_name_map(
-                $local_relname, $remote_method,
+            ($remote_relname) = $self->_rel_name_map(
+                $remote_relname, $remote_method,
                 $remote_class, $remote_moniker, $remote_cols,
                 $local_class, $local_moniker, $local_cols,
             );
 
-            $remote_relname = $self->_resolve_relname_collision(
-                $local_moniker, $local_cols, $remote_relname,
-            );
             $local_relname = $self->_resolve_relname_collision(
-                $remote_moniker, $remote_cols, $local_relname,
+                $local_moniker, $local_cols, $local_relname,
+            );
+            $remote_relname = $self->_resolve_relname_collision(
+                $remote_moniker, $remote_cols, $remote_relname,
             );
 
             my $rel_attrs_params = {
-                rel_name      => $remote_relname,
+                rel_name      => $local_relname,
                 rel_type      => $local_method,
                 local_source  => $self->schema->source($local_moniker),
                 remote_source => $self->schema->source($remote_moniker),
@@ -447,7 +447,7 @@ sub generate_code {
             push @{$all_code->{$local_class}}, {
                 method => $local_method,
                 args => [
-                    $remote_relname,
+                    $local_relname,
                     $remote_class,
                     \%cond,
                     $self->_remote_attrs($local_moniker, $local_cols, $rel->{attrs}, $rel_attrs_params),
@@ -466,7 +466,7 @@ sub generate_code {
             }
 
             $rel_attrs_params = {
-                rel_name      => $local_relname,
+                rel_name      => $remote_relname,
                 rel_type      => $remote_method,
                 local_source  => $self->schema->source($remote_moniker),
                 remote_source => $self->schema->source($local_moniker),
@@ -479,7 +479,7 @@ sub generate_code {
             push @{$all_code->{$remote_class}}, {
                 method => $remote_method,
                 args => [
-                    $local_relname,
+                    $remote_relname,
                     $local_class,
                     \%rev_cond,
                     $self->_relationship_attrs($remote_method, {}, $rel_attrs_params),
@@ -886,15 +886,15 @@ sub _relnames_and_method {
     my $remote_moniker  = $rel->{remote_source};
     my $remote_obj      = $self->schema->source( $remote_moniker );
     my $remote_class    = $self->schema->class(  $remote_moniker );
-    my $remote_relname  = $self->_remote_relname( $rel->{remote_table}, $cond);
+    my $local_relname   = $self->_local_relname( $rel->{remote_table}, $cond);
 
     my $local_cols      = $rel->{local_columns};
     my $local_table     = $rel->{local_table};
     my $local_class     = $self->schema->class($local_moniker);
     my $local_source    = $self->schema->source($local_moniker);
 
-    my $local_relname_uninflected = $self->_normalize_name($local_table);
-    my ($local_relname) = $self->_inflect_plural($self->_normalize_name($local_table));
+    my $remote_relname_uninflected = $self->_normalize_name($local_table);
+    my ($remote_relname) = $self->_inflect_plural($self->_normalize_name($local_table));
 
     my $remote_method = 'has_many';
 
@@ -902,7 +902,7 @@ sub _relnames_and_method {
     if (array_eq([ $local_source->primary_columns ], $local_cols) ||
             first { array_eq($_->[1], $local_cols) } @$uniqs) {
         $remote_method   = 'might_have';
-        ($local_relname) = $self->_inflect_singular($local_relname_uninflected);
+        ($remote_relname) = $self->_inflect_singular($remote_relname_uninflected);
     }
 
     # If more than one rel between this pair of tables, use the local
@@ -926,9 +926,9 @@ sub _relnames_and_method {
                 push @{ $self->_temp_classes }, $class;
             }
 
-            if ($class->has_relationship($local_relname)) {
+            if ($class->has_relationship($remote_relname)) {
                 my $rel_cols = [ sort { $a cmp $b } apply { s/^foreign\.//i }
-                    (keys %{ $class->relationship_info($local_relname)->{cond} }) ];
+                    (keys %{ $class->relationship_info($remote_relname)->{cond} }) ];
 
                 $relationship_exists = 1 if array_eq([ sort @$local_cols ], $rel_cols);
             }
@@ -936,21 +936,21 @@ sub _relnames_and_method {
 
         if (not $relationship_exists) {
             my $colnames = q{_} . $self->_normalize_name(join '_', @$local_cols);
-            $remote_relname .= $colnames if keys %$cond > 1;
+            $local_relname .= $colnames if keys %$cond > 1;
 
-            $local_relname = $self->_strip_id_postfix($self->_normalize_name($local_table . $colnames));
+            $remote_relname = $self->_strip_id_postfix($self->_normalize_name($local_table . $colnames));
 
-            $local_relname_uninflected = $local_relname;
-            ($local_relname) = $self->_inflect_plural($local_relname);
+            $remote_relname_uninflected = $remote_relname;
+            ($remote_relname) = $self->_inflect_plural($remote_relname);
 
             # if colnames were added and this is a might_have, re-inflect
             if ($remote_method eq 'might_have') {
-                ($local_relname) = $self->_inflect_singular($local_relname_uninflected);
+                ($remote_relname) = $self->_inflect_singular($remote_relname_uninflected);
             }
         }
     }
 
-    return ($local_relname, $remote_relname, $remote_method);
+    return ($remote_relname, $local_relname, $remote_method);
 }
 
 sub _rel_name_map {
