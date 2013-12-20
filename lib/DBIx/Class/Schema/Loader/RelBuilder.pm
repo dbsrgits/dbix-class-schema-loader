@@ -9,7 +9,7 @@ use Scalar::Util 'weaken';
 use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file array_eq/;
 use Try::Tiny;
 use List::Util 'first';
-use List::MoreUtils qw/apply uniq any/;
+use List::MoreUtils qw/apply uniq any none/;
 use namespace::clean;
 use Lingua::EN::Inflect::Phrase ();
 use Lingua::EN::Tagger ();
@@ -381,6 +381,7 @@ sub generate_code {
 
     # make a copy to destroy
     my @tables = @$tables;
+    my %uniq_cols = map { $_->[0] => [ map { $_->[1] } @{$_->[2]} ] } @tables;
 
     my $all_code = {};
 
@@ -432,6 +433,17 @@ sub generate_code {
             $remote_relname = $self->_resolve_relname_collision(
                 $remote_moniker, $remote_cols, $remote_relname,
             );
+
+            if (!$self->loader->_disable_uniq_detection
+                && none { array_eq($_, $remote_cols) }
+                    [ $remote_obj->primary_columns ],
+                    @{$uniq_cols{$remote_moniker}},
+            ) {
+                warn <<"EOF";
+$local_method relationship '$remote_relname' in source '$local_moniker' references
+non-unique columns (@{[join(',', @$remote_cols)]}) in source '$remote_moniker'.
+EOF
+            }
 
             my $rel_attrs_params = {
                 rel_name      => $local_relname,
