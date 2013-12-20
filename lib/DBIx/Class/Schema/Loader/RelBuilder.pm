@@ -409,9 +409,7 @@ sub generate_code {
             }
 
             my %cond;
-            foreach my $i (0 .. $#$local_cols) {
-                $cond{$remote_cols->[$i]} = $local_cols->[$i];
-            }
+            @cond{@$remote_cols} = @$local_cols;
 
             my ( $local_relname, $remote_relname, $remote_method ) =
                 $self->_relnames_and_method( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
