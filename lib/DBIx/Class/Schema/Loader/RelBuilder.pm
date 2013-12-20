@@ -411,7 +411,7 @@ sub generate_code {
             my %cond;
             @cond{@$remote_cols} = @$local_cols;
 
-            my ( $remote_relname, $local_relname, $remote_method ) =
+            my ( $local_relname, $remote_relname, $remote_method ) =
                 $self->_relnames_and_method( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
             my $local_method  = 'belongs_to';
 
@@ -950,7 +950,7 @@ sub _relnames_and_method {
         }
     }
 
-    return ($remote_relname, $local_relname, $remote_method);
+    return ($local_relname, $remote_relname, $remote_method);
 }
 
 sub _rel_name_map {

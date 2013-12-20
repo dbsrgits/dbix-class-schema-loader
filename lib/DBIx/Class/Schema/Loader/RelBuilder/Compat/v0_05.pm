@@ -61,7 +61,7 @@ sub _relnames_and_method {
         ($remote_relname) = $self->_inflect_singular($remote_relname_uninflected);
     }
 
-    return ( $remote_relname, $local_relname, $remote_method );
+    return ( $local_relname, $remote_relname, $remote_method );
 }
 
 =head1 NAME

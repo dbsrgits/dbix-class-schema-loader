@@ -33,7 +33,7 @@ sub _relnames_and_method {
         ($remote_relname) = $self->_inflect_plural(lc $local_table);
     }
 
-    return ( $remote_relname, $local_relname, 'has_many' );
+    return ( $local_relname, $remote_relname, 'has_many' );
 }
 
 sub _remote_attrs { }
