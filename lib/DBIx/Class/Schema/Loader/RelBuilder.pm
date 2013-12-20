@@ -417,11 +417,23 @@ sub generate_code {
                 $self->_relnames_and_method( $local_moniker, $rel, \%cond,  $uniqs, \%counters );
             my $local_method  = 'belongs_to';
 
-            ($remote_relname) = $self->_rel_name_map($remote_relname, $local_method, $local_class, $local_moniker, $local_cols, $remote_class, $remote_moniker, $remote_cols);
-            ($local_relname)  = $self->_rel_name_map($local_relname, $remote_method, $remote_class, $remote_moniker, $remote_cols, $local_class, $local_moniker, $local_cols);
+            ($remote_relname) = $self->_rel_name_map(
+                $remote_relname, $local_method,
+                $local_class, $local_moniker, $local_cols,
+                $remote_class, $remote_moniker, $remote_cols,
+            );
+            ($local_relname)  = $self->_rel_name_map(
+                $local_relname, $remote_method,
+                $remote_class, $remote_moniker, $remote_cols,
+                $local_class, $local_moniker, $local_cols,
+            );
 
-            $remote_relname   = $self->_resolve_relname_collision($local_moniker,  $local_cols,  $remote_relname);
-            $local_relname    = $self->_resolve_relname_collision($remote_moniker, $remote_cols, $local_relname);
+            $remote_relname = $self->_resolve_relname_collision(
+                $local_moniker, $local_cols, $remote_relname,
+            );
+            $local_relname = $self->_resolve_relname_collision(
+                $remote_moniker, $remote_cols, $local_relname,
+            );
 
             my $rel_attrs_params = {
                 rel_name      => $remote_relname,
@@ -434,20 +446,20 @@ sub generate_code {
                 remote_cols   => $remote_cols,
             };
 
-            push(@{$all_code->{$local_class}},
-                { method => $local_method,
-                  args => [ $remote_relname,
-                            $remote_class,
-                            \%cond,
-                            $self->_remote_attrs($local_moniker, $local_cols, $rel->{attrs}, $rel_attrs_params),
-                  ],
-                  extra => {
-                      local_class    => $local_class,
-                      local_moniker  => $local_moniker,
-                      remote_moniker => $remote_moniker,
-                  },
-                }
-            );
+            push @{$all_code->{$local_class}}, {
+                method => $local_method,
+                args => [
+                    $remote_relname,
+                    $remote_class,
+                    \%cond,
+                    $self->_remote_attrs($local_moniker, $local_cols, $rel->{attrs}, $rel_attrs_params),
+                ],
+                extra => {
+                    local_class    => $local_class,
+                    local_moniker  => $local_moniker,
+                    remote_moniker => $remote_moniker,
+                },
+            };
 
             my %rev_cond = reverse %cond;
             for (keys %rev_cond) {
@@ -466,20 +478,20 @@ sub generate_code {
                 remote_cols   => $local_cols,
             };
 
-            push(@{$all_code->{$remote_class}},
-                { method => $remote_method,
-                  args => [ $local_relname,
-                            $local_class,
-                            \%rev_cond,
-                            $self->_relationship_attrs($remote_method, {}, $rel_attrs_params),
-                  ],
-                  extra => {
-                      local_class    => $remote_class,
-                      local_moniker  => $remote_moniker,
-                      remote_moniker => $local_moniker,
-                  },
-                }
-            );
+            push @{$all_code->{$remote_class}}, {
+                method => $remote_method,
+                args => [
+                    $local_relname,
+                    $local_class,
+                    \%rev_cond,
+                    $self->_relationship_attrs($remote_method, {}, $rel_attrs_params),
+                ],
+                extra => {
+                    local_class    => $remote_class,
+                    local_moniker  => $remote_moniker,
+                    remote_moniker => $local_moniker,
+                },
+            };
         }
     }
 
