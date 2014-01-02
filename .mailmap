@@ -1,0 +1,16 @@
+# This file allows us to map authors more correctly
+# so if someone were to legally change their name, we could use it to fix that
+# while maintaining the integrity of the repository
+
+# https://www.kernel.org/pub/software/scm/git/docs/git-shortlog.html#_mapping_authors
+
+Andrew Rodland <andrew@cleverdomain.org>     <andrew@hbslabs.com>
+Brendan Byrd <Perl@ResonatorSoft.org>        <BBYRD@CPAN.org>
+Brendan Byrd <Perl@ResonatorSoft.org>        <byrd.b@insightcom.com>
+Brian Phillips <bphillips@cpan.org>          <bphillips@digitalriver.com>
+Brian Phillips <bphillips@cpan.org>          <brian@thephillips.info>
+Dagfinn Ilmari Mannsåker <ilmari@ilmari.org> <ilmari.mannsaker@net-a-porter.com>
+Matt Phillips <mattp@cpan.org>               <mphillips@oanda.com>
+Matt S Trout <mst@shadowcat.co.uk>           <matthewt@hercule.scsys.co.uk>
+Matt S Trout <mst@shadowcat.co.uk>           <mst@shadowcatsystems.co.uk>
+Rafael Kitover <rkitover@cpan.org>           <rkitover@.(none)>
