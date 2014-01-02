@@ -673,6 +673,8 @@ angelixd: Paul C. Mantz <pcmantz@cpan.org>
 
 andrewalker: André Walker <andre@andrewalker.net>
 
+mattp: Matt Phillips <mattp@cpan.org>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
