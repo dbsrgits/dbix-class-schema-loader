@@ -27,8 +27,6 @@ my $dump_path = "$tdir/dump";
     );
 }
 
-plan tests => 7;
-
 rmtree($dump_path, 1, 1);
 
 lives_ok {
@@ -65,5 +63,7 @@ lives_ok {
     qr/^Schema dump completed/
   ];
 } 'no death with dump_directory set (overwrite2)' or diag "Dump failed: $@";
+
+done_testing();
 
 END { rmtree($dump_path, 1, 1); }
