@@ -387,6 +387,7 @@ $t->dump_test(
     constraint => [ [ qr/my_schema/ => qr/foo|bar/ ] ],
     exclude => [ [ qr/my_schema/ => qr/bar/ ] ],
   },
+  generated_results => [qw(MySchema::Floop)],
   warnings => [
     qr/^db_schema is not supported on SQLite/,
   ],
@@ -576,6 +577,7 @@ $t->dump_test(
     options => {
         use_namespaces => 1,
     },
+    generated_results => [qw(Foo Bar)],
     regexes => {
         'Result/Foo' => [
             qr/sub custom_method { 'custom_method works' }\n0;\n\n# You can replace.*\n1;\n\z/,
@@ -589,6 +591,7 @@ $t->dump_test(
     options => {
         dry_run => 1,
     },
+    generated_results => [qw(Foo Bar)],
 );
 
 my $schema_file = $t->class_file('DBICTest::DumpMore::DryRun');

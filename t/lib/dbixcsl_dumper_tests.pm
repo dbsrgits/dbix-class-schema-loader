@@ -75,11 +75,13 @@ sub _dump_directly {
     };
     my $err = $@;
 
+    my $classes = !$err && $schema_class->loader->generated_classes;
+
     Class::Unload->unload($schema_class);
 
     _check_error($err, $tdata{error});
 
-    return @warns;
+    return \@warns, $classes;
 }
 
 sub _dump_dbicdump {
@@ -128,7 +130,7 @@ sub _dump_dbicdump {
         _check_error($exception, $tdata{error});
     }
 
-    return @warnings;
+    return \@warnings;
 }
 
 sub _get_connect_info {
@@ -166,18 +168,27 @@ sub _check_error {
 }
 
 sub _test_dumps {
-    my ($tdata, @warns) = @_;
+    my ($tdata, $warns, $classes) = @_;
 
     my %tdata = %{$tdata};
 
     my $schema_class = $tdata{classname};
     my $check_warns = $tdata{warnings};
 
-    is(@warns, @$check_warns, "$schema_class warning count")
-      or diag @warns;
+    is(@$warns, @$check_warns, "$schema_class warning count")
+      or diag @$warns;
 
     for(my $i = 0; $i <= $#$check_warns; $i++) {
-        like(($warns[$i] || ''), $check_warns->[$i], "$schema_class warning $i");
+        like(($warns->[$i] || ''), $check_warns->[$i], "$schema_class warning $i");
+    }
+
+    if ($classes && (my $results = $tdata{generated_results})) {
+        my $ns = $tdata{options}{use_namespaces} ? ("::".($tdata{result_namespace} || "Result")) : "";
+        is_deeply(
+            [ sort grep { $_ ne $schema_class } @$classes ],
+            [ sort map { "${schema_class}${ns}::$_" } @$results ],
+            "$schema_class generated_classes set correctly",
+        );
     }
 
     my $file_regexes = $tdata{regexes};

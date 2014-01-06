@@ -1773,7 +1773,7 @@ sub _load_tables {
 
     # Reload without unloading first to preserve any symbols from external
     # packages.
-    $self->_reload_classes(\@tables, { unload => 0 }) unless $self->dry_run;
+    $self->_reload_classes(\@tables, { unload => 0 });
 
     # Drop temporary cache
     delete $self->{_cache};
@@ -1795,6 +1795,8 @@ sub _reload_classes {
     $self->_dump_to_dir(map { $self->classes->{$_->sql_name} } @tables);
 
     unshift @INC, $self->dump_directory;
+
+    return if $self->dry_run;
 
     my @to_register;
     my %have_source = map { $_ => $self->schema->source($_) }
