@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07039  2014-01-06
         - Fix table listing with DBD::DB2 >= 1.85 (RT#91764)
         - Add accessor for the list of (re)generated classes
         - Add dry-run mode for static schema creation

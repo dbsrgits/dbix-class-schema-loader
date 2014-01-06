@@ -13,7 +13,7 @@ use namespace::clean;
 
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07038';
+our $VERSION = '0.07039';
 
 =head1 NAME
 
