@@ -2,6 +2,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Add options to omit the version and timestamp from the
           generated code (RT#92300)
+        - Skip dumping unique indexes with expressions (RT#93613)
 
 0.07039  2014-01-06
         - Fix table listing with DBD::DB2 >= 1.85 (RT#91764)
