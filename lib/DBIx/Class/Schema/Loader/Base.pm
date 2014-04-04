@@ -63,6 +63,8 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 overwrite_modifications
                                 dry_run
                                 generated_classes
+                                omit_version
+                                omit_timestamp
 
                                 relationship_attrs
 
@@ -859,6 +861,14 @@ made to Loader-generated code.
 
 Again, you should be using version control on your schema classes.  Be
 careful with this option.
+
+=head2 omit_version
+
+Omit the package version from the signature comment.
+
+=head2 omit_timestamp
+
+Omit the creation timestamp from the signature comment.
 
 =head2 custom_column_info
 
@@ -2031,8 +2041,8 @@ sub _dump_to_dir {
 sub _sig_comment {
     my ($self, $version, $ts) = @_;
     return qq|\n\n# Created by DBIx::Class::Schema::Loader|
-         . qq| v| . $version
-         . q| @ | . $ts
+         . (defined($version) ? q| v| . $version : '')
+         . (defined($ts) ? q| @ | . $ts : '')
          . qq|\n# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:|;
 }
 
@@ -2154,8 +2164,8 @@ sub _write_classfile {
     return if $self->dry_run;
 
     $text .= $self->_sig_comment(
-      $self->version_to_dump,
-      POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
+      $self->omit_version ? undef : $self->version_to_dump,
+      $self->omit_timestamp ? undef : POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
     );
 
     open(my $fh, '>:encoding(UTF-8)', $filename)
@@ -2214,7 +2224,9 @@ sub _parse_generated_file {
             $md5 = $2;
 
             # Pull out the version and timestamp from the line above
-            ($ver, $ts) = $gen =~ m/^# Created by DBIx::Class::Schema::Loader v(.*?) @ (.*?)\r?\Z/m;
+            ($ver, $ts) = $gen =~ m/^# Created by DBIx::Class::Schema::Loader( v[\d.]+)?( @ [\d-]+ [\d:]+)?\r?\Z/m;
+            $ver =~ s/^ v// if $ver;
+            $ts =~ s/^ @ // if $ts;
 
             $gen .= $pre_md5;
             croak "Checksum mismatch in '$fn', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n"

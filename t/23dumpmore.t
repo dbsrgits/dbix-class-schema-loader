@@ -599,5 +599,46 @@ ok( !-e $schema_file, "dry-run doesn't create file for schema class" );
 (my $schema_dir = $schema_file) =~ s/\.pm\z//;
 ok( !-e $schema_dir, "dry-run doesn't create subdirectory for schema namespace" );
 
+# test omit_version (RT#92300)
+$t->dump_test(
+    classname => 'DBICTest::DumpMore::omit_version',
+    options => {
+	omit_version => 1,
+    },
+    regexes => {
+	Foo => [
+	    qr/^\# Created by DBIx::Class::Schema::Loader @ \d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d$/m,
+	],
+    },
+);
+
+# test omit_timestamp (RT#92300)
+$t->dump_test(
+    classname => 'DBICTest::DumpMore::omit_timestamp',
+    options => {
+	omit_timestamp => 1,
+    },
+    regexes => {
+	Foo => [
+	    qr/^\# Created by DBIx::Class::Schema::Loader v[\d.]+$/m,
+	],
+    },
+);
+
+# test omit_version and omit_timestamp simultaneously (RT#92300)
+$t->dump_test(
+    classname => 'DBICTest::DumpMore::omit_both',
+    options => {
+	omit_version => 1,
+	omit_timestamp => 1,
+    },
+    # A positive regex here would match the top comment
+    neg_regexes => {
+	Foo => [
+	    qr/^\# Created by DBIx::Class::Schema::Loader.+$/m,
+	],
+    },
+);
+
 done_testing;
 # vim:et sts=4 sw=4 tw=0:
