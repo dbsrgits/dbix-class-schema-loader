@@ -249,6 +249,8 @@ my $tester = dbixcsl_common_tests->new(
             q{
                 create table pg_loader_test12 (
                     id integer not null,
+                    value integer,
+                    active boolean,
                     name text
                 )
             },
@@ -261,6 +263,16 @@ my $tester = dbixcsl_common_tests->new(
                 create unique index uniq_uc_name_id on pg_loader_test12 (
                     upper(name), id
                 )
+            },
+            q{
+                create unique index pg_loader_test12_value on pg_loader_test12 (
+                    value
+                )
+            },
+            q{
+                create unique index pg_loader_test12_name_active on pg_loader_test12 (
+                    name
+                ) where active
             },
         ],
         pre_drop_ddl => [
@@ -466,8 +478,10 @@ my $tester = dbixcsl_common_tests->new(
             isa_ok $schema->resultset($monikers->{pg_loader_test11})->result_source, 'DBIx::Class::ResultSource::View',
                 'views have table_class set correctly';
 
-            is_deeply { $schema->source($monikers->{pg_loader_test12})->unique_constraints },
-                {}, 'unique indexes with expressions are not dumped';
+            is_deeply
+                { $schema->source($monikers->{pg_loader_test12})->unique_constraints },
+                { pg_loader_test12_value => ['value'] },
+                'unique indexes are dumped correctly';
         },
     },
 );
