@@ -54,8 +54,9 @@ an example of a general config file is as follows:
     
     # dbic loader options
     <loader_options>
-        components  InflateColumn::DateTime
-        components  TimeStamp
+        dump_directory ./lib
+        components     InflateColumn::DateTime
+        components     TimeStamp
     </loader_options>
 
 Using a config file requires L<Config::Any> installed.
