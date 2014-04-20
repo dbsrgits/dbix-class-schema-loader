@@ -677,6 +677,8 @@ mattp: Matt Phillips <mattp@cpan.org>
 
 Dag-Erling Smørgrav <des@des.no>
 
+moritz: Moritz Lenz <moritz@faui2k3.org>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
