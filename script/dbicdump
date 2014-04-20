@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+=encoding UTF-8
+
 =head1 NAME
 
 dbicdump - Dump a schema using DBIx::Class::Schema::Loader
@@ -82,7 +84,7 @@ L<DBIx::Class::Schema::Loader>, L<DBIx::Class>.
 
 =head1 AUTHOR
 
-Dagfinn Ilmari Manns?ker C<< <ilmari@ilmari.org> >>
+Dagfinn Ilmari Mannsåker C<< <ilmari@ilmari.org> >>
 
 =head1 CONTRIBUTORS
 
