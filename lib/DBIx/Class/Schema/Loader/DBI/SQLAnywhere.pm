@@ -274,8 +274,7 @@ EOF
         push @{$constraints->{$constraint_name}}, $self->_lc($column);
     }
 
-    my @uniqs = map { [ $_ => $constraints->{$_} ] } keys %$constraints;
-    return \@uniqs;
+    return [ map { [ $_ => $constraints->{$_} ] } sort keys %$constraints ];
 }
 
 =head1 SEE ALSO

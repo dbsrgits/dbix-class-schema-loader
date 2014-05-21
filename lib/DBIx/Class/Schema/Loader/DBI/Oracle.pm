@@ -126,8 +126,7 @@ EOF
         push @{$constr_names{$constr_name}}, $constr_col;
     }
 
-    my @uniqs = map { [ $_ => $constr_names{$_} ] } keys %constr_names;
-    return \@uniqs;
+    return [ map { [ $_ => $constr_names{$_} ] } sort keys %constr_names ];
 }
 
 sub _table_comment {

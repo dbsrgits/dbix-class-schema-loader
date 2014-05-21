@@ -75,7 +75,7 @@ EOF
         my ($col, $constname, $seq) = @$row;
         push(@{$keydata{$constname}}, [ $seq, $self->_lc($col) ]);
     }
-    foreach my $keyname (keys %keydata) {
+    foreach my $keyname (sort keys %keydata) {
         my @ordered_cols = map { $_->[1] } sort { $a->[0] <=> $b->[0] }
             @{$keydata{$keyname}};
         push(@uniqs, [ $keyname => \@ordered_cols ]);

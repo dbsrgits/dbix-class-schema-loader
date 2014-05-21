@@ -226,7 +226,7 @@ sub _table_uniq_info {
         push @uniqs, [ $name => \@cols ];
     }
     $sth->finish;
-    return \@uniqs;
+    return [ sort { $a->[0] cmp $b->[0] } @uniqs ];
 }
 
 sub _tables_list {

@@ -132,7 +132,8 @@ sub _table_uniq_info {
           c.relkind     = 'r' AND
           i.relkind     = 'i' AND
           n.nspname     = ? AND
-          c.relname     = ?}
+          c.relname     = ?
+        ORDER BY i.relname}
     );
 
     $uniq_sth->execute($table->schema, $table->name);

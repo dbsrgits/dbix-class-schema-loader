@@ -366,7 +366,7 @@ EOF
         push @{ $uniq{$constr} }, $self->_lc($col);
     }
 
-    return [ map [ $_ => $uniq{$_} ], keys %uniq ];
+    return [ map [ $_ => $uniq{$_} ], sort keys %uniq ];
 }
 
 sub _columns_info_for {

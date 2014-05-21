@@ -204,7 +204,7 @@ sub _table_uniq_info {
 
     my @uniqs;
     my $keydata = $self->_mysql_table_get_keys($table);
-    foreach my $keyname (keys %$keydata) {
+    foreach my $keyname (sort keys %$keydata) {
         next if $keyname eq 'PRIMARY';
         push(@uniqs, [ $keyname => $keydata->{$keyname} ]);
     }

@@ -347,7 +347,7 @@ sub _table_uniq_info {
     $sth->finish;
 
     my @retval;
-    foreach my $index_name (keys %indices) {
+    foreach my $index_name (sort keys %indices) {
         my (undef, @cols) = @{$indices{$index_name}};
         # skip indexes with missing column names (e.g. expression indexes)
         next unless @cols == grep $_, @cols;
