@@ -4,7 +4,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
           generated code (RT#92300)
         - Skip dumping unique indexes with expressions (RT#93613)
         - Fix dumping unique indexes with DBD::Pg < 1.50
-	- Fix inconsistent naming of duplicate unique constraints
+        - Fix inconsistent naming of duplicate unique constraints
         - Avoid clobbering caller's $_ (RT#96010)
 
 0.07039  2014-01-06
