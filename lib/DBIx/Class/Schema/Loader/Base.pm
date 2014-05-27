@@ -2218,6 +2218,7 @@ sub _parse_generated_file {
         qr{^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\r?\n};
 
     my ($md5, $ts, $ver, $gen);
+    local $_;
     while(<$fh>) {
         if(/$mark_re/) {
             my $pre_md5 = $1;
