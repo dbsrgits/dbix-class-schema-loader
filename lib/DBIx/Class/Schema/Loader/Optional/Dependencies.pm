@@ -21,7 +21,7 @@ my $reqs = {
     use_moose => {
         req => {
             'Moose' => '1.12',
-            'MooseX::NonMoose' => '0.16',
+            'MooseX::NonMoose' => '0.25',
             'namespace::autoclean' => '0.09',
             'MooseX::MarkAsMethods' => '0.13',
         },
