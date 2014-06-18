@@ -63,18 +63,45 @@ sub _system_tables {
 sub _dbh_tables {
     my ($self, $schema) = @_;
 
-    return $self->dbh->tables(undef, $schema, '%', 'TABLE,VIEW');
+    return $self->dbh->tables(undef, $schema, '%', 'TABLE,VIEW,SYNONYM');
 }
 
 sub _filter_tables {
-    my $self = shift;
+    my ($self, $tables, $opts) = @_;
 
     # silence a warning from older DBD::Oracles in tests
     local $SIG{__WARN__} = sigwarn_silencer(
         qr/^Field \d+ has an Oracle type \(\d+\) which is not explicitly supported/
     );
 
-    return $self->next::method(@_);
+    my @tables = @$tables;
+    my @filtered_tables;
+
+    # If we have one schema we can lookup the tables to
+    # see if they are synonyms - and if they are, if they
+    # point to tables or views.
+    if (@{ $self->db_schema } == 1) {
+        my $schema = $self->db_schema->[0];
+
+        my $object_type_sth = $self->dbh->prepare_cached(<<'EOF');
+select object_type from all_objects, all_synonyms
+where all_synonyms.owner = ? and all_synonyms.synonym_name = ?
+   and table_owner=all_objects.owner and table_name=all_objects.object_name
+EOF
+
+        for my $table (@tables) {
+            my ($object_type) = $self->dbh->selectrow_array(
+                $object_type_sth, undef, $schema, $table
+            );
+            if (defined $object_type && ($object_type eq 'TABLE' || $object_type eq 'VIEW')) {
+                push @filtered_tables, $table;
+            } elsif (not defined $object_type) {
+                push @filtered_tables, $table;
+            }
+        }
+    }
+
+    return $self->next::method(\@filtered_tables, $opts);
 }
 
 sub _table_fk_info {
