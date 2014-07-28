@@ -93,6 +93,9 @@ else
   # using SQLT and set up whatever databases necessary
   export DBICTEST_SQLT_DEPLOY=1
 
+  # Include Moose-using tests
+  export SCHEMA_LOADER_TESTS_USE_MOOSE=1
+
   # do the preinstall in several passes to minimize amount of cross-deps installing
   # multiple times, and to avoid module re-architecture breaking another install
   # (e.g. once Carp is upgraded there's no more Carp::Heavy,
@@ -110,6 +113,7 @@ else
   parallel_installdeps_notest SQL::Abstract Moose Module::Install JSON SQL::Translator File::Which
   parallel_installdeps_notest Module::Install::ReadmeFromPod
   parallel_installdeps_notest DBD::ODBC DBD::Firebird DBD::Oracle Math::Base36 DBD::mysql DBD::Pg
+  parallel_installdeps_notest MooseX::NonMoose MooseX::MarkAsMethods namespace::autoclean
 
   if [[ -n "$DBICTEST_FIREBIRD_INTERBASE_DSN" ]] ; then
     # the official version is very much outdated and does not compile on 5.14+
