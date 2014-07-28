@@ -16,11 +16,6 @@ if [[ "$CLEANTEST" = "true" ]] ; then
 else
   PROVECMD="prove -lrsw xt t"
 
-  # FIXME - temporary, until Package::Stash is fixed
-  if perl -M5.010 -e 1 &>/dev/null ; then
-    PROVECMD="$PROVECMD -T"
-  fi
-
   echo_err "$(tstamp) running tests with \`$PROVECMD\`"
   $PROVECMD 2> >(tee "$TEST_STDERR_LOG")
 fi
