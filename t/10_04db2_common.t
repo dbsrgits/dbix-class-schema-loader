@@ -4,6 +4,7 @@ use Test::More;
 use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
+use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader 'make_schema_at';
 
 use lib qw(t/lib);
@@ -19,6 +20,9 @@ my $password = $ENV{DBICTEST_DB2_PASS} || '';
 
 plan skip_all => 'You need to set the DBICTEST_DB2_DSN, _USER, and _PASS environment variables'
     unless ($dsn && $user);
+
+plan skip_all => 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_db2')
+    unless DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_db2');
 
 my ($schema, $schemas_created); # for cleanup in END for extra tests
 

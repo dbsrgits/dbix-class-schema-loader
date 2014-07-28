@@ -4,6 +4,7 @@ use Test::More;
 use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
+use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader::Utils 'slurp_file';
 use DBIx::Class::Schema::Loader 'make_schema_at';
 
@@ -503,6 +504,9 @@ EOF
 
 if( !$dsn || !$user ) {
     $tester->skip_tests('You need to set the DBICTEST_MYSQL_DSN, DBICTEST_MYSQL_USER, and DBICTEST_MYSQL_PASS environment variables');
+}
+elsif (!DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_mysql')) {
+    $tester->skip_tests('You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_mysql'));
 }
 else {
     diag $skip_rels_msg if not $test_innodb;

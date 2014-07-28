@@ -4,6 +4,7 @@ use Test::More;
 use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
+use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use Scope::Guard ();
 
@@ -19,30 +20,31 @@ use constant EXTRA_DUMP_DIR => "$tdir/sqlanywhere_extra_dump";
 #
 # Setting them to zero is preferred.
 
-my $dbd_sqlanywhere_dsn      = $ENV{DBICTEST_SQLANYWHERE_DSN} || '';
-my $dbd_sqlanywhere_user     = $ENV{DBICTEST_SQLANYWHERE_USER} || '';
-my $dbd_sqlanywhere_password = $ENV{DBICTEST_SQLANYWHERE_PASS} || '';
+my %dsns;
+for (qw(SQLANYWHERE SQLANYWHERE_ODBC)) {
+    next unless $ENV{"DBICTEST_${_}_DSN"};
 
-my $odbc_dsn      = $ENV{DBICTEST_SQLANYWHERE_ODBC_DSN} || '';
-my $odbc_user     = $ENV{DBICTEST_SQLANYWHERE_ODBC_USER} || '';
-my $odbc_password = $ENV{DBICTEST_SQLANYWHERE_ODBC_PASS} || '';
+    my $dep_group = lc "rdbms_$_";
+    if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
+        diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
+            . " to test with $_";
+        next;
+    }
+
+    $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
+    $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
+    $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
+};
+
+plan skip_all => 'You need to set the DBICTEST_SQLANYWHERE_DSN, _USER and _PASS and/or the DBICTEST_SQLANYWHERE_ODBC_DSN, _USER and _PASS environment variables'
+    unless %dsns;
 
 my ($schema, $schemas_created); # for cleanup in END for extra tests
 
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'SQLAnywhere',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
-    connect_info => [ ($dbd_sqlanywhere_dsn ? {
-            dsn         => $dbd_sqlanywhere_dsn,
-            user        => $dbd_sqlanywhere_user,
-            password    => $dbd_sqlanywhere_password,
-        } : ()),
-        ($odbc_dsn ? {
-            dsn         => $odbc_dsn,
-            user        => $odbc_user,
-            password    => $odbc_password,
-        } : ()),
-    ],
+    connect_info => [ values %dsns ],
     loader_options => { preserve_case => 1 },
     default_is_deferrable => 1,
     default_on_clause => 'RESTRICT',
@@ -398,12 +400,7 @@ EOF
     },
 );
 
-if (not ($dbd_sqlanywhere_dsn || $odbc_dsn)) {
-    $tester->skip_tests('You need to set the DBICTEST_SQLANYWHERE_DSN, _USER and _PASS and/or the DBICTEST_SQLANYWHERE_ODBC_DSN, _USER and _PASS environment variables');
-}
-else {
-    $tester->run_tests();
-}
+$tester->run_tests();
 
 sub extra_cleanup {
     if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {

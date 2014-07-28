@@ -1,17 +1,29 @@
 use strict;
 use warnings;
 use Test::More;
+use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader::DBI::ODBC::ACCESS ();
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
-my $odbc_dsn      = $ENV{DBICTEST_MSACCESS_ODBC_DSN} || '';
-my $odbc_user     = $ENV{DBICTEST_MSACCESS_ODBC_USER} || '';
-my $odbc_password = $ENV{DBICTEST_MSACCESS_ODBC_PASS} || '';
+my %dsns;
+for (qw(MSACCESS_ODBC MSACCESS_ADO)) {
+    next unless $ENV{"DBICTEST_${_}_DSN"};
 
-my $ado_dsn       = $ENV{DBICTEST_MSACCESS_ADO_DSN} || '';
-my $ado_user      = $ENV{DBICTEST_MSACCESS_ADO_USER} || '';
-my $ado_password  = $ENV{DBICTEST_MSACCESS_ADO_PASS} || '';
+    my $dep_group = lc "rdbms_$_";
+    if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
+        diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
+            . " to test with $_";
+        next;
+    }
+
+    $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
+    $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
+    $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
+};
+
+plan skip_all => 'You need to set the DBICTEST_MSACCESS_ODBC_DSN, _USER and _PASS and/or the DBICTEST_MSACCESS_ADO_DSN, _USER and _PASS  environment variables'
+    unless %dsns;
 
 my %ado_extra_types = (
     'tinyint'     => { data_type => 'tinyint', original => { data_type => 'byte' } },
@@ -38,17 +50,7 @@ my $tester = dbixcsl_common_tests->new(
     vendor      => 'Access',
     auto_inc_pk => 'AUTOINCREMENT PRIMARY KEY',
     quote_char  => [qw/[ ]/],
-    connect_info => [ ($odbc_dsn ? {
-            dsn         => $odbc_dsn,
-            user        => $odbc_user,
-            password    => $odbc_password,
-        } : ()),
-        ($ado_dsn ? {
-            dsn         => $ado_dsn,
-            user        => $ado_user,
-            password    => $ado_password,
-        } : ()),
-    ],
+    connect_info => [ values %dsns ],
     data_types  => {
         # http://msdn.microsoft.com/en-us/library/bb208866(v=office.12).aspx
         #
@@ -114,8 +116,7 @@ my $tester = dbixcsl_common_tests->new(
             package DBIXCSL_Test::DummySchema;
             use base 'DBIx::Class::Schema';
         }
-        my @connect_info = $odbc_dsn ? ($odbc_dsn, $odbc_user, $odbc_password)
-                                     : ($ado_dsn,  $ado_user,  $ado_password);
+        my @connect_info = @{$dsns{MSACCESS_ODBC} || $dsns{MSACCESS_ADO}};
 
         my $schema = DBIXCSL_Test::DummySchema->connect(@connect_info);
 
@@ -135,11 +136,6 @@ my $tester = dbixcsl_common_tests->new(
     },
 );
 
-if (not ($odbc_dsn || $ado_dsn)) {
-    $tester->skip_tests('You need to set the DBICTEST_MSACCESS_ODBC_DSN, and optionally _USER and _PASS and/or the DBICTEST_MSACCESS_ADO_DSN, and optionally _USER and _PASS environment variables');
-}
-else {
-    $tester->run_tests();
-}
+$tester->run_tests();
 
 # vim:et sts=4 sw=4 tw=0:

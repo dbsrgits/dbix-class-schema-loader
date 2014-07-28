@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
+use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader::Utils qw/warnings_exist_silent sigwarn_silencer/;
 use Try::Tiny;
 use File::Path 'rmtree';
@@ -30,6 +31,13 @@ my ($dsns, $common_version);
 
 for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
   next unless $ENV{"DBICTEST_${_}_DSN"};
+
+  (my $dep_group = lc "rdbms_$_") =~ s/mssql$/mssql_sybase/;
+  if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
+      diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
+          . " to test with $_";
+      next;
+  }
 
   $dsns->{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
   $dsns->{$_}{user} = $ENV{"DBICTEST_${_}_USER"};

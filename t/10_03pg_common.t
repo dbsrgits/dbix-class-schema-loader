@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use utf8;
+use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use DBIx::Class::Schema::Loader::Utils qw/no_warnings slurp_file/;
 use Test::More;
@@ -488,6 +489,9 @@ my $tester = dbixcsl_common_tests->new(
 
 if( !$dsn || !$user ) {
     $tester->skip_tests('You need to set the DBICTEST_PG_DSN, _USER, and _PASS environment variables');
+}
+elsif (!DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_pg')) {
+    $tester->skip_tests('You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_pg'));
 }
 else {
     $tester->run_tests();

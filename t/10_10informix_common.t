@@ -4,6 +4,7 @@ use Test::More;
 use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
+use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use DBIx::Class::Schema::Loader::Utils 'split_name';
 use String::ToIdentifier::EN::Unicode 'to_identifier';
@@ -334,6 +335,9 @@ EOF
 
 if( !$dsn ) {
     $tester->skip_tests('You need to set the DBICTEST_INFORMIX_DSN, _USER, and _PASS environment variables');
+}
+elsif (!DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_informix')) {
+    $tester->skip_tests('You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_informix'));
 }
 else {
     $tester->run_tests();

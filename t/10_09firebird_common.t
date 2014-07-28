@@ -2,21 +2,31 @@ use strict;
 use warnings;
 use Test::More;
 use Scope::Guard ();
+use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
-my $dbd_firebird_dsn      = $ENV{DBICTEST_FIREBIRD_DSN} || '';
-my $dbd_firebird_user     = $ENV{DBICTEST_FIREBIRD_USER} || '';
-my $dbd_firebird_password = $ENV{DBICTEST_FIREBIRD_PASS} || '';
+my %dsns;
+for (qw(FIREBIRD FIREBIRD_ODBC FIREBIRD_INTERBASE)) {
+    next unless $ENV{"DBICTEST_${_}_DSN"};
 
-my $dbd_interbase_dsn      = $ENV{DBICTEST_FIREBIRD_INTERBASE_DSN} || '';
-my $dbd_interbase_user     = $ENV{DBICTEST_FIREBIRD_INTERBASE_USER} || '';
-my $dbd_interbase_password = $ENV{DBICTEST_FIREBIRD_INTERBASE_PASS} || '';
+    my $dep_group = lc "rdbms_$_";
+    if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
+        diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
+            . " to test with $_";
+        next;
+    }
 
-my $odbc_dsn      = $ENV{DBICTEST_FIREBIRD_ODBC_DSN} || '';
-my $odbc_user     = $ENV{DBICTEST_FIREBIRD_ODBC_USER} || '';
-my $odbc_password = $ENV{DBICTEST_FIREBIRD_ODBC_PASS} || '';
+    $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
+    $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
+    $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
+    $dsns{$_}{connect_info_opts} = { on_connect_call => 'use_softcommit' }
+        if /\AFIREBIRD(?:_INTERBASE)\z/;
+};
+
+plan skip_all => 'You need to set the DBICTEST_FIREBIRD_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_ODBC_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_INTERBASE_DSN, _USER and _PASS environment variables'
+    unless %dsns;
 
 my $schema;
 
@@ -48,25 +58,7 @@ my $tester = dbixcsl_common_tests->new(
     null        => '',
     preserve_case_mode_is_exclusive => 1,
     quote_char                      => '"',
-    connect_info => [
-        ($dbd_firebird_dsn ? {
-            dsn         => $dbd_firebird_dsn,
-            user        => $dbd_firebird_user,
-            password    => $dbd_firebird_password,
-            connect_info_opts => { on_connect_call => 'use_softcommit' },
-        } : ()),
-        ($dbd_interbase_dsn ? {
-            dsn         => $dbd_interbase_dsn,
-            user        => $dbd_interbase_user,
-            password    => $dbd_interbase_password,
-            connect_info_opts => { on_connect_call => 'use_softcommit' },
-        } : ()),
-        ($odbc_dsn ? {
-            dsn         => $odbc_dsn,
-            user        => $odbc_user,
-            password    => $odbc_password,
-        } : ()),
-    ],
+    connect_info => [ values %dsns ],
     data_types  => {
         # based on the Interbase Data Definition Guide
         # http://www.ibphoenix.com/downloads/60DataDef.zip
@@ -202,12 +194,9 @@ q{
     },
 );
 
-if (not ($dbd_firebird_dsn || $dbd_interbase_dsn || $odbc_dsn)) {
-    $tester->skip_tests('You need to set the DBICTEST_FIREBIRD_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_INTERBASE_DSN and/or the DBICTEST_FIREBIRD_ODBC_DSN environment variables');
-}
-else {
+{
     # get rid of stupid warning from InterBase/GetInfo.pm
-    if ($dbd_interbase_dsn) {
+    if ($dsns{FIREBIRD_INTERBASE}) {
         local $SIG{__WARN__} = sigwarn_silencer(
             qr{^Use of uninitialized value in sprintf at \S+DBD/InterBase/GetInfo\.pm line \d+\.$|^Missing argument in sprintf at \S+DBD/InterBase/GetInfo.pm line \d+\.$}
         );
