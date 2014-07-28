@@ -121,7 +121,7 @@ EOF
         );
     }
 
-    foreach my $fk (keys %$remote_table) {
+    foreach my $fk (sort keys %$remote_table) {
         push @rels, {
             local_columns => $local_cols->{$fk},
             remote_columns => $remote_cols->{$fk},
