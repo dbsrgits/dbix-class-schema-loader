@@ -50,7 +50,7 @@ my $tester = dbixcsl_common_tests->new(
     vendor      => 'Access',
     auto_inc_pk => 'AUTOINCREMENT PRIMARY KEY',
     quote_char  => [qw/[ ]/],
-    connect_info => [ values %dsns ],
+    connect_info => [ map { $dsns{$_} } sort keys %dsns ],
     data_types  => {
         # http://msdn.microsoft.com/en-us/library/bb208866(v=office.12).aspx
         #

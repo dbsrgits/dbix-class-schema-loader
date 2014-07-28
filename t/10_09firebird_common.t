@@ -58,7 +58,7 @@ my $tester = dbixcsl_common_tests->new(
     null        => '',
     preserve_case_mode_is_exclusive => 1,
     quote_char                      => '"',
-    connect_info => [ values %dsns ],
+    connect_info => [ map { $dsns{$_} } sort keys %dsns ],
     data_types  => {
         # based on the Interbase Data Definition Guide
         # http://www.ibphoenix.com/downloads/60DataDef.zip

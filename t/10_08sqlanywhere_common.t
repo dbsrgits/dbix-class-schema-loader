@@ -44,7 +44,7 @@ my ($schema, $schemas_created); # for cleanup in END for extra tests
 my $tester = dbixcsl_common_tests->new(
     vendor      => 'SQLAnywhere',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
-    connect_info => [ values %dsns ],
+    connect_info => [ map { $dsns{$_} } sort keys %dsns ],
     loader_options => { preserve_case => 1 },
     default_is_deferrable => 1,
     default_on_clause => 'RESTRICT',

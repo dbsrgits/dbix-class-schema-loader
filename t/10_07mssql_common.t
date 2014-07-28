@@ -27,7 +27,7 @@ use constant EXTRA_DUMP_DIR => "$tdir/mssql_extra_dump";
 # for extra tests cleanup
 my $schema;
 
-my ($dsns, $common_version);
+my (%dsns, $common_version);
 
 for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
   next unless $ENV{"DBICTEST_${_}_DSN"};
@@ -39,12 +39,12 @@ for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
       next;
   }
 
-  $dsns->{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
-  $dsns->{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
-  $dsns->{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
+  $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
+  $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
+  $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
 
   require DBI;
-  my $dbh = DBI->connect (@{$dsns->{$_}}{qw/dsn user password/}, { RaiseError => 1, PrintError => 0} );
+  my $dbh = DBI->connect (@{$dsns{$_}}{qw/dsn user password/}, { RaiseError => 1, PrintError => 0} );
   my $srv_ver = eval {
     $dbh->get_info(18)
       ||
@@ -59,7 +59,7 @@ for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
 }
 
 plan skip_all => 'You need to set the DBICTEST_MSSQL_DSN, _USER and _PASS and/or the DBICTEST_MSSQL_ODBC_DSN, _USER and _PASS environment variables'
-  unless $dsns;
+  unless %dsns;
 
 my $mssql_2008_new_data_types = {
   date     => { data_type => 'date' },
@@ -98,7 +98,7 @@ my $tester = dbixcsl_common_tests->new(
     vendor      => 'mssql',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
     default_function_def => 'DATETIME DEFAULT getdate()',
-    connect_info => [values %$dsns],
+    connect_info => [ map { $dsns{$_} } sort keys %dsns ],
     preserve_case_mode_is_exclusive => 1,
     quote_char => [ qw/[ ]/ ],
     basic_date_datatype => ($common_version >= 10) ? 'DATE' : 'SMALLDATETIME',
