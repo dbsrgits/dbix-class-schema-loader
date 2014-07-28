@@ -198,7 +198,7 @@ q{
     # get rid of stupid warning from InterBase/GetInfo.pm
     if ($dsns{FIREBIRD_INTERBASE}) {
         local $SIG{__WARN__} = sigwarn_silencer(
-            qr{^Use of uninitialized value in sprintf at \S+DBD/InterBase/GetInfo\.pm line \d+\.$|^Missing argument in sprintf at \S+DBD/InterBase/GetInfo.pm line \d+\.$}
+            qr{^(?:Use of uninitialized value|Argument "[0-9_]+" isn't numeric|Missing argument) in sprintf at \S+DBD/InterBase/GetInfo.pm line \d+\.$}
         );
         require DBD::InterBase;
         require DBD::InterBase::GetInfo;
