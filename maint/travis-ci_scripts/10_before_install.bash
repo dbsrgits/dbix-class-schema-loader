@@ -15,6 +15,8 @@ export NUMTHREADS="$(( $(perl -0777 -n -e 'print (/ (?: .+ ^ processor \s+ : \s+
 
 export CACHE_DIR="/tmp/poormanscache"
 
+export SCHEMA_LOADER_TESTS_BACKCOMPAT=1
+
 # install some common tools from APT, more below unless CLEANTEST
 apt_install libapp-nopaste-perl tree apt-transport-https
 
