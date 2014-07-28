@@ -337,7 +337,7 @@ EOF
                             $dbh->selectall_arrayref('SHOW DATABASES');
                         }
                         catch {
-                            skip 'no SHOW DATABASES privileges', 28;
+                            skip 'no SHOW DATABASES privileges', 30;
                         }
                     }
 
