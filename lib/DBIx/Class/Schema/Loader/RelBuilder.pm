@@ -511,55 +511,39 @@ sub generate_code {
 sub _generate_m2ms {
     my ($self, $all_code) = @_;
 
-    foreach my $class (sort keys %$all_code) {
-        my $rels = $all_code->{$class};
-        next unless (grep $_->{method} eq 'belongs_to', @$rels) == 2;
+    LINK_CLASS:
+    foreach my $link_class (sort keys %$all_code) {
+        my @rels = grep $_->{method} eq 'belongs_to', @{$all_code->{$link_class}};
+        next unless @rels == 2;
 
-        my $class1_local_moniker  = $rels->[0]{extra}{remote_moniker};
-        my $class1_remote_moniker = $rels->[1]{extra}{remote_moniker};
+        my @class;
+        foreach my $this (0, 1) {
+            my $that = $this ? 0 : 1;
+            my %class;
+            $class[$this] = \%class;
+            $class{local_moniker}  = $rels[$this]{extra}{remote_moniker};
+            $class{remote_moniker} = $rels[$that]{extra}{remote_moniker};
 
-        my $class2_local_moniker  = $rels->[1]{extra}{remote_moniker};
-        my $class2_remote_moniker = $rels->[0]{extra}{remote_moniker};
+            $class{class} = $rels[$this]{args}[1];
 
-        my $class1 = $rels->[0]{args}[1];
-        my $class2 = $rels->[1]{args}[1];
+            $class{link_table_rel} = first {
+                $_->{method} eq 'has_many' && $_->{args}[1] eq $link_class
+            } @{ $all_code->{$class{class}} };
 
-        my $class1_to_link_table_rel = first {
-            $_->{method} eq 'has_many' && $_->{args}[1] eq $class
-        } @{ $all_code->{$class1} };
+            next LINK_CLASS unless $class{link_table_rel};
 
-        next unless $class1_to_link_table_rel;
+            $class{link_table_rel_name} = $class{link_table_rel}{args}[0];
 
-        my $class1_to_link_table_rel_name = $class1_to_link_table_rel->{args}[0];
+            $class{link_rel} = $rels[$that]{args}[0];
 
-        my $class2_to_link_table_rel = first {
-            $_->{method} eq 'has_many' && $_->{args}[1] eq $class
-        } @{ $all_code->{$class2} };
+            $class{from_cols} = [ apply { s/^self\.//i } values %{
+                $class{link_table_rel}->{args}[2]
+            } ];
 
-        next unless $class2_to_link_table_rel;
+            $class{to_cols} = [ apply { s/^foreign\.//i } keys %{ $rels[$that]{args}[2] } ];
+        }
 
-        my $class2_to_link_table_rel_name = $class2_to_link_table_rel->{args}[0];
-
-        my $class1_link_rel = $rels->[1]{args}[0];
-        my $class2_link_rel = $rels->[0]{args}[0];
-
-        my @class1_from_cols = apply { s/^self\.//i } values %{
-            $class1_to_link_table_rel->{args}[2]
-        };
-
-        my @class1_link_cols = apply { s/^self\.//i } values %{ $rels->[1]{args}[2] };
-
-        my @class1_to_cols = apply { s/^foreign\.//i } keys %{ $rels->[1]{args}[2] };
-
-        my @class2_from_cols = apply { s/^self\.//i } values %{
-            $class2_to_link_table_rel->{args}[2]
-        };
-
-        my @class2_link_cols = apply { s/^self\.//i } values %{ $rels->[0]{args}[2] };
-
-        my @class2_to_cols = apply { s/^foreign\.//i } keys %{ $rels->[0]{args}[2] };
-
-        my $link_moniker = $rels->[0]{extra}{local_moniker};
+        my $link_moniker = $rels[0]{extra}{local_moniker};
 
         my @link_table_cols =
             @{[ $self->schema->source($link_moniker)->columns ]};
@@ -567,102 +551,55 @@ sub _generate_m2ms {
         my @link_table_primary_cols =
             @{[ $self->schema->source($link_moniker)->primary_columns ]};
 
-        next unless @class1_link_cols + @class2_link_cols == @link_table_cols
+        next unless @{$class[0]{to_cols}} + @{$class[1]{to_cols}} == @link_table_cols
             && @link_table_cols == @link_table_primary_cols;
 
-        my ($class1_to_class2_relname) = $self->_rel_name_map(
-            ($self->_inflect_plural($class1_link_rel))[0],
-            'many_to_many',
-            $class1,
-            $class1_local_moniker,
-            \@class1_from_cols,
-            $class2,
-            $class1_remote_moniker,
-            \@class1_to_cols,
-            {
-                link_class => $class,
-                link_moniker => $link_moniker,
-                link_rel_name => $class1_to_link_table_rel_name,
-            },
-        );
+        foreach my $this (0, 1) {
+            my $that = $this ? 0 : 1;
+            ($class[$this]{m2m_relname}) = $self->_rel_name_map(
+                ($self->_inflect_plural($class[$this]{link_rel}))[0],
+                'many_to_many',
+                @{$class[$this]}{qw(class local_moniker from_cols)},
+                $class[$that]{class},
+                @{$class[$this]}{qw(remote_moniker to_cols)},
+                {
+                    link_class => $link_class,
+                    link_moniker => $link_moniker,
+                    link_rel_name => $class[$this]{link_table_rel_name},
+                },
+            );
 
-        $class1_to_class2_relname = $self->_resolve_relname_collision(
-            $class1_local_moniker,
-            \@class1_from_cols,
-            $class1_to_class2_relname,
-        );
+            $class[$this]{m2m_relname} = $self->_resolve_relname_collision(
+                @{$class[$this]}{qw(local_moniker from_cols m2m_relname)},
+            );
+        }
 
-        my ($class2_to_class1_relname) = $self->_rel_name_map(
-            ($self->_inflect_plural($class2_link_rel))[0],
-            'many_to_many',
-            $class1,
-            $class2_local_moniker,
-            \@class2_from_cols,
-            $class2,
-            $class2_remote_moniker,
-            \@class2_to_cols,
-            {
-                link_class => $class,
-                link_moniker => $link_moniker,
-                link_rel_name => $class2_to_link_table_rel_name,
-            },
-        );
+        for my $this (0, 1) {
+            my $that = $this ? 0 : 1;
 
-        $class2_to_class1_relname = $self->_resolve_relname_collision(
-            $class2_local_moniker,
-            \@class2_from_cols,
-            $class2_to_class1_relname,
-        );
-
-        push @{$all_code->{$class1}}, {
-            method => 'many_to_many',
-            args   => [
-                $class1_to_class2_relname,
-                $class1_to_link_table_rel_name,
-                $class1_link_rel,
-                $self->_relationship_attrs('many_to_many', {}, {
-                    rel_type => 'many_to_many',
-                    rel_name => $class1_to_class2_relname,
-                    local_source => $self->schema->source($class1_local_moniker),
-                    remote_source => $self->schema->source($class1_remote_moniker),
-                    local_table => $self->loader->class_to_table->{$class1},
-                    local_cols => \@class1_from_cols,
-                    remote_table => $self->loader->class_to_table->{$class2},
-                    remote_cols => \@class2_from_cols,
-                }) || (),
-            ],
-            extra  => {
-                local_class    => $class1,
-                link_class     => $class,
-                local_moniker  => $class1_local_moniker,
-                remote_moniker => $class1_remote_moniker,
-            },
-        };
-
-        push @{$all_code->{$class2}}, {
-            method => 'many_to_many',
-            args   => [
-                $class2_to_class1_relname,
-                $class2_to_link_table_rel_name,
-                $class2_link_rel,
-                $self->_relationship_attrs('many_to_many', {}, {
-                    rel_type => 'many_to_many',
-                    rel_name => $class2_to_class1_relname,
-                    local_source => $self->schema->source($class2_local_moniker),
-                    remote_source => $self->schema->source($class2_remote_moniker),
-                    local_table => $self->loader->class_to_table->{$class2},
-                    local_cols => \@class2_from_cols,
-                    remote_table => $self->loader->class_to_table->{$class1},
-                    remote_cols => \@class1_from_cols,
-                }) || (),
-            ],
-            extra  => {
-                local_class    => $class2,
-                link_class     => $class,
-                local_moniker  => $class2_local_moniker,
-                remote_moniker => $class2_remote_moniker,
-            },
-        };
+            push @{$all_code->{$class[$this]{class}}}, {
+                method => 'many_to_many',
+                args   => [
+                    @{$class[$this]}{qw(m2m_relname link_table_rel_name link_rel)},
+                    $self->_relationship_attrs('many_to_many', {}, {
+                        rel_type => 'many_to_many',
+                        rel_name => $class[$this]{class2_relname},
+                        local_source => $self->schema->source($class[$this]{local_moniker}),
+                        remote_source => $self->schema->source($class[$this]{remote_moniker}),
+                        local_table => $self->loader->class_to_table->{$class[$this]{class}},
+                        local_cols => $class[$this]{from_cols},
+                        remote_table => $self->loader->class_to_table->{$class[$that]{class}},
+                        remote_cols => $class[$that]{from_cols},
+                    }) || (),
+                ],
+                extra  => {
+                    local_class    => $class[$this]{class},
+                    link_class     => $link_class,
+                    local_moniker  => $class[$this]{local_moniker},
+                    remote_moniker => $class[$this]{remote_moniker},
+                },
+            };
+        }
     }
 }
 
