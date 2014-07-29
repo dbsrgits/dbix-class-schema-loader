@@ -511,7 +511,8 @@ sub generate_code {
 sub _generate_m2ms {
     my ($self, $all_code) = @_;
 
-    while (my ($class, $rels) = each %$all_code) {
+    foreach my $class (sort keys %$all_code) {
+        my $rels = $all_code->{$class};
         next unless (grep $_->{method} eq 'belongs_to', @$rels) == 2;
 
         my $class1_local_moniker  = $rels->[0]{extra}{remote_moniker};
