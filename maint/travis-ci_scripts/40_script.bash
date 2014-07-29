@@ -14,7 +14,7 @@ if [[ "$CLEANTEST" = "true" ]] ; then
   run_or_err "Prepare blib" "make pure_all"
   run_harness_tests
 else
-  PROVECMD="prove -lrswv t"
+  PROVECMD="prove -lrsw t"
 
   echo_err "$(tstamp) running tests with \`$PROVECMD\`"
   $PROVECMD 2> >(tee "$TEST_STDERR_LOG")
