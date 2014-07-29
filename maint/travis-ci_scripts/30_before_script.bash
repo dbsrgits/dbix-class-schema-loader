@@ -224,6 +224,10 @@ else
   fi
 
   parallel_installdeps_notest "$deplist"
+
+  # Temporary workaround: install DBIC devrel,
+  # Storage::DBI::ODBC::Firebird is broken in stable
+  run_or_err 'Installing DBIx::Class 0.082700_05' 'cpanm --notest DBIx::Class@0.082700_05'
 fi
 
 echo_err "$(tstamp) Dependency installation finished"
