@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Deep;
 use Test::Exception;
 use Test::Differences;
 use DBIx::Class::Schema::Loader;
@@ -122,7 +123,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (228 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (225 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -923,28 +924,61 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
         isa_ok(try { $rs_rel17->single }, $class17);
         is(try { $rs_rel17->single->id }, 3, "search_related with multiple FKs from same table");
 
-        # XXX test m:m 18 <- 20 -> 19
+        # test many_to_many detection 18 -> 20 -> 19 and 19 -> 20 -> 18
         ok($class20->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
         ok($class20->column_info('child')->{is_foreign_key}, 'Foreign key detected');
 
-        # XXX test double-fk m:m 21 <- 22 -> 21
+        cmp_deeply(
+            $class18->_m2m_metadata->{children},
+            superhashof({
+                relation => 'loader_test20s',
+                foreign_relation => 'child',
+                attrs => superhashof({ order_by => 'me.id' })
+            }),
+            'children m2m correct with ordering'
+        );
+
+        cmp_deeply(
+            $class19->_m2m_metadata->{parents},
+            superhashof({
+                relation => 'loader_test20s',
+                foreign_relation => 'parent',
+                attrs => superhashof({ order_by => 'me.id' })
+            }),
+            'parents m2m correct with ordering'
+        );
+
+
+        # test double-fk m:m 21 <- 22 -> 21
         ok($class22->column_info('parent')->{is_foreign_key}, 'Foreign key detected');
         ok($class22->column_info('child')->{is_foreign_key}, 'Foreign key detected');
+        is_deeply(
+            $class21->relationship_info("loader_test22_parents")->{cond},
+            { 'foreign.parent' => 'self.id' },
+            'rel to foreign.parent correct'
+        );
+        is_deeply(
+            $class21->relationship_info("loader_test22_children")->{cond},
+            { 'foreign.child' => 'self.id' },
+            'rel to foreign.child correct'
+        );
 
-        # test many_to_many detection 18 -> 20 -> 19 and 19 -> 20 -> 18
-        my $m2m;
-
-        ok($m2m = (try { $class18->_m2m_metadata->{children} }), 'many_to_many created');
-
-        is $m2m->{relation}, 'loader_test20s', 'm2m near rel';
-        is $m2m->{foreign_relation}, 'child', 'm2m far rel';
-        is $m2m->{attrs}->{order_by}, 'me.id', 'm2m bridge attrs';
-
-        ok($m2m = (try { $class19->_m2m_metadata->{parents} }), 'many_to_many created');
-
-        is $m2m->{relation}, 'loader_test20s', 'm2m near rel';
-        is $m2m->{foreign_relation}, 'parent', 'm2m far rel';
-        is $m2m->{attrs}->{order_by}, 'me.id', 'm2m bridge attrs';
+        cmp_deeply(
+            $class21->_m2m_metadata,
+            {
+                parents => superhashof({
+                    accessor => 'parents',
+                    relation => 'loader_test22_children',
+                    foreign_relation => 'parent',
+                }),
+                children => superhashof({
+                    accessor => 'children',
+                    relation => 'loader_test22_parents',
+                    foreign_relation => 'child',
+                }),
+            },
+            'self-m2m correct'
+        );
 
         ok( $class37->relationship_info('parent'), 'parents rel created' );
         ok( $class37->relationship_info('child'), 'child rel created' );

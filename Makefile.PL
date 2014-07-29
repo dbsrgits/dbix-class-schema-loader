@@ -35,6 +35,7 @@ test_requires 'DBD::SQLite'     => '1.29';
 test_requires 'Test::Exception' => '0.31';
 test_requires 'Test::More'      => '0.94';
 test_requires 'Test::Warn'      => '0.21';
+test_requires 'Test::Deep'      => '0.107';
 test_requires 'Test::Differences' => '0.60';
 
 requires 'Carp::Clan'                  => 0;

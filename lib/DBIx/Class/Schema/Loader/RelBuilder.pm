@@ -9,7 +9,7 @@ use Scalar::Util 'weaken';
 use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file array_eq/;
 use Try::Tiny;
 use List::Util 'first';
-use List::MoreUtils qw/apply uniq any/;
+use List::MoreUtils qw/apply uniq any all/;
 use namespace::clean;
 use Lingua::EN::Inflect::Phrase ();
 use Lingua::EN::Tagger ();
@@ -526,8 +526,14 @@ sub _generate_m2ms {
 
             $class{class} = $rels[$this]{args}[1];
 
+            my %link_cols = map { $_ => 1 } apply { s/^self\.//i } values %{ $rels[$this]{args}[2] };
+
             $class{link_table_rel} = first {
-                $_->{method} eq 'has_many' && $_->{args}[1] eq $link_class
+                $_->{method} eq 'has_many'
+                    and
+                $_->{args}[1] eq $link_class
+                    and
+                all { $link_cols{$_} } apply { s/^foreign\.//i } keys %{$_->{args}[2]}
             } @{ $all_code->{$class{class}} };
 
             next LINK_CLASS unless $class{link_table_rel};
