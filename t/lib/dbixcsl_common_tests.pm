@@ -5,11 +5,11 @@ use warnings;
 
 use Test::More;
 use Test::Exception;
+use Test::Differences;
 use DBIx::Class::Schema::Loader;
 use Class::Unload;
 use File::Path 'rmtree';
 use DBI;
-use Digest::MD5;
 use File::Find 'find';
 use Class::Unload ();
 use DBIx::Class::Schema::Loader::Utils qw/dumper_squashed slurp_file sigwarn_silencer/;
@@ -1178,8 +1178,8 @@ EOF
             q{ INSERT INTO loader_test30 (id,loader_test2) VALUES(321, 2) },
         );
 
-        # get md5
-        my $digest  = Digest::MD5->new;
+        # get contents
+        my %contents;
 
         my $find_cb = sub {
             return if -d;
@@ -1187,17 +1187,17 @@ EOF
 
             open my $fh, '<', $_ or die "Could not open $_ for reading: $!";
             binmode $fh;
-            $digest->addfile($fh);
+            local $/;
+            $contents{$File::Find::name} = <$fh>;
         };
 
         find $find_cb, DUMP_DIR;
+        my %contents_before = %contents;
 
 #        system "rm -rf /tmp/before_rescan /tmp/after_rescan";
 #        system "mkdir /tmp/before_rescan";
 #        system "mkdir /tmp/after_rescan";
 #        system "cp -a @{[DUMP_DIR]} /tmp/before_rescan";
-
-        my $before_digest = $digest->b64digest;
 
         $conn->storage->disconnect; # needed for Firebird and Informix
         my $dbh = $self->dbconnect(1);
@@ -1212,12 +1212,21 @@ EOF
 
 #        system "cp -a @{[DUMP_DIR]} /tmp/after_rescan";
 
-        $digest = Digest::MD5->new;
+        undef %contents;
         find $find_cb, DUMP_DIR;
-        my $after_digest = $digest->b64digest;
+        my %contents_after = %contents;
 
-        is $before_digest, $after_digest,
-            'dumped files are not rewritten when there is no modification';
+        subtest 'dumped files are not rewritten when there is no modification' => sub {
+            plan tests => 1 + scalar keys %contents_before;
+            is_deeply
+                [sort keys %contents_before],
+                [sort keys %contents_after],
+                'same files dumped';
+            for my $file (sort keys %contents_before) {
+                eq_or_diff $contents_before{$file}, $contents_after{$file},
+                    "$file not rewritten";
+            }
+        };
 
         my $rsobj30   = $conn->resultset('LoaderTest30');
         isa_ok($rsobj30, 'DBIx::Class::ResultSet');
