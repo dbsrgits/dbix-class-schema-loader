@@ -270,8 +270,6 @@ sub load {
     local $self->dbh->{PrintError} = 0;
 
     $self->next::method(@_);
-
-    $self->schema->storage->disconnect unless $self->dynamic;
 }
 
 sub _sth_for {

@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Fix many_to_many bridges going back to the same table
+        - Don't disconnect after ->load in static mode
 
 0.07040  2014-05-27
         - Add options to omit the version and timestamp from the
