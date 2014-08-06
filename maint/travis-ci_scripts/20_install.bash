@@ -26,7 +26,7 @@ if [[ "$DEVREL_DEPS" == "true" ]] ; then
 fi
 
 # Fixup CPANM_OPT to behave more like a traditional cpan client
-export PERL_CPANM_OPT="--verbose --no-interactive --no-man-pages $( echo $PERL_CPANM_OPT | sed 's/--skip-satisfied//' )"
+export PERL_CPANM_OPT="--verify --verbose --no-interactive --no-man-pages $( echo $PERL_CPANM_OPT | sed 's/--skip-satisfied//' )"
 
 if [[ -n "$BREWVER" ]] ; then
   # since perl 5.14 a perl can safely be built concurrently with -j$large
