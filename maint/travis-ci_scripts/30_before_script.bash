@@ -112,7 +112,7 @@ else
   parallel_installdeps_notest YAML LWP Class::Trigger JSON::XS DateTime::Format::Builder Class::Accessor::Grouped Package::Variant
   parallel_installdeps_notest SQL::Abstract Moose Module::Install JSON SQL::Translator File::Which
   parallel_installdeps_notest Module::Install::ReadmeFromPod
-  parallel_installdeps_notest DBD::ODBC DBD::Firebird DBD::Oracle Math::Base36 DBD::mysql DBD::Pg
+  parallel_installdeps_notest DBD::ODBC DBD::Firebird DBD::Oracle Math::Base36 DBD::mysql DBD::Pg Math::BigInt
   parallel_installdeps_notest MooseX::NonMoose MooseX::MarkAsMethods namespace::autoclean
 
   if [[ -n "$DBICTEST_FIREBIRD_INTERBASE_DSN" ]] ; then
