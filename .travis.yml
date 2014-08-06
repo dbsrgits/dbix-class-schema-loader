@@ -223,6 +223,10 @@ matrix:
     - perl: bleadperl
     - perl: devcpan_bleadperl_thr_mb
 
+    # Several upstream deps are flaky on 5.8.3
+    - perl: 5.8.3_nt
+    - perl: 5.8.3_nt_mb
+
 
 # sourcing the files is *EXTREMELY* important - otherwise
 # no envvars will survive
