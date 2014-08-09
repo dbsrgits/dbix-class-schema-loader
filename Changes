@@ -2,6 +2,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Fix many_to_many bridges going back to the same table
         - Don't disconnect after ->load in static mode
+          (fixes Pg test failure with the upcoming DBIC 0.082800)
         - Set up Travis smoking (mostly stolen from DBIC)
 
 0.07040  2014-05-27
