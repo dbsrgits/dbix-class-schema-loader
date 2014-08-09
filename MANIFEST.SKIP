@@ -44,6 +44,9 @@
 # Don't ship the last dist we built :)
 \.tar\.gz$
 
+# Skip dotfiles
+^\.
+
 # Skip maint stuff
 ^maint/
 
