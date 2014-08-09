@@ -189,7 +189,7 @@ $t->dump_test(
       qr/\n=head1 TABLE: C<foo>\n\n=cut\n\n__PACKAGE__->table\("foo"\);\n\n/,
       qr/\n=head1 ACCESSORS\n\n/,
       qr/\n=head2 fooid\n\n  data_type: 'integer'\n  is_auto_increment: 1\n  is_nullable: 0\n\n/,
-      qr/\n=head2 footext\n\n  data_type: 'text'\n  default_value: 'footext'\n  extra: {is_footext => 1}\n  is_nullable: 1\n\n/,
+      qr/\n=head2 footext\n\n  data_type: 'text'\n  default_value: 'footext'\n  extra: \{is_footext => 1\}\n  is_nullable: 1\n\n/,
       qr/\n=head1 PRIMARY KEY\n\n=over 4\n\n=item \* L<\/fooid>\n\n=back\n\n=cut\n\n__PACKAGE__->set_primary_key\("fooid"\);\n/,
       qr/\n=head1 RELATIONS\n\n/,
       qr/\n=head2 bars\n\nType: has_many\n\nRelated object: L<DBICTest::DumpMore::1::Bar>\n\n=cut\n\n/,
@@ -580,7 +580,7 @@ $t->dump_test(
     generated_results => [qw(Foo Bar)],
     regexes => {
         'Result/Foo' => [
-            qr/sub custom_method { 'custom_method works' }\n0;\n\n# You can replace.*\n1;\n\z/,
+            qr/sub custom_method \{ 'custom_method works' \}\n0;\n\n# You can replace.*\n1;\n\z/,
         ],
     },
 );

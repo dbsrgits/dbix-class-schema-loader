@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Fix unescaped left braces in regexes in tests
+
 0.07041  2014-08-09
         - Fix many_to_many bridges going back to the same table
         - Don't disconnect after ->load in static mode
