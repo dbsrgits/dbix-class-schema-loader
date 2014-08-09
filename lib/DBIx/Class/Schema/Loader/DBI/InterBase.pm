@@ -9,7 +9,7 @@ use List::Util 'first';
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
-our $VERSION = '0.07040';
+our $VERSION = '0.07041';
 
 sub _supports_db_schema { 0 }
 
