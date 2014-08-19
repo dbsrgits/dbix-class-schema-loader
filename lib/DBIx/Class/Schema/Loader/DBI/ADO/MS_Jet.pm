@@ -10,7 +10,7 @@ use mro 'c3';
 use Try::Tiny;
 use namespace::clean;
 
-our $VERSION = '0.07041';
+our $VERSION = '0.07042';
 
 =head1 NAME
 

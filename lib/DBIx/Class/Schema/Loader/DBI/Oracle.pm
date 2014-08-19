@@ -8,7 +8,7 @@ use Try::Tiny;
 use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use namespace::clean;
 
-our $VERSION = '0.07041';
+our $VERSION = '0.07042';
 
 =head1 NAME
 
