@@ -40,12 +40,6 @@ sub _rebless {
   }
 }
 
-sub _tables_list {
-    my ($self, $opts) = @_;
-
-    return $self->next::method($opts, undef, undef);
-}
-
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader::DBI::ODBC::Microsoft_SQL_Server>,

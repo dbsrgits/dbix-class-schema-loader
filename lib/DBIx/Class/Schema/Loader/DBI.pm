@@ -108,11 +108,9 @@ sub _system_tables {
 }
 
 sub _dbh_tables {
-    my ($self, $schema) = (shift, shift);
+    my $self = shift;
 
-    my ($table_pattern, $table_type_pattern) = @_ ? @_ : ('%', '%');
-
-    return $self->dbh->tables(undef, $schema, $table_pattern, $table_type_pattern);
+    return $self->dbh->tables(undef, @_);
 }
 
 # default to be overridden in subclasses if necessary

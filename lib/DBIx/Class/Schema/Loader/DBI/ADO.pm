@@ -37,12 +37,6 @@ sub _rebless {
   }
 }
 
-sub _tables_list {
-    my ($self, $opts) = @_;
-
-    return $self->next::method($opts, undef, undef);
-}
-
 sub _filter_tables {
     my $self = shift;
 

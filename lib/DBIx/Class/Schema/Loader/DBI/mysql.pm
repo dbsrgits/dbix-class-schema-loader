@@ -66,12 +66,6 @@ sub _system_schemas {
     return ($self->next::method(@_), 'mysql');
 }
 
-sub _tables_list {
-    my ($self, $opts) = @_;
-
-    return $self->next::method($opts, undef, undef);
-}
-
 sub _table_fk_info {
     my ($self, $table) = @_;
 
