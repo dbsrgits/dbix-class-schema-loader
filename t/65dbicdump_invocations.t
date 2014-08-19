@@ -42,5 +42,3 @@ sub dbicdump {
     is $? >> 8, 0,
         'dbicdump executed successfully';
 }
-
-END { rmtree $tdir }

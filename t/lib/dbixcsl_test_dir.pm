@@ -3,11 +3,10 @@ package dbixcsl_test_dir;
 use strict;
 use warnings;
 use File::Path 'rmtree';
+use File::Temp 'tempdir';
 use Scalar::Util 'weaken';
 use namespace::clean;
 use DBI ();
-
-our $tdir = 't/var';
 
 use base qw/Exporter/;
 our @EXPORT_OK = '$tdir';
@@ -15,9 +14,13 @@ our @EXPORT_OK = '$tdir';
 die "/t does not exist, this can't be right...\n"
   unless -d 't';
 
-unless (-d $tdir) {
-  mkdir $tdir or die "Unable to create $tdir: $!\n";
+my $tbdir = 't/var';
+
+unless (-d $tbdir) {
+  mkdir $tbdir or die "Unable to create $tbdir: $!\n";
 }
+
+our $tdir = tempdir(DIR => $tbdir);
 
 # We need to disconnect all active DBI handles before deleting the directory,
 # otherwise the SQLite .db files cannot be deleted on Win32 (file in use) since
@@ -42,7 +45,8 @@ END {
             $dbh->disconnect if $dbh;
         }
 
-        rmtree($tdir, 1, 1)
+        rmtree($tdir, 1, 1);
+        rmdir($tbdir); # remove if empty, ignore otherwise
     }
 }
 
