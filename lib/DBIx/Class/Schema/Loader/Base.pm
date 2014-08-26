@@ -3011,12 +3011,7 @@ sub _base_class_pod {
 
     return '' unless $self->generate_pod;
 
-    return <<"EOF"
-=head1 BASE CLASS: L<$base_class>
-
-=cut
-
-EOF
+    return "\n=head1 BASE CLASS: L<$base_class>\n\n=cut\n\n";
 }
 
 sub _filter_comment {
