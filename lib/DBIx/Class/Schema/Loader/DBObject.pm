@@ -157,7 +157,7 @@ sub dbic_name {
 =head2 name_parts
 
 Returns an arrayref of the values returned by the methods specified in
-the L<moniker_parts|DBIx::Class::Scheam::Loader::Base/moniker_parts> of
+the L<moniker_parts|DBIx::Class::Schema::Loader::Base/moniker_parts> of
 the L</loader> object. The object arrayrefifies to this value.
 
 =cut

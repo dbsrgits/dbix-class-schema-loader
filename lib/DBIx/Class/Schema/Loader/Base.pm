@@ -210,7 +210,7 @@ How to name column accessors in Result classes.
 =item force_ascii
 
 For L</v8> mode and later, uses L<String::ToIdentifier::EN> instead of
-L<String::ToIdentifier::EM::Unicode> to force monikers and other identifiers to
+L<String::ToIdentifier::EN::Unicode> to force monikers and other identifiers to
 ASCII.
 
 =back
