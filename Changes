@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07042  2014-08-20
         - Fix unescaped left braces in regexes in tests
         - Use undef instead of '%' for the table and type arguments
           to $dbh->tables (fixes breakage with DBD::Pg 3.4.0)
