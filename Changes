@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Fix many_to_many bridges with overlapping foreign keys
+
 0.07042  2014-08-20
         - Fix unescaped left braces in regexes in tests
         - Use undef instead of '%' for the table and type arguments

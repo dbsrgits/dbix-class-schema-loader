@@ -123,7 +123,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (225 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (232 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -288,7 +288,7 @@ sub setup_schema {
         my $standard_sources = not defined $expected_count;
 
         if ($standard_sources) {
-            $expected_count = 38;
+            $expected_count = 41;
 
             if (not ($self->{vendor} eq 'mssql' && $connect_info->[0] =~ /Sybase/)) {
                 $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
@@ -731,6 +731,18 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         my $class37   = $classes->{loader_test37};
         my $rsobj37   = $conn->resultset($moniker37);
 
+        my $moniker42 = $monikers->{loader_test42};
+        my $class42   = $classes->{loader_test42};
+        my $rsobj42   = $conn->resultset($moniker42);
+
+        my $moniker43 = $monikers->{loader_test43};
+        my $class43   = $classes->{loader_test43};
+        my $rsobj43   = $conn->resultset($moniker43);
+
+        my $moniker44 = $monikers->{loader_test44};
+        my $class44   = $classes->{loader_test44};
+        my $rsobj44   = $conn->resultset($moniker44);
+
         isa_ok( $rsobj3, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj4, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj5, "DBIx::Class::ResultSet" );
@@ -756,6 +768,9 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         isa_ok( $rsobj34, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj36, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj37, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj42, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj43, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj44, "DBIx::Class::ResultSet" );
 
         # basic rel test
         my $obj4 = try { $rsobj4->find(123) } || $rsobj4->search({ id => 123 })->single;
@@ -985,6 +1000,45 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         is_deeply($class32->_m2m_metadata, {}, 'many_to_many not created for might_have');
         is_deeply($class34->_m2m_metadata, {}, 'many_to_many not created for might_have');
+
+        # test m2m with overlapping compound keys
+        is_deeply(
+            $class44->relationship_info('loader_test42')->{cond},
+            {
+                'foreign.id1' => 'self.id42',
+                'foreign.id2' => 'self.id2',
+            },
+            'compound belongs_to key detected for overlapping m2m',
+        );
+        is_deeply(
+            $class44->relationship_info('loader_test43')->{cond},
+            {
+                'foreign.id1' => 'self.id43',
+                'foreign.id2' => 'self.id2',
+            },
+            'compound belongs_to key detected for overlapping m2m',
+        );
+        cmp_deeply(
+            $class42->_m2m_metadata,
+            {
+                loader_test43s => superhashof({
+                    accessor => "loader_test43s",
+                    foreign_relation => "loader_test43",
+                }),
+            },
+            'm2m created for overlapping multi-column foreign keys'
+        );
+
+        cmp_deeply(
+            $class43->_m2m_metadata,
+            {
+                loader_test42s => superhashof({
+                    accessor => "loader_test42s",
+                    foreign_relation => "loader_test42",
+                }),
+            },
+            'm2m created for overlapping multi-column foreign keys'
+        );
 
         # test double multi-col fk 26 -> 25
         my $obj26 = try { $rsobj26->find(33) } || $rsobj26->search({ id => 33 })->single;
@@ -1920,6 +1974,31 @@ sub create {
           ) $self->{innodb}
         },
         q{ INSERT INTO loader_test37 (parent, child) VALUES (1,1) },
+
+        qq{
+          CREATE TABLE loader_test42 (
+            id1 INTEGER NOT NULL,
+            id2 INTEGER NOT NULL,
+            PRIMARY KEY (id1, id2)
+          ) $self->{innodb}
+        },
+        qq{
+          CREATE TABLE loader_test43 (
+            id1 INTEGER NOT NULL,
+            id2 INTEGER NOT NULL,
+            PRIMARY KEY (id1, id2)
+          ) $self->{innodb}
+        },
+        qq{
+          CREATE TABLE loader_test44 (
+            id42 INTEGER NOT NULL,
+            id43 INTEGER NOT NULL,
+            id2 INTEGER NOT NULL,
+            PRIMARY KEY (id42, id43, id2),
+            FOREIGN KEY (id42, id2) REFERENCES loader_test42 (id1, id2),
+            FOREIGN KEY (id43, id2) REFERENCES loader_test43 (id1, id2)
+          ) $self->{innodb}
+        },
     );
 
     @statements_advanced = (
@@ -2117,6 +2196,9 @@ sub drop_tables {
         loader_test31
         loader_test34
         loader_test33
+        loader_test44
+        loader_test43
+        loader_test42
     /;
 
     my @tables_advanced = qw/

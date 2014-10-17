@@ -547,6 +547,8 @@ sub _generate_m2ms {
             } ];
 
             $class{to_cols} = [ apply { s/^foreign\.//i } keys %{ $rels[$that]{args}[2] } ];
+
+            $class{from_link_cols} = [ apply { s/^self\.//i } values %{ $rels[$this]{args}[2] } ];
         }
 
         my $link_moniker = $rels[0]{extra}{local_moniker};
@@ -557,7 +559,7 @@ sub _generate_m2ms {
         my @link_table_primary_cols =
             @{[ $self->schema->source($link_moniker)->primary_columns ]};
 
-        next unless @{$class[0]{to_cols}} + @{$class[1]{to_cols}} == @link_table_cols
+        next unless uniq(@{$class[0]{from_link_cols}}, @{$class[1]{from_link_cols}}) == @link_table_cols
             && @link_table_cols == @link_table_primary_cols;
 
         foreach my $this (0, 1) {
