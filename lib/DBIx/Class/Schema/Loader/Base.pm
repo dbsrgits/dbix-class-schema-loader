@@ -1013,6 +1013,17 @@ be generated.
         return $new_code;
     }
 
+You can also use this option to set L<perltidy markers|perltidy/Skipping
+Selected Sections of Code> in your generated classes.  This will leave
+the generated code in the default format, but will allow you to tidy
+your classes at any point in future, without worrying about changing the
+portions of the file which are checksummed, since C<perltidy> will just
+ignore all text between the markers.
+
+    filter_generated_code => sub {
+        return "#<<<\n$_[2]\n#>>>";
+    }
+
 =head1 METHODS
 
 None of these methods are intended for direct invocation by regular
