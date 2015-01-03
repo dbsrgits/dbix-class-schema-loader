@@ -52,13 +52,13 @@ sub dumper_squashed($) {
 
 # copied from DBIx::Class::_Util, import from there once it's released
 sub sigwarn_silencer {
-  my $pattern = shift;
+    my $pattern = shift;
 
-  croak "Expecting a regexp" if ref $pattern ne 'Regexp';
+    croak "Expecting a regexp" if ref $pattern ne 'Regexp';
 
-  my $orig_sig_warn = $SIG{__WARN__} || sub { CORE::warn(@_) };
+    my $orig_sig_warn = $SIG{__WARN__} || sub { CORE::warn(@_) };
 
-  return sub { &$orig_sig_warn unless $_[0] =~ $pattern };
+    return sub { &$orig_sig_warn unless $_[0] =~ $pattern };
 }
 
 sub eval_package_without_redefine_warnings {

@@ -20,21 +20,21 @@ See L<DBIx::Class::Schema::Loader::Base> for usage information.
 =cut
 
 sub _rebless {
-  my $self = shift;
+    my $self = shift;
 
-  return if ref $self ne __PACKAGE__;
+    return if ref $self ne __PACKAGE__;
 
-  my $dbh  = $self->schema->storage->dbh;
-  my $dbtype = eval { $dbh->get_info(17) };
-  unless ( $@ ) {
-    # Translate the backend name into a perl identifier
-    $dbtype =~ s/\W/_/gi;
-    my $class = "DBIx::Class::Schema::Loader::DBI::ADO::${dbtype}";
-    if ($self->load_optional_class($class) && !$self->isa($class)) {
-        bless $self, $class;
-        $self->_rebless;
+    my $dbh  = $self->schema->storage->dbh;
+    my $dbtype = eval { $dbh->get_info(17) };
+    unless ( $@ ) {
+        # Translate the backend name into a perl identifier
+        $dbtype =~ s/\W/_/gi;
+        my $class = "DBIx::Class::Schema::Loader::DBI::ADO::${dbtype}";
+        if ($self->load_optional_class($class) && !$self->isa($class)) {
+            bless $self, $class;
+            $self->_rebless;
+        }
     }
-  }
 }
 
 sub _filter_tables {

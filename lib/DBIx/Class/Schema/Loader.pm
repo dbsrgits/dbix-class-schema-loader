@@ -37,49 +37,49 @@ DBIx::Class::Schema::Loader - Create a DBIx::Class::Schema based on a database
 
 =head1 SYNOPSIS
 
-  ### use this module to generate a set of class files
+    ### use this module to generate a set of class files
 
-  # in a script
-  use DBIx::Class::Schema::Loader qw/ make_schema_at /;
-  make_schema_at(
-      'My::Schema',
-      { debug => 1,
-        dump_directory => './lib',
-      },
-      [ 'dbi:Pg:dbname="foo"', 'myuser', 'mypassword',
-         { loader_class => 'MyLoader' } # optionally
-      ],
-  );
+    # in a script
+    use DBIx::Class::Schema::Loader qw/ make_schema_at /;
+    make_schema_at(
+        'My::Schema',
+        { debug => 1,
+          dump_directory => './lib',
+        },
+        [ 'dbi:Pg:dbname="foo"', 'myuser', 'mypassword',
+           { loader_class => 'MyLoader' } # optionally
+        ],
+    );
 
-  # from the command line or a shell script with dbicdump (distributed
-  # with this module).  Do `perldoc dbicdump` for usage.
-  dbicdump -o dump_directory=./lib \
-           -o components='["InflateColumn::DateTime"]' \
-           -o debug=1 \
-           My::Schema \
-           'dbi:Pg:dbname=foo' \
-           myuser \
-           mypassword
+    # from the command line or a shell script with dbicdump (distributed
+    # with this module).  Do `perldoc dbicdump` for usage.
+    dbicdump -o dump_directory=./lib \
+             -o components='["InflateColumn::DateTime"]' \
+             -o debug=1 \
+             My::Schema \
+             'dbi:Pg:dbname=foo' \
+             myuser \
+             mypassword
 
-  ### or generate and load classes at runtime
-  # note: this technique is not recommended
-  # for use in production code
+    ### or generate and load classes at runtime
+    # note: this technique is not recommended
+    # for use in production code
 
-  package My::Schema;
-  use base qw/DBIx::Class::Schema::Loader/;
+    package My::Schema;
+    use base qw/DBIx::Class::Schema::Loader/;
 
-  __PACKAGE__->loader_options(
-      constraint              => '^foo.*',
-      # debug                 => 1,
-  );
+    __PACKAGE__->loader_options(
+        constraint              => '^foo.*',
+        # debug                 => 1,
+    );
 
-  #### in application code elsewhere:
+    #### in application code elsewhere:
 
-  use My::Schema;
+    use My::Schema;
 
-  my $schema1 = My::Schema->connect( $dsn, $user, $password, $attrs);
-  # -or-
-  my $schema1 = "My::Schema"; $schema1->connection(as above);
+    my $schema1 = My::Schema->connect( $dsn, $user, $password, $attrs);
+    # -or-
+    my $schema1 = "My::Schema"; $schema1->connection(as above);
 
 =head1 DESCRIPTION
 
