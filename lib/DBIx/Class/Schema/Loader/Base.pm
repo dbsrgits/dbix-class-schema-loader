@@ -1009,8 +1009,8 @@ be generated.
 
     filter_generated_code => sub {
         my ($type, $class, $text) = @_;
-	...
-	return $new_code;
+        ...
+        return $new_code;
     }
 
 =head1 METHODS
@@ -2143,10 +2143,10 @@ sub _write_classfile {
                 croak "filter '$filter' exited non-zero: $exit_code";
             }
         }
-	if (not $text or not $text =~ /\bpackage\b/) {
-	    warn("$class skipped due to filter") if $self->debug;
-	    return;
-	}
+        if (not $text or not $text =~ /\bpackage\b/) {
+            warn("$class skipped due to filter") if $self->debug;
+            return;
+        }
     }
 
     # Check and see if the dump is in fact different
