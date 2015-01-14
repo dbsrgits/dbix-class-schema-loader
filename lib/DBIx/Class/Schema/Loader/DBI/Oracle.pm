@@ -85,7 +85,7 @@ sub _table_fk_info {
 
     my $deferrable_sth = $self->dbh->prepare_cached(<<'EOF');
 select deferrable from all_constraints
-where owner = ? and table_name = ? and constraint_name = ?
+where owner = ? and table_name = ? and constraint_name = ? and status = 'ENABLED'
 EOF
 
     foreach my $rel (@$rels) {
@@ -112,7 +112,8 @@ FROM all_constraints ac, all_cons_columns acc
 WHERE acc.table_name=? AND acc.owner = ?
     AND ac.table_name = acc.table_name AND ac.owner = acc.owner
     AND acc.constraint_name = ac.constraint_name
-    AND ac.constraint_type='U'
+    AND ac.constraint_type = 'U'
+    AND ac.status = 'ENABLED'
 ORDER BY acc.position
 EOF
 
@@ -177,7 +178,7 @@ sub _columns_info_for {
     my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
 SELECT trigger_body
 FROM all_triggers
-WHERE table_name = ? AND table_owner = ?
+WHERE table_name = ? AND table_owner = ? AND status = 'ENABLED'
 AND upper(trigger_type) LIKE '%BEFORE EACH ROW%' AND lower(triggering_event) LIKE '%insert%'
 EOF
 
