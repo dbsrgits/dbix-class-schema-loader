@@ -7,6 +7,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
         - Remove dependency on List::MoreUtils and Sub::Name
         - Ensure schema files are generated as binary files on Windows
         - Fix overwrite_modifications not overwriting if the table hasn't changed
+        - Filter out disabled constraints and triggers for Oracle (GH#5)
 
 0.07042  2014-08-20
         - Fix unescaped left braces in regexes in tests

@@ -681,6 +681,8 @@ moritz: Moritz Lenz <moritz@faui2k3.org>
 
 oalders: Olaf Alders <olaf@wundersolutions.com>
 
+mephinet: Philipp Gortan <philipp.gortan@apa.at>
+
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
