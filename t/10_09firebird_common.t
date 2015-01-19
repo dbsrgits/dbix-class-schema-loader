@@ -22,7 +22,7 @@ for (qw(FIREBIRD FIREBIRD_ODBC FIREBIRD_INTERBASE)) {
     $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
     $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
     $dsns{$_}{connect_info_opts} = { on_connect_call => 'use_softcommit' }
-        if /\AFIREBIRD(?:_INTERBASE)\z/;
+        if /\AFIREBIRD(?:_INTERBASE)?\z/;
 };
 
 plan skip_all => 'You need to set the DBICTEST_FIREBIRD_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_ODBC_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_INTERBASE_DSN, _USER and _PASS environment variables'
