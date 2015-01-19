@@ -71,7 +71,9 @@ perl:
   - "5.18"
 
 env:
-  - CLEANTEST=false
+  - CLEANTEST=false DBICTEST_DB2=true
+  - CLEANTEST=false DBICTEST_ORA=true
+  - CLEANTEST=false DBICTEST_FIREBIRD=true
   - CLEANTEST=false DBICTEST_MYSQL_INNODB=1
   - CLEANTEST=true
 

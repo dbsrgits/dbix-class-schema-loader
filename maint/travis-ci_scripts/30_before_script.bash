@@ -114,8 +114,21 @@ else
   parallel_installdeps_notest YAML LWP Class::Trigger JSON::XS DateTime::Format::Builder Class::Accessor::Grouped Package::Variant
   parallel_installdeps_notest SQL::Abstract Moose Module::Install JSON SQL::Translator File::Which
   parallel_installdeps_notest Module::Install::ReadmeFromPod
-  parallel_installdeps_notest DBD::ODBC DBD::Firebird DBD::Oracle Math::Base36 DBD::mysql DBD::Pg Math::BigInt
+  parallel_installdeps_notest Math::Base36 DBD::mysql DBD::Pg Math::BigInt
   parallel_installdeps_notest MooseX::NonMoose MooseX::MarkAsMethods namespace::autoclean
+
+  if env | grep -q '^DBICTEST_.*_ODBC_DSN'; then
+    parallel_installdeps_notest DBD::ODBC
+  fi
+  if [[ -n "$DBICTEST_ORA_DSN" ]]; then
+    parallel_installdeps_notest DBD::Oracle
+  fi
+  if [[ -n "$DBICTEST_DB2_DSN" ]]; then
+    parallel_installdeps_notest DBD::DB2
+  fi
+  if [[ -n "$DBICTEST_FIREBIRD_DSN" ]]; then
+    parallel_installdeps_notest DBD::Firebird
+  fi
 
   if [[ -n "$DBICTEST_FIREBIRD_INTERBASE_DSN" ]] ; then
     # the official version is very much outdated and does not compile on 5.14+
