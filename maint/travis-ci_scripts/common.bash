@@ -12,7 +12,7 @@ if [[ "$TRAVIS" != "true" ]] ; then
   exit 1
 fi
 
-tstamp() { echo -n "[$(date '+%H:%M:%S')]" ; }
+tstamp() { echo -n "[$(date '+%H:%M:%S.%N')]" ; }
 
 ci_vm_state_text() {
   echo "
