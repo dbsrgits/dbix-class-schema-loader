@@ -1,6 +1,8 @@
 #!/bin/bash
 
+# this file is executed in a subshell - set up the common stuff
 source maint/travis-ci_scripts/common.bash
+
 if [[ -n "$SHORT_CIRCUIT_SMOKE" ]] ; then return ; fi
 
 # poison the environment
@@ -256,24 +258,4 @@ echo_err "
 ===================== DEPENDENCY CONFIGURATION COMPLETE =====================
 $(tstamp) Configuration phase seems to have taken $(date -ud "@$SECONDS" '+%H:%M:%S') (@$SECONDS)
 
-= CPUinfo
-$(perl -0777 -p -e 's/.+\n\n(?!\z)//s' < /proc/cpuinfo)
-
-= Meminfo
-$(free -m -t)
-
-= Kernel info
-$(uname -a)
-
-= Network Configuration
-$(ip addr)
-
-= Network Sockets Status
-$(sudo netstat -an46p | grep -Pv '\s(CLOSING|(FIN|TIME|CLOSE)_WAIT.?|LAST_ACK)\s')
-
-= Environment
-$(env | grep -P 'TEST|HARNESS|MAKE|TRAVIS|PERL|DBIC' | LC_ALL=C sort | cat -v)
-
-= Perl in use
-$(perl -V)
-============================================================================="
+$(ci_vm_state_text)"
