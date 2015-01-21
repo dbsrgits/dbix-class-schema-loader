@@ -162,6 +162,14 @@ sub _dbh_tables {
     return $self->dbh->tables($schema ? { TABLE_SCHEM => $schema, TABLE_NAME => '%' } : undef);
 }
 
+sub _dbh_table_info {
+    my $self = shift;
+
+    local $^W = 0; # shut up undef warning from DBD::DB2
+
+    $self->next::method(@_);
+}
+
 sub _columns_info_for {
     my $self = shift;
     my ($table) = @_;
