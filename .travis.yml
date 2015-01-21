@@ -68,7 +68,10 @@ x_disabled_notifications:
 language: perl
 
 perl:
-  - "5.18"
+  - 5.20-extras
+  - "5.20" # needs quoting due to trailing zero
+  - 5.18-extras
+  - 5.18
 
 env:
   - CLEANTEST=false DBICTEST_DB2=true
