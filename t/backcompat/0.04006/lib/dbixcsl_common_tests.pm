@@ -438,8 +438,8 @@ sub run_tests {
             };
             is($@, '', 'No errors after eval{}')
                 or do {
-                    diag explain $class11->relationship_info('loader_test10');
-                    diag explain $class10->relationship_info('loader_test11');
+                    diag explain $rsobj10->result_source->relationship_info('loader_test11');
+                    diag explain $rsobj11->result_source->relationship_info('loader_test10');
                 };
 
             SKIP: {
