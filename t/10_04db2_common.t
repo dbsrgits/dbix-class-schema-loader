@@ -152,7 +152,7 @@ my $tester = dbixcsl_common_tests->new(
                 }
                 catch {
                     $schemas_created = 0;
-                    skip "no CREATE SCHEMA privileges", 28 * 2;
+                    skip "no CREATE SCHEMA privileges", 30 * 2;
                 };
 
                 $dbh->do(<<"EOF");
