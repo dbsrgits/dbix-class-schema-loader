@@ -5,7 +5,7 @@ use warnings;
 use base qw/DBIx::Class::Schema::Loader::Base/;
 use mro 'c3';
 use Try::Tiny;
-use List::MoreUtils 'any';
+use List::Util 'any';
 use Carp::Clan qw/^DBIx::Class/;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();

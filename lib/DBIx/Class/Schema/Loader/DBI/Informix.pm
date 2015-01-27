@@ -5,7 +5,7 @@ use warnings;
 use base qw/DBIx::Class::Schema::Loader::DBI/;
 use mro 'c3';
 use Scalar::Util 'looks_like_number';
-use List::MoreUtils 'any';
+use List::Util 'any';
 use Try::Tiny;
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table::Informix ();

@@ -11,7 +11,7 @@ use namespace::clean;
 use Exporter 'import';
 use Data::Dumper ();
 
-our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file write_file array_eq sigwarn_silencer/;
+our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file write_file array_eq sigwarn_silencer apply firstidx uniq/;
 
 use constant BY_CASE_TRANSITION_V7 =>
     qr/(?<=[[:lower:]\d])[\W_]*(?=[[:upper:]])|[\W_]+/;
@@ -59,6 +59,27 @@ sub sigwarn_silencer {
     my $orig_sig_warn = $SIG{__WARN__} || sub { CORE::warn(@_) };
 
     return sub { &$orig_sig_warn unless $_[0] =~ $pattern };
+}
+
+# Copied with stylistic adjustments from List::MoreUtils::PP
+sub firstidx (&@) {
+    my $f = shift;
+    foreach my $i (0..$#_) {
+        local *_ = \$_[$i];
+        return $i if $f->();
+    }
+    return -1;
+}
+
+sub uniq (@) {
+    my %seen = ();
+    grep { not $seen{$_}++ } @_;
+}
+
+sub apply (&@) {
+    my $action = shift;
+    $action->() foreach my @values = @_;
+    wantarray ? @values : $values[-1];
 }
 
 sub eval_package_without_redefine_warnings {

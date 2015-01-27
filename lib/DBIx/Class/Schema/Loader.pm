@@ -7,7 +7,7 @@ use MRO::Compat;
 use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
-use Sub::Name 'subname';
+use Sub::Util 'set_subname';
 use DBIx::Class::Schema::Loader::Utils 'array_eq';
 use Try::Tiny;
 use Hash::Merge 'merge';
@@ -341,7 +341,7 @@ sub connection {
         # ->load_components and we are now in a different place in the mro.
         no warnings 'redefine';
 
-        local *connection = subname __PACKAGE__.'::connection' => sub {
+        local *connection = set_subname __PACKAGE__.'::connection' => sub {
             my $self = shift;
             $self->next::method(@_);
         };

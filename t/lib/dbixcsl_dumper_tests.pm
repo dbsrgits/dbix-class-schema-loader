@@ -5,7 +5,7 @@ use Test::More;
 use File::Path;
 use IPC::Open3;
 use IO::Handle;
-use List::MoreUtils 'any';
+use List::Util 'any';
 use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use DBIx::Class::Schema::Loader ();
 use Class::Unload ();

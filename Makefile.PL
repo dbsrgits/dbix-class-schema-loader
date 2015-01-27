@@ -49,13 +49,13 @@ requires 'Hash::Merge'                 => '0.12';
 requires 'Lingua::EN::Inflect::Number' => '1.1';
 requires 'Lingua::EN::Tagger'          => '0.23';
 requires 'Lingua::EN::Inflect::Phrase' => '0.15';
-requires 'List::MoreUtils'             => '0.32';
+requires 'List::Util'                  => '1.33';
 requires 'MRO::Compat'                 => '0.09';
 requires 'namespace::clean'            => '0.23';
 requires 'Scope::Guard'                => '0.20';
 requires 'String::ToIdentifier::EN'    => '0.05';
 requires 'String::CamelCase'           => '0.02';
-requires 'Sub::Name'                   => 0;
+requires 'Sub::Util'                   => '1.40';
 requires 'Try::Tiny'                   => 0;
 
 # core, but specific versions not available on older perls

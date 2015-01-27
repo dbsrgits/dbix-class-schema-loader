@@ -20,12 +20,12 @@ use File::Temp ();
 use Class::Unload;
 use Class::Inspector ();
 use Scalar::Util 'looks_like_number';
-use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path slurp_file sigwarn_silencer/;
+use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path slurp_file sigwarn_silencer firstidx uniq/;
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
 use Encode qw/encode decode/;
-use List::MoreUtils qw/all any firstidx uniq/;
+use List::Util qw/all any none/;
 use File::Temp 'tempfile';
 use namespace::clean;
 
@@ -1283,7 +1283,7 @@ sub new {
         if (ref $self->moniker_parts ne 'ARRAY') {
             croak 'moniker_parts must be an arrayref';
         }
-        if ((firstidx { $_ eq 'name' } @{ $self->moniker_parts }) == -1) {
+        if (none { $_ eq 'name' } @{ $self->moniker_parts }) {
             croak "moniker_parts option *must* contain 'name'";
         }
     }
