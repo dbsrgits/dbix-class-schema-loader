@@ -104,6 +104,8 @@ JOIN syscat.references sr
         AND tc.tabname = sr.tabname
 JOIN syscat.keycoluse rkcu
     ON sr.refkeyname = rkcu.constname
+        AND sr.reftabschema = rkcu.tabschema
+        AND sr.reftabname = rkcu.tabname
         AND kcu.colseq = rkcu.colseq
 WHERE tc.tabschema = ?
     AND tc.tabname = ?

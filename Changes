@@ -2,6 +2,7 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Fix many_to_many bridges with overlapping foreign keys
         - Document how to add perltidy markers via filter_generated_code
+        - Fix DB2 foreign-key introspection
 
 0.07042  2014-08-20
         - Fix unescaped left braces in regexes in tests
