@@ -49,6 +49,8 @@ export SCHEMA_LOADER_TESTS_BACKCOMPAT=1
 # these will be installed no matter what, also some extras unless CLEANTEST
 common_packages="libapp-nopaste-perl tree"
 
+run_or_err "Updating APT package lists" "sudo apt-get update"
+
 if [[ "$CLEANTEST" = "true" ]]; then
 
   apt_install $common_packages
