@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Fix many_to_many bridges with overlapping foreign keys
+        - Add option to allow extra columns in many_to_many link tables
         - Document how to add perltidy markers via filter_generated_code
         - Fix DB2 foreign-key introspection
         - Remove dependency on List::MoreUtils and Sub::Name

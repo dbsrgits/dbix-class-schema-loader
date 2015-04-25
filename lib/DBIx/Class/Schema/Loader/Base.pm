@@ -84,6 +84,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 moniker_to_table
                                 uniq_to_primary
                                 quiet
+                                allow_extra_m2m_cols
 /);
 
 
@@ -992,6 +993,13 @@ L</RELATIONSHIP NAME COLLISIONS>.
 Automatically promotes the largest unique constraints with non-nullable columns
 on tables to primary keys, assuming there is only one largest unique
 constraint.
+
+=head2 allow_extra_m2m_cols
+
+Generate C<many_to_many> relationship bridges even if the link table has
+extra columns other than the foreign keys.  The primary key must still
+equal the union of the foreign keys.
+
 
 =head2 filter_generated_code
 
