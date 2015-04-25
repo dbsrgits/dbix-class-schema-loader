@@ -6,7 +6,7 @@ use warnings;
 use Test::More;
 use String::CamelCase 'wordsplit';
 use Carp::Clan qw/^DBIx::Class/;
-use Scalar::Util 'looks_like_number';
+use List::Util 'all';
 use namespace::clean;
 use Exporter 'import';
 use Data::Dumper ();
@@ -198,19 +198,9 @@ sub write_file($$) {
 
 sub array_eq($$) {
     no warnings 'uninitialized';
-    my ($a, $b) = @_;
+    my ($l, $r) = @_;
 
-    return unless @$a == @$b;
-
-    for (my $i = 0; $i < @$a; $i++) {
-        if (looks_like_number $a->[$i]) {
-            return unless $a->[$i] == $b->[$i];
-        }
-        else {
-            return unless $a->[$i] eq $b->[$i];
-        }
-    }
-    return 1;
+    return @$l == @$r && all { $l->[$_] eq $r->[$_] } 0..$#$l;
 }
 
 1;
