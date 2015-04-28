@@ -79,9 +79,9 @@ if [[ "$CLEANTEST" = "true" ]]; then
   # handholding
 
   if [[ "$DEVREL_DEPS" == "true" ]] ; then
-    # We are not "quite ready" for SQLA 1.99, do not consider it
+    # We are not "quite ready" for DBIC 0.089xx, do not consider it
     #
-    installdeps 'SQL::Abstract~<1.99'
+    installdeps 'DBIx::Class~<0.08900'
 
   elif ! CPAN_is_sane ; then
     # no configure_requires - we will need the usual suspects anyway
@@ -229,9 +229,9 @@ while (@chunks) {
 else
 
   # listalldeps is deliberate - will upgrade everything it can find
-  # we exclude SQLA specifically, since we do not want to pull
-  # in 1.99_xx on bleadcpan runs
-  deplist="$(make listalldeps | grep -vP '^(SQL::Abstract)$')"
+  # we exclude DBIC specifically, since we do not want to pull
+  # in 0.089xx on bleadcpan runs
+  deplist="$(make listalldeps | grep -vP '^(DBIx::Class)$')"
 
   # assume MDV on POISON_ENV, do not touch DBI/SQLite
   if [[ "$POISON_ENV" = "true" ]] ; then
