@@ -15,10 +15,6 @@ if [[ "$DEVREL_DEPS" == "true" ]] ; then
 
   PERL_CPANM_OPT="$PERL_CPANM_OPT --dev"
 
-  # FIXME inline-upgrade cpanm, work around https://github.com/travis-ci/travis-ci/issues/1477
-  cpanm_loc="$(which cpanm)"
-  run_or_err "Upgrading cpanm ($cpanm_loc) to latest stable" \
-    "wget -q -O $cpanm_loc cpanmin.us && chmod a+x $cpanm_loc"
 fi
 
 # Fixup CPANM_OPT to behave more like a traditional cpan client
