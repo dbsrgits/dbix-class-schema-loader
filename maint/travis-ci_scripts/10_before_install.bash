@@ -16,7 +16,7 @@ $(free -m -t)
 
 CI_VM_MIN_FREE_MB=2000
 if [[ "$(free -m | grep 'buffers/cache:' | perl -p -e '$_ = (split /\s+/, $_)[3]')" -lt "$CI_VM_MIN_FREE_MB" ]]; then
-  SHORT_CIRCUIT_SMOKE=1
+  export SHORT_CIRCUIT_SMOKE=1
   echo_err "
 =============================================================================
 
