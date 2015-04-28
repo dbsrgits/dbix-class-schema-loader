@@ -115,7 +115,6 @@ my $tester = dbixcsl_common_tests->new(
         'time'        => { data_type => 'time' },
         'year'        => { data_type => 'year' },
         'year(4)'     => { data_type => 'year' },
-        'year(2)'     => { data_type => 'year', size => 2 },
 
         # String Types
         'char'         => { data_type => 'char',      size => 1  },
