@@ -2187,7 +2187,7 @@ sub _write_classfile {
       $self->omit_timestamp ? undef : POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime)
     );
 
-    open(my $fh, '>:encoding(UTF-8)', $filename)
+    open(my $fh, '>:raw:encoding(UTF-8)', $filename)
         or croak "Cannot open '$filename' for writing: $!";
 
     # Write the top half and its MD5 sum
