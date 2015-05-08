@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 5;
+use Test::More;
 use Test::Exception;
 use Test::Warn;
 use lib qw(t/lib);
@@ -10,6 +10,7 @@ use File::Spec;
 use File::Temp qw/ tempdir tempfile /;
 
 use DBIx::Class::Schema::Loader;
+use DBIx::Class::Schema::Loader::Utils qw/ slurp_file /;
 
 my $tempdir = tempdir( CLEANUP => 1 );
 my $foopm = File::Spec->catfile( $tempdir,
@@ -41,6 +42,9 @@ lives_ok {
     dump_schema( overwrite_modifications => 1 );
 } 'does not throw when dumping with overwrite_modifications';
 
+
+unlike slurp_file $foopm, qr/"somethingelse"/, "Modifications actually overwritten";
+
 sub dump_schema {
 
     # need to poke _loader_invoked in order to be able to rerun the
@@ -57,3 +61,5 @@ sub dump_schema {
         );
     } [qr/^Dumping manual schema/, qr/^Schema dump completed/ ];
 }
+
+done_testing();

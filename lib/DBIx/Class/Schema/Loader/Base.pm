@@ -2236,12 +2236,12 @@ sub _parse_generated_file {
     my $mark_re =
         qr{^(# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:)([A-Za-z0-9/+]{22})\r?\n};
 
-    my ($md5, $ts, $ver, $gen);
+    my ($real_md5, $ts, $ver, $gen);
     local $_;
     while(<$fh>) {
         if(/$mark_re/) {
             my $pre_md5 = $1;
-            $md5 = $2;
+            my $mark_md5 = $2;
 
             # Pull out the version and timestamp from the line above
             ($ver, $ts) = $gen =~ m/^# Created by DBIx::Class::Schema::Loader( v[\d.]+)?( @ [\d-]+ [\d:]+)?\r?\Z/m;
@@ -2249,8 +2249,9 @@ sub _parse_generated_file {
             $ts =~ s/^ @ // if $ts;
 
             $gen .= $pre_md5;
+            $real_md5 = Digest::MD5::md5_base64(encode 'UTF-8', $gen);
             croak "Checksum mismatch in '$fn', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n"
-                if !$self->overwrite_modifications && Digest::MD5::md5_base64(encode 'UTF-8', $gen) ne $md5;
+                if !$self->overwrite_modifications && $real_md5 ne $mark_md5;
 
             last;
         }
@@ -2260,14 +2261,14 @@ sub _parse_generated_file {
     }
 
     my $custom = do { local $/; <$fh> }
-        if $md5;
+        if $real_md5;
 
     $custom ||= '';
     $custom =~ s/$CRLF|$LF/\n/g;
 
     close $fh;
 
-    return ($gen, $md5, $ver, $ts, $custom);
+    return ($gen, $real_md5, $ver, $ts, $custom);
 }
 
 sub _use {
