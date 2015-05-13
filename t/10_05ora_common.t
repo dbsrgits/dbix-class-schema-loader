@@ -27,7 +27,7 @@ my $auto_inc_cb = sub {
     return (
         qq{ CREATE SEQUENCE ${table}_${col}_seq START WITH 1 INCREMENT BY 1},
         qq{
-            CREATE OR REPLACE TRIGGER ${table}_${col}_trigger
+            CREATE OR REPLACE TRIGGER ${table}_${col}_trg
             BEFORE INSERT ON ${table}
             FOR EACH ROW
             BEGIN
@@ -181,9 +181,18 @@ my $tester = dbixcsl_common_tests->new(
                         on delete set null deferrable
                 )
             },
+            q{
+                create table oracle_loader_test11 (
+                    id int primary key disable,
+                    ten_id int unique disable,
+                    foreign key (ten_id) references oracle_loader_test10(id) disable
+                )
+            },
+            $auto_inc_cb->('oracle_loader_test11', 'id'),
+            'alter trigger oracle_loader_test11_id_trg disable',
         ],
-        drop  => [qw/oracle_loader_test1 oracle_loader_test9 oracle_loader_test10/],
-        count => 7 + 31 * 2,
+        drop  => [qw/oracle_loader_test1 oracle_loader_test9 oracle_loader_test10 oracle_loader_test11/],
+        count => 10 + 31 * 2,  # basic + cross-schema * 2
         run   => sub {
             my ($monikers, $classes);
             ($schema, $monikers, $classes) = @_;
@@ -222,6 +231,19 @@ my $tester = dbixcsl_common_tests->new(
 
             is $rel_info->{attrs}{is_deferrable}, 1,
                 'DEFERRABLE clause introspected correctly';
+
+            my $source11 = $schema->source('OracleLoaderTest11');
+
+            # DBD::Oracle < 1.76 doesn't filter out disabled primary keys
+            my $uniqs = eval { DBD::Oracle->VERSION('1.76') } ? [] : ['primary'];
+            is_deeply [keys %{{$source11->unique_constraints}}], $uniqs,
+                'Disabled unique constraints not loaded';
+
+            ok !$source11->relationship_info('ten'),
+                'Disabled FK not loaded';
+
+            ok !$source11->column_info('id')->{is_auto_increment},
+                'Disabled autoinc trigger not loaded';
 
             SKIP: {
                 skip 'Set the DBICTEST_ORA_EXTRAUSER_DSN, _USER and _PASS environment variables to run the cross-schema relationship tests', 31 * 2
@@ -485,34 +507,36 @@ else {
 
 END {
     if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
-        if (my $dbh2 = try { $extra_schema->storage->dbh }) {
-            my $dbh1 = $schema->storage->dbh;
+        if (my $dbh1 = try { $schema->storage->dbh }) {
+            $dbh1->do($_) for $auto_inc_drop_cb->('oracle_loader_test11','id');
 
-            try {
-                $dbh1->do($_) for $auto_inc_drop_cb->('oracle_loader_test8', 'id');
-                $dbh2->do($_) for $auto_inc_drop_cb->('oracle_loader_test7', 'id');
-                $dbh2->do($_) for $auto_inc_drop_cb->('oracle_loader_test6', 'id');
-                $dbh2->do($_) for $auto_inc_drop_cb->('oracle_loader_test5', 'pk');
-                $dbh1->do($_) for $auto_inc_drop_cb->('oracle_loader_test5', 'id');
-                $dbh1->do($_) for $auto_inc_drop_cb->('oracle_loader_test4', 'id');
-            }
-            catch {
-                die "Error dropping sequences for cross-schema test tables: $_";
-            };
+            if (my $dbh2 = try { $extra_schema->storage->dbh }) {
 
-            try {
-                $dbh1->do('DROP TABLE oracle_loader_test8');
-                $dbh2->do('DROP TABLE oracle_loader_test7');
-                $dbh2->do('DROP TABLE oracle_loader_test6');
-                $dbh2->do('DROP TABLE oracle_loader_test5');
-                $dbh1->do('DROP TABLE oracle_loader_test5');
-                $dbh1->do('DROP TABLE oracle_loader_test4');
+                try {
+                    $dbh1->do($_) for $auto_inc_drop_cb->('oracle_loader_test8', 'id');
+                    $dbh2->do($_) for $auto_inc_drop_cb->('oracle_loader_test7', 'id');
+                    $dbh2->do($_) for $auto_inc_drop_cb->('oracle_loader_test6', 'id');
+                    $dbh2->do($_) for $auto_inc_drop_cb->('oracle_loader_test5', 'pk');
+                    $dbh1->do($_) for $auto_inc_drop_cb->('oracle_loader_test5', 'id');
+                    $dbh1->do($_) for $auto_inc_drop_cb->('oracle_loader_test4', 'id');
+                }
+                catch {
+                    die "Error dropping sequences for cross-schema test tables: $_";
+                };
+
+                try {
+                    $dbh1->do('DROP TABLE oracle_loader_test8');
+                    $dbh2->do('DROP TABLE oracle_loader_test7');
+                    $dbh2->do('DROP TABLE oracle_loader_test6');
+                    $dbh2->do('DROP TABLE oracle_loader_test5');
+                    $dbh1->do('DROP TABLE oracle_loader_test5');
+                    $dbh1->do('DROP TABLE oracle_loader_test4');
+                }
+                catch {
+                    die "Error dropping cross-schema test tables: $_";
+                };
             }
-            catch {
-                die "Error dropping cross-schema test tables: $_";
-            };
         }
-
         rmtree EXTRA_DUMP_DIR;
     }
 }

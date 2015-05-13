@@ -88,19 +88,22 @@ select deferrable from all_constraints
 where owner = ? and table_name = ? and constraint_name = ? and status = 'ENABLED'
 EOF
 
+    my @enabled_rels;
     foreach my $rel (@$rels) {
         # Oracle does not have update rules
         $rel->{attrs}{on_update} = 'NO ACTION';;
 
         # DBD::Oracle's foreign_key_info does not return DEFERRABILITY, so we get it ourselves
-        my ($deferrable) = $self->dbh->selectrow_array(
+        # Also use this to filter out disabled foreign keys, which are returned by DBD::Oracle < 1.76
+        my $deferrable = $self->dbh->selectrow_array(
             $deferrable_sth, undef, $table->schema, $table->name, $rel->{_constraint_name}
-        );
+        ) or next;
 
-        $rel->{attrs}{is_deferrable} = $deferrable && $deferrable =~ /^DEFERRABLE/i ? 1 : 0;
+        $rel->{attrs}{is_deferrable} = $deferrable =~ /^DEFERRABLE/i ? 1 : 0;
+        push @enabled_rels, $rel;
     }
 
-    return $rels;
+    return \@enabled_rels;
 }
 
 sub _table_uniq_info {
