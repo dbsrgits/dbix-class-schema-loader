@@ -611,86 +611,83 @@ Based on L<DBIx::Class::Loader> by Sebastian Riedel
 
 Based upon the work of IKEBE Tomohiro
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-blblack: Brandon Black <blblack@gmail.com>
+Caelum: Rafael Kitover <rkitover@cpan.org>
 
-=head1 CONTRIBUTORS
+Dag-Erling Smørgrav <des@des.no>
 
-ilmari: Dagfinn Ilmari MannsE<aring>ker <ilmari@ilmari.org>
+Matias E. Fernandez <mfernandez@pisco.ch>
+
+SineSwiper: Brendan Byrd <byrd.b@insightcom.com>
+
+TSUNODA Kazuya <drk@drk7.jp>
+
+acmoore: Andrew Moore <amoore@cpan.org>
+
+alnewkirk: Al Newkirk <awncorp@cpan.org>
+
+andrewalker: André Walker <andre@andrewalker.net>
+
+angelixd: Paul C. Mantz <pcmantz@cpan.org>
 
 arcanez: Justin Hunter <justin.d.hunter@gmail.com>
 
 ash: Ash Berlin <ash@cpan.org>
 
+blblack: Brandon Black <blblack@gmail.com>
+
+bphillips: Brian Phillips <bphillips@cpan.org>
+
 btilly: Ben Tilly <btilly@gmail.com>
 
-Caelum: Rafael Kitover <rkitover@cpan.org>
-
-TSUNODA Kazuya <drk@drk7.jp>
-
-rbo: Robert Bohne <rbo@cpan.org>
-
-ribasushi: Peter Rabbitson <ribasushi@cpan.org>
+domm: Thomas Klausner <domm@plix.at>
 
 gugu: Andrey Kostenko <a.kostenko@rambler-co.ru>
+
+hobbs: Andrew Rodland <arodland@cpan.org>
+
+ilmari: Dagfinn Ilmari MannsE<aring>ker <ilmari@ilmari.org>
 
 jhannah: Jay Hannah <jay@jays.net>
 
 jnap: John Napiorkowski <jjn1056@yahoo.com>
 
-rbuels: Robert Buels <rbuels@gmail.com>
+kane: Jos Boumans <kane@cpan.org>
 
-timbunce: Tim Bunce <timb@cpan.org>
+mattp: Matt Phillips <mattp@cpan.org>
+
+mephinet: Philipp Gortan <philipp.gortan@apa.at>
+
+moritz: Moritz Lenz <moritz@faui2k3.org>
 
 mst: Matt S. Trout <mst@shadowcatsystems.co.uk>
 
 mstratman: Mark A. Stratman <stratman@gmail.com>
 
-kane: Jos Boumans <kane@cpan.org>
+oalders: Olaf Alders <olaf@wundersolutions.com>
 
-waawaamilk: Nigel McNie <nigel@mcnie.name>
+rbo: Robert Bohne <rbo@cpan.org>
 
-acmoore: Andrew Moore <amoore@cpan.org>
+rbuels: Robert Buels <rbuels@gmail.com>
 
-bphillips: Brian Phillips <bphillips@cpan.org>
+ribasushi: Peter Rabbitson <ribasushi@cpan.org>
 
 schwern: Michael G. Schwern <mschwern@cpan.org>
 
-SineSwiper: Brendan Byrd <byrd.b@insightcom.com>
-
-hobbs: Andrew Rodland <arodland@cpan.org>
-
-domm: Thomas Klausner <domm@plix.at>
-
 spb: Stephen Bennett <spb@exherbo.org>
 
-Matias E. Fernandez <mfernandez@pisco.ch>
+timbunce: Tim Bunce <timb@cpan.org>
 
-alnewkirk: Al Newkirk <awncorp@cpan.org>
-
-angelixd: Paul C. Mantz <pcmantz@cpan.org>
-
-andrewalker: André Walker <andre@andrewalker.net>
-
-mattp: Matt Phillips <mattp@cpan.org>
-
-Dag-Erling Smørgrav <des@des.no>
-
-moritz: Moritz Lenz <moritz@faui2k3.org>
-
-oalders: Olaf Alders <olaf@wundersolutions.com>
-
-mephinet: Philipp Gortan <philipp.gortan@apa.at>
+waawaamilk: Nigel McNie <nigel@mcnie.name>
 
 ... and lots of other folks. If we forgot you, please write the current
 maintainer or RT.
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright (c) 2006 - 2009 by the aforementioned
-L<DBIx::Class::Schema::Loader/AUTHOR> and
-L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+Copyright (c) 2006 - 2015 by the aforementioned
+L<DBIx::Class::Schema::Loader/AUTHORS>.
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.

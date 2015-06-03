@@ -3202,9 +3202,9 @@ You can also control the renaming with the L</rel_collision_map> option.
 
 L<DBIx::Class::Schema::Loader>, L<dbicdump>
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-See L<DBIx::Class::Schema::Loader/AUTHOR> and L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+See L<DBIx::Class::Schema::Loader/AUTHORS>.
 
 =head1 LICENSE
 

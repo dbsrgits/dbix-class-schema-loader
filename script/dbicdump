@@ -82,17 +82,9 @@ specified.
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class>.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Dagfinn Ilmari Mannsåker C<< <ilmari@ilmari.org> >>
-
-=head1 CONTRIBUTORS
-
-Caelum: Rafael Kitover <rkitover@cpan.org>
-
-alnewkirk: Al Newkirk <awncorp@cpan.org>
-
-moritz: Moritz Lenz <moritz@faui2k3.org>
+See L<DBIx::Class::Schema::Loader/AUTHORS>.
 
 =head1 LICENSE
 

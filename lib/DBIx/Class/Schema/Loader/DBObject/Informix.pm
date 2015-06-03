@@ -101,9 +101,9 @@ L<DBIx::Class::Schema::Loader::DBObject>,
 L<DBIx::Class::Schema::Loader::Table>, L<DBIx::Class::Schema::Loader>,
 L<DBIx::Class::Schema::Loader::Base>
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-See L<DBIx::Class::Schema::Loader/AUTHOR> and L<DBIx::Class::Schema::Loader/CONTRIBUTORS>.
+See L<DBIx::Class::Schema::Loader/AUTHORS>.
 
 =head1 LICENSE
 
