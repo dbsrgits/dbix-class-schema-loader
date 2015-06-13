@@ -96,8 +96,10 @@ arguments, like so:
 
   {
       'Some::Source::Class' => [
-          { method => 'belongs_to', arguments => [ 'col1', 'Another::Source::Class' ],
-          { method => 'has_many', arguments => [ 'anothers', 'Yet::Another::Source::Class', 'col15' ],
+          { method => 'belongs_to', arguments => [
+            'col1', 'Another::Source::Class' ] },
+          { method => 'has_many', arguments => [
+            'anothers', 'Yet::Another::Source::Class', 'col15' ] },
       ],
       'Another::Source::Class' => [
           # ...
