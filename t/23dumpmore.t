@@ -15,7 +15,7 @@ $t->dump_test(
   classname => 'DBICTest::Schema::_no_skip_load_external',
   regexes => {
     Foo => [
-      qr/package DBICTest::Schema::_no_skip_load_external::Foo;\nour \$skip_me = "bad mojo";\n1;/
+      qr/package DBICTest::Schema::_no_skip_load_external::Foo;.*\nour \$skip_me = "bad mojo";\n1;/s
     ],
   },
 );
@@ -28,7 +28,7 @@ $t->dump_test(
   },
   neg_regexes => {
     Foo => [
-      qr/package DBICTest::Schema::_skip_load_external::Foo;\nour \$skip_me = "bad mojo";\n1;/
+      qr/package DBICTest::Schema::_skip_load_external::Foo;.*\nour \$skip_me = "bad mojo";\n1;/s
     ],
   },
 );

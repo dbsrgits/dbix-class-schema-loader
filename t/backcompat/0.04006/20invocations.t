@@ -2,6 +2,7 @@ use DBIx::Class::Schema::Loader::Optional::Dependencies
     -skip_all_without => 'test_backcompat';
 
 use strict;
+use warnings;
 use Test::More;
 use lib qw(t/backcompat/0.04006/lib);
 use make_dbictest_db;

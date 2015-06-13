@@ -1,4 +1,5 @@
 use strict;
+use warnings;
 use DBIx::Class::Schema::Loader;
 use DBIx::Class::Schema::Loader::Utils 'slurp_file';
 use File::Path;

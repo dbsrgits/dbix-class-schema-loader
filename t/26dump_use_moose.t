@@ -2,6 +2,7 @@ use DBIx::Class::Schema::Loader::Optional::Dependencies
     -skip_all_without => 'use_moose';
 
 use strict;
+use warnings;
 
 use Test::More;
 

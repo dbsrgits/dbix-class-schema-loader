@@ -2,6 +2,7 @@
 # by Mark Hedges (  hedges   -at|   scriptdolphin.com )
 
 use strict;
+use warnings;
 use Test::More tests => 7 * 5;
 use Test::Exception;
 

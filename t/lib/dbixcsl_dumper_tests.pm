@@ -1,6 +1,7 @@
 package dbixcsl_dumper_tests;
 
 use strict;
+use warnings;
 use Test::More;
 use File::Path;
 use IPC::Open3;

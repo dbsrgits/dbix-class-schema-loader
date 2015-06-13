@@ -1,5 +1,8 @@
 package TestSchemaBaseClass;
-use base DBIx::Class::Schema;
+use strict;
+use warnings;
+
+use base 'DBIx::Class::Schema';
 
 our $test_ok = 0;
 

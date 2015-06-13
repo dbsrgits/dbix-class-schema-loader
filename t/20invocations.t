@@ -1,4 +1,5 @@
 use strict;
+use warnings;
 use Test::More;
 use Test::Warn;
 use DBIx::Class::Schema::Loader::Optional::Dependencies;

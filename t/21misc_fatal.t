@@ -1,4 +1,5 @@
 use strict;
+use warnings;
 use Test::More;
 use lib qw(t/lib);
 use make_dbictest_db;
