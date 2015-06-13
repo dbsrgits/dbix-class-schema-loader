@@ -101,6 +101,7 @@ if ($Module::Install::AUTHOR && ! $args->{skip_author_deps}) {
 
     DBIx::Class::Schema::Loader::Optional::Dependencies->_gen_pod(undef, 'lib');
 
+    author_tests( 'xt' );
     readme_from( 'lib/DBIx/Class/Schema/Loader.pm' );
     realclean_files( qw[README MANIFEST lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod] );
 }
