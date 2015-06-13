@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
-use DBIx::Class::Optional::Dependencies;
+use DBIx::Class::Schema::Loader::Optional::Dependencies;
 use DBIx::Class::Schema::Loader::Utils qw/warnings_exist_silent sigwarn_silencer/;
 use Try::Tiny;
 use File::Path 'rmtree';
@@ -29,22 +29,35 @@ my $schema;
 
 my (%dsns, $common_version);
 
-for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
-    next unless $ENV{"DBICTEST_${_}_DSN"};
+my %env2optdep = (
+    MSSQL => 'test_rdbms_mssql_sybase',
+    MSSQL_ODBC => 'test_rdbms_mssql_odbc',
+    MSSQL_ADO => 'test_rdbms_mssql_ado',
+);
 
-    (my $dep_group = lc "rdbms_$_") =~ s/mssql$/mssql_sybase/;
-    if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
-        diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
-            . " to test with $_";
+plan skip_all => 'requirements not satisfied:  ' . (join '  OR  ', map
+    { "[ @{[ DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for( $_ ) ]} ]" }
+    values %env2optdep
+) unless scalar grep
+    { DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for( $_ ) }
+    values %env2optdep
+;
+
+for my $type (keys %env2optdep) {
+    my %conninfo;
+    @conninfo{qw(dsn user password)} = map { $ENV{"DBICTEST_${type}_$_"} } qw(DSN USER PASS);
+    next unless $conninfo{dsn};
+
+    my $dep_group = $env2optdep{$type};
+    if (!DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for($dep_group)) {
+        diag "Testing with DBICTEST_${type}_DSN needs " . DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for($dep_group);
         next;
     }
 
-    $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
-    $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
-    $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
+    $dsns{$type} = \%conninfo;
 
     require DBI;
-    my $dbh = DBI->connect (@{$dsns{$_}}{qw/dsn user password/}, { RaiseError => 1, PrintError => 0} );
+    my $dbh = DBI->connect (@{$dsns{$type}}{qw/dsn user password/}, { RaiseError => 1, PrintError => 0} );
     my $srv_ver = eval {
         $dbh->get_info(18)
             ||
@@ -57,9 +70,6 @@ for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
         $common_version = $maj_srv_ver;
     }
 }
-
-plan skip_all => 'You need to set the DBICTEST_MSSQL_DSN, _USER and _PASS and/or the DBICTEST_MSSQL_ODBC_DSN, _USER and _PASS environment variables'
-    unless %dsns;
 
 my $mssql_2008_new_data_types = {
     date     => { data_type => 'date' },

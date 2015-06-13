@@ -6,24 +6,30 @@ use DBIx::Class::Schema::Loader::DBI::ODBC::ACCESS ();
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
-my %dsns;
-for (qw(MSACCESS_ODBC MSACCESS_ADO)) {
-    next unless $ENV{"DBICTEST_${_}_DSN"};
+my %env2optdep = map { $_ => lc "test_rdbms_$_" } qw(MSACCESS_ODBC MSACCESS_ADO);
 
-    my $dep_group = lc "rdbms_$_";
-    if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
-        diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
-            . " to test with $_";
+plan skip_all => 'requirements not satisfied:  ' . (join '  OR  ', map
+    { "[ @{[ DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for( $_ ) ]} ]" }
+    values %env2optdep
+) unless scalar grep
+    { DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for( $_ ) }
+    values %env2optdep
+;
+
+my %dsns;
+for my $type (keys %env2optdep) {
+    my %conninfo;
+    @conninfo{qw(dsn user password)} = map { $ENV{"DBICTEST_${type}_$_"} } qw(DSN USER PASS);
+    next unless $conninfo{dsn};
+
+    my $dep_group = $env2optdep{$type};
+    if (!DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for($dep_group)) {
+        diag "Testing with DBICTEST_${type}_DSN needs " . DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for($dep_group);
         next;
     }
 
-    $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
-    $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
-    $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
-};
-
-plan skip_all => 'You need to set the DBICTEST_MSACCESS_ODBC_DSN, _USER and _PASS and/or the DBICTEST_MSACCESS_ADO_DSN, _USER and _PASS  environment variables'
-    unless %dsns;
+    $dsns{$type} = \%conninfo;
+}
 
 my %ado_extra_types = (
     'tinyint'     => { data_type => 'tinyint', original => { data_type => 'byte' } },

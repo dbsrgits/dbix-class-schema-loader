@@ -2,31 +2,37 @@ use strict;
 use warnings;
 use Test::More;
 use Scope::Guard ();
-use DBIx::Class::Optional::Dependencies;
+use DBIx::Class::Schema::Loader::Optional::Dependencies;
 use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use lib qw(t/lib);
 use dbixcsl_common_tests;
 
-my %dsns;
-for (qw(FIREBIRD FIREBIRD_ODBC FIREBIRD_INTERBASE)) {
-    next unless $ENV{"DBICTEST_${_}_DSN"};
+my %env2optdep = map { $_ => lc "test_rdbms_$_" } qw(FIREBIRD FIREBIRD_INTERBASE FIREBIRD_ODBC);
 
-    my $dep_group = lc "rdbms_$_";
-    if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
-        diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
-            . " to test with $_";
+plan skip_all => 'requirements not satisfied:  ' . (join '  OR  ', map
+    { "[ @{[ DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for( $_ ) ]} ]" }
+    values %env2optdep
+) unless scalar grep
+    { DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for( $_ ) }
+    values %env2optdep
+;
+
+my %dsns;
+for my $type (keys %env2optdep) {
+    my %conninfo;
+    @conninfo{qw(dsn user password)} = map { $ENV{"DBICTEST_${type}_$_"} } qw(DSN USER PASS);
+    next unless $conninfo{dsn};
+
+    my $dep_group = $env2optdep{$type};
+    if (!DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for($dep_group)) {
+        diag "Testing with DBICTEST_${type}_DSN needs " . DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for($dep_group);
         next;
     }
 
-    $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
-    $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
-    $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
-    $dsns{$_}{connect_info_opts} = { on_connect_call => 'use_softcommit' }
-        if /\AFIREBIRD(?:_INTERBASE)?\z/;
+    $dsns{$type} = \%conninfo;
+    $dsns{$type}{connect_info_opts} = { on_connect_call => 'use_softcommit' }
+        if $type =~ /\AFIREBIRD(?:_INTERBASE)?\z/;
 };
-
-plan skip_all => 'You need to set the DBICTEST_FIREBIRD_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_ODBC_DSN, _USER and _PASS and/or the DBICTEST_FIREBIRD_INTERBASE_DSN, _USER and _PASS environment variables'
-    unless %dsns;
 
 my $schema;
 
