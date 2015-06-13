@@ -8,8 +8,8 @@ use make_dbictest_db;
 make_schema_at(
     'DBICTest::Schema::_test_schema_base',
     {
-	naming => 'current',
-	schema_base_class => 'TestSchemaBaseClass',
+        naming => 'current',
+        schema_base_class => 'TestSchemaBaseClass',
         schema_components => ['TestSchemaComponent'],
     },
     [ $make_dbictest_db::dsn ],

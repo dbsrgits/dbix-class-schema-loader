@@ -72,10 +72,10 @@ run_test_sequence(
 
 sub run_test_sequence {
     my %p = @_;
-    die "specify a $_ test param" for grep !$p{$_}, 
+    die "specify a $_ test param" for grep !$p{$_},
         qw( testname schema_opts schema_class foo_class );
 
-    my $schema; 
+    my $schema;
     lives_ok { $schema = make_schema_with(%p) } "($p{testname}) get schema";
 
     SKIP: {
@@ -86,38 +86,38 @@ sub run_test_sequence {
         lives_ok {
             $foo_rs = $schema->resultset('Foo')->search();
         } "($p{testname}) get a ResultSet for Foo";
-    
+
         # get a foo
         my $foo;
         lives_ok {
             $foo = $foo_rs->first();
         } "($p{testname}) get the first foo";
-    
+
         ok(defined $foo, "($p{testname}) \$foo is defined");
-    
+
         SKIP: {
             skip 'foo is not defined', 3 unless defined $foo;
-    
+
             isa_ok $foo, $p{foo_class};
-    
+
             # call the file-defined method
             my $biz;
             lives_ok {
                 $biz = $foo->biz();
             } "($p{testname}) call the file-defined Foo->biz method";
-    
+
             SKIP: {
                 skip 'no point in checking value if method was not found', 1 unless defined $biz;
-        
+
                 ok(
-                    $biz eq 'foo bar biz baz boz noz schnozz', 
+                    $biz eq 'foo bar biz baz boz noz schnozz',
                     "($p{testname}) biz() method returns correct string"
                 );
             }
         }
     }
 }
-    
+
 sub make_schema_with {
     my %p = @_;
     return DBIx::Class::Schema::Loader::make_schema_at(

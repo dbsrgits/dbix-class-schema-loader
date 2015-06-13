@@ -36,7 +36,7 @@ sub _dbh_type_info_type_name {
     my $type_info = $dbh->type_info($type_num);
 
     return undef if not $type_info;
-    
+
     my $type_name = $type_info->{TYPE_NAME};
 
     # fix up truncated type names

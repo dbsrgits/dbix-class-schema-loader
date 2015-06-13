@@ -33,7 +33,7 @@ sub contains;
         'dynamic schema in 0.04006 mode warning';
     contains $warning, 'DBIx::Class::Schema::Loader::Manual::UpgradingFromV4',
         'warning refers to upgrading doc';
-    
+
     run_v4_tests($res);
 }
 

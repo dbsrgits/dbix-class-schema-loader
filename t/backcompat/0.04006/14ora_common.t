@@ -18,7 +18,7 @@ dbixcsl_common_tests->new(
         my ($table, $col) = @_;
         return (
             qq{ CREATE SEQUENCE ${table}_${col}_seq START WITH 1 INCREMENT BY 1},
-            qq{ 
+            qq{
                 CREATE OR REPLACE TRIGGER ${table}_${col}_trigger
                 BEFORE INSERT ON ${table}
                 FOR EACH ROW

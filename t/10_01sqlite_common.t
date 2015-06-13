@@ -11,7 +11,7 @@ my $class = $@ ? 'SQLite2' : 'SQLite';
 my $tester = dbixcsl_common_tests->new(
     vendor          => 'SQLite',
     auto_inc_pk     => 'INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT',
-    dsn             => "dbi:$class:dbname=$tdir/sqlite_test",
+    dsn             => "dbi:$class:dbname=$tdir/sqlite_test.db",
     user            => '',
     password        => '',
     connect_info_opts => {
@@ -212,5 +212,5 @@ my $tester = dbixcsl_common_tests->new(
 $tester->run_tests();
 
 END {
-    unlink "$tdir/sqlite_test" unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
+    unlink "$tdir/sqlite_test.db" unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 }

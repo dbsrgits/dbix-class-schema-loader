@@ -25,7 +25,7 @@ See L<DBIx::Class::Schema::Loader> and L<DBIx::Class::Schema::Loader::Base>.
 =head1 COLUMN NAME CASE ISSUES
 
 By default column names from unquoted DDL will be generated in lowercase, for
-consistency with other backends. 
+consistency with other backends.
 
 Set the L<preserve_case|DBIx::Class::Schema::Loader::Base/preserve_case> option
 to true if you would like to have column names in the internal case, which is

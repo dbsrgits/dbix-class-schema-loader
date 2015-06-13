@@ -31,8 +31,8 @@ my $dump_path = "$tdir/dump";
 rmtree($dump_path, 1, 1);
 
 lives_ok {
-  warnings_exist { DBICTest::Schema::1->connect($make_dbictest_db::dsn) }
-    [ qr|^Dumping manual schema|, qr|^Schema dump completed| ];
+    warnings_exist { DBICTest::Schema::1->connect($make_dbictest_db::dsn) }
+        [ qr|^Dumping manual schema|, qr|^Schema dump completed| ];
 } 'no death with dump_directory set' or diag "Dump failed: $@";
 
 is_deeply(
@@ -44,24 +44,24 @@ is_deeply(
 DBICTest::Schema::1->_loader_invoked(undef);
 
 SKIP: {
-  skip "ActiveState perl produces additional warnings", 1
-    if ($^O eq 'MSWin32');
+    skip "ActiveState perl produces additional warnings", 1
+        if ($^O eq 'MSWin32');
 
-  warnings_exist { DBICTest::Schema::1->connect($make_dbictest_db::dsn) }
-    [ qr|^Dumping manual schema|, qr|^Schema dump completed| ];
+    warnings_exist { DBICTest::Schema::1->connect($make_dbictest_db::dsn) }
+        [ qr|^Dumping manual schema|, qr|^Schema dump completed| ];
 
-  is_deeply(
-      [ sort @{ DBICTest::Schema::1->loader->generated_classes } ],
-      [ ],
-      'no classes generated on second dump'
-  );
+    is_deeply(
+        [ sort @{ DBICTest::Schema::1->loader->generated_classes } ],
+        [ ],
+        'no classes generated on second dump'
+    );
 
-  rmtree($dump_path, 1, 1);
+    rmtree($dump_path, 1, 1);
 }
 
 lives_ok {
-  warnings_exist { DBICTest::Schema::2->connect($make_dbictest_db::dsn) }
-    [ qr|^Dumping manual schema|, qr|^Schema dump completed| ];
+    warnings_exist { DBICTest::Schema::2->connect($make_dbictest_db::dsn) }
+        [ qr|^Dumping manual schema|, qr|^Schema dump completed| ];
 } 'no death with dump_directory set (overwrite1)' or diag "Dump failed: $@";
 
 is_deeply(
@@ -73,14 +73,14 @@ is_deeply(
 DBICTest::Schema::2->_loader_invoked(undef);
 
 lives_ok {
-  warnings_exist { DBICTest::Schema::2->connect($make_dbictest_db::dsn) }
-  [
-    qr/^Dumping manual schema/,
-    qr|^Deleting .+Schema/2.+ due to 'really_erase_my_files'|,
-    qr|^Deleting .+Schema/2/Result/Foo.+ due to 'really_erase_my_files'|,
-    qr|^Deleting .+Schema/2/Result/Bar.+ due to 'really_erase_my_files'|,
-    qr/^Schema dump completed/
-  ];
+    warnings_exist { DBICTest::Schema::2->connect($make_dbictest_db::dsn) }
+        [
+            qr/^Dumping manual schema/,
+            qr|^Deleting .+Schema/2.+ due to 'really_erase_my_files'|,
+            qr|^Deleting .+Schema/2/Result/Foo.+ due to 'really_erase_my_files'|,
+            qr|^Deleting .+Schema/2/Result/Bar.+ due to 'really_erase_my_files'|,
+            qr/^Schema dump completed/
+        ];
 } 'no death with dump_directory set (overwrite2)' or diag "Dump failed: $@";
 
 is_deeply(

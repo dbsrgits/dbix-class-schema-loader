@@ -46,9 +46,9 @@
     - server link support for Oracle and MSSQL
 
 - Relationships
-   - While scanning for many-to-many, scan for implied rels as well (if
-     foo->belongs_to('bar') and baz->belongs_to('bar'), does that impliy
-     foo->might_have('baz') and the reverse?)
+  - While scanning for many-to-many, scan for implied rels as well (if
+    foo->belongs_to('bar') and baz->belongs_to('bar'), does that impliy
+    foo->might_have('baz') and the reverse?)
 
 - Backends
   - SQLite

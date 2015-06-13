@@ -6,21 +6,21 @@ use DBIx::Class::Schema::Loader;
 
 # use this if you keep a copy of DBD::Sybase linked to FreeTDS somewhere else
 BEGIN {
-  if (my $lib_dirs = $ENV{DBICTEST_MSSQL_PERL5LIB}) {
-    unshift @INC, $_ for split /:/, $lib_dirs;
-  }
+    if (my $lib_dirs = $ENV{DBICTEST_MSSQL_PERL5LIB}) {
+        unshift @INC, $_ for split /:/, $lib_dirs;
+    }
 }
 
 my ($dsn, $user, $pass);
 
 for (qw/MSSQL_ODBC MSSQL_ADO MSSQL/) {
-  next unless $ENV{"DBICTEST_${_}_DSN"};
+    next unless $ENV{"DBICTEST_${_}_DSN"};
 
-  $dsn  = $ENV{"DBICTEST_${_}_DSN"};
-  $user = $ENV{"DBICTEST_${_}_USER"};
-  $pass = $ENV{"DBICTEST_${_}_PASS"};
+    $dsn  = $ENV{"DBICTEST_${_}_DSN"};
+    $user = $ENV{"DBICTEST_${_}_USER"};
+    $pass = $ENV{"DBICTEST_${_}_PASS"};
 
-  last;
+    last;
 }
 
 plan skip_all => 'perl 5.8 required for this test'

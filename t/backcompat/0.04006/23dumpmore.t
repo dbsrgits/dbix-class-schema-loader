@@ -46,7 +46,7 @@ sub do_dump_test {
     my $file_regexes = $tdata{regexes};
     my $file_neg_regexes = $tdata{neg_regexes} || {};
     my $schema_regexes = delete $file_regexes->{schema};
-    
+
     my $schema_path = $DUMP_PATH . '/' . $schema_class;
     $schema_path =~ s{::}{/}g;
     dump_file_like($schema_path . '.pm', @$schema_regexes);

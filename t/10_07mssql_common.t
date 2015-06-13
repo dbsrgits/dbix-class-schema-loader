@@ -12,9 +12,9 @@ use Scope::Guard ();
 
 # use this if you keep a copy of DBD::Sybase linked to FreeTDS somewhere else
 BEGIN {
-  if (my $lib_dirs = $ENV{DBICTEST_MSSQL_PERL5LIB}) {
-    unshift @INC, $_ for split /:/, $lib_dirs;
-  }
+    if (my $lib_dirs = $ENV{DBICTEST_MSSQL_PERL5LIB}) {
+        unshift @INC, $_ for split /:/, $lib_dirs;
+    }
 }
 
 use lib qw(t/lib);
@@ -30,68 +30,68 @@ my $schema;
 my (%dsns, $common_version);
 
 for (qw/MSSQL MSSQL_ODBC MSSQL_ADO/) {
-  next unless $ENV{"DBICTEST_${_}_DSN"};
+    next unless $ENV{"DBICTEST_${_}_DSN"};
 
-  (my $dep_group = lc "rdbms_$_") =~ s/mssql$/mssql_sybase/;
-  if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
-      diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
-          . " to test with $_";
-      next;
-  }
+    (my $dep_group = lc "rdbms_$_") =~ s/mssql$/mssql_sybase/;
+    if (!DBIx::Class::Optional::Dependencies->req_ok_for($dep_group)) {
+        diag 'You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for($dep_group)
+            . " to test with $_";
+        next;
+    }
 
-  $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
-  $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
-  $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
+    $dsns{$_}{dsn} = $ENV{"DBICTEST_${_}_DSN"};
+    $dsns{$_}{user} = $ENV{"DBICTEST_${_}_USER"};
+    $dsns{$_}{password} = $ENV{"DBICTEST_${_}_PASS"};
 
-  require DBI;
-  my $dbh = DBI->connect (@{$dsns{$_}}{qw/dsn user password/}, { RaiseError => 1, PrintError => 0} );
-  my $srv_ver = eval {
-    $dbh->get_info(18)
-      ||
-    $dbh->selectrow_hashref('master.dbo.xp_msver ProductVersion')->{Character_Value}
-  } || 0;
+    require DBI;
+    my $dbh = DBI->connect (@{$dsns{$_}}{qw/dsn user password/}, { RaiseError => 1, PrintError => 0} );
+    my $srv_ver = eval {
+        $dbh->get_info(18)
+            ||
+        $dbh->selectrow_hashref('master.dbo.xp_msver ProductVersion')->{Character_Value}
+    } || 0;
 
-  my ($maj_srv_ver) = $srv_ver =~ /^(\d+)/;
+    my ($maj_srv_ver) = $srv_ver =~ /^(\d+)/;
 
-  if (! defined $common_version or $common_version > $maj_srv_ver ) {
-    $common_version = $maj_srv_ver;
-  }
+    if (! defined $common_version or $common_version > $maj_srv_ver ) {
+        $common_version = $maj_srv_ver;
+    }
 }
 
 plan skip_all => 'You need to set the DBICTEST_MSSQL_DSN, _USER and _PASS and/or the DBICTEST_MSSQL_ODBC_DSN, _USER and _PASS environment variables'
-  unless %dsns;
+    unless %dsns;
 
 my $mssql_2008_new_data_types = {
-  date     => { data_type => 'date' },
-  time     => { data_type => 'time' },
-  'time(0)'=> { data_type => 'time', size => 0 },
-  'time(1)'=> { data_type => 'time', size => 1 },
-  'time(2)'=> { data_type => 'time', size => 2 },
-  'time(3)'=> { data_type => 'time', size => 3 },
-  'time(4)'=> { data_type => 'time', size => 4 },
-  'time(5)'=> { data_type => 'time', size => 5 },
-  'time(6)'=> { data_type => 'time', size => 6 },
-  'time(7)'=> { data_type => 'time' },
-  datetimeoffset => { data_type => 'datetimeoffset' },
-  'datetimeoffset(0)' => { data_type => 'datetimeoffset', size => 0 },
-  'datetimeoffset(1)' => { data_type => 'datetimeoffset', size => 1 },
-  'datetimeoffset(2)' => { data_type => 'datetimeoffset', size => 2 },
-  'datetimeoffset(3)' => { data_type => 'datetimeoffset', size => 3 },
-  'datetimeoffset(4)' => { data_type => 'datetimeoffset', size => 4 },
-  'datetimeoffset(5)' => { data_type => 'datetimeoffset', size => 5 },
-  'datetimeoffset(6)' => { data_type => 'datetimeoffset', size => 6 },
-  'datetimeoffset(7)' => { data_type => 'datetimeoffset' },
-  datetime2      => { data_type => 'datetime2' },
-  'datetime2(0)' => { data_type => 'datetime2', size => 0 },
-  'datetime2(1)' => { data_type => 'datetime2', size => 1 },
-  'datetime2(2)' => { data_type => 'datetime2', size => 2 },
-  'datetime2(3)' => { data_type => 'datetime2', size => 3 },
-  'datetime2(4)' => { data_type => 'datetime2', size => 4 },
-  'datetime2(5)' => { data_type => 'datetime2', size => 5 },
-  'datetime2(6)' => { data_type => 'datetime2', size => 6 },
-  'datetime2(7)' => { data_type => 'datetime2' },
+    date     => { data_type => 'date' },
+    time     => { data_type => 'time' },
+    'time(0)'=> { data_type => 'time', size => 0 },
+    'time(1)'=> { data_type => 'time', size => 1 },
+    'time(2)'=> { data_type => 'time', size => 2 },
+    'time(3)'=> { data_type => 'time', size => 3 },
+    'time(4)'=> { data_type => 'time', size => 4 },
+    'time(5)'=> { data_type => 'time', size => 5 },
+    'time(6)'=> { data_type => 'time', size => 6 },
+    'time(7)'=> { data_type => 'time' },
+    datetimeoffset => { data_type => 'datetimeoffset' },
+    'datetimeoffset(0)' => { data_type => 'datetimeoffset', size => 0 },
+    'datetimeoffset(1)' => { data_type => 'datetimeoffset', size => 1 },
+    'datetimeoffset(2)' => { data_type => 'datetimeoffset', size => 2 },
+    'datetimeoffset(3)' => { data_type => 'datetimeoffset', size => 3 },
+    'datetimeoffset(4)' => { data_type => 'datetimeoffset', size => 4 },
+    'datetimeoffset(5)' => { data_type => 'datetimeoffset', size => 5 },
+    'datetimeoffset(6)' => { data_type => 'datetimeoffset', size => 6 },
+    'datetimeoffset(7)' => { data_type => 'datetimeoffset' },
+    datetime2      => { data_type => 'datetime2' },
+    'datetime2(0)' => { data_type => 'datetime2', size => 0 },
+    'datetime2(1)' => { data_type => 'datetime2', size => 1 },
+    'datetime2(2)' => { data_type => 'datetime2', size => 2 },
+    'datetime2(3)' => { data_type => 'datetime2', size => 3 },
+    'datetime2(4)' => { data_type => 'datetime2', size => 4 },
+    'datetime2(5)' => { data_type => 'datetime2', size => 5 },
+    'datetime2(6)' => { data_type => 'datetime2', size => 6 },
+    'datetime2(7)' => { data_type => 'datetime2' },
 
-  hierarchyid      => { data_type => 'hierarchyid' },
+    hierarchyid      => { data_type => 'hierarchyid' },
 };
 
 my $tester = dbixcsl_common_tests->new(
@@ -602,7 +602,7 @@ EOF
                         local $SIG{__WARN__} = sub {
                             push @warns, $_[0] unless $_[0] =~ /\bcollides\b/;
                         };
-     
+
                         make_schema_at(
                             'MSSQLMultiDatabase',
                             {

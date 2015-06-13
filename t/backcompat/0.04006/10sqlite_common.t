@@ -15,11 +15,11 @@ my $class = $@ ? 'SQLite2' : 'SQLite';
 dbixcsl_common_tests->new(
         vendor          => 'SQLite',
         auto_inc_pk     => 'INTEGER NOT NULL PRIMARY KEY',
-        dsn             => "dbi:$class:dbname=$tdir/sqlite_test",
+        dsn             => "dbi:$class:dbname=$tdir/sqlite_test.db",
         user            => '',
         password        => '',
 )->run_tests;
 
 END {
-    unlink "$tdir/sqlite_test" if $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
+    unlink "$tdir/sqlite_test.db" if $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 }

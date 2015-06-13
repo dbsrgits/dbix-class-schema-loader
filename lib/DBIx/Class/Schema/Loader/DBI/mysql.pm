@@ -105,7 +105,7 @@ sub _table_fk_info {
             local $self->{db_schema} = [ $f_schema ] if $f_schema;
 
             first {
-                   lc($_->name) eq lc($f_table)
+                lc($_->name) eq lc($f_table)
                 && ((not $f_schema) || lc($_->schema) eq lc($f_schema))
             } $self->_tables_list;
         };

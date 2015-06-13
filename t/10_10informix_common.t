@@ -66,9 +66,9 @@ dbixcsl_common_tests->new(
         numeric            => { data_type => 'numeric' },
         decimal            => { data_type => 'numeric' },
         dec                => { data_type => 'numeric' },
-	'numeric(6,3)'     => { data_type => 'numeric', size => [6,3] },
-	'decimal(6,3)'     => { data_type => 'numeric', size => [6,3] },
-	'dec(6,3)'         => { data_type => 'numeric', size => [6,3] },
+        'numeric(6,3)'     => { data_type => 'numeric', size => [6,3] },
+        'decimal(6,3)'     => { data_type => 'numeric', size => [6,3] },
+        'dec(6,3)'         => { data_type => 'numeric', size => [6,3] },
 
         # Boolean Type
         # XXX this should map to 'boolean'
@@ -209,7 +209,7 @@ EOF
                             push @warns, $_[0] unless $_[0] =~ /\bcollides\b/
                                 || $_[0] =~ /unreferencable/;
                         };
-     
+
                         make_schema_at(
                             'InformixMultiDatabase',
                             {
@@ -364,7 +364,7 @@ END {
         }
 
         if (my $dbh1 = try { $schema->storage->dbh }) {
-            
+
             try {
                 $dbh1->do('DROP TABLE informix_loader_test5');
                 $dbh1->do('DROP TABLE informix_loader_test4');

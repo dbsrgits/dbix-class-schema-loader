@@ -6,49 +6,49 @@ our $VERSION = '0.07043';
 
 # Empty. POD only.
 
-=head1 NAME                                                                     
-                                                                                
+=head1 NAME
+
 DBIx::Class::Schema::Loader::DBI::Writing - Loader subclass writing guide for DBI
 
 =head1 SYNOPSIS
 
-  package DBIx::Class::Schema::Loader::DBI::Foo;
+    package DBIx::Class::Schema::Loader::DBI::Foo;
 
-  # THIS IS JUST A TEMPLATE TO GET YOU STARTED.
+    # THIS IS JUST A TEMPLATE TO GET YOU STARTED.
 
-  use strict;
-  use warnings;
-  use base 'DBIx::Class::Schema::Loader::DBI';
-  use mro 'c3';
+    use strict;
+    use warnings;
+    use base 'DBIx::Class::Schema::Loader::DBI';
+    use mro 'c3';
 
-  sub _table_uniq_info {
-      my ($self, $table) = @_;
+    sub _table_uniq_info {
+        my ($self, $table) = @_;
 
-      # ... get UNIQUE info for $table somehow
-      # and return a data structure that looks like this:
+        # ... get UNIQUE info for $table somehow
+        # and return a data structure that looks like this:
 
-      return [
-         [ 'keyname' => [ 'colname' ] ],
-         [ 'keyname2' => [ 'col1name', 'col2name' ] ],
-         [ 'keyname3' => [ 'colname' ] ],
-      ];
+        return [
+             [ 'keyname' => [ 'colname' ] ],
+             [ 'keyname2' => [ 'col1name', 'col2name' ] ],
+             [ 'keyname3' => [ 'colname' ] ],
+        ];
 
-      # Where the "keyname"'s are just unique identifiers, such as the
-      # name of the unique constraint, or the names of the columns involved
-      # concatenated if you wish.
-  }
+        # Where the "keyname"'s are just unique identifiers, such as the
+        # name of the unique constraint, or the names of the columns involved
+        # concatenated if you wish.
+    }
 
-  sub _table_comment {
-      my ( $self, $table ) = @_;
-      return 'Comment';
-  }
+    sub _table_comment {
+        my ( $self, $table ) = @_;
+        return 'Comment';
+    }
 
-  sub _column_comment {
-      my ( $self, $table, $column_number ) = @_;
-      return 'Col. comment';
-  }
+    sub _column_comment {
+        my ( $self, $table, $column_number ) = @_;
+        return 'Col. comment';
+    }
 
-  1;
+    1;
 
 =head1 DETAILS
 

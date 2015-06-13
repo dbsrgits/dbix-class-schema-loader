@@ -35,7 +35,7 @@ sub _rebless {
         if ($self->load_optional_class($subclass) && !$self->isa($subclass)) {
             bless $self, $subclass;
             $self->_rebless;
-      }
+        }
     }
 }
 
@@ -215,7 +215,7 @@ sub _table_pk_info {
     local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
 
     my $sth = $self->dbh->prepare(<<"EOF");
-sp_pkeys @{[ $self->dbh->quote($table->name) ]}, 
+sp_pkeys @{[ $self->dbh->quote($table->name) ]},
     @{[ $self->dbh->quote($table->schema) ]},
     @{[ $self->dbh->quote($db) ]}
 EOF

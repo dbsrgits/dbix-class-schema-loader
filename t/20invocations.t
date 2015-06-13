@@ -9,24 +9,24 @@ use make_dbictest_db;
 
 # Takes a $schema as input, runs 4 basic tests
 sub test_schema {
-  my ($testname, $schema) = @_;
+    my ($testname, $schema) = @_;
 
-  warnings_are ( sub {
-    $schema = $schema->clone if !ref $schema;
-    isa_ok($schema, 'DBIx::Class::Schema', $testname);
+    warnings_are {
+        $schema = $schema->clone if !ref $schema;
+        isa_ok($schema, 'DBIx::Class::Schema', $testname);
 
-    my $rel_foo_rs = $schema->resultset('Bar')->search({ barid => 3})->search_related('fooref');
-    isa_ok($rel_foo_rs, 'DBIx::Class::ResultSet', $testname);
+        my $rel_foo_rs = $schema->resultset('Bar')->search({ barid => 3})->search_related('fooref');
+        isa_ok($rel_foo_rs, 'DBIx::Class::ResultSet', $testname);
 
-    my $rel_foo = $rel_foo_rs->next;
-    isa_ok($rel_foo, "DBICTest::Schema::_${testname}::Foo", $testname);
+        my $rel_foo = $rel_foo_rs->next;
+        isa_ok($rel_foo, "DBICTest::Schema::_${testname}::Foo", $testname);
 
-    is($rel_foo->footext, 'Foo record associated with the Bar with barid 3', "$testname correct object");
+        is($rel_foo->footext, 'Foo record associated with the Bar with barid 3', "$testname correct object");
 
-    my $foo_rs = $schema->resultset('Foo');
-    my $foo_new = $foo_rs->create({footext => "${testname}_foo"});
-    is ($foo_rs->search({footext => "${testname}_foo"})->count, 1, "$testname object created") || die;
-  }, [], "No warnings during $testname invocations");
+        my $foo_rs = $schema->resultset('Foo');
+        my $foo_new = $foo_rs->create({footext => "${testname}_foo"});
+        is ($foo_rs->search({footext => "${testname}_foo"})->count, 1, "$testname object created") || die;
+    } [], "No warnings during $testname invocations";
 }
 
 my @invocations = (
@@ -175,10 +175,10 @@ while(@invocations) {
     my $cref = shift @invocations;
 
     my $schema = do {
-      local $SIG{__WARN__} = sigwarn_silencer(
-        qr/Deleting existing file .+ due to 'really_erase_my_files' setting/
-      );
-      $cref->();
+        local $SIG{__WARN__} = sigwarn_silencer(
+            qr/Deleting existing file .+ due to 'really_erase_my_files' setting/
+        );
+        $cref->();
     };
 
     test_schema($style, $schema);

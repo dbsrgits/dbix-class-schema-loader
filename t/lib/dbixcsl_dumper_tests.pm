@@ -65,8 +65,8 @@ sub _dump_directly {
     no strict 'refs';
     @{$schema_class . '::ISA'} = ('DBIx::Class::Schema::Loader');
     $schema_class->loader_options(
-      quiet => 1,
-      %{$tdata{options}},
+        quiet => 1,
+        %{$tdata{options}},
     );
 
     my @warns;
@@ -177,7 +177,7 @@ sub _test_dumps {
     my $check_warns = $tdata{warnings};
 
     is(@$warns, @$check_warns, "$schema_class warning count")
-      or diag @$warns;
+        or diag @$warns;
 
     for(my $i = 0; $i <= $#$check_warns; $i++) {
         like(($warns->[$i] || ''), $check_warns->[$i], "$schema_class warning $i");

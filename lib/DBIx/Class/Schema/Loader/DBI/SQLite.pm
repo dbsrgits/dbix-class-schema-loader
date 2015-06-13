@@ -63,7 +63,7 @@ sub _columns_info_for {
     local $self->dbh->{FetchHashKeyName} = 'NAME_lc';
 
     my $sth = $self->dbh->prepare(
-      "pragma table_info(" . $self->dbh->quote_identifier($table) . ")"
+        "pragma table_info(" . $self->dbh->quote_identifier($table) . ")"
     );
     $sth->execute;
     my $cols = $sth->fetchall_hashref('name');
@@ -81,12 +81,12 @@ sub _columns_info_for {
     # set it is_auto_increment. This isn't 100%, but it's better than the
     # alternatives.
     while (my ($col_name, $info) = each %$result) {
-      if ($cols{$col_name}{pk}) {
-        $num_pk++;
-        if (lc($cols{$col_name}{type}) eq 'integer') {
-          $pk_col = $col_name;
+        if ($cols{$col_name}{pk}) {
+            $num_pk++;
+            if (lc($cols{$col_name}{type}) eq 'integer') {
+                $pk_col = $col_name;
+            }
         }
-      }
     }
 
     while (my ($col, $info) = each %$result) {
@@ -94,7 +94,7 @@ sub _columns_info_for {
             ${ $info->{default_value} } = 'current_timestamp';
         }
         if ($num_pk == 1 and defined $pk_col and $pk_col eq $col) {
-          $info->{is_auto_increment} = 1;
+            $info->{is_auto_increment} = 1;
         }
     }
 
@@ -153,9 +153,9 @@ EOF
                 foreign \s+ key \s* \( \s* $local_cols \s* \) \s* references \s* (?:\S+|".+?(?<!")") \s*
                 (?:\( \s* $remote_cols \s* \) \s*)?
                 (?:(?:
-                  on \s+ (?:delete|update) \s+ (?:set \s+ null|set \s+ default|cascade|restrict|no \s+ action)
+                    on \s+ (?:delete|update) \s+ (?:set \s+ null|set \s+ default|cascade|restrict|no \s+ action)
                 |
-                  match \s* (?:\S+|".+?(?<!")")
+                    match \s* (?:\S+|".+?(?<!")")
                 ) \s*)*
                 ((?:not)? \s* deferrable)?
         /sxi;

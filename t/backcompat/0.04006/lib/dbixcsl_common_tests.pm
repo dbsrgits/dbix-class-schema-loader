@@ -22,7 +22,7 @@ sub new {
 
     # Only MySQL uses this
     $self->{innodb} ||= '';
-    
+
     $self->{verbose} = $ENV{TEST_VERBOSE} || 0;
 
     return bless $self => $class;
@@ -73,7 +73,7 @@ sub run_tests {
         eval qq{
             package $schema_class;
             use base qw/DBIx::Class::Schema::Loader/;
-    
+
             __PACKAGE__->loader_options(\%loader_opts);
             __PACKAGE__->connection(\@connect_info);
         };
@@ -384,9 +384,9 @@ sub run_tests {
         my $rs_rel17 = $obj16->search_related('loader_test17_loader16_ones');
         isa_ok($rs_rel17->first, $class17);
         is($rs_rel17->first->id, 3);
-        
+
         # XXX test m:m 18 <- 20 -> 19
-        
+
         # XXX test double-fk m:m 21 <- 22 -> 21
 
         # test double multi-col fk 26 -> 25
@@ -419,7 +419,7 @@ sub run_tests {
             my $class11   = $classes->{loader_test11};
             my $rsobj11   = $conn->resultset($moniker11);
 
-            isa_ok( $rsobj10, "DBIx::Class::ResultSet" ); 
+            isa_ok( $rsobj10, "DBIx::Class::ResultSet" );
             isa_ok( $rsobj11, "DBIx::Class::ResultSet" );
 
             my $obj10 = $rsobj10->create({ subject => 'xyzzy' });
@@ -445,7 +445,7 @@ sub run_tests {
             SKIP: {
                 skip 'Previous eval block failed', 3
                     unless ($@ eq '');
-        
+
                 my $results = $rsobj10->search({ subject => 'xyzzy' });
                 is( $results->count(), 1,
                     'One $rsobj10 returned from search' );
@@ -469,7 +469,7 @@ sub run_tests {
             my $class13   = $classes->{loader_test13};
             my $rsobj13   = $conn->resultset($moniker13);
 
-            isa_ok( $rsobj12, "DBIx::Class::ResultSet" ); 
+            isa_ok( $rsobj12, "DBIx::Class::ResultSet" );
             isa_ok( $rsobj13, "DBIx::Class::ResultSet" );
 
             my $obj13 = $rsobj13->find(1);
@@ -492,7 +492,7 @@ sub run_tests {
             my $class15   = $classes->{loader_test15};
             my $rsobj15   = $conn->resultset($moniker15);
 
-            isa_ok( $rsobj14, "DBIx::Class::ResultSet" ); 
+            isa_ok( $rsobj14, "DBIx::Class::ResultSet" );
             isa_ok( $rsobj15, "DBIx::Class::ResultSet" );
 
             my $obj15 = $rsobj15->find(1);
@@ -576,10 +576,10 @@ sub create {
         $make_auto_inc->(qw/loader_test1 id/),
 
         q{ INSERT INTO loader_test1 (dat) VALUES('foo') },
-        q{ INSERT INTO loader_test1 (dat) VALUES('bar') }, 
-        q{ INSERT INTO loader_test1 (dat) VALUES('baz') }, 
+        q{ INSERT INTO loader_test1 (dat) VALUES('bar') },
+        q{ INSERT INTO loader_test1 (dat) VALUES('baz') },
 
-        qq{ 
+        qq{
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
                 dat VARCHAR(32) NOT NULL,
@@ -589,10 +589,10 @@ sub create {
         },
         $make_auto_inc->(qw/loader_test2 id/),
 
-        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('aaa', 'zzz') }, 
-        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('bbb', 'yyy') }, 
-        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ccc', 'xxx') }, 
-        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ddd', 'www') }, 
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('aaa', 'zzz') },
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('bbb', 'yyy') },
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ccc', 'xxx') },
+        q{ INSERT INTO loader_test2 (dat, dat2) VALUES('ddd', 'www') },
 
         qq{
             CREATE TABLE LOADER_TEST23 (
@@ -617,10 +617,10 @@ sub create {
             ) $self->{innodb}
         },
 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(1,'aaa') }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(2,'bbb') }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(3,'ccc') }, 
-        q{ INSERT INTO loader_test3 (id,dat) VALUES(4,'ddd') }, 
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(1,'aaa') },
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(2,'bbb') },
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(3,'ccc') },
+        q{ INSERT INTO loader_test3 (id,dat) VALUES(4,'ddd') },
 
         qq{
             CREATE TABLE loader_test4 (
@@ -632,7 +632,7 @@ sub create {
         },
 
         q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(123,1,'aaa') },
-        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(124,2,'bbb') }, 
+        q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(124,2,'bbb') },
         q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(125,3,'ccc') },
         q{ INSERT INTO loader_test4 (id,fkid,dat) VALUES(126,4,'ddd') },
 
@@ -779,7 +779,7 @@ sub create {
         q{ INSERT INTO loader_test22 (parent, child) VALUES (11,13)},
         q{ INSERT INTO loader_test22 (parent, child) VALUES (13,17)},
 
-	qq{
+        qq{
             CREATE TABLE loader_test25 (
                 id1 INTEGER NOT NULL,
                 id2 INTEGER NOT NULL,
@@ -862,7 +862,7 @@ sub create {
                 dat VARCHAR(8)
             ) $self->{innodb}
         },
- 
+
         q{ INSERT INTO loader_test14 (id,dat) VALUES (123,'aaa') },
 
         qq{
@@ -908,7 +908,7 @@ sub drop_tables {
         LOADER_TEST23
         LoAdEr_test24
     /;
-    
+
     my @tables_auto_inc = (
         [ qw/loader_test1 id/ ],
         [ qw/loader_test2 id/ ],
@@ -937,7 +937,7 @@ sub drop_tables {
         loader_test11
         loader_test10
     /;
-    
+
     my @tables_advanced_auto_inc = (
         [ qw/loader_test10 id10/ ],
         [ qw/loader_test11 id11/ ],

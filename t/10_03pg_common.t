@@ -40,8 +40,8 @@ dbixcsl_common_tests->new(
         # http://www.postgresql.org/docs/7.4/interactive/datatype.html
         #
         # Numeric Types
-	boolean     => { data_type => 'boolean' },
-	bool        => { data_type => 'boolean' },
+        boolean     => { data_type => 'boolean' },
+        bool        => { data_type => 'boolean' },
         'bool default false'
                     => { data_type => 'boolean', default_value => \'false' },
         'bool default true'
@@ -51,100 +51,101 @@ dbixcsl_common_tests->new(
         'bool default 1::bool'
                     => { data_type => 'boolean', default_value => \'true' },
 
-	bigint      => { data_type => 'bigint' },
-	int8        => { data_type => 'bigint' },
-	bigserial   => { data_type => 'bigint', is_auto_increment => 1 },
-	serial8     => { data_type => 'bigint', is_auto_increment => 1 },
-	integer     => { data_type => 'integer' },
-	int         => { data_type => 'integer' },
-	int4        => { data_type => 'integer' },
-	serial      => { data_type => 'integer', is_auto_increment => 1 },
-	serial4     => { data_type => 'integer', is_auto_increment => 1 },
-	smallint    => { data_type => 'smallint' },
-	int2        => { data_type => 'smallint' },
+        bigint      => { data_type => 'bigint' },
+        int8        => { data_type => 'bigint' },
+        bigserial   => { data_type => 'bigint', is_auto_increment => 1 },
+        serial8     => { data_type => 'bigint', is_auto_increment => 1 },
+        integer     => { data_type => 'integer' },
+        int         => { data_type => 'integer' },
+        int4        => { data_type => 'integer' },
+        serial      => { data_type => 'integer', is_auto_increment => 1 },
+        serial4     => { data_type => 'integer', is_auto_increment => 1 },
+        smallint    => { data_type => 'smallint' },
+        int2        => { data_type => 'smallint' },
 
-	money       => { data_type => 'money' },
+        money       => { data_type => 'money' },
 
-	'double precision' => { data_type => 'double precision' },
-	float8             => { data_type => 'double precision' },
-	real               => { data_type => 'real' },
-	float4             => { data_type => 'real' },
+        'double precision' => { data_type => 'double precision' },
+        float8             => { data_type => 'double precision' },
+        real               => { data_type => 'real' },
+        float4             => { data_type => 'real' },
         'float(24)'        => { data_type => 'real' },
         'float(25)'        => { data_type => 'double precision' },
         'float(53)'        => { data_type => 'double precision' },
         float              => { data_type => 'double precision' },
 
-        numeric        => { data_type => 'numeric' },
-        decimal        => { data_type => 'numeric' },
-	'numeric(6,3)' => { data_type => 'numeric', size => [6,3] },
-	'decimal(6,3)' => { data_type => 'numeric', size => [6,3] },
+        numeric            => { data_type => 'numeric' },
+        decimal            => { data_type => 'numeric' },
+        'numeric(6,3)'     => { data_type => 'numeric', size => [6,3] },
+        'decimal(6,3)'     => { data_type => 'numeric', size => [6,3] },
 
         # Bit String Types
-	'bit varying(2)' => { data_type => 'varbit', size => 2 },
-	'varbit(2)'      => { data_type => 'varbit', size => 2 },
-	'varbit'         => { data_type => 'varbit' },
-	bit              => { data_type => 'bit', size => 1 },
-	'bit(3)'         => { data_type => 'bit', size => 3 },
+        'bit varying(2)' => { data_type => 'varbit', size => 2 },
+        'varbit(2)'      => { data_type => 'varbit', size => 2 },
+        'varbit'         => { data_type => 'varbit' },
+        bit              => { data_type => 'bit', size => 1 },
+        'bit(3)'         => { data_type => 'bit', size => 3 },
 
         # Network Types
-	inet    => { data_type => 'inet' },
-	cidr    => { data_type => 'cidr' },
-	macaddr => { data_type => 'macaddr' },
+        inet    => { data_type => 'inet' },
+        cidr    => { data_type => 'cidr' },
+        macaddr => { data_type => 'macaddr' },
 
         # Geometric Types
-	point   => { data_type => 'point' },
-	line    => { data_type => 'line' },
-	lseg    => { data_type => 'lseg' },
-	box     => { data_type => 'box' },
-	path    => { data_type => 'path' },
-	polygon => { data_type => 'polygon' },
-	circle  => { data_type => 'circle' },
+        point   => { data_type => 'point' },
+        line    => { data_type => 'line' },
+        lseg    => { data_type => 'lseg' },
+        box     => { data_type => 'box' },
+        path    => { data_type => 'path' },
+        polygon => { data_type => 'polygon' },
+        circle  => { data_type => 'circle' },
 
         # Character Types
-	'character varying(2)'           => { data_type => 'varchar', size => 2 },
-	'varchar(2)'                     => { data_type => 'varchar', size => 2 },
-	'character(2)'                   => { data_type => 'char', size => 2 },
-	'char(2)'                        => { data_type => 'char', size => 2 },
+        'character varying(2)'           => { data_type => 'varchar', size => 2 },
+        'varchar(2)'                     => { data_type => 'varchar', size => 2 },
+        'character(2)'                   => { data_type => 'char', size => 2 },
+        'char(2)'                        => { data_type => 'char', size => 2 },
         # check that default null is correctly rewritten
         'char(3) default null'           => { data_type => 'char', size => 3,
                                               default_value => \'null' },
-	'character'                      => { data_type => 'char', size => 1 },
-	'char'                           => { data_type => 'char', size => 1 },
-	text                             => { data_type => 'text' },
+        'character'                      => { data_type => 'char', size => 1 },
+        'char'                           => { data_type => 'char', size => 1 },
+        text                             => { data_type => 'text' },
         # varchar with no size has unlimited size, we rewrite to 'text'
-	varchar                          => { data_type => 'text',
+        varchar                          => { data_type => 'text',
                                               original => { data_type => 'varchar' } },
         # check default null again (to make sure ref is safe)
         'varchar(3) default null'        => { data_type => 'varchar', size => 3,
                                               default_value => \'null' },
 
         # Datetime Types
-	date                             => { data_type => 'date' },
-	interval                         => { data_type => 'interval' },
-	'interval(2)'                    => { data_type => 'interval', size => 2 },
-	time                             => { data_type => 'time' },
-	'time(2)'                        => { data_type => 'time', size => 2 },
-	'time without time zone'         => { data_type => 'time' },
-	'time(2) without time zone'      => { data_type => 'time', size => 2 },
-	'time with time zone'            => { data_type => 'time with time zone' },
-	'time(2) with time zone'         => { data_type => 'time with time zone', size => 2 },
-	timestamp                        => { data_type => 'timestamp' },
-        'timestamp default now()'
-                                         => { data_type => 'timestamp', default_value => \'current_timestamp',
+        date                             => { data_type => 'date' },
+        interval                         => { data_type => 'interval' },
+        'interval(2)'                    => { data_type => 'interval', size => 2 },
+        time                             => { data_type => 'time' },
+        'time(2)'                        => { data_type => 'time', size => 2 },
+        'time without time zone'         => { data_type => 'time' },
+        'time(2) without time zone'      => { data_type => 'time', size => 2 },
+        'time with time zone'            => { data_type => 'time with time zone' },
+        'time(2) with time zone'         => { data_type => 'time with time zone', size => 2 },
+        timestamp                        => { data_type => 'timestamp' },
+        'timestamp default now()'        => { data_type => 'timestamp',
+                                              default_value => \'current_timestamp',
                                               original => { default_value => \'now()' } },
-	'timestamp(2)'                   => { data_type => 'timestamp', size => 2 },
-	'timestamp without time zone'    => { data_type => 'timestamp' },
-	'timestamp(2) without time zone' => { data_type => 'timestamp', size => 2 },
+        'timestamp(2)'                   => { data_type => 'timestamp', size => 2 },
+        'timestamp without time zone'    => { data_type => 'timestamp' },
+        'timestamp(2) without time zone' => { data_type => 'timestamp', size => 2 },
 
-	'timestamp with time zone'       => { data_type => 'timestamp with time zone' },
-	'timestamp(2) with time zone'    => { data_type => 'timestamp with time zone', size => 2 },
+        'timestamp with time zone'       => { data_type => 'timestamp with time zone' },
+        'timestamp(2) with time zone'    => { data_type => 'timestamp with time zone', size => 2 },
 
         # Blob Types
-	bytea => { data_type => 'bytea' },
+        bytea => { data_type => 'bytea' },
 
         # Enum Types
-        pg_loader_test_enum => { data_type => 'enum', extra => { custom_type_name => 'pg_loader_test_enum',
-                                                                 list => [ qw/foo bar baz/] } },
+        pg_loader_test_enum => { data_type => 'enum',
+                                 extra => { custom_type_name => 'pg_loader_test_enum',
+                                            list => [ qw/foo bar baz/] } },
     },
     pre_create => [
         q{
@@ -406,8 +407,10 @@ dbixcsl_common_tests->new(
 
                 delete $uniqs{primary};
 
-                is_deeply ((values %uniqs)[0], ['four_id'],
-                    'unique constraint is correct in schema name with dash');
+                is_deeply(
+                    (values %uniqs)[0], ['four_id'],
+                    'unique constraint is correct in schema name with dash'
+                );
 
                 lives_and {
                     ok $rsrc = $test_schema->source('PgLoaderTest6');
@@ -453,8 +456,10 @@ dbixcsl_common_tests->new(
 
                 delete $uniqs{primary};
 
-                is_deeply ((values %uniqs)[0], ['six_id'],
-                    'unique constraint is correct in schema name with dot');
+                is_deeply(
+                    (values %uniqs)[0], ['six_id'],
+                    'unique constraint is correct in schema name with dot'
+                );
 
                 lives_and {
                     ok $test_schema->source('PgLoaderTest6')

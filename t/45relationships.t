@@ -14,11 +14,11 @@ my $schema_counter = 0;
 my $regular = schema_with();
 is( ref($regular->source('Bar')->relationship_info('fooref')), 'HASH',
     'regularly-made schema has fooref rel',
-  );
+);
 my $skip_rel = schema_with( skip_relationships => 1 );
 is_deeply( $skip_rel->source('Bar')->relationship_info('fooref'), undef,
     'skip_relationships blocks generation of fooref rel',
-  );
+);
 
 # test hashref as rel_name_map
 my $hash_relationship = schema_with(
@@ -34,11 +34,11 @@ my $hash_relationship = schema_with(
 is( ref($hash_relationship->source('Foo')->relationship_info('got_bars')),
     'HASH',
     'single level hash in rel_name_map picked up correctly'
-  );
+);
 is( ref($hash_relationship->source('Bar')->relationship_info('got_fooref')),
     'HASH',
     'double level hash in rel_name_map picked up correctly'
-  );
+);
 
 # test coderef as rel_name_map
 my $code_relationship = schema_with(
@@ -49,56 +49,56 @@ my $code_relationship = schema_with(
             is_deeply(
                 $args,
                 {
-		    name           => 'bars',
-		    type           => 'has_many',
+                    name           => 'bars',
+                    type           => 'has_many',
                     local_class    =>
                         "DBICTest::Schema::${schema_counter}::Result::Foo",
-		    local_moniker  => 'Foo',
-		    local_columns  => ['fooid'],
+                    local_moniker  => 'Foo',
+                    local_columns  => ['fooid'],
                     remote_class   =>
                         "DBICTest::Schema::${schema_counter}::Result::Bar",
-		    remote_moniker => 'Bar',
-		    remote_columns => ['fooref'],
-		},
-		'correct args for Foo passed'
-              );
+                    remote_moniker => 'Bar',
+                    remote_columns => ['fooref'],
+                },
+                'correct args for Foo passed'
+            );
         }
-	elsif ($args->{local_moniker} eq 'Bar') {
+        elsif ($args->{local_moniker} eq 'Bar') {
             is_deeply(
                 $args,
                 {
-		    name           => 'fooref',
-		    type           => 'belongs_to',
+                    name           => 'fooref',
+                    type           => 'belongs_to',
                     local_class    =>
                         "DBICTest::Schema::${schema_counter}::Result::Bar",
-		    local_moniker  => 'Bar',
-		    local_columns  => ['fooref'],
+                    local_moniker  => 'Bar',
+                    local_columns  => ['fooref'],
                     remote_class   =>
                         "DBICTest::Schema::${schema_counter}::Result::Foo",
-		    remote_moniker => 'Foo',
-		    remote_columns => ['fooid'],
-		},
-		'correct args for Foo passed'
-              );
-	}
+                    remote_moniker => 'Foo',
+                    remote_columns => ['fooid'],
+                },
+                'correct args for Foo passed'
+            );
+        }
         else {
             fail( 'correct args passed to rel_name_map' );
             diag "args were: ", explain $args;
         }
-	return $orig->({
-	    Bar => { fooref => 'fooref_caught' },
-	    Foo => { bars => 'bars_caught' },
-	});
+        return $orig->({
+            Bar => { fooref => 'fooref_caught' },
+            Foo => { bars => 'bars_caught' },
+        });
     }
-  );
+);
 is( ref($code_relationship->source('Foo')->relationship_info('bars_caught')),
     'HASH',
     'rel_name_map overrode local_info correctly'
-  );
+);
 is( ref($code_relationship->source('Bar')->relationship_info('fooref_caught')),
     'HASH',
     'rel_name_map overrode remote_info correctly'
-  );
+);
 
 throws_ok {
     schema_with( rel_name_map => sub { $_[-1]->(sub{}) } ),
@@ -115,26 +115,24 @@ throws_ok {
 } qr/relationship_attrs/, 'throws error for invalid (arrayref) relationship_attrs';
 
 {
-    my $nodelete = schema_with( relationship_attrs =>
-				{
-				 all        => { cascade_delete => 0 },
-				 belongs_to => { cascade_delete => 1 },
-				},
-			      );
+    my $nodelete = schema_with( relationship_attrs => {
+        all        => { cascade_delete => 0 },
+        belongs_to => { cascade_delete => 1 },
+    });
 
     my $bars_info   = $nodelete->source('Foo')->relationship_info('bars');
     #use Data::Dumper;
     #die Dumper([ $nodelete->source('Foo')->relationships() ]);
     my $fooref_info = $nodelete->source('Bar')->relationship_info('fooref');
     is( ref($fooref_info), 'HASH',
-	'fooref rel is present',
-      );
+        'fooref rel is present',
+    );
     is( $bars_info->{attrs}->{cascade_delete}, 0,
-	'relationship_attrs settings seem to be getting through to the generated rels',
-      );
+        'relationship_attrs settings seem to be getting through to the generated rels',
+    );
     is( $fooref_info->{attrs}->{cascade_delete}, 1,
-	'belongs_to in relationship_attrs overrides all def',
-      );
+        'belongs_to in relationship_attrs overrides all def',
+    );
 }
 
 # test relationship_attrs coderef
@@ -166,7 +164,7 @@ throws_ok {
                 like $p{remote_source}->result_class,
                     qr/^DBICTest::Schema::\d+::Result::Bar\z/,
                     'correct remote source';
- 
+
                 $p{attrs}{snoopy} = 1;
 
                 return $p{attrs};
@@ -190,7 +188,7 @@ throws_ok {
                 like $p{remote_source}->result_class,
                     qr/^DBICTest::Schema::\d+::Result::Foo\z/,
                     'correct remote source';
- 
+
                 $p{attrs}{scooby} = 1;
 
                 return $p{attrs};

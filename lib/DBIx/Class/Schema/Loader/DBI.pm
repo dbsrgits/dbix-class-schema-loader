@@ -74,8 +74,8 @@ sub _build_quote_char {
     my $self = shift;
 
     my $quote_char = $self->dbh->get_info(29)
-           || $self->schema->storage->sql_maker->quote_char
-           || q{"};
+        || $self->schema->storage->sql_maker->quote_char
+        || q{"};
 
     # For our usage as regex matches, concatenating multiple quote_char
     # values works fine (e.g. s/[\Q<>\E]// if quote_char was [ '<', '>' ])
@@ -89,8 +89,8 @@ sub _build_quote_char {
 sub _build_name_sep {
     my $self = shift;
     return $self->dbh->get_info(41)
-           || $self->schema->storage->sql_maker->name_sep
-           || '.';
+        || $self->schema->storage->sql_maker->name_sep
+        || '.';
 }
 
 # Override this in vendor modules to do things at the end of ->new()
@@ -149,7 +149,7 @@ sub _tables_list {
                     if (ref $system_schema) {
                         $matches = 1
                             if $schema_name =~ $system_schema
-                                 && $schema !~ $system_schema;
+                                && $schema  !~ $system_schema;
                     }
                     else {
                         $matches = 1

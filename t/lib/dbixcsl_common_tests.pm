@@ -43,11 +43,11 @@ sub new {
     my $self;
 
     if( ref($_[0]) eq 'HASH') {
-       my $args = shift;
-       $self = { (%$args) };
+        my $args = shift;
+        $self = { (%$args) };
     }
     else {
-       $self = { @_ };
+        $self = { @_ };
     }
 
     # Only MySQL uses this
@@ -272,13 +272,13 @@ sub setup_schema {
     {
         my @loader_warnings;
         local $SIG{__WARN__} = sub { push(@loader_warnings, @_); };
-         eval qq{
-             package @{[SCHEMA_CLASS]};
-             use base qw/DBIx::Class::Schema::Loader/;
+        eval qq{
+            package @{[SCHEMA_CLASS]};
+            use base qw/DBIx::Class::Schema::Loader/;
 
-             __PACKAGE__->loader_options(\%loader_opts);
-             __PACKAGE__->connection(\@\$connect_info);
-         };
+            __PACKAGE__->loader_options(\%loader_opts);
+            __PACKAGE__->connection(\@\$connect_info);
+        };
 
         ok(!$@, "Loader initialization") or diag $@;
 
@@ -468,8 +468,8 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
     foreach my $ucname (keys %uniq1) {
         my $cols_arrayref = $uniq1{$ucname};
         if(@$cols_arrayref == 1 && $cols_arrayref->[0] eq 'dat') {
-           $uniq1_test = 1;
-           last;
+            $uniq1_test = 1;
+            last;
         }
     }
     ok($uniq1_test, "Unique constraint");
@@ -480,9 +480,10 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
     my $uniq2_test = 0;
     foreach my $ucname (keys %uniq2) {
         my $cols_arrayref = $uniq2{$ucname};
-        if(@$cols_arrayref == 2
-           && $cols_arrayref->[0] eq 'dat2'
-           && $cols_arrayref->[1] eq 'dat') {
+        if (@$cols_arrayref == 2
+            && $cols_arrayref->[0] eq 'dat2'
+            && $cols_arrayref->[1] eq 'dat'
+        ) {
             $uniq2_test = 2;
             last;
         }
@@ -863,7 +864,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
             is $obj5->i_d2, 1, 'Find on multi-col PK';
         }
         else {
-	    my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});
+            my $obj5 = $rsobj5->find({id1 => 1, id2 => 1});
             is $obj5->id2, 1, 'Find on multi-col PK';
         }
 
@@ -875,25 +876,29 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         ok($class6->column_info('loader_test2_id')->{is_foreign_key}, 'Foreign key detected');
         ok($class6->column_info('id')->{is_foreign_key}, 'Foreign key detected');
 
-	my $id2_info = try { $class6->column_info('id2') } ||
-			$class6->column_info('Id2');
+        my $id2_info = try { $class6->column_info('id2') } ||
+            $class6->column_info('Id2');
         ok($id2_info->{is_foreign_key}, 'Foreign key detected');
 
         unlike slurp_file $conn->_loader->get_dump_filename($class6),
-qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
-    \s+ "(\w+?)"
-    .*?
-   \n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
-    \s+ "\1"/xs,
-'did not create two relationships with the same name';
+            qr{
+                \n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
+                \s+ "(\w+?)"
+                .*?
+                \n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
+                \s+ "\1"
+            }xs,
+            'did not create two relationships with the same name';
 
         unlike slurp_file $conn->_loader->get_dump_filename($class8),
-qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
-    \s+ "(\w+?)"
-    .*?
-   \n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
-    \s+ "\1"/xs,
-'did not create two relationships with the same name';
+            qr{
+                \n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
+                \s+ "(\w+?)"
+                .*?
+                \n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
+                \s+ "\1"
+            }xs,
+            'did not create two relationships with the same name';
 
         # check naming of ambiguous relationships
         my $rel_info = $class6->relationship_info('lovely_loader_test7') || {};
@@ -1079,7 +1084,7 @@ qr/\n__PACKAGE__->(?:belongs_to|has_many|might_have|has_one|many_to_many)\(
 
         # test outer join for nullable referring columns:
         is $class32->column_info('rel2')->{is_nullable}, 1,
-          'is_nullable detection';
+            'is_nullable detection';
 
         ok($class32->column_info('rel1')->{is_foreign_key}, 'Foreign key detected');
         ok($class32->column_info('rel2')->{is_foreign_key}, 'Foreign key detected');
@@ -1324,8 +1329,8 @@ EOF
             my $obj30 = try { $rsobj30->find(123) } || $rsobj30->search({ id => 123 })->single;
             isa_ok( $obj30->loader_test2, $class2);
 
-            ok($rsobj30->result_source->column_info('loader_test2')->{is_foreign_key},
-               'Foreign key detected');
+            ok $rsobj30->result_source->column_info('loader_test2')->{is_foreign_key},
+                'Foreign key detected';
         }
 
         $conn->storage->disconnect; # for Firebird
@@ -1355,10 +1360,10 @@ TODO: {
 
     ok eval {
         my %opts = (
-          naming         => 'current',
-          constraint     => $self->CONSTRAINT,
-          dump_directory => DUMP_DIR,
-          debug          => ($ENV{SCHEMA_LOADER_TESTS_DEBUG}||0)
+            naming         => 'current',
+            constraint     => $self->CONSTRAINT,
+            dump_directory => DUMP_DIR,
+            debug          => ($ENV{SCHEMA_LOADER_TESTS_DEBUG}||0)
         );
 
         my $guard = $conn->txn_scope_guard;
@@ -1871,7 +1876,7 @@ sub create {
         q{ INSERT INTO loader_test22 (parent, child) VALUES (11,13)},
         q{ INSERT INTO loader_test22 (parent, child) VALUES (13,17)},
 
-	qq{
+        qq{
             CREATE TABLE loader_test25 (
                 id1 INTEGER NOT NULL,
                 id2 INTEGER NOT NULL,
@@ -2455,8 +2460,8 @@ sub test_col_accessor_map {
 sub DESTROY {
     my $self = shift;
     unless ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
-      $self->drop_tables if $self->{_created};
-      rmtree DUMP_DIR
+        $self->drop_tables if $self->{_created};
+        rmtree DUMP_DIR
     }
 }
 

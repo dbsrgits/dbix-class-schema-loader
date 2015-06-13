@@ -463,7 +463,7 @@ EOF
 #        if (lc($data_type) eq 'varchar') {
 #            $result->{$col}{size}[1] = $info->{colmin};
 #        }
-       
+
         my ($default_type, $default) = @{$info}{qw/deflt_type deflt/};
 
         next unless $default_type;
