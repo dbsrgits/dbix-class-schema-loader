@@ -227,7 +227,7 @@ WHERE table_name = ? and column_name = ?
 EOF
 
             if ($data_type =~ /^time\b/i) {
-                if ((not $precision) || $precision !~ /^\d/) {
+                if ((not defined $precision) || $precision !~ /^\d/) {
                     delete $info->{size};
                 }
                 else {
@@ -245,7 +245,7 @@ EOF
                     }
                 }
             }
-            elsif ((not $precision) || $precision !~ /^\d/ || $precision == 6) {
+            elsif ((not defined $precision) || $precision !~ /^\d/ || $precision == 6) {
                 delete $info->{size};
             }
             else {

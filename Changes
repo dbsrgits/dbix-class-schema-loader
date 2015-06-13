@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Fix Pg date/time types with zero fractional second digits
+
 0.07043  2015-05-13
         - Fix many_to_many bridges with overlapping foreign keys
         - Add option to allow extra columns in many_to_many link tables
