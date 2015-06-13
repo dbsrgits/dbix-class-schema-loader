@@ -1,8 +1,10 @@
+use DBIx::Class::Schema::Loader::Optional::Dependencies
+    -skip_all_without => 'test_rdbms_oracle';
+
 use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
-use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use DBIx::Class::Schema::Loader::Utils qw/slurp_file split_name/;
 use Try::Tiny;
@@ -42,7 +44,7 @@ my $auto_inc_drop_cb = sub {
     return qq{ DROP SEQUENCE ${table}_${col}_seq };
 };
 
-my $tester = dbixcsl_common_tests->new(
+dbixcsl_common_tests->new(
     vendor      => 'Oracle',
     auto_inc_pk => 'INTEGER NOT NULL PRIMARY KEY',
     auto_inc_cb => $auto_inc_cb,
@@ -493,17 +495,8 @@ EOF
             }
         },
     },
-);
+)->run_tests();
 
-if( !$dsn || !$user ) {
-    $tester->skip_tests('You need to set the DBICTEST_ORA_DSN, _USER, and _PASS environment variables');
-}
-elsif (!DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_oracle')) {
-    $tester->skip_tests('You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_oracle'));
-}
-else {
-    $tester->run_tests();
-}
 
 END {
     if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {

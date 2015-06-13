@@ -91,9 +91,15 @@ if ($Module::Install::AUTHOR && ! $args->{skip_author_deps}) {
 
     require DBIx::Class::Schema::Loader::Optional::Dependencies;
 
-    test_requires map %$_, values %{ DBIx::Class::Schema::Loader::Optional::Dependencies->req_group_list };
+    test_requires %{DBIx::Class::Schema::Loader::Optional::Dependencies
+        ->modreq_list_for([
+            grep { !/rdbms/ }
+            keys %{ DBIx::Class::Schema::Loader::Optional::Dependencies
+                ->req_group_list
+            }
+        ])};
 
-    DBIx::Class::Schema::Loader::Optional::Dependencies->_gen_pod;
+    DBIx::Class::Schema::Loader::Optional::Dependencies->_gen_pod(undef, 'lib');
 
     readme_from( 'lib/DBIx/Class/Schema/Loader.pm' );
     realclean_files( qw[README MANIFEST lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod] );

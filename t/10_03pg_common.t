@@ -1,7 +1,9 @@
+use DBIx::Class::Schema::Loader::Optional::Dependencies
+    -skip_all_without => 'test_rdbms_pg';
+
 use strict;
 use warnings;
 use utf8;
-use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use DBIx::Class::Schema::Loader::Utils qw/no_warnings slurp_file/;
 use Test::More;
@@ -20,7 +22,7 @@ my $dsn      = $ENV{DBICTEST_PG_DSN} || '';
 my $user     = $ENV{DBICTEST_PG_USER} || '';
 my $password = $ENV{DBICTEST_PG_PASS} || '';
 
-my $tester = dbixcsl_common_tests->new(
+dbixcsl_common_tests->new(
     vendor      => 'Pg',
     auto_inc_pk => 'SERIAL NOT NULL PRIMARY KEY',
     dsn         => $dsn,
@@ -485,17 +487,7 @@ my $tester = dbixcsl_common_tests->new(
                 'unique indexes are dumped correctly';
         },
     },
-);
-
-if( !$dsn || !$user ) {
-    $tester->skip_tests('You need to set the DBICTEST_PG_DSN, _USER, and _PASS environment variables');
-}
-elsif (!DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_pg')) {
-    $tester->skip_tests('You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_pg'));
-}
-else {
-    $tester->run_tests();
-}
+)->run_tests();
 
 END {
     rmtree EXTRA_DUMP_DIR unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};

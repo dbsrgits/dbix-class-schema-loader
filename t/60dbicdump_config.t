@@ -1,4 +1,5 @@
-#!perl
+use DBIx::Class::Schema::Loader::Optional::Dependencies
+    -skip_all_without => 'test_dbicdump_config';
 
 use strict;
 use warnings;
@@ -8,16 +9,9 @@ use File::Path qw/make_path rmtree/;
 use DBIx::Class::Schema::Loader::Utils 'slurp_file';
 use Try::Tiny;
 use namespace::clean;
-use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use lib 't/lib';
 use make_dbictest_db ();
 use dbixcsl_test_dir '$tdir';
-
-BEGIN {
-  use DBIx::Class::Schema::Loader::Optional::Dependencies ();
-  plan skip_all => 'Tests needs ' . DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('test_dbicdump_config')
-    unless (DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('test_dbicdump_config'));
-}
 
 plan tests => 2;
 

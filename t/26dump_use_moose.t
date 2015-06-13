@@ -1,13 +1,9 @@
-use warnings;
+use DBIx::Class::Schema::Loader::Optional::Dependencies
+    -skip_all_without => 'use_moose';
+
 use strict;
 
 use Test::More;
-use DBIx::Class::Schema::Loader::Optional::Dependencies ();
-BEGIN {
-  use DBIx::Class::Schema::Loader::Optional::Dependencies ();
-  plan skip_all => 'Tests needs ' . DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose')
-    unless (DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose'));
-}
 
 use lib qw(t/lib);
 use dbixcsl_dumper_tests;

@@ -110,11 +110,11 @@ else
   parallel_installdeps_notest File::Spec Data::Dumper Module::Runtime
   parallel_installdeps_notest Test::Exception Encode::Locale Test::Fatal
   parallel_installdeps_notest Test::Warn B::Hooks::EndOfScope Test::Differences HTTP::Status
-  parallel_installdeps_notest Test::Pod::Coverage Test::EOL Devel::GlobalDestruction Sub::Util MRO::Compat Class::XSAccessor URI::Escape HTML::Entities
+  parallel_installdeps_notest Test::Pod::Coverage Test::EOL Test::NoTabs Test::Strict Devel::GlobalDestruction Sub::Util MRO::Compat Class::XSAccessor URI::Escape HTML::Entities
   parallel_installdeps_notest YAML LWP Class::Trigger JSON::XS DateTime::Format::Builder Class::Accessor::Grouped Package::Variant
   parallel_installdeps_notest SQL::Abstract Moose Module::Install JSON SQL::Translator File::Which
-  parallel_installdeps_notest Module::Install::ReadmeFromPod
-  parallel_installdeps_notest Math::Base36 DBD::mysql DBD::Pg Math::BigInt
+  parallel_installdeps_notest Module::Install::ReadmeFromPod Module::Install::AuthorTests
+  parallel_installdeps_notest Math::Base36 DBD::mysql DBD::Pg Math::BigInt String::CamelCase
   parallel_installdeps_notest MooseX::NonMoose MooseX::MarkAsMethods namespace::autoclean
 
   if env | grep -q '^DBICTEST_.*_ODBC_DSN'; then

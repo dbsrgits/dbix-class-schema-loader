@@ -1,10 +1,12 @@
+use DBIx::Class::Schema::Loader::Optional::Dependencies
+    -skip_all_without => 'test_rdbms_mysql';
+
 use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
-use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader::Utils 'slurp_file';
 use DBIx::Class::Schema::Loader 'make_schema_at';
 
@@ -26,7 +28,9 @@ my $innodb = $test_innodb ? q{Engine=InnoDB} : '';
 
 my ($schema, $databases_created); # for cleanup in END for extra tests
 
-my $tester = dbixcsl_common_tests->new(
+diag $skip_rels_msg if not $test_innodb;
+
+dbixcsl_common_tests->new(
     vendor            => 'Mysql',
     auto_inc_pk       => 'INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT',
     innodb            => $innodb,
@@ -499,18 +503,7 @@ EOF
             }
         },
     },
-);
-
-if( !$dsn || !$user ) {
-    $tester->skip_tests('You need to set the DBICTEST_MYSQL_DSN, DBICTEST_MYSQL_USER, and DBICTEST_MYSQL_PASS environment variables');
-}
-elsif (!DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_mysql')) {
-    $tester->skip_tests('You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_mysql'));
-}
-else {
-    diag $skip_rels_msg if not $test_innodb;
-    $tester->run_tests();
-}
+)->run_tests;
 
 END {
     if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {

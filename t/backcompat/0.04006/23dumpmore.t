@@ -1,3 +1,6 @@
+use DBIx::Class::Schema::Loader::Optional::Dependencies
+    -skip_all_without => 'test_backcompat';
+
 use strict;
 use Test::More;
 use lib qw(t/backcompat/0.04006/lib);
@@ -7,9 +10,6 @@ use dbixcsl_test_dir qw/$tdir/;
 use Class::Unload ();
 
 require DBIx::Class::Schema::Loader;
-
-plan skip_all => 'set SCHEMA_LOADER_TESTS_BACKCOMPAT to enable these tests'
-    unless $ENV{SCHEMA_LOADER_TESTS_BACKCOMPAT};
 
 my $DUMP_PATH = "$tdir/dump";
 

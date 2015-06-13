@@ -1,10 +1,12 @@
+use DBIx::Class::Schema::Loader::Optional::Dependencies
+    -skip_all_without => 'test_rdbms_ase';
+
 use strict;
 use warnings;
 use Test::More;
 use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
-use DBIx::Class::Optional::Dependencies;
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
 use namespace::clean;
@@ -25,7 +27,7 @@ BEGIN { $ENV{DBIC_SYBASE_FREETDS_NOWARN} = 1 }
 
 my ($schema, $databases_created); # for cleanup in END for extra tests
 
-my $tester = dbixcsl_common_tests->new(
+dbixcsl_common_tests->new(
     vendor      => 'sybase',
     auto_inc_pk => 'INTEGER IDENTITY NOT NULL PRIMARY KEY',
     default_function     => 'getdate()',
@@ -390,17 +392,7 @@ EOF
             }
         },
     },
-);
-
-if( !$dsn || !$user ) {
-    $tester->skip_tests('You need to set the DBICTEST_SYBASE_DSN, _USER, and _PASS environment variables');
-}
-elsif (!DBIx::Class::Optional::Dependencies->req_ok_for ('rdbms_ase')) {
-    $tester->skip_tests('You need to install ' . DBIx::Class::Optional::Dependencies->req_missing_for ('rdbms_ase'));
-}
-else {
-    $tester->run_tests();
-}
+)->run_tests();
 
 END {
     if (not $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP}) {
