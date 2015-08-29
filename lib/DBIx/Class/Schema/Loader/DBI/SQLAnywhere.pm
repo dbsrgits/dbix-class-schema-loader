@@ -48,7 +48,7 @@ sub _setup {
 }
 
 sub _tables_list {
-    my ($self, $opts) = @_;
+    my ($self) = @_;
 
     my @tables;
 
@@ -73,7 +73,7 @@ EOF
         }
     }
 
-    return $self->_filter_tables(\@tables, $opts);
+    return $self->_filter_tables(\@tables);
 }
 
 sub _columns_info_for {

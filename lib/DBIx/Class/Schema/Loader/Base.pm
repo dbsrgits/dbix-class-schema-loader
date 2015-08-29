@@ -1623,9 +1623,7 @@ Does the actual schema-construction work.
 sub load {
     my $self = shift;
 
-    $self->_load_tables(
-        $self->_tables_list({ constraint => $self->constraint, exclude => $self->exclude })
-    );
+    $self->_load_tables($self->_tables_list);
 }
 
 =head2 rescan
@@ -1647,7 +1645,7 @@ sub rescan {
     $self->_relbuilder->{schema} = $schema;
 
     my @created;
-    my @current = $self->_tables_list({ constraint => $self->constraint, exclude => $self->exclude });
+    my @current = $self->_tables_list;
 
     foreach my $table (@current) {
         if(!exists $self->_tables->{$table->sql_name}) {

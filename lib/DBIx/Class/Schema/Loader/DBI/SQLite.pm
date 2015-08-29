@@ -230,7 +230,7 @@ sub _table_uniq_info {
 }
 
 sub _tables_list {
-    my ($self, $opts) = @_;
+    my ($self) = @_;
 
     my $sth = $self->dbh->prepare("SELECT * FROM sqlite_master");
     $sth->execute;
@@ -248,7 +248,7 @@ sub _tables_list {
         );
     }
     $sth->finish;
-    return $self->_filter_tables(\@tables, $opts);
+    return $self->_filter_tables(\@tables);
 }
 
 sub _table_info_matches {
