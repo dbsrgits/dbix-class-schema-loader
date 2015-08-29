@@ -1,6 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Fix Pg date/time types with zero fractional second digits
+        - Reduce the number of queries by caching the list of tables
 
 0.07043  2015-05-13
         - Fix many_to_many bridges with overlapping foreign keys

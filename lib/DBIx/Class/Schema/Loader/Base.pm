@@ -1623,7 +1623,7 @@ Does the actual schema-construction work.
 sub load {
     my $self = shift;
 
-    $self->_load_tables($self->_tables_list);
+    $self->_load_tables($self->__tables_list);
 }
 
 =head2 rescan
@@ -1643,9 +1643,10 @@ sub rescan {
 
     $self->{schema} = $schema;
     $self->_relbuilder->{schema} = $schema;
+    $self->{_cache} = {};
 
     my @created;
-    my @current = $self->_tables_list;
+    my @current = $self->__tables_list;
 
     foreach my $table (@current) {
         if(!exists $self->_tables->{$table->sql_name}) {
@@ -2876,6 +2877,11 @@ sub _table_fk_info { croak "ABSTRACT METHOD" }
 
 # Returns an array of lower case table names
 sub _tables_list { croak "ABSTRACT METHOD" }
+
+sub __tables_list {
+    my ($self) = @_;
+    return @{$self->{_cache}{_tables_list} ||= [ $self->_tables_list ]};
+}
 
 # Execute a constructive DBIC class method, with debug/dump_to_dir hooks.
 sub _dbic_stmt {

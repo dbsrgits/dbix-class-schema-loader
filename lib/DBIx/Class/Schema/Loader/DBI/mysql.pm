@@ -107,7 +107,7 @@ sub _table_fk_info {
             first {
                 lc($_->name) eq lc($f_table)
                 && ((not $f_schema) || lc($_->schema) eq lc($f_schema))
-            } $self->_tables_list;
+            } $self->__tables_list;
         };
 
         # The table may not be in any database, or it may not have been found by the previous code block for whatever reason.
