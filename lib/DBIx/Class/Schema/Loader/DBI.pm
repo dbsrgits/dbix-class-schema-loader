@@ -5,8 +5,11 @@ use warnings;
 use base qw/DBIx::Class::Schema::Loader::Base/;
 use mro 'c3';
 use Try::Tiny;
+use Scalar::Util 'blessed';
 use List::Util 'any';
 use Carp::Clan qw/^DBIx::Class/;
+use Class::Method::Modifiers 'install_modifier';
+
 use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
 
@@ -94,7 +97,31 @@ sub _build_name_sep {
 }
 
 # Override this in vendor modules to do things at the end of ->new()
-sub _setup { }
+sub _setup {
+    my ($self) = @_;
+
+    for my $method (qw(
+        _columns_info_for _table_columns
+        _table_pk_info _table_fk_info _table_uniq_info
+    )) {
+        $self->_setup_per_table_cache($method);
+    }
+}
+
+{
+    my %has_cache_setup;
+    sub _setup_per_table_cache {
+        my ($self, $method) = @_;
+        my $class = blessed($self);
+
+        return if $has_cache_setup{$class}{$method}++;
+
+        install_modifier($class, around => $method => sub {
+            my ($orig, $self, $table) = @_;
+            $self->{_cache}{$method}{$table->sql_name} ||= $self->$orig($table);
+        });
+    }
+}
 
 # Override this in vendor module to load a subclass if necessary
 sub _rebless { }

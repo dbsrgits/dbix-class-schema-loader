@@ -42,6 +42,7 @@ requires 'Carp::Clan'                  => 0;
 requires 'Class::Accessor::Grouped'    => '0.10008';
 requires 'Class::C3::Componentised'    => '1.0008';
 requires 'Class::Inspector'            => '1.27';
+requires 'Class::Method::Modifiers'    => '1.05';
 requires 'Class::Unload'               => '0.07';
 requires 'Data::Dump'                  => '1.06';
 requires 'DBIx::Class'                 => '0.08127';
