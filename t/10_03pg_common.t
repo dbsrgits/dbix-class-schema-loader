@@ -82,6 +82,7 @@ dbixcsl_common_tests->new(
         # Bit String Types
         'bit varying(2)' => { data_type => 'varbit', size => 2 },
         'varbit(2)'      => { data_type => 'varbit', size => 2 },
+        'bit varying'    => { data_type => 'varbit' },
         'varbit'         => { data_type => 'varbit' },
         bit              => { data_type => 'bit', size => 1 },
         'bit(3)'         => { data_type => 'bit', size => 3 },
