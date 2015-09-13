@@ -184,13 +184,11 @@ sub _column_comment {
 
     return $column_comment if $column_comment;
 
-    my ($table_oid) = $self->dbh->selectrow_array(<<'EOF', {}, $table->name, $table->schema);
-SELECT oid
+    return $self->dbh->selectrow_array(<<'EOF', {}, $column_number, $table->name, $table->schema);
+SELECT pg_catalog.col_description(oid, ?)
 FROM pg_catalog.pg_class
 WHERE relname=? AND relnamespace=(SELECT oid FROM pg_catalog.pg_namespace WHERE nspname=?)
 EOF
-
-    return $self->dbh->selectrow_array('SELECT pg_catalog.col_description(?,?)', {}, $table_oid, $column_number);
 }
 
 # Make sure data_type's that don't need it don't have a 'size' column_info, and
