@@ -3,6 +3,8 @@ package dbixcsl_dumper_tests;
 use strict;
 use warnings;
 use Test::More;
+use File::Basename;
+use File::Copy;
 use File::Path;
 use IPC::Open3;
 use IO::Handle;
@@ -14,31 +16,46 @@ use namespace::clean;
 
 use dbixcsl_test_dir '$tdir';
 
-my $DUMP_PATH = "$tdir/dump";
+my $SUB_DIR = 'dump';
+my $DUMP_PATH = "$tdir/$SUB_DIR";
 
 sub cleanup {
     rmtree($DUMP_PATH, 1, 1);
 }
 
 sub class_file {
-    my ($self, $class) = @_;
+    my ($self, $class, $subdir) = @_;
+
+    my $path = $DUMP_PATH;
+    $path =~ s/\Q$SUB_DIR\E\z/$subdir/ if $subdir;
 
     $class =~ s{::}{/}g;
-    $class = $DUMP_PATH . '/' . $class . '.pm';
+    $class = $path . '/' . $class . '.pm';
 
     return $class;
 }
 
 sub append_to_class {
-    my ($self, $class, $string) = @_;
+    my ($self, $class, $string, $destdir) = @_;
 
-    $class = $self->class_file($class);
+    $class = $self->class_file($class, $destdir);
 
     open(my $appendfh, '>>', $class) or die "Failed to open '$class' for append: $!";
 
     print $appendfh $string;
 
     close($appendfh);
+}
+
+sub copy_class {
+    my ($self, $class, $destdir) = @_;
+
+    my $srcfile = $self->class_file($class);
+    my $destfile = $self->class_file($class, $destdir);
+    mkpath(dirname $destfile);
+
+    copy($srcfile, $destfile) or die "Failed to copy '$srcfile' to '$destfile': $!";
+    return $destfile;
 }
 
 sub dump_test {

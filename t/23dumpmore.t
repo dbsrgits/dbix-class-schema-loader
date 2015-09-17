@@ -5,6 +5,7 @@ use DBIx::Class::Schema::Loader::Utils qw/slurp_file write_file/;
 use namespace::clean;
 use File::Temp ();
 use lib qw(t/lib);
+use dbixcsl_test_dir '$tdir';
 use dbixcsl_dumper_tests;
 my $t = 'dbixcsl_dumper_tests';
 
@@ -639,6 +640,39 @@ $t->dump_test(
         ],
     },
 );
+
+my $copy = $t->copy_class('DBICTest::DumpMore::1::Foo', 'dump_copy');
+diag $copy;
+unshift @INC, "$tdir/dump_copy";
+
+$t->dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    neg_regexes => {
+        Foo => [
+            qr/^# These lines were loaded from/m,
+        ],
+    },
+);
+
+$t->append_to_class('DBICTest::DumpMore::1::Foo', qq{# XXX This is my external custom content\n}, 'dump_copy');
+
+$t->dump_test(
+    classname => 'DBICTest::DumpMore::1',
+    options => {
+        really_erase_my_files => 1,
+    },
+    regexes => {
+        Foo => [
+            qr/^# XXX This is my external custom content/m,
+        ],
+    },
+    neg_regexes => {
+        Foo => [
+            qr/^# These lines were loaded from.*^# Created by DBIx::Class::Schema::Loader/,
+        ],
+    },
+);
+
 
 done_testing;
 # vim:et sts=4 sw=4 tw=0:
