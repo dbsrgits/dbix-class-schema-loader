@@ -122,7 +122,7 @@ sub run_tests {
     $num_rescans++ if $self->{vendor} eq 'Firebird';
 
     plan tests => @connect_info *
-        (232 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (233 + $num_rescans * $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -418,7 +418,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         'fully qualified schema component works';
 
     my @columns_lt2 = $class2->columns;
-    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentmap testcomponent_fqn meta test_role_method test_role_for_map_method crumb_crisp_coating/ ], "Column Ordering" );
+    is_deeply( \@columns_lt2, [ qw/id dat dat2 set_primary_key can dbix_class_testcomponent dbix_class_testcomponentmap testcomponent_fqn meta test_role_method test_role_for_map_method crumb_crisp_coating sticky_filling/ ], "Column Ordering" );
 
     is $class2->column_info('can')->{accessor}, 'caught_collision_can',
         'accessor for column name that conflicts with a UNIVERSAL method renamed based on col_collision_map';
@@ -621,6 +621,9 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
 
     is( $class2->column_info('crumb_crisp_coating')->{accessor},  'trivet',
         'col_accessor_map is being run' );
+
+    is( $class2->column_info('sticky_filling')->{accessor},  'goo',
+        'multi-level hash col_accessor_map works' );
 
     is $class1->column_info('dat')->{is_nullable}, 0,
         'is_nullable=0 detection';
@@ -1581,7 +1584,7 @@ sub create {
         q{ INSERT INTO loader_test1s (dat) VALUES('baz') },
 
         # also test method collision
-        # crumb_crisp_coating is for col_accessor_map tests
+        # crumb_crisp_coating and sticky_filling are for col_accessor_map tests
         qq{
             CREATE TABLE loader_test2 (
                 id $self->{auto_inc_pk},
@@ -1596,6 +1599,7 @@ sub create {
                 test_role_method INTEGER $self->{null},
                 test_role_for_map_method INTEGER $self->{null},
                 crumb_crisp_coating VARCHAR(32) $self->{null},
+                sticky_filling VARCHAR(32) $self->{null},
                 UNIQUE (dat2, dat)
             ) $self->{innodb}
         },
@@ -2444,7 +2448,7 @@ sub rescan_without_warnings {
 }
 
 sub test_col_accessor_map {
-    my ( $column_name, $default_name, $context ) = @_;
+    my ( $column_name, $default_name, $context, $default_map ) = @_;
     if( lc($column_name) eq 'crumb_crisp_coating' ) {
 
         is( $default_name, 'crumb_crisp_coating', 'col_accessor_map was passed the default name' );
@@ -2453,7 +2457,11 @@ sub test_col_accessor_map {
 
         return 'trivet';
     } else {
-        return $default_name;
+        return $default_map->({
+            loader_test2 => {
+                sticky_filling => 'goo',
+            },
+        });
     }
 }
 

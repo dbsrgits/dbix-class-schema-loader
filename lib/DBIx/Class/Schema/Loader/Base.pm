@@ -20,6 +20,7 @@ use File::Temp ();
 use Class::Unload;
 use Class::Inspector ();
 use Scalar::Util 'looks_like_number';
+use DBIx::Class::Schema::Loader::Column;
 use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path slurp_file sigwarn_silencer firstidx uniq/;
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
@@ -657,10 +658,12 @@ L</moniker_map> takes precedence over this.
 
 =head2 col_accessor_map
 
-Same as moniker_map, but for column accessor names.  If a coderef is
+Same as moniker_map, but for column accessor names.  The nested
+hashref form is traversed according to L</moniker_parts>, with an
+extra level at the bottom for the column name.  If a coderef is
 passed, the code is called with arguments of
 
-    the name of the column in the underlying database,
+    the DBIx::Class::Schema::Loader::Column object for the column,
     default accessor name that DBICSL would ordinarily give this column,
     {
         table_class     => name of the DBIC class we are building,
@@ -672,8 +675,9 @@ passed, the code is called with arguments of
     }
     coderef ref that can be called with a hashref map
 
-the L<table object|DBIx::Class::Schema::Loader::Table> stringifies to the
-unqualified table name.
+The L<column|DBIx::Class::Schema::Loader::Table> and
+L<table|DBIx::Class::Schema::Loader::Table> objects stringify to their
+unqualified names.
 
 =head2 rel_name_map
 
@@ -2597,8 +2601,12 @@ sub _setup_src_meta {
             schema_class    => $schema_class,
             column_info     => $info,
         };
+        my $col_obj = DBIx::Class::Schema::Loader::Column->new(
+            table => $table,
+            name  => $col,
+        );
 
-        $info->{accessor} = $self->_make_column_accessor_name( $col, $context );
+        $info->{accessor} = $self->_make_column_accessor_name( $col_obj, $context );
     }
 
     $self->_resolve_col_accessor_collisions($table, $col_info);
