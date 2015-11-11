@@ -2458,6 +2458,9 @@ sub test_col_accessor_map {
         return 'trivet';
     } else {
         return $default_map->({
+            LOADER_TEST2 => {
+                sticky_filling => 'goo',
+            },
             loader_test2 => {
                 sticky_filling => 'goo',
             },
