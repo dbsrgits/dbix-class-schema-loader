@@ -2489,7 +2489,7 @@ sub _run_user_map {
     my $default_ident = $default_code->( $ident, @extra );
     my $new_ident;
     if( $map && ref $map eq 'HASH' ) {
-        if (my @parts = try{ @{ $ident } }) {
+        if (my @parts = try { @{ $ident } }) {
             my $part_map = $map;
             while (@parts) {
                 my $part = shift @parts;
