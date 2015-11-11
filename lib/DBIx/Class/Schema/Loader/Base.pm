@@ -675,7 +675,7 @@ passed, the code is called with arguments of
     }
     coderef ref that can be called with a hashref map
 
-The L<column|DBIx::Class::Schema::Loader::Table> and
+The L<column|DBIx::Class::Schema::Loader::Column> and
 L<table|DBIx::Class::Schema::Loader::Table> objects stringify to their
 unqualified names.
 
