@@ -2,6 +2,9 @@ Revision history for Perl extension DBIx::Class::Schema::Loader
 
         - Introspect view definitions for PostgreSQL, MySQL, Oracle,
           Firebird, and InterBase.
+        - When a file's md5sum was wrong but no other content in the file had
+          changed, it would not be rewritten even when overwrite_modifications
+          was true. Fixed by Dave Rolsky. GH #8.
 
 0.07045  2016-01-22
         - Regenerate tarball without author-mode test dependencies
