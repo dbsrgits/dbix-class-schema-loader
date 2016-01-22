@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07045  2016-01-22
+        - Regenerate tarball without author-mode test dependencies
+
 0.07044  2016-01-22
         - Fix Pg date/time types with zero fractional second digits
         - Add support for nested hashref form of col_accessor_map

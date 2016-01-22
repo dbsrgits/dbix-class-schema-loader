@@ -30,7 +30,7 @@ use List::Util qw/all any none/;
 use File::Temp 'tempfile';
 use namespace::clean;
 
-our $VERSION = '0.07044';
+our $VERSION = '0.07045';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
