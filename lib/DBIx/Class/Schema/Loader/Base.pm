@@ -565,7 +565,7 @@ Only load matching tables.
 
 Exclude matching tables.
 
-These can be specified either as a regex (preferrably on the C<qr//>
+These can be specified either as a regex (preferably on the C<qr//>
 form), or as an arrayref of arrayrefs.  Regexes are matched against
 the (unqualified) table name, while arrayrefs are matched according to
 L</moniker_parts>.
