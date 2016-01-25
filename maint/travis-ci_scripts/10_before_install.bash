@@ -118,7 +118,7 @@ else
 
         run_or_err "Fetching and building Firebird ODBC driver" '
           cd "$(mktemp -d)"
-          wget -qO- http://sourceforge.net/projects/firebird/files/firebird-ODBC-driver/2.0.3-Release/OdbcJdbc-src-2.0.3.154.tar.gz/download | tar -xz
+          wget -O- http://sourceforge.net/projects/firebird/files/firebird-ODBC-driver/2.0.3-Release/OdbcJdbc-src-2.0.3.154.tar.gz/download | tar -xz
           cd OdbcJdbc/Builds/Gcc.lin
           perl -p -i -e "s|/usr/lib64|/usr/lib/x86_64-linux-gnu|g" ../makefile.environ
           make -f makefile.linux
