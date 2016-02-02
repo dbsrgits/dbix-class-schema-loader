@@ -192,9 +192,13 @@ dbixcsl_common_tests->new(
             },
             $auto_inc_cb->('oracle_loader_test11', 'id'),
             'alter trigger oracle_loader_test11_id_trg disable',
+            'CREATE VIEW oracle_loader_test12 AS SELECT * FROM oracle_loader_test1',
+        ],
+        pre_drop_ddl => [
+            'DROP VIEW oracle_loader_test12',
         ],
         drop  => [qw/oracle_loader_test1 oracle_loader_test9 oracle_loader_test10 oracle_loader_test11/],
-        count => 10 + 31 * 2,  # basic + cross-schema * 2
+        count => 12 + 31 * 2,  # basic + cross-schema * 2
         run   => sub {
             my ($monikers, $classes);
             ($schema, $monikers, $classes) = @_;
@@ -246,6 +250,14 @@ dbixcsl_common_tests->new(
 
             ok !$source11->column_info('id')->{is_auto_increment},
                 'Disabled autoinc trigger not loaded';
+
+            my $view_source = $schema->resultset($monikers->{oracle_loader_test12})->result_source;
+            isa_ok $view_source, 'DBIx::Class::ResultSource::View',
+                'view result source';
+
+            like $view_source->view_definition,
+                qr/\A \s* select\b .* \bfrom \s+ oracle_loader_test1 \s* \z/imsx,
+                'view definition';
 
             SKIP: {
                 skip 'Set the DBICTEST_ORA_EXTRAUSER_DSN, _USER and _PASS environment variables to run the cross-schema relationship tests', 31 * 2

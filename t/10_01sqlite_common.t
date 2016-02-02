@@ -173,7 +173,7 @@ my $tester = dbixcsl_common_tests->new(
 
             # test that views are marked as such
             isa_ok $schema->resultset($monikers->{extra_loader_test5})->result_source, 'DBIx::Class::ResultSource::View',
-                'views have table_class set correctly';
+                'view result source';
 
             isnt $schema->resultset($monikers->{extra_loader_test6})->result_source->column_info('id1')->{is_auto_increment}, 1,
                 q{two integer PKs don't get marked autoinc};

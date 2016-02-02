@@ -409,6 +409,16 @@ sub _dbh_column_info {
     return $self->next::method(@_);
 }
 
+sub _view_definition {
+    my ($self, $view) = @_;
+
+    return scalar $self->schema->storage->dbh->selectrow_array(<<'EOF', {}, $view->schema, $view->name);
+SELECT text
+FROM all_views
+WHERE owner = ? AND view_name = ?
+EOF
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,

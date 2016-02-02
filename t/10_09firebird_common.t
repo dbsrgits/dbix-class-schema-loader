@@ -120,7 +120,7 @@ my $tester = dbixcsl_common_tests->new(
                       => { data_type => 'blob sub_type text character set unicode_fss' },
     },
     extra => {
-        count  => 9,
+        count  => 11,
         create => [
             q{
                 CREATE TABLE "Firebird_Loader_Test1" (
@@ -140,8 +140,12 @@ my $tester = dbixcsl_common_tests->new(
                   NEW."Id" = GEN_ID("Gen_Firebird_Loader_Test1_Id",1);
                 END
             },
+            q{
+                CREATE VIEW firebird_loader_test2 AS SELECT * FROM "Firebird_Loader_Test1"
+            },
         ],
         pre_drop_ddl => [
+            'DROP VIEW firebird_loader_test2',
             'DROP TRIGGER "Firebird_Loader_Test1_BI"',
             'DROP GENERATOR "Gen_Firebird_Loader_Test1_Id"',
             'DROP TABLE "Firebird_Loader_Test1"',
@@ -174,6 +178,15 @@ my $tester = dbixcsl_common_tests->new(
             is $col_info->{sequence}, 'Gen_Firebird_Loader_Test1_Id', 'correct mixed case sequence name';
 
             is eval { $rsrc->column_info('Foo')->{default_value} }, 42, 'default_value detected for mixed case column';
+
+            # test that views are marked as such
+            my $view_source = $schema->resultset($monikers->{firebird_loader_test2})->result_source;
+            isa_ok $view_source, 'DBIx::Class::ResultSource::View',
+                'view result source';
+
+            like $view_source->view_definition,
+                qr/\A \s* select\b .* \bfrom \s+ (?-i:"Firebird_Loader_Test1") \s* \z/imsx,
+                'view definition';
 
             # test the fixed up ->_dbh_type_info_type_name for the ODBC driver
             if ($schema->storage->_dbi_connect_info->[0] =~ /:ODBC:/i) {

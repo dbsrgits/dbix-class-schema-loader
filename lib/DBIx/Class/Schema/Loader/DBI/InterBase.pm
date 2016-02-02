@@ -310,6 +310,16 @@ EOF
     return $result;
 }
 
+sub _view_definition {
+    my ($self, $view) = @_;
+
+    return scalar $self->schema->storage->dbh->selectrow_array(<<'EOF', {}, $view->name);
+SELECT rdb$view_source
+FROM rdb$relations
+WHERE rdb$relation_name = ?
+EOF
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,

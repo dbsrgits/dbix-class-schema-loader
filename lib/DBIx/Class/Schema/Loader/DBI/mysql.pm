@@ -363,6 +363,18 @@ sub _column_comment {
     return $comment;
 }
 
+sub _view_definition {
+    my ($self, $view) = @_;
+
+    return scalar $self->schema->storage->dbh->selectrow_array(
+        q{SELECT view_definition
+            FROM information_schema.views
+           WHERE table_schema = schema()
+             AND table_name = ?
+        }, undef, $view->name,
+    );
+}
+
 =head1 SEE ALSO
 
 L<DBIx::Class::Schema::Loader>, L<DBIx::Class::Schema::Loader::Base>,

@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Introspect view definitions for PostgreSQL, MySQL, Oracle,
+          Firebird, and InterBase.
+
 0.07045  2016-01-22
         - Regenerate tarball without author-mode test dependencies
 

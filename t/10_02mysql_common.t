@@ -205,7 +205,7 @@ dbixcsl_common_tests->new(
         ],
         pre_drop_ddl => [ 'DROP VIEW mysql_loader_test2', ],
         drop => [ 'mysql_loader-test1', 'mysql_loader_test3', 'mysql_loader_test11', 'mysql_loader_test12' ],
-        count => 9 + 30 * 2,
+        count => 10 + 30 * 2,   # regular + multi-schema * 2
         run => sub {
             my ($monikers, $classes);
             ($schema, $monikers, $classes) = @_;
@@ -219,8 +219,13 @@ dbixcsl_common_tests->new(
                 'view introspected successfully';
 
             # test that views are marked as such
-            isa_ok $schema->resultset($monikers->{mysql_loader_test2})->result_source, 'DBIx::Class::ResultSource::View',
-                'views have table_class set correctly';
+            my $view_source = $schema->resultset($monikers->{mysql_loader_test2})->result_source;
+            isa_ok $view_source, 'DBIx::Class::ResultSource::View',
+                'view result source';
+
+            like $view_source->view_definition,
+                qr/\A \s* select \b .* \b from \s+ `.*?` \. `mysql_loader-test1` \s* \z/imsx,
+                'view defintion';
 
             $rsrc = $schema->source('MysqlLoaderTest3');
 

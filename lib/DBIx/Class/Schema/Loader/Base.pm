@@ -2570,6 +2570,8 @@ sub _table_is_view {
     return 0;
 }
 
+sub _view_definition { undef }
+
 # Set up metadata (cols, pks, etc)
 sub _setup_src_meta {
     my ($self, $table) = @_;
@@ -2580,10 +2582,16 @@ sub _setup_src_meta {
     my $table_class   = $self->classes->{$table->sql_name};
     my $table_moniker = $self->monikers->{$table->sql_name};
 
+    # Must come before ->table
     $self->_dbic_stmt($table_class, 'table_class', 'DBIx::Class::ResultSource::View')
-        if $self->_table_is_view($table);
+        if my $is_view = $self->_table_is_view($table);
 
     $self->_dbic_stmt($table_class, 'table', $table->dbic_name);
+
+    # Must come after ->table
+    if ($is_view and my $view_def = $self->_view_definition($table)) {
+        $self->_dbic_stmt($table_class, 'result_source_instance->view_definition', $view_def);
+    }
 
     my $cols     = $self->_table_columns($table);
     my $col_info = $self->__columns_info_for($table);

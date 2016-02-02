@@ -294,7 +294,7 @@ dbixcsl_common_tests->new(
             'DROP VIEW pg_loader_test11',
         ],
         drop  => [ qw/pg_loader_test1 pg_loader_test2 pg_loader_test9 pg_loader_test10 pg_loader_test12/ ],
-        count => 10 + 30 * 2,
+        count => 11 + 30 * 2,   # regular + multi-schema * 2
         run   => sub {
             my ($schema, $monikers, $classes) = @_;
 
@@ -490,8 +490,13 @@ dbixcsl_common_tests->new(
             }
 
             # test that views are marked as such
-            isa_ok $schema->resultset($monikers->{pg_loader_test11})->result_source, 'DBIx::Class::ResultSource::View',
-                'views have table_class set correctly';
+            my $view_source = $schema->resultset($monikers->{pg_loader_test11})->result_source;
+            isa_ok $view_source, 'DBIx::Class::ResultSource::View',
+                'view result source';
+
+            like $view_source->view_definition,
+                qr/\A \s* select\b .* \bfrom \s+ pg_loader_test1 \s* \z/imsx,
+                'view definition';
 
             is_deeply
                 { $schema->source($monikers->{pg_loader_test12})->unique_constraints },
