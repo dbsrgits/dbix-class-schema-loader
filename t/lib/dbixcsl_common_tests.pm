@@ -168,6 +168,7 @@ sub run_only_extra_tests {
             }
         }
 
+        $dbh->disconnect;
         $self->{_created} = 1;
 
         my $file_count = grep $_ =~ SOURCE_DDL, @{ $self->{extra}{create} || [] };
@@ -188,6 +189,7 @@ sub run_only_extra_tests {
             $self->drop_extra_tables_only;
             rmtree DUMP_DIR;
         }
+        $conn->storage->disconnect;
     }
 }
 

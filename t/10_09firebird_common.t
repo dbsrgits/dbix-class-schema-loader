@@ -121,37 +121,40 @@ my $tester = dbixcsl_common_tests->new(
     },
     extra => {
         count  => 9,
+        create => [
+            q{
+                CREATE TABLE "Firebird_Loader_Test1" (
+                    "Id" INTEGER NOT NULL PRIMARY KEY,
+                    "Foo" INTEGER DEFAULT 42
+                )
+            },
+            q{
+                CREATE GENERATOR "Gen_Firebird_Loader_Test1_Id"
+            },
+            q{
+                CREATE TRIGGER "Firebird_Loader_Test1_BI" for "Firebird_Loader_Test1"
+                ACTIVE BEFORE INSERT POSITION 0
+                AS
+                BEGIN
+                 IF (NEW."Id" IS NULL) THEN
+                  NEW."Id" = GEN_ID("Gen_Firebird_Loader_Test1_Id",1);
+                END
+            },
+        ],
+        pre_drop_ddl => [
+            'DROP TRIGGER "Firebird_Loader_Test1_BI"',
+            'DROP GENERATOR "Gen_Firebird_Loader_Test1_Id"',
+            'DROP TABLE "Firebird_Loader_Test1"',
+        ],
         run    => sub {
             $schema = shift;
             my ($monikers, $classes, $self) = @_;
-
-            cleanup_extra();
 
             my $dbh = $schema->storage->dbh;
 
 # create a mixed case table
             $dbh->do($_) for (
-q{
-    CREATE TABLE "Firebird_Loader_Test1" (
-        "Id" INTEGER NOT NULL PRIMARY KEY,
-        "Foo" INTEGER DEFAULT 42
-    )
-},
-q{
-    CREATE GENERATOR "Gen_Firebird_Loader_Test1_Id"
-},
-q{
-    CREATE TRIGGER "Firebird_Loader_Test1_BI" for "Firebird_Loader_Test1"
-    ACTIVE BEFORE INSERT POSITION 0
-    AS
-    BEGIN
-     IF (NEW."Id" IS NULL) THEN
-      NEW."Id" = GEN_ID("Gen_Firebird_Loader_Test1_Id",1);
-    END
-},
             );
-
-            my $guard = Scope::Guard->new(\&cleanup_extra);
 
             local $schema->loader->{preserve_case} = 1;
             $schema->loader->_setup;
@@ -207,16 +210,4 @@ q{
     $tester->run_tests();
 }
 
-sub cleanup_extra {
-    $schema->storage->disconnect;
-    my $dbh = $schema->storage->dbh;
-
-    foreach my $stmt (
-        'DROP TRIGGER "Firebird_Loader_Test1_BI"',
-        'DROP GENERATOR "Gen_Firebird_Loader_Test1_Id"',
-        'DROP TABLE "Firebird_Loader_Test1"',
-    ) {
-        eval { $dbh->do($stmt) };
-    }
-}
 # vim:et sts=4 sw=4 tw=0:
