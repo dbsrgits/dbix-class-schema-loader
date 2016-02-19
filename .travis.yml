@@ -229,6 +229,10 @@ matrix:
     - perl: 5.8.3_nt
     - perl: 5.8.3_nt_mb
 
+    # namespace::clean breaks on threaded 5.8.8
+    # https://rt.cpan.org/Ticket/Display.html?id=107343
+    - perl: 5.8.8_thr_mb
+
 
 # sourcing the files is *EXTREMELY* important - otherwise
 # no envvars will survive
