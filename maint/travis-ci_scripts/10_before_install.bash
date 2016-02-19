@@ -214,7 +214,7 @@ FileUsage       = 1
 
     run_or_err "Create Oracle users" "ORACLE_SID=XE ORACLE_HOME=$SRV_ORA_HOME $SRV_ORA_HOME/bin/sqlplus -L -S system/adminpass @/dev/stdin <<< '
       CREATE USER $DBICTEST_ORA_USER IDENTIFIED BY $DBICTEST_ORA_PASS;
-      GRANT connect,resource TO $DBICTEST_ORA_USER;
+      GRANT create view,connect,resource TO $DBICTEST_ORA_USER;
       CREATE USER $DBICTEST_ORA_EXTRAUSER_USER IDENTIFIED BY $DBICTEST_ORA_EXTRAUSER_PASS;
       GRANT connect,resource TO $DBICTEST_ORA_EXTRAUSER_USER;
     '"
