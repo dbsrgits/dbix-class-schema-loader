@@ -117,7 +117,6 @@ matrix:
         - CLEANTEST=false
         - BREWOPTS="-Duseithreads"
         - BREWVER=5.8.5
-        - DBIC_TRACE_PROFILE=console
         - DBICTEST_MYSQL_INNODB=1
 
     # Full Test of minimum supported without threads
@@ -126,7 +125,6 @@ matrix:
         - CLEANTEST=false
         - BREWOPTS=""
         - BREWVER=5.8.3
-        - DBIC_TRACE_PROFILE=console_monochrome
         - DBICTEST_MYSQL_INNODB=1
 
     ###
@@ -153,7 +151,6 @@ matrix:
         - CLEANTEST=true
         - POISON_ENV=true
         - DBIC_TRACE=1
-        - DBIC_TRACE_PROFILE=console
         - DBICTEST_MYSQL_INNODB=1
 
     - perl: 5.18
