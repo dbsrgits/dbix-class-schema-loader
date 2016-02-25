@@ -104,6 +104,14 @@ if ($Module::Install::AUTHOR && ! $args->{skip_author_deps}) {
     author_tests( 'xt' );
     readme_from( 'lib/DBIx/Class/Schema/Loader.pm' );
     realclean_files( qw[README MANIFEST lib/DBIx/Class/Schema/Loader/Optional/Dependencies.pod] );
+    postamble <<EOP;
+create_distdir: author_stop_distdir_creation
+author_stop_distdir_creation:
+\t\$(NOECHO) \$(ECHO) Creation of dist with author mode deps not allowed
+\t\$(NOECHO) \$(ECHO) Please re-run Makefile.PL with --skip_author_deps
+\t\$(NOECHO) \$(FALSE)
+EOP
+
 }
 
 tests_recursive;
