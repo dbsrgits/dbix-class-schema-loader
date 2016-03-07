@@ -614,6 +614,17 @@ a coderef for a translator function taking a L<table
 object|DBIx::Class::Schema::Loader::Table> argument (which stringifies to the
 unqualified table name) and returning a scalar moniker
 
+For Example: 
+
+Some databases like to prefix a namespace to every table definition
+(e.g. Microsoft SQL Server likes to add 'dbo'). To avoid having your classes 
+contain redundant information you can pass C<moniker_map> a function to strip it off.
+
+   moniker_map => sub { my $name = $_[0];
+                        $name =~ s/^dbo//;
+                        join '', map ucfirst, split '_', $name
+   }
+
 The function is also passed a coderef that can be called with either
 of the hashref forms to get the moniker mapped accordingly.  This is
 useful if you need to handle some monikers specially, but want to use
