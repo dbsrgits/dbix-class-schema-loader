@@ -1985,7 +1985,8 @@ sub _dump_to_dir {
 
         my @attr = qw/resultset_namespace default_resultset_class/;
 
-        unshift @attr, 'result_namespace' unless (not $self->result_namespace) || $self->result_namespace eq 'Result';
+        unshift @attr, 'result_namespace'
+            if $self->result_namespace && $self->result_namespace ne 'Result';
 
         for my $attr (@attr) {
             if ($self->$attr) {
