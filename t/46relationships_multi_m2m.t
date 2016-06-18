@@ -3,7 +3,6 @@ use warnings;
 use Test::More;
 use lib qw(t/lib);
 use make_dbictest_db_multi_m2m;
-use Devel::Dwarn;
 
 use DBIx::Class::Schema::Loader;
 
