@@ -84,8 +84,16 @@ See also the "Changes" file for the last few revisions.
 EOF
 
 if ($Module::Install::AUTHOR && ! $args->{skip_author_deps}) {
-    eval { require Module::Install::ReadmeFromPod }
-        or die "\nYou need Module::Install::ReadmeFromPod installed to run this Makefile.PL in author mode:\n\n$@\n";
+    my @missing_plugins;
+    for my $plugin (qw(ReadmeFromPod AuthorTests)) {
+        eval "require Module::Install::$plugin" and next;
+        push @missing_plugins, "Module::Instal::$plugin";
+        chomp(my $err = $@);
+        $missing_plugins[-1] .= " ($err)"
+            unless $err =~ m{^Can't locate Module/Install/$plugin.pm in \@INC};
+    }
+    die "\nYou need to install the following modules to run this Makefile.PL in author mode:\n\n", join("\n", @missing_plugins), "\n\n"
+        if @missing_plugins;
 
     warn "\n*** AUTHOR MODE: some optional dependencies converted to hard requires.\n\n";
 
