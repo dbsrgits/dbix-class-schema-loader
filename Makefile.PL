@@ -87,7 +87,7 @@ if ($Module::Install::AUTHOR && ! $args->{skip_author_deps}) {
     my @missing_plugins;
     for my $plugin (qw(ReadmeFromPod AuthorTests)) {
         eval "require Module::Install::$plugin" and next;
-        push @missing_plugins, "Module::Instal::$plugin";
+        push @missing_plugins, "Module::Install::$plugin";
         chomp(my $err = $@);
         $missing_plugins[-1] .= " ($err)"
             unless $err =~ m{^Can't locate Module/Install/$plugin.pm in \@INC};
