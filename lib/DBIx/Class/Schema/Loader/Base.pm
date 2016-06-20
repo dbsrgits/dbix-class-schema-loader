@@ -2252,9 +2252,16 @@ sub _parse_generated_file {
 
             $gen .= $pre_md5;
             $real_md5 = Digest::MD5::md5_base64(encode 'UTF-8', $gen);
-            croak "Checksum mismatch in '$fn', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n"
-                if !$self->overwrite_modifications && $real_md5 ne $mark_md5;
-
+            if ($real_md5 ne $mark_md5) {
+                if ($self->overwrite_modifications) {
+                    # Setting this to something that is not a valid MD5 forces
+                    # the file to be rewritten.
+                    $real_md5 = 'not an MD5';
+                }
+                else {
+                    croak "Checksum mismatch in '$fn', the auto-generated part of the file has been modified outside of this loader.  Aborting.\nIf you want to overwrite these modifications, set the 'overwrite_modifications' loader option.\n";
+                }
+            }
             last;
         }
         else {
