@@ -76,7 +76,8 @@ sub dump_schema {
     my $args = \@_;
 
     warnings_exist {
-        DBIx::Class::Schema::Loader::make_schema_at( 'DBICTest::Schema::Overwrite_modifications',
+        DBIx::Class::Schema::Loader::make_schema_at(
+            'DBICTest::Schema::Overwrite_modifications',
             { dump_directory => $tempdir, @$args },
             [ $make_dbictest_db::dsn ],
         );
