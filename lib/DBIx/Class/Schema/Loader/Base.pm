@@ -112,6 +112,7 @@ __PACKAGE__->mk_group_accessors('simple', qw/
                                 _result_class_methods
                                 naming_set
                                 filter_generated_code
+                                filter_custom_content
                                 db_schema
                                 qualify_objects
                                 moniker_parts
@@ -1035,6 +1036,20 @@ ignore all text between the markers.
     filter_generated_code => sub {
         return "#<<<\n$_[2]\n#>>>";
     }
+
+=head2 filter_custom_content
+
+An optional hook that lets you filter the custom content, or the ungenerated
+portion of the file. This can be useful when managing a large schema.
+
+    filter_custom_content => sub {
+        my ($type, $class, $text) = @_;
+        ...
+        return $new_code;
+    }
+
+The option can also be set to a string, which is then used as a filter program,
+e.g. C<perltidy>.
 
 =head1 METHODS
 
@@ -2131,39 +2146,8 @@ sub _write_classfile {
 
     if ($self->filter_generated_code) {
         my $filter = $self->filter_generated_code;
+        $text = _apply_filter( $filter, $text, $is_schema, $class );
 
-        if (ref $filter eq 'CODE') {
-            $text = $filter->(
-                ($is_schema ? 'schema' : 'result'),
-                $class,
-                $text
-            );
-        }
-        else {
-            my ($fh, $temp_file) = tempfile();
-
-            binmode $fh, ':encoding(UTF-8)';
-            print $fh $text;
-            close $fh;
-
-            open my $out, qq{$filter < "$temp_file"|}
-                or croak "Could not open pipe to $filter: $!";
-
-            $text = decode('UTF-8', do { local $/; <$out> });
-
-            $text =~ s/$CR?$LF/\n/g;
-
-            close $out;
-
-            my $exit_code = $? >> 8;
-
-            unlink $temp_file
-                or croak "Could not remove temporary file '$temp_file': $!";
-
-            if ($exit_code != 0) {
-                croak "filter '$filter' exited non-zero: $exit_code";
-            }
-        }
         if (not $text or not $text =~ /\bpackage\b/) {
             warn("$class skipped due to filter") if $self->debug;
             return;
@@ -2199,11 +2183,56 @@ sub _write_classfile {
     print $fh qq|$_\n|
         for @{$self->{_ext_storage}->{$class} || []};
 
+    # apply any custom content filter:
+    if ($self->filter_custom_content) {
+        my $filter = $self->filter_custom_content;
+        $custom_content = _apply_filter( $filter, $custom_content, $is_schema, $class );
+    }
+
+
     # Write out any custom content the user has added
     print $fh $custom_content;
 
     close($fh)
         or croak "Error closing '$filename': $!";
+}
+
+sub _apply_filter{
+    my( $filter, $text, $is_schema, $class ) = @_;
+
+    if (ref $filter eq 'CODE') {
+        $text = $filter->(
+            ($is_schema ? 'schema' : 'result'),
+            $class,
+            $text
+        );
+    }
+    else {
+        my ($fh, $temp_file) = tempfile();
+
+        binmode $fh, ':encoding(UTF-8)';
+        print $fh $text;
+        close $fh;
+
+        open my $out, qq{$filter < "$temp_file"|}
+            or croak "Could not open pipe to $filter: $!";
+
+        $text = decode('UTF-8', do { local $/; <$out> });
+
+        $text =~ s/$CR?$LF/\n/g;
+
+        close $out;
+
+        my $exit_code = $? >> 8;
+
+        unlink $temp_file
+            or croak "Could not remove temporary file '$temp_file': $!";
+
+        if ($exit_code != 0) {
+            croak "filter '$filter' exited non-zero: $exit_code";
+        }
+    }
+    return $text;
 }
 
 sub _default_moose_custom_content {
