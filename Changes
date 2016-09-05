@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07046  2016-09-05
         - Introspect view definitions for PostgreSQL, MySQL, Oracle,
           Firebird, and InterBase.
         - When a file's md5sum was wrong but no other content in the file had
