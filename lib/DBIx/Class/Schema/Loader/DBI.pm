@@ -273,7 +273,7 @@ sub _sth_for {
     my ($self, $table, $fields, $where) = @_;
 
     my $sth = $self->dbh->prepare($self->schema->storage->sql_maker
-        ->select(\$table->sql_name, $fields, $where));
+        ->select(\$table->sql_name, $fields || \'*', $where));
 
     return $sth;
 }

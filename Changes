@@ -1,5 +1,8 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Avoid upcoming DBIC warning on implicit SELECT * invocation
+          (RT#118178)
+
 0.07046  2016-09-05
         - Introspect view definitions for PostgreSQL, MySQL, Oracle,
           Firebird, and InterBase.
