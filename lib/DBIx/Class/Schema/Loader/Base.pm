@@ -561,10 +561,6 @@ database and/or schema.
 
 Only load matching tables.
 
-=head2 exclude
-
-Exclude matching tables.
-
 These can be specified either as a regex (preferably on the C<qr//>
 form), or as an arrayref of arrayrefs.  Regexes are matched against
 the (unqualified) table name, while arrayrefs are matched according to
@@ -581,6 +577,13 @@ For example:
 
 In this case only the tables C<foo> and C<bar> in C<some_schema> and
 C<baz> in C<other_schema> will be dumped.
+
+=head2 exclude
+
+Exclude matching tables.
+
+The tables to exclude are specified in the same way as for the
+L</constraint> option.
 
 =head2 moniker_map
 
