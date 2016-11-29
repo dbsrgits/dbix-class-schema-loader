@@ -631,6 +631,8 @@ andrewalker: André Walker <andre@andrewalker.net>
 
 angelixd: Paul C. Mantz <pcmantz@cpan.org>
 
+arc: Aaron Crane <arc@cpan.org>
+
 arcanez: Justin Hunter <justin.d.hunter@gmail.com>
 
 ash: Ash Berlin <ash@cpan.org>
