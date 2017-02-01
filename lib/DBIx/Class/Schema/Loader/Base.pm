@@ -412,7 +412,7 @@ L<might_have|DBIx::Class::Relationship/might_have> relationships, they default
 to off.
 
 Can also be a coderef, for more precise control, in which case the coderef gets
-this hash of parameters (as a list:)
+this hash of parameters (as a list):
 
     rel_name        # the name of the relationship
     rel_type        # the type of the relationship: 'belongs_to', 'has_many' or 'might_have'
