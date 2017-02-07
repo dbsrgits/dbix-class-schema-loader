@@ -617,7 +617,8 @@ a coderef for a translator function taking a L<table
 object|DBIx::Class::Schema::Loader::Table> argument (which stringifies to the
 unqualified table name) and returning a scalar moniker
 
-The function is also passed a coderef that can be called with either
+The second argument to the function is the default name generated for the
+table.  The function is also passed a coderef that can be called with either
 of the hashref forms to get the moniker mapped accordingly.  This is
 useful if you need to handle some monikers specially, but want to use
 the hashref form for the rest.
