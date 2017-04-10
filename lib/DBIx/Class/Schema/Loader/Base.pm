@@ -643,7 +643,7 @@ together. Examples:
 
 Map for overriding the monikerization of individual L</moniker_parts>.
 The keys are the moniker part to override, the value is either a
-hashref of coderef for mapping the corresponding part of the
+hashref or coderef for mapping the corresponding part of the
 moniker. If a coderef is used, it gets called with the moniker part
 and the hash key the code ref was found under.
 
