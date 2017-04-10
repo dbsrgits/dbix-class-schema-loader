@@ -418,9 +418,9 @@ this hash of parameters (as a list):
     rel_type        # the type of the relationship: 'belongs_to', 'has_many' or 'might_have'
     local_source    # the DBIx::Class::ResultSource object for the source the rel is *from*
     remote_source   # the DBIx::Class::ResultSource object for the source the rel is *to*
-    local_table     # a DBIx::Class::Schema::Loader::Table object for the table of the source the rel is from
+    local_table     # the DBIx::Class::Schema::Loader::Table object for the table of the source the rel is from
     local_cols      # an arrayref of column names of columns used in the rel in the source it is from
-    remote_table    # a DBIx::Class::Schema::Loader::Table object for the table of the source the rel is to
+    remote_table    # the DBIx::Class::Schema::Loader::Table object for the table of the source the rel is to
     remote_cols     # an arrayref of column names of columns used in the rel in the source it is to
     attrs           # the attributes that would be set
 
@@ -911,8 +911,8 @@ L<column_info|DBIx::Class::ResultSource/column_info> for a column.
 
 Must be a coderef that returns a hashref with the extra attributes.
 
-Receives the L<table object|DBIx::Class::Schema::Loader::Table> (which
-stringifies to the unqualified table name), column name and column_info.
+Receives the L<DBIx::Class::Schema::Loader::Table> object, column name
+and column_info.
 
 For example:
 
