@@ -613,14 +613,27 @@ a hashref of unqualified table name keys and moniker values
 
 =item *
 
-a coderef for a translator function taking a L<table
-object|DBIx::Class::Schema::Loader::Table> argument (which stringifies to the
-unqualified table name) and returning a scalar moniker
+a coderef that returns the moniker, which is called with the following
+arguments:
 
-The function is also passed a coderef that can be called with either
-of the hashref forms to get the moniker mapped accordingly.  This is
-useful if you need to handle some monikers specially, but want to use
-the hashref form for the rest.
+=over
+
+=item *
+
+the L<DBIx::Class::Schema::Loader::Table> object for the table
+
+=item *
+
+the default moniker that DBIC would ordinarily give this table
+
+=item *
+
+a coderef that can be called with either of the hashref forms to get
+the moniker mapped accordingly.  This is useful if you need to handle
+some monikers specially, but want to use the hashref form for the
+rest.
+
+=back
 
 =back
 
