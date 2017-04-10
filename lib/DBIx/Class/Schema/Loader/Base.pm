@@ -677,23 +677,36 @@ L</moniker_map> takes precedence over this.
 Same as moniker_map, but for column accessor names.  The nested
 hashref form is traversed according to L</moniker_parts>, with an
 extra level at the bottom for the column name.  If a coderef is
-passed, the code is called with arguments of
+passed, the code is called with the following arguments:
 
-    the DBIx::Class::Schema::Loader::Column object for the column,
-    default accessor name that DBICSL would ordinarily give this column,
+=over
+
+=item *
+
+the L<DBIx::Class::Schema::Loader::Column> object for the column
+
+=item *
+
+the default accessor name that DBICSL would ordinarily give this column
+
+=item *
+
+a hashref of this form:
+
     {
         table_class     => name of the DBIC class we are building,
         table_moniker   => calculated moniker for this table (after moniker_map if present),
-        table           => table object of interface DBIx::Class::Schema::Loader::Table,
+        table           => the DBIx::Class::Schema::Loader::Table object for the table,
         full_table_name => schema-qualified name of the database table (RDBMS specific),
         schema_class    => name of the schema class we are building,
         column_info     => hashref of column info (data_type, is_nullable, etc),
     }
-    coderef ref that can be called with a hashref map
 
-The L<column|DBIx::Class::Schema::Loader::Column> and
-L<table|DBIx::Class::Schema::Loader::Table> objects stringify to their
-unqualified names.
+=item *
+
+a coderef that can be called with a hashref map
+
+=back
 
 =head2 rel_name_map
 
