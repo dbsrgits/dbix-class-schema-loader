@@ -742,9 +742,9 @@ If it is a coderef, it will be passed a hashref of this form:
         remote_moniker => moniker of the DBIC class we are related to,
         remote_columns => columns in the other table in the relationship,
         # for type => "many_to_many" only:
-        link_class     => name of the DBIC class for the link table
-        link_moniker   => moniker of the DBIC class for the link table
-        link_rel_name  => name of the relationship to the link table
+        link_class     => name of the DBIC class for the link table,
+        link_moniker   => moniker of the DBIC class for the link table,
+        link_rel_name  => name of the relationship to the link table,
     }
 
 In addition it is passed a coderef that can be called with a hashref map.
