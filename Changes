@@ -1,5 +1,6 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+0.07047  2017-05-26
         - Avoid upcoming DBIC warning on implicit SELECT * invocation
           (RT#118178)
         - Improve moniker_map and col_accessor_map coderef documentation (GH#7)
