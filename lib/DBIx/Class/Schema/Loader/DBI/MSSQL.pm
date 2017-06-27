@@ -6,9 +6,8 @@ use base 'DBIx::Class::Schema::Loader::DBI::Sybase::Common';
 use mro 'c3';
 use Try::Tiny;
 use List::Util 'any';
-use namespace::clean;
-
 use DBIx::Class::Schema::Loader::Table::Sybase ();
+use namespace::clean;
 
 our $VERSION = '0.07047';
 

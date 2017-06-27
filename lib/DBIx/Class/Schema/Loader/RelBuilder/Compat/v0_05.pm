@@ -5,8 +5,8 @@ use warnings;
 use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_06';
 use mro 'c3';
 use DBIx::Class::Schema::Loader::Utils 'array_eq';
-use namespace::clean;
 use Lingua::EN::Inflect::Number ();
+use namespace::clean;
 
 our $VERSION = '0.07047';
 

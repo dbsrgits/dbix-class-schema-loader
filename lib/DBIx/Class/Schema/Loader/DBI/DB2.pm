@@ -7,11 +7,9 @@ use base qw/
     DBIx::Class::Schema::Loader::DBI
 /;
 use mro 'c3';
-
 use List::Util 'any';
-use namespace::clean;
-
 use DBIx::Class::Schema::Loader::Table ();
+use namespace::clean;
 
 our $VERSION = '0.07047';
 

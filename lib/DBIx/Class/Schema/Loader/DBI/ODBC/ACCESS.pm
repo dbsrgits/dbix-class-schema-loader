@@ -5,8 +5,8 @@ use warnings;
 use base 'DBIx::Class::Schema::Loader::DBI::ODBC';
 use mro 'c3';
 use Try::Tiny;
-use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
+use namespace::clean;
 
 our $VERSION = '0.07047';
 

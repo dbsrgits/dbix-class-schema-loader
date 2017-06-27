@@ -9,8 +9,8 @@ use List::Util qw/any first/;
 use Try::Tiny;
 use Scalar::Util 'blessed';
 use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
-use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
+use namespace::clean;
 
 our $VERSION = '0.07047';
 

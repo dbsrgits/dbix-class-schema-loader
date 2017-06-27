@@ -6,8 +6,8 @@ use base qw/DBIx::Class::Schema::Loader::DBI/;
 use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'first';
-use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
+use namespace::clean;
 
 our $VERSION = '0.07047';
 

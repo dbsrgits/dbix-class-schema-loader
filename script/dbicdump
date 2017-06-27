@@ -101,7 +101,6 @@ use warnings;
 use Getopt::Long;
 use Pod::Usage;
 use DBIx::Class::Schema::Loader 'make_schema_at';
-use namespace::clean;
 use DBIx::Class::Schema::Loader::Base ();
 use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 require lib;

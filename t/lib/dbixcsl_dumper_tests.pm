@@ -10,9 +10,8 @@ use List::Util 'any';
 use DBIx::Class::Schema::Loader::Utils 'dumper_squashed';
 use DBIx::Class::Schema::Loader ();
 use Class::Unload ();
-use namespace::clean;
-
 use dbixcsl_test_dir '$tdir';
+use namespace::clean;
 
 my $DUMP_PATH = "$tdir/dump";
 

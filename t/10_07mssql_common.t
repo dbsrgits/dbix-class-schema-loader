@@ -7,7 +7,6 @@ use DBIx::Class::Schema::Loader::Utils qw/warnings_exist_silent sigwarn_silencer
 use Try::Tiny;
 use File::Path 'rmtree';
 use DBIx::Class::Schema::Loader 'make_schema_at';
-use namespace::clean;
 use Scope::Guard ();
 
 # use this if you keep a copy of DBD::Sybase linked to FreeTDS somewhere else

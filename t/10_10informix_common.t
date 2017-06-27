@@ -10,7 +10,6 @@ use File::Path 'rmtree';
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use DBIx::Class::Schema::Loader::Utils 'split_name';
 use String::ToIdentifier::EN::Unicode 'to_identifier';
-use namespace::clean;
 
 use lib qw(t/lib);
 

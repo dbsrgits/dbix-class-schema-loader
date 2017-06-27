@@ -7,9 +7,10 @@ use Test::More;
 use String::CamelCase 'wordsplit';
 use Carp::Clan qw/^DBIx::Class/;
 use List::Util 'all';
-use namespace::clean;
-use Exporter 'import';
 use Data::Dumper ();
+use base 'Exporter';
+use namespace::clean;
+
 
 our @EXPORT_OK = qw/split_name dumper dumper_squashed eval_package_without_redefine_warnings class_path no_warnings warnings_exist warnings_exist_silent slurp_file write_file array_eq sigwarn_silencer apply firstidx uniq/;
 

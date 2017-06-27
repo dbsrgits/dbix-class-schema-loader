@@ -7,8 +7,8 @@ use mro 'c3';
 use Try::Tiny;
 use List::Util 'any';
 use Carp::Clan qw/^DBIx::Class/;
-use namespace::clean;
 use DBIx::Class::Schema::Loader::Table ();
+use namespace::clean;
 
 our $VERSION = '0.07047';
 

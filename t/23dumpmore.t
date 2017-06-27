@@ -2,10 +2,10 @@ use strict;
 use warnings;
 use Test::More;
 use DBIx::Class::Schema::Loader::Utils qw/slurp_file write_file/;
-use namespace::clean;
 use File::Temp ();
 use lib qw(t/lib);
 use dbixcsl_dumper_tests;
+
 my $t = 'dbixcsl_dumper_tests';
 
 $t->cleanup;

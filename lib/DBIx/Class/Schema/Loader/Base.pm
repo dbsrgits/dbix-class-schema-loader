@@ -16,9 +16,8 @@ use Lingua::EN::Inflect::Number ();
 use Lingua::EN::Inflect::Phrase ();
 use String::ToIdentifier::EN ();
 use String::ToIdentifier::EN::Unicode ();
-use File::Temp ();
 use Class::Unload;
-use Class::Inspector ();
+use Class::Inspector;
 use Scalar::Util 'looks_like_number';
 use DBIx::Class::Schema::Loader::Column;
 use DBIx::Class::Schema::Loader::Utils qw/split_name dumper_squashed eval_package_without_redefine_warnings class_path slurp_file sigwarn_silencer firstidx uniq/;
@@ -27,7 +26,8 @@ use Try::Tiny;
 use DBIx::Class ();
 use Encode qw/encode decode/;
 use List::Util qw/all any none/;
-use File::Temp 'tempfile';
+use File::Temp qw/tempfile tempdir/;
+
 use namespace::clean;
 
 our $VERSION = '0.07047';
@@ -1208,10 +1208,10 @@ sub new {
     croak "dry_run can only be used with static schema generation"
         if $self->dynamic and $self->dry_run;
 
-    $self->{temp_directory} ||= File::Temp::tempdir( 'dbicXXXX',
-                                                     TMPDIR  => 1,
-                                                     CLEANUP => 1,
-                                                   );
+    $self->{temp_directory} ||= tempdir( 'dbicXXXX',
+                                         TMPDIR  => 1,
+                                         CLEANUP => 1,
+                                     );
 
     $self->{dump_directory} ||= $self->{temp_directory};
 

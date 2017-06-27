@@ -9,13 +9,13 @@ use Scalar::Util 'weaken';
 use DBIx::Class::Schema::Loader::Utils qw/split_name slurp_file array_eq apply uniq/;
 use Try::Tiny;
 use List::Util qw/all any first/;
-use namespace::clean;
-use Lingua::EN::Inflect::Phrase ();
-use Lingua::EN::Tagger ();
+use Lingua::EN::Inflect::Phrase qw(to_PL to_S);
+use Lingua::EN::Tagger;
 use String::ToIdentifier::EN ();
 use String::ToIdentifier::EN::Unicode ();
-use Class::Unload ();
-use Class::Inspector ();
+use Class::Unload;
+use Class::Inspector;
+use namespace::clean;
 
 our $VERSION = '0.07047';
 
@@ -218,7 +218,7 @@ sub _to_PL {
     my ($self, $name) = @_;
 
     $name =~ s/_/ /g;
-    my $plural = Lingua::EN::Inflect::Phrase::to_PL($name);
+    my $plural = to_PL($name);
     $plural =~ s/ /_/g;
 
     return $plural;
@@ -228,7 +228,7 @@ sub _to_S {
     my ($self, $name) = @_;
 
     $name =~ s/_/ /g;
-    my $singular = Lingua::EN::Inflect::Phrase::to_S($name);
+    my $singular = to_S($name);
     $singular =~ s/ /_/g;
 
     return $singular;

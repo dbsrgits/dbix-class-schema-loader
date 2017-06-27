@@ -9,7 +9,6 @@ use Try::Tiny;
 use File::Path 'rmtree';
 use DBIx::Class::Schema::Loader 'make_schema_at';
 use DBIx::Class::Schema::Loader::Utils qw/sigwarn_silencer/;
-use namespace::clean;
 use DBI ();
 
 use lib qw(t/lib);

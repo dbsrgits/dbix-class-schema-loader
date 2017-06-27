@@ -10,7 +10,6 @@ use DBIx::Class::Schema::Loader::Utils qw/slurp_file split_name/;
 use Try::Tiny;
 use File::Path 'rmtree';
 use String::ToIdentifier::EN::Unicode 'to_identifier';
-use namespace::clean;
 
 use lib qw(t/lib);
 use dbixcsl_common_tests ();

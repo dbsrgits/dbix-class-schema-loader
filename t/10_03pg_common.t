@@ -10,7 +10,6 @@ use Test::More;
 use Test::Exception;
 use Try::Tiny;
 use File::Path 'rmtree';
-use namespace::clean;
 
 use lib qw(t/lib);
 use dbixcsl_common_tests ();

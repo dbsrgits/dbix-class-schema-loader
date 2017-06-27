@@ -8,7 +8,6 @@ use Test::More;
 use File::Path qw/make_path rmtree/;
 use DBIx::Class::Schema::Loader::Utils 'slurp_file';
 use Try::Tiny;
-use namespace::clean;
 use lib 't/lib';
 use make_dbictest_db ();
 use dbixcsl_test_dir '$tdir';

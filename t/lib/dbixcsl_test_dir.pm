@@ -5,8 +5,8 @@ use warnings;
 use File::Path 'rmtree';
 use File::Temp 'tempdir';
 use Scalar::Util 'weaken';
-use namespace::clean;
 use DBI ();
+use namespace::clean;
 
 use base qw/Exporter/;
 our @EXPORT_OK = '$tdir';
