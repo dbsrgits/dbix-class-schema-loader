@@ -66,6 +66,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 generated_classes
                                 omit_version
                                 omit_timestamp
+                                omit_view_definitions
 
                                 relationship_attrs
 
@@ -903,6 +904,10 @@ Omit the package version from the signature comment.
 =head2 omit_timestamp
 
 Omit the creation timestamp from the signature comment.
+
+=head2 omit_view_definitions
+
+Omit the creation of view definitions
 
 =head2 custom_column_info
 
@@ -2626,8 +2631,12 @@ sub _setup_src_meta {
     $self->_dbic_stmt($table_class, 'table', $table->dbic_name);
 
     # Must come after ->table
-    if ($is_view and my $view_def = $self->_view_definition($table)) {
-        $self->_dbic_stmt($table_class, 'result_source_instance->view_definition', $view_def);
+    if (  $is_view
+      and my $view_def = $self->_view_definition( $table )
+      and not $self->omit_view_definitions )
+    {
+      $self->_dbic_stmt( $table_class,
+        'result_source_instance->view_definition', $view_def );
     }
 
     my $cols     = $self->_table_columns($table);
