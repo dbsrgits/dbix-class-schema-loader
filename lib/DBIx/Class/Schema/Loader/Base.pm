@@ -2632,8 +2632,7 @@ sub _setup_src_meta {
 
     # Must come after ->table
     if (  $is_view and my $view_def = $self->_view_definition( $table ) and not $self->omit_view_definitions ){
-      $self->_dbic_stmt( $table_class,
-        'result_source_instance->view_definition', $view_def );
+      $self->_dbic_stmt( $table_class,'result_source_instance->view_definition', $view_def );
     }
 
     my $cols     = $self->_table_columns($table);
