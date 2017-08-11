@@ -36,6 +36,17 @@ my $dbic_reqs = {
     },
   },
 
+  use_moo => {
+    req => {
+      'Moo' => '2',
+      'namespace::autoclean' => '0.16',
+    },
+    pod => {
+      title => 'use_moo',
+      desc  => 'Modules required for the use_moo option',
+    },
+  },
+
   dbicdump_config => {
     req => {
       'Config::Any' => '0',

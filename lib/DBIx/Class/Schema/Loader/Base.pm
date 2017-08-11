@@ -60,6 +60,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 result_base_class
                                 result_roles
                                 use_moose
+                                use_moo
                                 only_autoclean
                                 overwrite_modifications
                                 dry_run
@@ -980,6 +981,13 @@ content after the md5 sum also makes the classes immutable.
 
 It is safe to upgrade your existing Schema to this option.
 
+=head2 use_moo
+
+Creates Schema and Result classes that use L<Moo> and
+L<namespace::autoclean>.
+
+It is safe to upgrade your existing Schema to this option.
+
 =head2 only_autoclean
 
 By default, we use L<MooseX::MarkAsMethods> to remove imported functions from
@@ -1134,8 +1142,11 @@ sub new {
         $self->result_roles_map($self->{result_role_map})
     }
 
-    croak "the result_roles and result_roles_map options may only be used in conjunction with use_moose=1"
-        if ((not defined $self->use_moose) || (not $self->use_moose))
+    croak "Specify only one of use_moose or use_moo"
+        if $self->use_moose and $self->use_moo;
+
+    croak "the result_roles and result_roles_map options may only be used in conjunction with use_moose=1 or use_moo=1"
+        if ((not $self->use_moose) && (not $self->use_moo))
             && ((defined $self->result_roles) || (defined $self->result_roles_map));
 
     $self->_ensure_arrayref(qw/schema_components
@@ -1179,10 +1190,12 @@ sub new {
     }
     $self->_validate_result_roles_map;
 
-    if ($self->use_moose) {
-        if (not DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for('use_moose')) {
-            die sprintf "You must install the following CPAN modules to enable the use_moose option: %s.\n",
-                DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for('use_moose');
+    for my $use_oo (qw(use_moose use_moo)) {
+        if ($self->$use_oo) {
+            if (not DBIx::Class::Schema::Loader::Optional::Dependencies->req_ok_for($use_oo)) {
+                die sprintf "You must install the following CPAN modules to enable the $use_oo option: %s.\n",
+                    DBIx::Class::Schema::Loader::Optional::Dependencies->req_missing_for($use_oo);
+            }
         }
     }
 
@@ -1389,9 +1402,12 @@ EOF
 
     return unless $old_ver;
 
-    # determine if the existing schema was dumped with use_moose => 1
-    if (! defined $self->use_moose) {
-        $self->{use_moose} = 1 if $old_gen =~ /^ (?!\s*\#) use \s+ Moose/xm;
+    # determine if the existing schema was dumped with use_moo(se) => 1
+    for my $oo (qw(Moose Moo)) {
+        my $use_oo = "use_".lc($oo);
+        if (! defined $self->$use_oo) {
+            $self->{$use_oo} = 1 if $old_gen =~ /^ (?!\s*\#) use \s+ \Q$oo\E\b/xm;
+        }
     }
 
     my $load_classes = ($old_gen =~ /^__PACKAGE__->load_classes;/m) ? 1 : 0;
@@ -1992,8 +2008,10 @@ sub _dump_to_dir {
         ;
 
     if ($self->use_moose) {
-
         $schema_text.= qq|use Moose;\nuse $autoclean;\nextends '$schema_base_class';\n\n|;
+    }
+    elsif ($self->use_moo) {
+        $schema_text .= qq|use Moo;\nuse namespace::autoclean;\nextends '$schema_base_class';\n\n|;
     }
     else {
         $schema_text .= qq|use strict;\nuse warnings;\n\nuse base '$schema_base_class';\n\n|;
@@ -2051,8 +2069,11 @@ sub _dump_to_dir {
         $src_text .= $self->_base_class_pod($result_base_class)
             unless $result_base_class eq 'DBIx::Class::Core';
 
-        if ($self->use_moose) {
-            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse $autoclean;|;
+        if ($self->use_moose || $self->use_moo) {
+            $src_text.= $self->use_moose
+                ? qq|use Moose;\nuse MooseX::NonMoose;\nuse $autoclean;|
+                : qq|use Moo;\nuse namespace::autoclean;|
+                ;
 
             # these options 'use base' which is compile time
             if (@{ $self->left_base_classes } || @{ $self->additional_base_classes }) {
@@ -2475,6 +2496,7 @@ sub _is_result_class_method {
         for my $class (
             $base, @components, @roles,
             ($self->use_moose ? 'Moose::Object' : ()),
+            ($self->use_moo ? 'Moo::Object' : ()),
         ) {
             $self->ensure_class_loaded($class);
 
@@ -2905,7 +2927,8 @@ sub _load_roles {
         if exists $self->result_roles_map->{$table_moniker};
 
     if (@roles) {
-        $self->_pod_class_list($table_class, 'L<Moose> ROLES APPLIED', @roles);
+        my $class = $self->use_moose ? 'Moose' : 'Moo';
+        $self->_pod_class_list($table_class, "L<$class> ROLES APPLIED", @roles);
 
         $self->_with($table_class, @roles);
     }
