@@ -323,6 +323,10 @@ EOF
                 my $now = 'now()';
                 $info->{original}{default_value} = \$now;
             }
+            elsif (${ $info->{default_value} } =~ /\bCURRENT_TIMESTAMP\b/) {
+                # PostgreSQL v10 upcases current_timestamp in default values
+                ${ $info->{default_value} } =~ s/\b(CURRENT_TIMESTAMP)\b/lc $1/ge;
+            }
         }
 
         # detect 0/1 for booleans and rewrite
