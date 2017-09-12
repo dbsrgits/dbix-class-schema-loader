@@ -308,24 +308,24 @@ EOF
             }
         }
 
-# process SERIAL columns
-        if (ref($info->{default_value}) eq 'SCALAR'
-                && ${ $info->{default_value} } =~ /\bnextval\('([^:]+)'/i) {
-            $info->{is_auto_increment} = 1;
-            $info->{sequence}          = $1;
-            delete $info->{default_value};
+        if (ref($info->{default_value}) eq 'SCALAR') {
+            # process SERIAL columns
+            if (${ $info->{default_value} } =~ /\bnextval\('([^:]+)'/i) {
+                $info->{is_auto_increment} = 1;
+                $info->{sequence}          = $1;
+                delete $info->{default_value};
+            }
+            # alias now() to current_timestamp for deploying to other DBs
+            elsif (lc ${ $info->{default_value} } eq 'now()') {
+                # do not use a ref to a constant, that breaks Data::Dump output
+                ${$info->{default_value}} = 'current_timestamp';
+
+                my $now = 'now()';
+                $info->{original}{default_value} = \$now;
+            }
         }
 
-# alias now() to current_timestamp for deploying to other DBs
-        if ((eval { lc ${ $info->{default_value} } }||'') eq 'now()') {
-            # do not use a ref to a constant, that breaks Data::Dump output
-            ${$info->{default_value}} = 'current_timestamp';
-
-            my $now = 'now()';
-            $info->{original}{default_value} = \$now;
-        }
-
-# detect 0/1 for booleans and rewrite
+        # detect 0/1 for booleans and rewrite
         if ($data_type =~ /^bool/i && exists $info->{default_value}) {
             if ($info->{default_value} eq '0') {
                 my $false = 'false';
