@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Support identity columns in PostgreSQL v10
+
 0.07048_01 - 2018-02-23
         - Convert from Module::Install to ExtUtils::MakeMaker + Distar (GH#17)
 
