@@ -115,7 +115,7 @@ sub run_tests {
         return;
     }
 
-    my $extra_count = $self->{extra}{count} || 0;
+    my $extra_count = ($self->{extra} ? 1 : 0) + @{ $self->{cond_extra} || [] };
 
     my $col_accessor_map_tests = 6;
 
@@ -137,10 +137,24 @@ sub run_tests {
     }
 }
 
+sub run_extra_tests {
+    my ($self, $conn, $monikers, $classes) = @_;
+
+    for my $extra ($self->{extra}, @{ $self->{cond_extra} || [] }) {
+        subtest $extra->{desc} || 'Extra tests' => sub {
+            plan skip_all => $extra->{skip}
+                if $extra->{cond} and !$extra->{cond}->($conn->storage->dbh);
+            plan tests => $extra->{count} if $extra->{count};
+
+            $extra->{run}->($conn, $monikers, $classes, $self) if $extra->{run};
+        };
+    }
+}
+
 sub run_only_extra_tests {
     my ($self, $connect_info) = @_;
 
-    plan tests => @$connect_info * (3 + ($self->{extra}{count} || 0) + ($self->{data_type_tests}{test_count} || 0));
+    plan tests => @$connect_info * (3 + ($self->{extra} ? 1 : 0) + @{ $self->{cond_extra} || [] } + ($self->{data_type_tests}{test_count} || 0));
 
     rmtree DUMP_DIR;
 
@@ -153,7 +167,7 @@ sub run_only_extra_tests {
 
         my $dbh = $self->dbconnect(1);
         $dbh->do($_) for @{ $self->{pre_create} || [] };
-        $dbh->do($_) for @{ $self->{extra}{create} || [] };
+        $self->do_extra($dbh, 'create');
 
         if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
             foreach my $ddl (@{ $self->{data_type_tests}{ddl} || []}) {
@@ -169,8 +183,12 @@ sub run_only_extra_tests {
         $dbh->disconnect;
         $self->{_created} = 1;
 
-        my $file_count = grep $_ =~ SOURCE_DDL, @{ $self->{extra}{create} || [] };
-        $file_count++; # schema
+        my $file_count = 1; # schema;
+        $self->call_extra(undef, create => sub {
+            my (undef, $create) = @_;
+            $file_count += grep $_ =~ SOURCE_DDL,
+                @{ $create || [] };
+        });
 
         if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
             $file_count++ for @{ $self->{data_type_tests}{table_names} || [] };
@@ -181,7 +199,7 @@ sub run_only_extra_tests {
         my $conn = $schema_class->clone;
 
         $self->test_data_types($conn);
-        $self->{extra}{run}->($conn, $monikers, $classes, $self) if $self->{extra}{run};
+        $self->run_extra_tests($conn, $monikers, $classes);
         $conn->storage->disconnect;
 
         if (not ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#$connect_info)) {
@@ -198,8 +216,11 @@ sub drop_extra_tables_only {
 
     local $^W = 0; # for ADO
 
-    $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
-    $self->drop_table($dbh, $_) for @{ $self->{extra}{drop} || [] };
+    $self->do_extra($dbh, 'pre_drop_ddl');
+    $self->call_extra($dbh, drop => sub {
+        my ($dbh, $drop) = @_;
+        $self->drop_table($dbh, $_) for @{ $drop || [] };
+    });
 
     if (not ($self->{vendor} eq 'mssql' && $dbh->{Driver}{Name} eq 'Sybase')) {
         foreach my $data_type_table (@{ $self->{data_type_tests}{table_names} || [] }) {
@@ -295,8 +316,11 @@ sub setup_schema {
                 $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
             }
 
-            $expected_count += grep $_ =~ SOURCE_DDL,
-                @{ $self->{extra}{create} || [] };
+            $self->call_extra(undef, create => sub {
+                my (undef, $create) = @_;
+                $expected_count += grep $_ =~ SOURCE_DDL,
+                    @{ $create || [] };
+            });
 
             $expected_count -= grep /CREATE TABLE/i, @statements_inline_rels
                 if $self->{skip_rels} || $self->{no_inline_rels};
@@ -1354,11 +1378,9 @@ EOF
 
     $self->test_preserve_case($conn);
 
-    # run extra tests
-    $self->{extra}{run}->($conn, $monikers, $classes, $self) if $self->{extra}{run};
+    $self->run_extra_tests($conn, $monikers, $classes);
 
     ## Create a dump from an existing $dbh in a transaction
-
 TODO: {
     local $TODO = 'dumping in a txn is experimental and Pg-only right now'
         unless $self->{vendor} eq 'Pg';
@@ -2158,8 +2180,30 @@ sub create {
         }
     }
 
-    $dbh->do($_) for @{ $self->{extra}->{create} || [] };
+    $self->do_extra($dbh, 'create');
     $dbh->disconnect();
+}
+
+
+sub do_extra {
+    my ($self, $dbh, $key) = @_;
+    $self->call_extra($dbh, $key, sub {
+        my ($dbh, $extra) = @_;
+        $dbh->do($_) for @{ $extra || [] };
+    });
+}
+
+sub call_extra {
+    my ($self, $dbh, $key, $action) = @_;
+    my $connected = !$dbh;
+    $dbh ||= $self->dbconnect(1);
+    $action->($dbh, $self->{extra}->{$key});
+
+    for my $extra (@{ $self->{cond_extra} || [] }) {
+        $action->($dbh, $extra->{$key})
+            if $extra->{cond}->($dbh);
+    }
+    $dbh->disconnect if $connected;
 }
 
 sub drop_tables {
@@ -2255,9 +2299,12 @@ sub drop_tables {
 
         my $dbh = $self->dbconnect(0);
 
-        $dbh->do($_) for @{ $self->{extra}{pre_drop_ddl} || [] };
+        $self->do_extra($dbh, 'pre_drop_ddl');
 
-        $self->drop_table($dbh, $_) for @{ $self->{extra}{drop} || [] };
+        $self->call_extra($dbh, drop => sub {
+            my ($dbh, $drop) = @_;
+            $self->drop_table($dbh, $_) for @{ $drop || [] };
+        });
 
         my $drop_auto_inc = $self->{auto_inc_drop_cb} || sub {};
 
