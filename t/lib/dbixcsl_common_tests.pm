@@ -181,12 +181,12 @@ sub run_only_extra_tests {
 
         $self->test_data_types($conn);
         $self->{extra}{run}->($conn, $monikers, $classes, $self) if $self->{extra}{run};
+        $conn->storage->disconnect;
 
         if (not ($ENV{SCHEMA_LOADER_TESTS_NOCLEANUP} && $info_idx == $#$connect_info)) {
             $self->drop_extra_tables_only;
             rmtree DUMP_DIR;
         }
-        $conn->storage->disconnect;
     }
 }
 
@@ -1389,9 +1389,9 @@ TODO: {
     diag $@ if $@ && (not $TODO);
 }
 
-    $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
-
     $conn->storage->disconnect;
+
+    $self->drop_tables unless $ENV{SCHEMA_LOADER_TESTS_NOCLEANUP};
 }
 
 sub test_data_types {
