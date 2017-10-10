@@ -286,22 +286,21 @@ EOF
                 ->selectrow_array(<<EOF, {}, $data_type);
 SELECT typtype
 FROM pg_catalog.pg_type
-WHERE typname = ?
+WHERE oid = ?::regtype
 EOF
             if ($typetype && $typetype eq 'e') {
                 # The following will extract a list of allowed values for the enum.
                 my $order_column = $self->dbh->{pg_server_version} >= 90100 ? 'enumsortorder' : 'oid';
                 $info->{extra}{list} = $self->dbh
-                    ->selectcol_arrayref(<<EOF, {}, $info->{data_type});
+                    ->selectcol_arrayref(<<EOF, {}, $data_type);
 SELECT e.enumlabel
 FROM pg_catalog.pg_enum e
-JOIN pg_catalog.pg_type t ON t.oid = e.enumtypid
-WHERE t.typname = ?
+WHERE e.enumtypid = ?::regtype
 ORDER BY e.$order_column
 EOF
 
                 # Store its original name in extra for SQLT to pick up.
-                $info->{extra}{custom_type_name} = $info->{data_type};
+                $info->{extra}{custom_type_name} = $data_type;
 
                 $info->{data_type} = 'enum';
 
