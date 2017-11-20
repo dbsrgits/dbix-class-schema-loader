@@ -11,6 +11,7 @@ use Sub::Util 'set_subname';
 use DBIx::Class::Schema::Loader::Utils 'array_eq';
 use Try::Tiny;
 use Hash::Merge 'merge';
+use curry;
 use namespace::clean;
 
 # Always remember to do all digits for the version even if they're 0
@@ -460,11 +461,11 @@ sub import {
         }
         elsif($opt eq 'naming') {
             no strict 'refs';
-            *{"${cpkg}::naming"} = sub { $self->naming(@_) };
+            *{"${cpkg}::naming"} = $self->curry::naming;
         }
         elsif($opt eq 'use_namespaces') {
             no strict 'refs';
-            *{"${cpkg}::use_namespaces"} = sub { $self->use_namespaces(@_) };
+            *{"${cpkg}::use_namespaces"} = $self->curry::use_namespaces,
         }
     }
 }

@@ -10,6 +10,7 @@ use Test::Differences;
 use DBIx::Class::Schema::Loader;
 use Class::Unload;
 use File::Path 'rmtree';
+use curry;
 use DBI;
 use File::Find 'find';
 use Class::Unload ();
@@ -259,7 +260,7 @@ sub setup_schema {
         col_collision_map       => { '^(can)\z' => 'caught_collision_%s' },
         rel_collision_map       => { '^(set_primary_key)\z' => 'caught_rel_collision_%s' },
         relationship_attrs      => { many_to_many => { order_by => 'me.id' } },
-        col_accessor_map        => sub { $self->test_col_accessor_map(@_) },
+        col_accessor_map        => $self->curry::weak::test_col_accessor_map,
         result_components_map   => { LoaderTest2X => 'TestComponentForMap', LoaderTest1 => '+TestComponentForMapFQN' },
         uniq_to_primary         => 1,
         %{ $self->{loader_options} || {} },
