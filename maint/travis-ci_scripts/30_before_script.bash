@@ -115,7 +115,7 @@ else
   parallel_installdeps_notest SQL::Abstract Moose Module::Install JSON SQL::Translator File::Which
   parallel_installdeps_notest Module::Install::ReadmeFromPod Module::Install::AuthorTests
   parallel_installdeps_notest Math::Base36 DBD::mysql DBD::Pg Math::BigInt String::CamelCase
-  parallel_installdeps_notest MooseX::NonMoose MooseX::MarkAsMethods namespace::autoclean
+  parallel_installdeps_notest MooseX::NonMoose MooseX::MarkAsMethods namespace::autoclean curry
 
   if env | grep -q '^DBICTEST_.*_ODBC_DSN'; then
     parallel_installdeps_notest DBD::ODBC
