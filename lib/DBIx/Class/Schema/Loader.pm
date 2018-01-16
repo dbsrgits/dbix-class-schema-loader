@@ -8,9 +8,8 @@ use mro 'c3';
 use Carp::Clan qw/^DBIx::Class/;
 use Scalar::Util 'weaken';
 use Sub::Util 'set_subname';
-use DBIx::Class::Schema::Loader::Utils 'array_eq';
+use DBIx::Class::Schema::Loader::Utils qw/array_eq sigwarn_silencer/;
 use Try::Tiny;
-use Hash::Merge 'merge';
 use curry;
 use namespace::clean;
 
@@ -233,11 +232,26 @@ sub _merge_state_from {
 
     $self->_copy_state_from($from);
 
-    $self->class_mappings(merge($orig_class_mappings, $self->class_mappings))
+    $self->class_mappings(__merge($orig_class_mappings, $self->class_mappings))
         if $orig_class_mappings;
 
-    $self->source_registrations(merge($orig_source_registrations, $self->source_registrations))
+    $self->source_registrations(__merge($orig_source_registrations, $self->source_registrations))
         if $orig_source_registrations;
+}
+
+my $merger;
+sub __merge {
+
+  local $SIG{__WARN__} = sigwarn_silencer(qr/Arguments for _merge_hashes must be hash references/);
+
+  ( $merger ||= do {
+    require Hash::Merge;
+    my $m = Hash::Merge->new('LEFT_PRECEDENT');
+    $m->set_clone_behavior(0);
+    $m;
+  } )->merge(
+    $_[0], $_[1]
+  );
 }
 
 sub _copy_state_from {
