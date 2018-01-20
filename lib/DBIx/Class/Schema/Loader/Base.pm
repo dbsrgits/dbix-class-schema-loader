@@ -31,7 +31,7 @@ use File::Temp 'tempfile';
 use curry;
 use namespace::clean;
 
-our $VERSION = '0.07047';
+our $VERSION = '0.07048';
 
 __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 schema
