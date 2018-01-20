@@ -634,7 +634,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         'is_nullable=1 detection';
 
     SKIP: {
-        skip $self->{skip_rels}, 149 if $self->{skip_rels};
+        skip $self->{skip_rels}, 143 if $self->{skip_rels};
 
         my $moniker3 = $monikers->{loader_test3};
         my $class3   = $classes->{loader_test3};
