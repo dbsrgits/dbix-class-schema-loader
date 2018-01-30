@@ -58,18 +58,6 @@ if [[ "$POISON_ENV" = "true" ]] ; then
 fi
 
 if [[ "$CLEANTEST" = "true" ]]; then
-  # get the last inc/ off cpan - we will get rid of MI
-  # soon enough, but till then this will do
-  # the point is to have a *really* clean perl (the ones
-  # we build are guaranteed to be clean, without side
-  # effects from travis preinstalls)
-
-  # trick cpanm into executing true as shell - we just need the find+unpack
-  [[ -d ~/.cpanm/latest-build/DBIx-Class-*/inc ]] || run_or_err "Downloading latest stable DBIC inc/ from CPAN" \
-    "SHELL=/bin/true cpanm --look DBIx::Class::Schema::Loader"
-
-  mv ~/.cpanm/latest-build/DBIx-Class-Schema-Loader-*/inc .
-
   # The first CPAN which is somewhat sane is around 1.94_56 (perl 5.12)
   # The problem is that the first sane version also brings a *lot* of
   # deps with it, notably things like YAML and HTTP::Tiny
@@ -139,14 +127,14 @@ else
 
 fi
 
-# generate the makefile which will have different deps depending on
+# generate the MYMETA which will have different deps depending on
 # the runmode and envvars set above
 run_or_err "Configure on current branch" "perl Makefile.PL"
 
 # install (remaining) dependencies, sometimes with a gentle push
 if [[ "$CLEANTEST" = "true" ]]; then
   # we may need to prepend some stuff to that list
-  HARD_DEPS="$(echo $(make listdeps))"
+  HARD_DEPS="$(extract_prereqs .)"
 
 ##### TEMPORARY WORKAROUNDS needed in case we will be using CPAN.pm
   if [[ "$DEVREL_DEPS" != "true" ]] && ! CPAN_is_sane ; then
@@ -227,7 +215,7 @@ else
   # listalldeps is deliberate - will upgrade everything it can find
   # we exclude DBIC specifically, since we do not want to pull
   # in 0.089xx on bleadcpan runs
-  deplist="$(make listalldeps | grep -vP '^(DBIx::Class)$')"
+  deplist="$(listalldeps | grep -vP '^(DBIx::Class)$')"
 
   # assume MDV on POISON_ENV, do not touch DBI/SQLite
   if [[ "$POISON_ENV" = "true" ]] ; then
@@ -242,12 +230,12 @@ echo_err "$(tstamp) Dependency installation finished"
 perl Makefile.PL
 
 # make sure we got everything we need
-if [[ -n "$(make listdeps)" ]] ; then
+if [[ -n "$(extract_prereqs .)" ]] ; then
   echo_err "$(tstamp) Not all deps installed - something went wrong :("
   sleep 1 # without this the echo below confuses the console listener >.<
   CPAN_is_sane || echo_err -e "Outdated CPAN.pm used - full installdep log follows\n$INSTALLDEPS_OUT\n\nSearch for 'NOT OK' in the text above\n\nDeps still missing:"
   sleep 3 # without this the above echo confuses the console listener >.<
-  make listdeps
+  extract_prereqs .
   exit 1
 fi
 
