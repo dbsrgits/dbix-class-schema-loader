@@ -127,6 +127,16 @@ extract_prereqs() {
   echo "$PQ"
 }
 
+listalldeps() {
+  # relies on sorted YAML
+  perl -lne '
+    next unless /^((?:build_)?requires:)/..($_ ne $1 and /^[^ ]/);
+    next if /^[^ ]/ or /^ *perl:/; # drop requires headers, or perl
+    s/^ *([^ ]*): .*/$1/;
+    print;
+  ' MYMETA.yml
+}
+
 parallel_installdeps_notest() {
   if [[ -z "$@" ]] ; then return; fi
 
