@@ -22,8 +22,6 @@ my %eumm_args = (
         'Test::Warn'      => '0.21',
         'Test::Deep'      => '0.107',
         'Test::Differences' => '0.60',
-        # temporary, needs to be thrown out
-        'DBIx::Class::IntrospectableM2M' => 0,
         # core, but specific versions not available on older perls
         'File::Temp'      => '0.16',
         'File::Path'      => '2.07',
