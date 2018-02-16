@@ -187,13 +187,13 @@ sub _invoke_loader {
     $args->{naming} = $self->naming if $self->naming;
     $args->{use_namespaces} = $self->use_namespaces if defined $self->use_namespaces;
 
-    # XXX this only works for relative storage_type, like ::DBI ...
     my $loader_class = $self->loader_class;
     if ($loader_class) {
         $loader_class = "DBIx::Class::Schema::Loader${loader_class}" if $loader_class =~ /^::/;
         $args->{loader_class} = $loader_class;
     };
 
+    # XXX this only works for relative storage_type, like ::DBI ...
     my $impl = $loader_class || "DBIx::Class::Schema::Loader" . $self->storage_type;
     try {
         $self->ensure_class_loaded($impl)
