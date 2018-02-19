@@ -4,10 +4,11 @@
 /*.old
 /blib
 /*gz
-/inc
+/Distar
 /pm_to_blib
 /Makefile
 /MANIFEST
+/MANIFEST.SKIP
 /META.*
 /MYMETA.*
 /README
