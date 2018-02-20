@@ -24,6 +24,7 @@ __PACKAGE__->mk_group_accessors('inherited', qw/
                                 _loader_invoked
                                 _loader
                                 loader_class
+                                loader_roles
                                 naming
                                 use_namespaces
 /);
@@ -202,7 +203,13 @@ sub _invoke_loader {
         croak qq/Could not load loader_class "$impl": "$_"/;
     };
 
-    $class->loader($impl->new(%$args));
+    my $loader = $impl->new(%$args);
+    if (my @roles = @{$self->loader_roles || []}) {
+        require Role::Tiny;
+        Role::Tiny->apply_roles_to_object($loader, @roles);
+    }
+
+    $class->loader($loader);
     $class->loader->load;
     $class->_loader_invoked(1);
 
@@ -294,10 +301,10 @@ sub _copy_state_from {
 
 See L<DBIx::Class::Schema/connection> for basic usage.
 
-If the final argument is a hashref, and it contains the keys C<loader_options>
-or C<loader_class>, those keys will be deleted, and their values value will be
-used for the loader options or class, respectively, just as if set via the
-L</loader_options> or L</loader_class> methods above.
+If the final argument is a hashref, and it contains the keys C<loader_options>,
+C<loader_class> or C<loader_roles>, those keys will be deleted, and their values
+value will be used for the loader options or class, respectively, just as if set
+via the L</loader_options> or L</loader_class> methods above.
 
 The actual auto-loading operation (the heart of this module) will be invoked
 as soon as the connection information is defined.
@@ -309,7 +316,7 @@ sub connection {
     my $class = ref $self || $self;
 
     if($_[-1] && ref $_[-1] eq 'HASH') {
-        for my $option (qw/loader_class loader_options/) {
+        for my $option (qw/loader_class loader_options loader_roles/) {
             if(my $value = delete $_[-1]->{$option}) {
                 $self->$option($value);
             }
