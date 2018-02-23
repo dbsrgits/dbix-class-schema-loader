@@ -26,7 +26,7 @@ use DBIx::Class::Schema::Loader::Optional::Dependencies ();
 use Try::Tiny;
 use DBIx::Class ();
 use Encode qw/encode decode/;
-use List::Util qw/all any none/;
+use List::Util qw/all any none pairgrep/;
 use File::Temp 'tempfile';
 use curry;
 use namespace::clean;
@@ -49,6 +49,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 moniker_map
                                 col_accessor_map
                                 custom_column_info
+                                exclude_columns
                                 inflect_singular
                                 inflect_plural
                                 debug
@@ -905,6 +906,22 @@ Omit the package version from the signature comment.
 
 Omit the creation timestamp from the signature comment.
 
+=head2 exclude_columns
+
+Hook for excluding some columns from the generated schema.
+
+Receives the L<DBIx::Class::Schema::Loader::Table> object, column name and
+column_info. This is called at the last possible moment before emitting an
+C<add_columns> call; in particular, it happens after L</custom_column_info>.
+
+For example, to exclude columns of type "tsvector" (which might be useful in
+a PostgreSQL database where those columns are maintained by triggers):
+
+    exclude_columns => sub {
+        my ($table, $column_name, $column_info) = @_;
+        return $column_info->{data_type} eq 'tsvector';
+    },
+
 =head2 custom_column_info
 
 Hook for adding extra attributes to the
@@ -1252,6 +1269,10 @@ sub new {
 
     if ($self->custom_column_info && ref $self->custom_column_info ne 'CODE') {
         croak 'custom_column_info must be a CODE ref';
+    }
+
+    if ($self->exclude_columns && ref $self->exclude_columns ne 'CODE') {
+        croak 'exclude_columns must be a CODE ref';
     }
 
     $self->_check_back_compat;
@@ -2710,9 +2731,12 @@ sub _setup_src_meta {
         $col_info->{$pkcol}{is_nullable} = 0;
     }
 
+    my $exclude_columns = $self->exclude_columns;
+
     $self->_dbic_stmt(
         $table_class,
         'add_columns',
+        pairgrep { !$exclude_columns || !$exclude_columns->($table, $a, $b) }
         map { $_, ($col_info->{$_}||{}) } @$cols
     );
 
