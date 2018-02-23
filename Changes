@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Convert from Module::Install to ExtUtils::MakeMaker + Distar (GH#17)
+
 0.07048  2018-01-20
         - Fix for PostgreSQL enums not in the schema search path (RT#123234)
         - Fix 'default now()' test for PostgreSQL v10

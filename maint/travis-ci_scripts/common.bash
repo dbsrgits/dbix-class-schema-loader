@@ -115,7 +115,10 @@ extract_prereqs() {
     s/^\!.*//;
     s/^[^a-z]+//i;
     s/\-[^\-]+$/ /; # strip version part
-    s/\-/::/g
+    s/\-/::/g;
+    s/^\s*Snowball::Swedish\s*$/ Lingua::Stem::Snowball::Se /m; # distro->module
+    s/^\s*Snowball::Norwegian\s*$/ Lingua::Stem::Snowball::No /m;
+    s/^\s*Scalar::List::Utils\s*$/ List::Util /m;
   ' <<< "$OUT")
 
   # throw away what was in $@
@@ -125,6 +128,16 @@ extract_prereqs() {
 
   # RV
   echo "$PQ"
+}
+
+listalldeps() {
+  # relies on sorted YAML
+  perl -lne '
+    next unless /^((?:build_)?requires:)/..($_ ne $1 and /^[^ ]/);
+    next if /^[^ ]/ or /^ *perl:/; # drop requires headers, or perl
+    s/^ *([^ ]*): .*/$1/;
+    print;
+  ' MYMETA.yml
 }
 
 parallel_installdeps_notest() {
