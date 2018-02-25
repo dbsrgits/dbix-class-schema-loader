@@ -1,5 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
 
+        - Fix tests when the path to perl has spaces in it (GH#19)
+
 0.07048_01 - 2018-02-23
         - Convert from Module::Install to ExtUtils::MakeMaker + Distar (GH#17)
 
