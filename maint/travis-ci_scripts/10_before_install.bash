@@ -119,7 +119,7 @@ else
 
         run_or_err "Fetching and building Firebird ODBC driver" '
           cd "$(mktemp -d)"
-          wget -O- http://sourceforge.net/projects/firebird/files/firebird-ODBC-driver/2.0.5-Release/OdbcJdbc-src-2.0.5.156.tar.gz/download | tar -xz
+          wget -O- https://downloads.sourceforge.net/project/firebird/firebird-ODBC-driver/2.0.5-Release/OdbcJdbc-src-2.0.5.156.tar.gz | tar -xz
           cd OdbcJdbc/Builds/Gcc.lin
           perl -p -i -e "s|/usr/lib64|/usr/lib/x86_64-linux-gnu|g" ../makefile.environ
           # Fix illegal string concatenation error under C++11
