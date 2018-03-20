@@ -47,7 +47,6 @@ my %eumm_args = (
         'namespace::clean'            => '0.23',
         'Scope::Guard'                => '0.20',
         'String::ToIdentifier::EN'    => '0.05',
-        'String::CamelCase'           => '0.02',
         'Sub::Util'                   => '1.40',
         'Try::Tiny'                   => 0,
         # core, but specific versions not available on older perls
