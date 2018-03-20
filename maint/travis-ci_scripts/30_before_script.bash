@@ -66,12 +66,7 @@ if [[ "$CLEANTEST" = "true" ]]; then
   # So instead we still use our stock (possibly old) CPAN, and add some
   # handholding
 
-  if [[ "$DEVREL_DEPS" == "true" ]] ; then
-    # We are not "quite ready" for DBIC 0.089xx, do not consider it
-    #
-    installdeps 'DBIx::Class~<0.08900'
-
-  elif ! CPAN_is_sane ; then
+  if ! CPAN_is_sane ; then
     # no configure_requires - we will need the usual suspects anyway
     # without pre-installing these in one pass things like extract_prereqs won't work
     installdeps ExtUtils::MakeMaker ExtUtils::CBuilder Module::Build
@@ -213,9 +208,7 @@ while (@chunks) {
 else
 
   # listalldeps is deliberate - will upgrade everything it can find
-  # we exclude DBIC specifically, since we do not want to pull
-  # in 0.089xx on bleadcpan runs
-  deplist="$(listalldeps | grep -vP '^(DBIx::Class)$')"
+  deplist="$(listalldeps)"
 
   # assume MDV on POISON_ENV, do not touch DBI/SQLite
   if [[ "$POISON_ENV" = "true" ]] ; then
