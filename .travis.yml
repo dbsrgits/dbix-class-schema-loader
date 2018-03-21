@@ -69,20 +69,20 @@ language: perl
 
 perl:
   - 5.24-extras
-  - 5.24
-  - 5.22-extras
-  - 5.22
+#  - 5.24
+#  - 5.22-extras
+#  - 5.22
 
 env:
-  - CLEANTEST=false DBICTEST_DB2=true
-  - CLEANTEST=false DBICTEST_ORA=true
+#  - CLEANTEST=false DBICTEST_DB2=true
+#  - CLEANTEST=false DBICTEST_ORA=true
   - CLEANTEST=false DBICTEST_FIREBIRD=true
-  - CLEANTEST=false DBICTEST_MYSQL_INNODB=1
-  - CLEANTEST=true
+#  - CLEANTEST=false DBICTEST_MYSQL_INNODB=1
+#  - CLEANTEST=true
 
 matrix:
   fast_finish: false
-  include:
+  dont_include:
     # this particular perl is quite widespread
     - perl: 5.8.8_thr_mb
       env:
