@@ -5,7 +5,7 @@ use warnings;
 use base 'DBIx::Class::Schema::Loader::RelBuilder::Compat::v0_07';
 use mro 'c3';
 
-our $VERSION = '0.07048_01';
+our $VERSION = '0.07049';
 
 sub _normalize_name {
     my ($self, $name) = @_;
