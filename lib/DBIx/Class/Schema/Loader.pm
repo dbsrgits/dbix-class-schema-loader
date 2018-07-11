@@ -46,7 +46,7 @@ DBIx::Class::Schema::Loader - Create a DBIx::Class::Schema based on a database
         { debug => 1,
           dump_directory => './lib',
         },
-        [ 'dbi:Pg:dbname="foo"', 'myuser', 'mypassword',
+        [ 'dbi:Pg:dbname=foo', 'myuser', 'mypassword',
            { loader_class => 'MyLoader' } # optionally
         ],
     );
@@ -514,7 +514,7 @@ these Examples:
     make_schema_at(
         'New::Schema::Name',
         { debug => 1 },
-        [ 'dbi:Pg:dbname="foo"','postgres','',
+        [ 'dbi:Pg:dbname=foo','postgres','',
           { loader_class => 'MyLoader' } # optionally
         ],
     );
@@ -525,7 +525,7 @@ these Examples:
     make_schema_at(
         'New::Schema::Name',
         { debug => 1, dump_directory => './lib' },
-        [ 'dbi:Pg:dbname="foo"','postgres','',
+        [ 'dbi:Pg:dbname=foo','postgres','',
           { loader_class => 'MyLoader' } # optionally
         ],
     );
