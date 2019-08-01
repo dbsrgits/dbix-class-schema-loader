@@ -660,6 +660,8 @@ btilly: Ben Tilly <btilly@gmail.com>
 
 domm: Thomas Klausner <domm@plix.at>
 
+ether: Karen Etheridge <ether@cpan.org>
+
 gugu: Andrey Kostenko <a.kostenko@rambler-co.ru>
 
 hobbs: Andrew Rodland <arodland@cpan.org>
