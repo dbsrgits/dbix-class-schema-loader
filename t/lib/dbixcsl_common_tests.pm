@@ -120,7 +120,7 @@ sub run_tests {
     my $col_accessor_map_tests = 6;
 
     plan tests => @connect_info *
-        (233 + $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
+        (237 + $col_accessor_map_tests + $extra_count + ($self->{data_type_tests}{test_count} || 0));
 
     foreach my $info_idx (0..$#connect_info) {
         my $info = $connect_info[$info_idx];
@@ -253,6 +253,7 @@ sub setup_schema {
         inflect_singular        => { fkid => 'fkid_singular' },
         moniker_map             => \&_monikerize,
         custom_column_info      => \&_custom_column_info,
+        exclude_columns         => \&_exclude_columns,
         debug                   => $debug,
         dump_directory          => DUMP_DIR,
         datetime_timezone       => 'Europe/Berlin',
@@ -294,7 +295,7 @@ sub setup_schema {
         my $standard_sources = not defined $expected_count;
 
         if ($standard_sources) {
-            $expected_count = 41;
+            $expected_count = 42;
 
             if (not ($self->{vendor} eq 'mssql' && $connect_info->[0] =~ /Sybase/)) {
                 $expected_count++ for @{ $self->{data_type_tests}{table_names} || [] };
@@ -741,6 +742,10 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         my $class37   = $classes->{loader_test37};
         my $rsobj37   = $conn->resultset($moniker37);
 
+        my $moniker38 = $monikers->{loader_test38};
+        my $class38   = $classes->{loader_test38};
+        my $rsobj38   = $conn->resultset($moniker38);
+
         my $moniker42 = $monikers->{loader_test42};
         my $class42   = $classes->{loader_test42};
         my $rsobj42   = $conn->resultset($moniker42);
@@ -778,6 +783,7 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
         isa_ok( $rsobj34, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj36, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj37, "DBIx::Class::ResultSet" );
+        isa_ok( $rsobj38, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj42, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj43, "DBIx::Class::ResultSet" );
         isa_ok( $rsobj44, "DBIx::Class::ResultSet" );
@@ -1011,6 +1017,12 @@ qr/\n__PACKAGE__->load_components\("TestSchemaComponent", "\+TestSchemaComponent
 
         ok( $class37->relationship_info('parent'), 'parents rel created' );
         ok( $class37->relationship_info('child'), 'child rel created' );
+
+        ok (!$class38->has_column('b_char_as_data'),
+            'column loader_test38.b_char_as_data correctly excluded' );
+        ok( $class38->has_column($_),
+            "column loader_test38.$_ correctly included" )
+            for qw/a_char_as_data b_int/;
 
         is_deeply($class32->_m2m_metadata, {}, 'many_to_many not created for might_have');
         is_deeply($class34->_m2m_metadata, {}, 'many_to_many not created for might_have');
@@ -1662,6 +1674,16 @@ sub create {
                 c_char_as_data VARCHAR(100)
             ) $self->{innodb}
         },
+
+        qq{
+            CREATE TABLE loader_test38 (
+                id INTEGER NOT NULL PRIMARY KEY,
+                a_char_as_data VARCHAR(100),
+                b_char_as_data VARCHAR(100),
+                b_int INTEGER
+            ) $self->{innodb}
+        },
+
         # DB2 does not allow nullable uniq components, SQLAnywhere automatically
         # converts nullable uniq components to NOT NULL
         qq{
@@ -2178,6 +2200,7 @@ sub drop_tables {
         LoAdEr_test24
         loader_test35
         loader_test36
+        loader_test38
         loader_test50
     /;
 
@@ -2348,6 +2371,13 @@ sub _custom_column_info {
     }
 
     return;
+}
+
+sub _exclude_columns {
+    my ( $table, $column_name, $column_info ) = @_;
+    return lc $table eq 'loader_test38'
+        && $column_name =~ /^b_/i
+        && $column_info->{data_type} =~ /char/i;
 }
 
 my %DATA_TYPE_MULTI_TABLE_OVERRIDES = (
