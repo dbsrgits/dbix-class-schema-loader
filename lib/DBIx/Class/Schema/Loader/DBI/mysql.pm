@@ -302,7 +302,7 @@ sub _extra_column_info {
         $extra_info{extra}{list} = $dbi_info->{mysql_values};
     }
     if ((not blessed $dbi_info) # isa $sth
-        && lc($dbi_info->{COLUMN_DEF})      eq 'current_timestamp'
+        && lc($dbi_info->{COLUMN_DEF})      =~ m/^current_timestamp/
         && lc($dbi_info->{mysql_type_name}) eq 'timestamp') {
 
         my $current_timestamp = 'current_timestamp';
