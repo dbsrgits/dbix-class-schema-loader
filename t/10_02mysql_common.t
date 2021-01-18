@@ -116,6 +116,10 @@ dbixcsl_common_tests->new(
         'datetime'    => { data_type => 'datetime', datetime_undef_if_invalid => 1 },
         'timestamp default current_timestamp'
                       => { data_type => 'timestamp', default_value => \'current_timestamp', datetime_undef_if_invalid => 1 },
+        'timestamp not null default current_timestamp()'
+                      => { data_type => 'timestamp', default_value => \'current_timestamp', datetime_undef_if_invalid => 1 },
+        'datetime not null default current_timestamp()'
+                      => { data_type => 'datetime', default_value => \'current_timestamp', datetime_undef_if_invalid => 1 },
         'time'        => { data_type => 'time' },
         'year'        => { data_type => 'year' },
         'year(4)'     => { data_type => 'year' },
