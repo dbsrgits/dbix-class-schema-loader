@@ -301,9 +301,12 @@ sub _extra_column_info {
     if ($dbi_info->{mysql_values}) {
         $extra_info{extra}{list} = $dbi_info->{mysql_values};
     }
+
+    # TODO MariaDB docs say that the precision may be specified inside the
+    # brackets.
     if ((not blessed $dbi_info) # isa $sth
-        && lc($dbi_info->{COLUMN_DEF})      =~ m/^current_timestamp(?:\(\))?$/
-        && lc($dbi_info->{mysql_type_name}) eq 'timestamp') {
+        && $dbi_info->{COLUMN_DEF}      =~ m/^current_timestamp(?:\(\))?$/i
+        && $dbi_info->{mysql_type_name} =~ m/^(?:timestamp|datetime)$/i) {
 
         my $current_timestamp = 'current_timestamp';
         $extra_info{default_value} = \$current_timestamp;
