@@ -415,12 +415,20 @@ sub _dbh_column_info {
 
 sub _view_definition {
     my ($self, $view) = @_;
-
-    return scalar $self->schema->storage->dbh->selectrow_array(<<'EOF', {}, $view->schema, $view->name);
+    my $viewdef = scalar $self->schema->storage->dbh
+        ->selectrow_array(<<'EOF', {}, $view->schema, $view->name);
 SELECT text
 FROM all_views
 WHERE owner = ? AND view_name = ?
 EOF
+    return $viewdef if $viewdef;
+
+    my $mview = eval { scalar $self->schema->storage->dbh
+        ->selectrow_array(<<'EOF', {}, $view->name, $view->schema);
+select dbms_metadata.get_ddl('MATERIALIZED_VIEW', ?, ?) from dual
+EOF
+                   };
+    return $mview;
 }
 
 =head1 SEE ALSO
