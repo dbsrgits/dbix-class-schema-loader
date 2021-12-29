@@ -113,14 +113,19 @@ EOF
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
+    ## Oracle's DDL for materialised views makes it really easy to conflate
+    ## with tables.  Adding the left join here means don't pick up
+    ## spurious virtual column constraints for mvs
     my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
 SELECT ac.constraint_name, acc.column_name
 FROM all_constraints ac, all_cons_columns acc
+LEFT JOIN all_mviews mv	on mv.owner = acc.owner and mv.mview_name = acc.table_name
 WHERE acc.table_name=? AND acc.owner = ?
     AND ac.table_name = acc.table_name AND ac.owner = acc.owner
     AND acc.constraint_name = ac.constraint_name
     AND ac.constraint_type = 'U'
     AND ac.status = 'ENABLED'
+    AND mv.mview_name is null
 ORDER BY acc.position
 EOF
 
