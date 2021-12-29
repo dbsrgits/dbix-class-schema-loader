@@ -422,7 +422,10 @@ FROM all_views
 WHERE view_name = ? AND owner = ?
 EOF
     return $viewdef if $viewdef;
-
+    if ($DBD::Oracle::VERSION > 1.81) {
+        warn "DBD::Oracle must be version 1.81 or greater to be able to find materialised views\n";
+        return '';
+    }
     my $mview = eval { scalar $self->schema->storage->dbh
         ->selectrow_array(<<'EOF', {}, $view->name, $view->schema);
 select dbms_metadata.get_ddl('MATERIALIZED_VIEW', ?, ?) from dual
