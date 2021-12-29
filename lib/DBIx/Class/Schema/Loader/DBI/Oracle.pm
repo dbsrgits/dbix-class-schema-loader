@@ -416,10 +416,10 @@ sub _dbh_column_info {
 sub _view_definition {
     my ($self, $view) = @_;
     my $viewdef = scalar $self->schema->storage->dbh
-        ->selectrow_array(<<'EOF', {}, $view->schema, $view->name);
+        ->selectrow_array(<<'EOF', {}, $view->name, $view->schema);
 SELECT text
 FROM all_views
-WHERE owner = ? AND view_name = ?
+WHERE view_name = ? AND owner = ?
 EOF
     return $viewdef if $viewdef;
 
