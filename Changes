@@ -1,4 +1,5 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
+0.07050 - 2022-11-20
 
         - Revert inlining of String::CamelCase::wordsplit() (RT#125929)
         - Do not require MooseX::MarkAsMethods with only_autoclean=1 (GH#21)
