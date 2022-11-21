@@ -198,6 +198,7 @@ sub _columns_info_for {
     my ($table) = @_;
 
     my ($result, $raw) = $self->next::method(@_);
+    my %pkeys;
 
     while (my ($col, $info) = each %$result) {
         my $data_type = $info->{data_type};
@@ -341,6 +342,16 @@ EOF
             elsif (${ $info->{default_value} } =~ /\bCURRENT_TIMESTAMP\b/) {
                 # PostgreSQL v10 upcases current_timestamp in default values
                 ${ $info->{default_value} } =~ s/\b(CURRENT_TIMESTAMP)\b/lc $1/ge;
+            }
+
+            # if there's a default value + it's a primary key, set to retrieve the default
+            # on insert even if it's not serial specifically
+            if (!$info->{is_auto_increment}) {
+              %pkeys = map { $_ => 1 } @{ $self->_table_pk_info($table) } unless %pkeys;
+              if ($pkeys{$col}){
+                $info->{retrieve_on_insert} = 1
+              }
+              
             }
         }
 
