@@ -348,6 +348,7 @@ EOF
             # on insert even if it's not serial specifically
             if (!$info->{is_auto_increment}) {
               %pkeys = map { $_ => 1 } @{ $self->_table_pk_info($table) } unless %pkeys;
+
               if ($pkeys{$col}){
                 $info->{retrieve_on_insert} = 1
               }
