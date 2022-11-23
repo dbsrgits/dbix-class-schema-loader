@@ -1,4 +1,7 @@
 Revision history for Perl extension DBIx::Class::Schema::Loader
+
+        - Make defaulting primary key columns retrieve_on_insert for Pg (GH#28)
+
 0.07050 - 2022-11-20
 
         - Revert inlining of String::CamelCase::wordsplit() (RT#125929)
