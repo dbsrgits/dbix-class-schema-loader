@@ -444,7 +444,7 @@ For example:
         if ($p{local_table} eq 'dogs' && @{$p{local_cols}} == 1 && $p{local_cols}[0] eq 'name') {
             $p{attrs}{could_be_snoopy} = 1;
 
-            reutrn $p{attrs};
+            return $p{attrs};
         }
     },
 
