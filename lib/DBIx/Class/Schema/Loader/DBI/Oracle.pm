@@ -113,14 +113,19 @@ EOF
 sub _table_uniq_info {
     my ($self, $table) = @_;
 
+    ## Oracle's DDL for materialised views makes it really easy to conflate
+    ## with tables.  Adding the left join here means don't pick up
+    ## spurious virtual column constraints for mvs
     my $sth = $self->dbh->prepare_cached(<<'EOF', {}, 1);
 SELECT ac.constraint_name, acc.column_name
 FROM all_constraints ac, all_cons_columns acc
+LEFT JOIN all_mviews mv	on mv.owner = acc.owner and mv.mview_name = acc.table_name
 WHERE acc.table_name=? AND acc.owner = ?
     AND ac.table_name = acc.table_name AND ac.owner = acc.owner
     AND acc.constraint_name = ac.constraint_name
     AND ac.constraint_type = 'U'
     AND ac.status = 'ENABLED'
+    AND mv.mview_name is null
 ORDER BY acc.position
 EOF
 
@@ -415,12 +420,23 @@ sub _dbh_column_info {
 
 sub _view_definition {
     my ($self, $view) = @_;
-
-    return scalar $self->schema->storage->dbh->selectrow_array(<<'EOF', {}, $view->schema, $view->name);
+    my $viewdef = scalar $self->schema->storage->dbh
+        ->selectrow_array(<<'EOF', {}, $view->name, $view->schema);
 SELECT text
 FROM all_views
-WHERE owner = ? AND view_name = ?
+WHERE view_name = ? AND owner = ?
 EOF
+    return $viewdef if $viewdef;
+    if ($DBD::Oracle::VERSION < 1.81) {
+        warn "DBD::Oracle must be version 1.81 or greater to be able to find materialised views\n";
+        return '';
+    }
+    my $mview = eval { scalar $self->schema->storage->dbh
+        ->selectrow_array(<<'EOF', {}, $view->name, $view->schema);
+select dbms_metadata.get_ddl('MATERIALIZED_VIEW', ?, ?) from dual
+EOF
+                   };
+    return $mview;
 }
 
 =head1 SEE ALSO
