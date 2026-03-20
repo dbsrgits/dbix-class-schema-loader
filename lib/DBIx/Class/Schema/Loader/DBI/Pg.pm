@@ -279,11 +279,16 @@ EOF
     elsif ( $data_type =~ /^(?:numeric|decimal)\z/i
       && ( my $size = $info->{size} ) )
     {
-      $size =~ s/\s*//g;
-
-      my ( $scale, $precision ) = split /,/, $size;
-
-      $info->{size} = [ $precision, $scale ];
+      if ( !ref( $size ) ) {
+        # DBD::Pg 3.19+ returns COLUMN_SIZE and DECIMAL_DIGITS as
+        # separate integers. The Schema Loader base layer handles that.
+        # DBD::Pg prior to version 3.19 returned COLUMN_SIZE as a
+        # comma-separated string with DECIMAL_DIGITS=undef, so the
+        # string needs to be split.
+        $size =~ s/\s*//g;
+        my ( $scale, $precision ) = split /,/, $size;
+        $info->{size} = [ $precision, $scale ];
+      }
     }
     elsif ( lc($data_type) eq 'character varying' ) {
       $info->{data_type} = 'varchar';
