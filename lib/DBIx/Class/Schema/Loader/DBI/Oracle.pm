@@ -70,6 +70,17 @@ sub _dbh_tables {
     return $self->dbh->tables(undef, $schema, '%', 'TABLE,VIEW');
 }
 
+sub _dbh_table_info {
+    my ($self, $dbh, $table) = @_;
+    my $info = $self->next::method($dbh, $table);
+    my ($is_mview) =
+        $self->dbh->selectrow_array('select name from all_registered_mviews where owner = ? and name = ?',
+                                    {}, $self->db_schema->[0], $table);
+    $info->{TABLE_TYPE} = 'VIEW' if $is_mview;
+    return $info;
+}
+
+
 sub _filter_tables {
     my $self = shift;
 
@@ -416,11 +427,20 @@ sub _dbh_column_info {
 sub _view_definition {
     my ($self, $view) = @_;
 
-    return scalar $self->schema->storage->dbh->selectrow_array(<<'EOF', {}, $view->schema, $view->name);
+    my $viewdef = scalar $self->schema->storage->dbh->selectrow_array(<<'EOF', {}, $view->schema, $view->name);
 SELECT text
 FROM all_views
 WHERE owner = ? AND view_name = ?
 EOF
+
+    if (! $viewdef) {
+        $viewdef = scalar $self->schema->storage->dbh->selectrow_array(<<'EOF', {}, $view->schema, $view->name);
+SELECT query_txt
+FROM all_registered_mviews
+WHERE owner = ? AND name = ?
+EOF
+    }
+    return $viewdef;
 }
 
 =head1 SEE ALSO
