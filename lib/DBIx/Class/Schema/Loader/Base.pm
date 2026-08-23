@@ -2696,7 +2696,7 @@ sub _setup_src_meta {
     }
 
     my @non_nullable_uniqs = grep {
-        all { $col_info->{$_}{is_nullable} == 0 } @{ $_->[1] }
+        all { exists $col_info->{$_} && $col_info->{$_}{is_nullable} == 0 } @{ $_->[1] }
     } @uniqs;
 
     if ($self->uniq_to_primary && (not @$pks) && @non_nullable_uniqs) {
