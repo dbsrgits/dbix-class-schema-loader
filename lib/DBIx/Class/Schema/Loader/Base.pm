@@ -61,6 +61,7 @@ __PACKAGE__->mk_group_ro_accessors('simple', qw/
                                 result_base_class
                                 result_roles
                                 use_moose
+                                no_nonmoose
                                 only_autoclean
                                 overwrite_modifications
                                 dry_run
@@ -980,6 +981,11 @@ L<MooseX::MarkAsMethods> (or L<namespace::autoclean>, see below). The default
 content after the md5 sum also makes the classes immutable.
 
 It is safe to upgrade your existing Schema to this option.
+
+=head2 no_nonmoose
+
+When combined with C<use_moose>, prevents adding L<MooseX::NonMoose> to
+result classes (Not recommended!)
 
 =head2 only_autoclean
 
@@ -2062,7 +2068,13 @@ sub _dump_to_dir {
             unless $result_base_class eq 'DBIx::Class::Core';
 
         if ($self->use_moose) {
-            $src_text.= qq|use Moose;\nuse MooseX::NonMoose;\nuse $autoclean;|;
+            my $nonmoose
+                = $self->no_nonmoose
+                ? ''
+                : "use MooseX::NonMoose;\n"
+                ;
+
+            $src_text.= qq|use Moose;\n${nonmoose}use $autoclean;|;
 
             # these options 'use base' which is compile time
             if (@{ $self->left_base_classes } || @{ $self->additional_base_classes }) {
